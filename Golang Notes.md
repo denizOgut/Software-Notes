@@ -6080,3 +6080,437 @@ for rows.Next() {
 }
 ```
 
+
+# GO - TESTING
+
+Go'da birim testleri için standart kütüphanede bulunan testing paketi kullanır.
+Anahtar Notlar: Test işlemlerinde karşılaştığımız önemli iki terim vardır: Verification & Validation (V&V).  
+Verification, yazılmış olan kodun doğru çalışmasıdır. Validation kodun doğru işi yapmasıdır.
+
+**assert.go**
+
+```go
+package assert  
+  
+import "testing"  
+  
+func AssertEqualsFloat64(t *testing.T, errorMessage string, expected, actual float64) {  
+    if expected != actual {  
+       t.Error(errorMessage)  
+    }}  
+  
+func AssertEqualsBool(t *testing.T, errorMessage string, expected, actual bool) {  
+    if expected != actual {  
+       t.Error(errorMessage)  
+    }}  
+  
+func AssertTrue(t *testing.T, errorMessage string, result bool) {  
+    if !result {  
+       t.Error(errorMessage)  
+    }}  
+func AssertFalse(t *testing.T, errorMessage string, result bool) {  
+    if result {  
+       t.Error(errorMessage)  
+    }
+}
+```
+
+**clog_test.go**
+
+```go
+package cmath  
+  
+import (  
+    "SampleGoLand/csd/cmath"  
+    "SampleGoLand/test/assert"    "fmt"    "math"    "testing")  
+  
+func Test_CLog(t *testing.T) {  
+    var input float64 = 100  
+    var expected float64 = math.Log(input)  
+    actual, _ := cmath.CLog(input)  
+  
+    assert.AssertEqualsFloat64(t, fmt.Sprintf("Test CLog FAIL:Input:%f, Expected:%f, Actual:%f\n", input, expected, actual), expected, actual)  
+}  
+  
+func Test_CLog_Error(t *testing.T) {  
+    var input float64 = -2  
+  
+    _, err := cmath.CLog(input)  
+  
+    if err == nil {  
+       t.Errorf("Function must give error for the input:%f", input)  
+    } else {  
+       t.Logf("SUCCESS: Message:%s", err.Error())  
+    }}
+```
+
+**csqrt_test.go**
+```go
+package cmath  
+  
+import (  
+    "SampleGoLand/csd/cmath"  
+    "SampleGoLand/test/assert"    "fmt"    "testing")  
+  
+func Test_CSqrt(t *testing.T) {  
+    var input float64 = 100  
+    var expected float64 = 10  
+    actual, _ := cmath.CSqrt(input)  
+  
+    assert.AssertEqualsFloat64(t, fmt.Sprintf("Test Sqrt FAIL:Input:%f, Expected:%f, Actual:%f\n", input, expected, actual), expected, actual)  
+}
+```
+
+**isprime_test.go**
+
+```go
+package numeric  
+  
+import (  
+    "SampleGoLand/csd/numeric"  
+    "SampleGoLand/test/assert"    "fmt"    "testing")  
+  
+func Test_IsPrime(t *testing.T) {  
+    inputs := []struct { //Şüphesiz veriler herhangi bir kaynaktan (source) da elde edilebilir  
+       val      int  
+       expected bool  
+    }{  
+       {val: 19, expected: true},  
+       {val: 2, expected: true},  
+       {val: 1000003, expected: true},  
+       {val: -1, expected: false},  
+       {val: 1, expected: false},  
+    }  
+    for _, data := range inputs {  
+       actual := numeric.IsPrime(data.val)  
+       assert.AssertEqualsBool(t, fmt.Sprintf("Test_IsPrime FAIL: Value:%d, Expected:%t, Actual:%t", data.val, data.expected, actual), data.expected, actual)  
+    }}
+```
+
+---
+
+### WEB NOTES
+
+Unit tests are a way to test small pieces of code, such as functions and methods. This is useful because it allows you to find bugs early. Unit tests make your testing strategies more efficient, since they are small and independent, and thus easy to maintain.
+
+```go
+package main
+
+import "strconv"
+
+// If the number is divisible by 3, write "Foo" otherwise, the number
+func Fooer(input int) string {
+
+    isfoo := (input % 3) == 0
+
+    if isfoo {
+        return "Foo"
+    }
+
+    return strconv.Itoa(input)
+}
+```
+
+Unit tests in Go are located in the same package (that is, the same folder) as the tested function. By convention, if your function is in the file `fooer.go` file, then the unit test for that function is in the file `fooer_test.go`.
+
+```go
+package main
+import "testing"
+func TestFooer(t *testing.T) {
+    result := Fooer(3)
+    if result != "Foo" {
+    t.Errorf("Result was incorrect, got: %s, want: %s.", result, "Foo")
+    }
+}
+```
+
+A test function in Go starts with `Test` and takes [`*testing.T`](https://pkg.go.dev/testing#T) as the only parameter. In most cases, you will name the unit test `Test[NameOfFunction]`
+
+You can run your tests using the command line:
+
+> go test
+
+## **Writing Table-Driven Tests**
+
+When writing tests, you may find yourself repeating a lot of code in order to cover all the cases required.
+
+You could write one test function per case, but this would lead to a lot of duplication. You could also call the tested function several times in the same test function and validate the output each time, but if the test fails, it can be difficult to identify the point of failure. Instead, you can use a table-driven approach to help reduce repetition.
+
+this involves organizing a test case as a table that contains the inputs and the desired outputs.
+
+This comes with two benefits:
+
+- Table tests reuse the same assertion logic, keeping your test [DRY](https://blog.jetbrains.com/dotnet/2021/02/08/make-code-more-readable-by-refactoring-with-resharper/#DRY_readability).
+- Table tests make it easy to know what is covered by a test, as you can easily see what inputs have been selected. Additionally, each row can be given a unique name to help identify what’s being tested and express the intent of the test.
+
+```go
+func TestFooerTableDriven(t *testing.T) {
+      // Defining the columns of the table
+        var tests = []struct {
+        name string
+            input int
+            want  string
+        }{
+            // the table itself
+            {"9 should be Foo", 9, "Foo"},
+            {"3 should be Foo", 3, "Foo"},
+            {"1 is not Foo", 1, "1"},
+            {"0 should be Foo", 0, "Foo"},
+        }
+      // The execution loop
+        for _, tt := range tests {
+            t.Run(tt.name, func(t *testing.T) {
+                ans := Fooer(tt.input)
+                if ans != tt.want {
+                    t.Errorf("got %s, want %s", ans, tt.want)
+                }
+            })
+        }
+    }
+```
+
+A table-driven test starts by defining the input structure. You can see this as defining the columns of the table. Each row of the table lists a test case to execute. Once the table is defined, you write the execution loop.
+
+The execution loop calls [`t.Run()`](https://pkg.go.dev/testing#T.Run), which defines a subtest. As a result, each row of the table defines a subtest named `[NameOfTheFuction]/[NameOfTheSubTest]`.
+
+This way of writing tests is very popular, and considered the canonical way to write unit tests in Go.
+
+## **The Testing Package**
+
+The `testing` package plays a pivotal role in Go testing. It enables developers to create unit tests with different types of test functions. The `testing.T` type offers methods to control test execution, such as running tests in parallel with [`Parallel()`](https://pkg.go.dev/testing#T.Parallel), skipping tests with [`Skip()`](https://pkg.go.dev/testing#T.Skip), and calling a test teardown function with [`Cleanup()`](https://pkg.go.dev/testing#T.Cleanup).
+
+### Errors and Logs
+
+==It is important to mention that `t.Error*` does not stop the execution of the test. Instead, all encountered errors will be reported once the test is completed. Sometimes it makes more sense to fail the execution; in that case, you should use `t.Fatal*`==
+
+```go
+func TestFooer2(t *testing.T) {
+            input := 3
+            result := Fooer(3)
+            t.Logf("The input was %d", input)
+            if result != "Foo" {
+                t.Errorf("Result was incorrect, got: %s, want: %s.", result, "Foo")
+            }
+            t.Fatalf("Stop the test now, we have seen enough")
+            t.Error("This won't be executed")
+        }
+```
+
+### Running Parallel Tests
+
+By default, tests are run sequentially; the method [`Parallel()`](https://pkg.go.dev/testing#T.Parallel) signals that a test should be run in parallel. All tests calling this function will be executed in parallel. `go test` handles parallel tests by pausing each test that calls `t.Parallel()`, and then resuming them in parallel when all non-parallel tests have been completed.
+
+The `GOMAXPROCS` environment defines how many tests can run in parallel at one time, and by default this number is equal to the number of CPUs.
+
+```go
+func TestFooerParallel(t *testing.T) {
+        t.Run("Test 3 in Parallel", func(t *testing.T) {
+            t.Parallel()
+            result := Fooer(3)
+            if result != "Foo" {
+                t.Errorf("Result was incorrect, got: %s, want: %s.", result, "Foo")
+            }
+        })
+        t.Run("Test 7 in Parallel", func(t *testing.T) {
+            t.Parallel()
+            result := Fooer(7)
+            if result != "7" {
+                t.Errorf("Result was incorrect, got: %s, want: %s.", result, "7")
+            }
+        })
+    }
+```
+
+To reduce duplication, you may want to use table-driven tests when using `Parallel()`.
+
+### Skipping Tests
+
+Using the [`Skip()`](https://pkg.go.dev/testing#T.Skip) method allows you to separate unit tests from [integration tests](https://medium.com/@victorsteven/understanding-unit-and-integrationtesting-in-golang-ba60becb778d). Integration tests validate multiple functions and components together and are usually slower to execute, so sometimes it’s useful to execute unit tests only.
+
+```go
+func TestFooerSkiped(t *testing.T) {
+        if testing.Short() {
+            t.Skip("skipping test in short mode.")
+        }
+        result := Fooer(3)
+        if result != "Foo" {
+            t.Errorf("Result was incorrect, got: %s, want: %s.", result, "Foo")
+        }
+    }
+```
+
+This test will be executed if you run `go test -v`, but will be skipped if you run `go test -v -test.short`.
+
+### Test Teardown and Cleanup
+
+The [`Cleanup()`](https://pkg.go.dev/testing#T.Cleanup) method is convenient for managing test tear down.
+Using the `defer` solution looks like this:
+
+```go
+func Test_With_Cleanup(t *testing.T) {
+
+  // Some test code
+
+  defer cleanup()
+
+  // More test code
+}
+```
+
+While this is simple enough, it comes with a few issues The main argument against the `defer` approach is that it can make test logic more complicated to set up, and can clutter the test function when many components are involved.
+
+The `Cleanup()` function is executed at the end of each test (including subtests), and makes it clear to anyone reading the test what the intended behavior is.
+
+```go
+func Test_With_Cleanup(t *testing.T) {
+
+  // Some test code here
+
+    t.Cleanup(func() {
+        // cleanup logic
+    })
+
+  // more test code here
+
+}
+```
+
+[`Helper()`](https://pkg.go.dev/testing#T.Helper) method. This method exists to improve the logs when a test fails. In the logs, the line number of the helper function is ignored and only the line number of the failing test is reported, which helps figure out which test failed.
+
+```go
+func helper(t *testing.T) {
+  t.Helper()
+  // do something
+}
+
+func Test_With_Cleanup(t *testing.T) {
+
+  // Some test code here
+
+    helper(t)
+
+  // more test code here
+
+}
+```
+
+[`TempDir()`](https://pkg.go.dev/testing#T.TempDir) is a method that automatically creates a temporary directory for your test and deletes the folder when the test is completed, removing the need to write additional cleanup logic.
+
+```go
+func TestFooerTempDir(t *testing.T) {
+    tmpDir := t.TempDir()
+
+  // your tests
+}
+```
+
+## **Writing Coverage Tests**
+
+As tests are crucial to modern development work, it’s essential to know how much of your code is covered by tests. You can use Go’s built-in tool to generate a test report for the package you’re testing by simply adding the `-cover` flag in the test command:
+
+```go
+go test -cover
+```
+
+By default, test coverage calculates the percentage of statements covered through tests.
+
+There are various arguments that can be passed to `go test -cover`. For example, `go test` only considers packages with test files in the coverage calculation. You can use `-​coverpkg` to include all packages in the coverage calculation:
+
+```go
+go test ./... -coverpkg=./...
+```
+
+also use go tool cover to format the report. For example, the `-html` flag will open your default browser to display a graphical report.
+
+```go
+go tool cover -html=output_filename
+```
+
+The last flag  [`-covermode`](https://go.dev/blog/cover#heat-maps) . By default, the coverage is calculated based on the statement coverage, but this can be changed to take into account how many times a statement is covered. There are several different options:
+
+- `set`: Coverage is based on statements.
+- `count`: Count is how many times a statement was run. It allows you to see which parts of code are only lightly covered.
+- `atomic`: Similar to count, but for parallel tests.
+
+Knowing which flag to use when running coverage tests is most important when running tests in your CI/CD 
+
+## **Writing Benchmark Tests**
+
+Benchmark tests are a way of testing your code performance. The goal of those tests is to verify the runtime and the memory usage of an algorithm by running the same function many times.
+
+To create a benchmark test:
+
+- Your test function needs to be in a `*_test` file.
+- The name of the function must start with `Benchmark`.
+- The function must accept `*testing.B` as the unique parameter.
+- The test function must contain a `for` loop using `b.N` as its upper bound.
+
+```go
+func BenchmarkFooer(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        Fooer(i)
+    }
+}
+```
+
+The target code should be run `N` times in the benchmark function, and `N` is automatically adjusted at runtime until the execution time of each iteration is statistically stable.
+
+have to use other tools if you want to save and analyze the results in your CI/CD. [`perf/cmd`](https://golang.org/x/perf/cmd) offers packages for this purpose. [`benchstat`](https://golang.org/x/perf/cmd/benchstat) can be used to analyze the results, and [`benchsave`](https://pkg.go.dev/golang.org/x/perf/cmd/benchsave) can be used to save the result.
+
+## **Writing Fuzz Tests**
+
+Fuzz testing is an exciting testing technique in which random input is used to discover bugs or edge cases. Go’s fuzzing algorithm is smart because it will try to cover as many statements in your code as possible by generating many new input combinations.
+
+To create a fuzz test:
+
+- Your test function needs to be in a `_test` file.
+- The name of the function must start with `Fuzz`.
+- The test function must accept `testing.F` as the unique parameter.
+- The test function must define initial values, called [seed corpus](https://go.dev/security/fuzz/#glos-seed-corpus), with the `f.Add()` method.
+- The test function must define a [fuzz target](https://go.dev/security/fuzz/#glos-fuzz-target).
+
+```go
+func FuzzFooer(f *testing.F) {
+    f.Add(3)
+    f.Fuzz(func(t *testing.T, a int) {
+        Fooer(a)
+    })
+}
+```
+
+The goal of the fuzz test is not to validate the output of the function, but instead to use unexpected inputs to find potential edge cases. By default, fuzzing will run indefinitely, as long as there isn’t a failure. The `-fuzztime` flag should be used in your CI/CD to specify the maximum time for which fuzzing should run. This approach to testing is particularly interesting when your code has many branches; even with table-driven tests, it can be hard to cover a large set of input, and fuzzing helps to solve this problem.
+
+## **The Testify Package**
+
+[Testify](https://github.com/stretchr/testify) is a testing framework providing many tools for testing Go code.
+
+Testify can be installed with the command `go get github.com/stretchr/testify`.
+
+Testify provides assert functions and mocks, which are similar to traditional testing frameworks, like [JUnit](https://junit.org/junit5/) for Java
+
+```go
+func TestFooerWithTestify(t *testing.T) {
+
+    // assert equality
+    assert.Equal(t, "Foo", Fooer(0), "0 is divisible by 3, should return Foo")
+
+    // assert inequality
+    assert.NotEqual(t, "Foo", Fooer(1), "1 is not divisible by 3, should not return Foo")
+}
+```
+
+Testify provides two packages, `require` and `assert`. The `require` package will stop execution if there is a test failure, which helps you fail fast. `assert` lets you collect information, but accumulate the results of assertions.
+
+```go
+func TestMapWithTestify(t *testing.T) {
+
+    // require equality
+    require.Equal(t, map[int]string{1: "1", 2: "2"}, map[int]string{1: "1", 2: "3"})
+
+    // assert equality
+    assert.Equal(t, map[int]string{1: "1", 2: "2"}, map[int]string{1: "1", 2: "2"})
+}
+```
+
+The output log also clearly indicates the difference between the actual output and the expected output. Compared to Go’s built-in `testing` package, the output is more readable, especially when the testing data is complicated, such as with a long map or a complicated object. The log points out exactly which line is different, which can boost your productivity.
+

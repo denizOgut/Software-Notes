@@ -61,7 +61,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Golang Notes.md",
                 "mode": "source",
                 "source": false
               }
@@ -134,7 +134,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Golang Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -151,7 +151,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Golang Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -174,7 +174,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+                "file": "Golang Notes.md"
               }
             }
           }
@@ -197,11 +197,13 @@
   },
   "active": "5f16a1fdb8669251",
   "lastOpenFiles": [
+    "100 Go Mistakes and How to Avoid Them.md",
+    "Golang Notes.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "UML & DESIGN PATTERNS.md",
     "JAVA APP KEY NOTES.md",
     "DATABASE PROGRAMMING NOTES.md",
     "CLEAN CODE NOTES.md",
-    "UML & DESIGN PATTERNS.md",
     "EFFECTIVE JAVA NOTES.md"
   ]
 }

@@ -321,7 +321,7 @@ func Store(key, value string) error {
 }
 ```
 
-Because main depends on redis, the redis package’s init function is executed first, followed by the [](https://livebook.manning.com/book/100-go-mistakes-and-how-to-avoid-them/chapter-2/)init of the main package, and then the main function itself.
+Because main depends on redis, the redis package’s init function is executed first, followed by the init of the main package, and then the main function itself.
 
 We can define multiple init functions per package. When we do, the execution order of the init function inside the package is based on the source files’ alphabetical order. For example, if a package contains an a.go file and a b.go file and both have an init function, the a.go init function is executed first.
 
