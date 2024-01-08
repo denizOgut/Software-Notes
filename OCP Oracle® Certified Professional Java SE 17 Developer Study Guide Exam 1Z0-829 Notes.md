@@ -1078,3 +1078,377 @@ My Answer: C
 
 ---
 
+# Chapter 1 - Building Blocks
+
+## Learning about the Environment
+
+### Major Components of Java
+
+The Java Development Kit (JDK) contains the minimum software you need to do Java
+development. Key commands include:
+
+- `javac`: Converts .java source files into .class bytecode
+- java: Executes the program
+- jar: Packages files together
+- `javadoc`: Generates documentation
+
+The `javac` program generates instructions in a special format called bytecode that
+the java command can run.
+
+Then java launches the Java Virtual Machine (JVM) before running the code The JVM knows how to run bytecode on the actual machine it is on.
+
+think of the JVM as a special magic box on your machine that knows how to run your
+.class file within your particular operating system and hardware.
+
+---
+
+**Where Did the JRE Go?**
+
+In Java 8 and earlier, you could download a Java Runtime Environment (JRE) instead of the
+full JDK. The JRE was a subset of the JDK that was used for running a program but could
+not compile one.
+
+Now, people can use the full JDK when running a Java program. Alternatively,
+developers can supply an executable that contains the required pieces that would
+have been in the JRE.
+
+When writing a program, there are common pieces of functionality and algorithms that
+developers need. Java comes with a large suite of application programming interfaces (APIs) that you can use.
+
+For example, there is a `StringBuilder` class to create a large `String` and a method in `Collections` to sort a list. When writing a program, it is helpful to determine what pieces of your assignment can be accomplished by existing APIs.
+
+---
+
+### Downloading a JDK
+
+Every six months, Oracle releases a new version of Java. 
+The rules and behavior can change with later versions of Java.
+There are many JDKs available, the most popular of which, besides Oracle’s JDK, is OpenJDK.
+
+Many versions of Java include preview features that are off by default but that you can
+enable. Preview features are not on the exam.
+
+---
+**Check Your Version of Java**
+
+```shell
+javac -version
+java -version
+```
+
+---
+
+
+## Understanding the Class Structure
+
+In Java programs, classes are the basic building blocks. When defining a class, you describe
+all the parts and characteristics of one of those building blocks.
+
+To use most classes, you have to create objects.  An object is a runtime instance of a class
+in memory. An object is often referred to as an instance since it represents a single representation of the class.
+
+All the various objects of all the different classes represent the state of
+your program. A reference is a variable that points to an object.
+
+### Fields and Methods
+
+Java classes have two primary elements: **methods**, often called functions or procedures in
+other languages, and **fields**, more generally known as variables.
+Together these are called the members of the class.
+
+Variables hold the state of the program, and methods operate on that
+state. If the change is important to remember, a variable stores that change.
+
+The simplest Java class you can write looks like this:
+
+```java
+1: public class Animal {
+2: }
+```
+
+Line 1 includes the `public` keyword, which allows other classes to use it. The `class` keyword indicates you’re defining a class. Animal gives the name of the class.
+
+```java
+1: public class Animal {
+2: String name;
+3: }
+```
+
+On line 2, we define a variable named name. We also declare the type of that variable to
+be `String`.
+
+```java
+1: public class Animal {
+2: String name;
+3: public String getName() {
+4: return name;
+5: }
+6: public void setName(String newName) {
+7: name = newName;
+8: }
+9: }
+```
+
+On lines 3–5, we define a method. A method is an operation that can be called. Again,
+`public` is used to signify that this method may be called from other classes
+
+Next comes the return type—in this case, the method returns a `String`.
+On lines 6–8 is another method. This one has a special return type called void.
+The `void` keyword means that no value at all is returned.
+
+This method requires that information be supplied to it from the calling method;
+this information is called a *parameter*.
+
+The `setName()` method has one parameter named `newName`, and it is of type String.
+This means the caller should pass in one String parameter and expect nothing to be returned.
+
+The method name and parameter types are called the method signature.
+
+```java
+public int numberVisitors(int month) {
+	return 10;
+}
+```
+
+The method name is `numberVisitors`. There’s one parameter named month,
+which is of type `int`, which is a numeric type. the method signature is
+**`numberVisitors(int).`**
+
+### Comments
+
+Another common part of the code is called a comment. Because comments aren’t executable
+code, you can place them in many places. Comments can make your code easier to read.
+
+There are three types of comments in Java. 
+**single-line comment**:
+
+```java
+// comment until end of line
+```
+
+A single-line comment begins with two slashes. The compiler ignores anything you type
+after that on the same line.
+
+**multiple-line comment**
+
+```java
+/* Multiple
+* line comment
+*/
+```
+
+A multiple-line comment includes anything starting from the symbol /* until the symbol  * /.
+
+**Javadoc comment**
+
+```go
+/**
+* Javadoc multiple-line
+comment
+* @author Jeanne and Scott
+*/
+```
+
+
+This comment is similar to a multiline comment, except it starts with `/**`.   This special
+syntax tells the Javadoc tool to pay attention to the comment.
+Javadoc comments have a specific structure that the Javadoc tool knows how to read.
+
+```java
+/*
+* // anteater
+*/
+// bear
+// // cat
+// /* dog */
+/* elephant */
+/*
+* /* ferret */
+*/
+```
+
+The line with ferret is interesting in that it doesn’t compile. Everything from the first /* to
+the first */ is part of the comment which means the compiler sees something like this:
+`/* * /  */`
+
+There is an extra `*/`. That’s not valid syntax
+
+### Classes and Source Files
+
+Most of the time, each Java class is defined in its own .java file. 
+A top-level type is a data structure that can be defined independently within a source file.
+A top-level class is often `public`, which means any code can call it. Interestingly, Java does
+not require that the type be `public`
+
+```java
+1: class Animal {
+2: String name;
+3: }
+```
+
+You can even put two types in the same file. When you do so, **==at most one of the top-level**==
+==**types in the file is allowed to be public==**
+
+```java
+1: public class Animal {
+2: private String name;
+3: }
+4: class Animal2 {} // Bold
+```
+
+**==If you do have a public type, it needs to match the filename**. The declaration==
+==public class Animal2 would not compile in a file named **`Animal.java`**.==
+
+
+## Writing a main() Method
+
+A Java program begins execution with its main() method. 
+The main() method is often called an entry point into the program, because it is the starting point that the JVM looks for when it begins running a new program.
+
+### Creating a main() Method
+
+```java
+1: public class Zoo {
+2: public static void main(String[] args) { // Bold
+3: System.out.println("Hello World");
+4: }
+5: }
+```
+
+To compile and execute this code, type it into a file called Zoo.java and execute the following:
+
+```shell
+javac Zoo.java
+java Zoo
+```
+
+To compile Java code with the `javac` command, the file must have the extension .java
+The name of the file must match the name of the public class.  The result is a file of bytecode
+with the same name but with a .class filename extension.
+
+To keep things simple
+for now, we follow this subset of the rules:
+- ==**Each file can contain only one public class.**==
+- ==**The filename must match the class name, including case, and have a .java extension.**==
+- ==**If the Java class is an entry point for the program, it must contain a valid main() method.**==
+
+review the words in the main() method’s signature, one at a time. 
+
+The keyword `public` is what’s called an access modifier. It declares this method’s level of exposure to potential callers in the program. Naturally, public means full access from anywhere in the program.
+
+The keyword `static` binds a method to its class so it can be called by just the class name 
+Java doesn’t need to create an object to call the main() method 
+
+The keyword `void` represents the return type. A method that returns no data returns control
+to the caller silently.  In general, it’s good practice to use void for methods that change an
+object’s state. In that sense, the main() method changes the program state from started to finished.
+
+Finally, the main() method’s parameter list, represented as an array of `java.lang.String` objects. can use any valid variable name along with any of these three formats:
+
+- ==**`String[] args`**==
+- ==**`String options[]`**==
+- ==**`String... friends`**==
+
+The variable name args is common because it hints that this list contains values that were read in (arguments) when the JVM started.
+
+---
+**Optional Modifiers in main() Methods** #TIP
+
+While most modifiers, such as public and static, are required for main() methods,
+there are some optional modifiers allowed.
+
+```java
+public final static void main(final String[] args) {}
+```
+
+both **final** modifiers are optional, and the main() method is a valid entry point with or without them.
+
+---
+
+### Passing Parameters to a Java Program
+
+```java
+public class Zoo {
+public static void main(String[] args) {
+System.out.println(args[0]);
+System.out.println(args[1]);
+}
+}
+```
+
+The code args[0] accesses the first element of the array.
+To run:
+```bash
+javac Zoo.java
+java Zoo Bronx Zoo
+```
+
+The output: 
+
+```
+Bronx
+Zoo
+```
+
+The program correctly identifies the first two “words” as the arguments. Spaces are used
+to separate the arguments. **==want spaces inside an argument, you need to use quotes==**
+
+```shell
+javac Zoo.java
+java Zoo "San Diego" Zoo
+```
+
+what happens if you don’t pass in enough arguments?
+
+```shell
+javac Zoo.java
+java Zoo Zoo
+```
+
+Reading args[0] goes fine, and Zoo is printed out. Then Java panics. There’s no second
+argument! Java prints out an exception telling you it has no idea what to do with this argument at position 1.
+
+```java
+Zoo
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException:
+Index 1 out of bounds for length 1
+at Zoo.main(Zoo.java:4)
+```
+
+To review, the JDK contains a compiler. Java class files run on the JVM and therefore run
+on any machine with Java rather than just the machine or operating system they happened
+to have been compiled on.
+
+---
+
+**Single-File Source-Code**
+
+```shell
+java Zoo.java Bronx Zoo
+```
+
+There is a key difference here. When compiling first, you omitted the .java extension
+when running java. When skipping the explicit compilation step, you include this
+extension. This feature is called launching single-file source-code programs and is useful for
+testing or for small programs.
+
+---
+
+
+## Understanding Package Declarations and Imports
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
