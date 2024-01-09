@@ -61,6 +61,8 @@ Bu anlamda portability genel olarak ikiye ayrılabilir: kod taşınabilirliği (
 * program taşınabilirliği (program portability):
 	* Programın taşınabilirliği ise üretilen kodun bir sisteme özgü olmaması dolayısıyla bir kez üretilip her sistemde çalıştırılabilmesidir.
 
+---
+
 # TYPES
 
 Golang is a statically typed programming language meaning that each variable has a type.
@@ -335,6 +337,7 @@ func main() {
 	A variable once inİtialized with a particular type, cannot be assigned a value of different type later. 
 	This is applicable for short hand declaration is well.	
 
+---
 
 # CONSTANT
 
@@ -1283,6 +1286,8 @@ fmt.Println(add(1, 2, 3))
 fmt.Println(add(1, 2, 3, 4))
 
 ```
+
+
 ---
 
 # PRINTF
@@ -1481,6 +1486,7 @@ func main() {
 
 ```
 
+---
 
 # LITERALS
 
@@ -1534,6 +1540,7 @@ const billion = 1_000_000_000
 const trillion = 1_000_000_000_000
 ```
 
+---
 
 # OPERATORS
 
@@ -1657,6 +1664,8 @@ func main() {
 
 ```
 
+---
+
 # STATEMENTS
 
 ## Basit Deyimler (Simple Statements)
@@ -1774,6 +1783,7 @@ func main() {
 }
 
 ```
+
 ---
 
 # LOOPS
@@ -2034,6 +2044,7 @@ func main() {
    }
 }
 ```
+
 ---
 
 # SWITCH
@@ -2246,6 +2257,7 @@ func printType(t interface{}) {
 }
 
 ```
+
 ---
 
 # TYPE CONVERSION
@@ -2340,9 +2352,325 @@ Küçük işaretli tamsayı türünden büyük işaretli tamsayı türüne yapı
 
 Büyük işaretli tamsayı türünden küçük işaretli tamsayı türüne yapılan dönüşümde sayının yüksek anlamlı byte değerleri atılır, elde edilen sayı atanır. Bu durumda bilgi kaybı oluşabilir.
 
+---
+# DEFER
+
+//...
+
+### WEB NOTES
+
+Defer  is used to defer the cleanup activities in a function. These cleanup activities will be performed at the end of the function.
+This cleanup activities will be done in a different function called by defer.  This different function is called at the end of the surrounding function before it returns.
+
+```go
+defer {function_or_method_call}
+```
+
+Things to note about defer function
+
+- Execution of a deferred function is delayed to the moment the surrounding function returns
+- deferred function will also be executed if the enclosing function terminates abruptly. For example in case of a panic
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    err := writeToTempFile("Some text")
+    if err != nil {
+        log.Fatalf(err.Error())
+    }
+    fmt.Printf("Write to file succesful")
+}
+
+func writeToTempFile(text string) error {
+    file, err := os.Open("temp.txt")
+    if err != nil {
+        return err
+    }
+    n, err := file.WriteString("Some text")
+    if err != nil {
+        return err
+    }
+    fmt.Printf("Number of bytes written: %d", n)
+    file.Close()
+    return nil
+}
+```
+
+in the **writeToTempFile** function, we are opening a file and then trying to write some content to the file. After we have written the contents of the file we close the file. It is possible that during the write operation it might result into an error and function will return without closing the file. **Defer** function helps to avoid these kinds of problems. **Defer** function is always executed before the surrounding function returns
+
+**Defer Version**
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    err := writeToTempFile("Some text")
+    if err != nil {
+        log.Fatalf(err.Error())
+    }
+    fmt.Printf("Write to file succesful")
+}
+
+func writeToTempFile(text string) error {
+    file, err := os.Open("temp.txt")
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+
+    n, err := file.WriteString("Some text")
+    if err != nil {
+        return err
+    }
+    fmt.Printf("Number of bytes written: %d", n)
+    return nil
+}
+```
+
+**defer file.Close()** after opening the file. This will make sure that closing of the file is executed even if the write to the file results into an error. Defer function makes sure that the file will be closed regardless of number of return statements in the function
+
+# **Custom Function in defer**
+
+We can also call a custom function in **defer**
+
+```go
+package main
+import "fmt"
+func main() {
+    defer test()
+    fmt.Println("Executed in main")
+}
+func test() {
+    fmt.Println("In Defer")
+}
+```
+
+**Output**
+
+```go
+Executed in main
+In Defer
+```
+
+a **defer** statement calling the custom function named **test**. As seen from the output, the **test** function is called after everything in the main is executed and before main returns
+
+# **Inline Function in Defer**
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    defer func() { fmt.Println("In inline defer") }()
+    fmt.Println("Executed")
+}
+```
+
+**Output**
+
+```go
+Executed
+In inline defer
+```
+
+```go
+defer func() { fmt.Println("In inline defer") }()
+```
+
+This is allowed in go. Also note that it is mandatory to add **“()”** after the function otherwise compiler will raise error
+
+```go
+expression in defer must be function call
+```
+
+# **How does defer works**
+
+==When the the compiler encounter a defer statement in a function it pushes it onto a list. This list internally implements a stack data structure.  All the encountered defer statement in the same function are pushed onto this list. When the surrounding function returns then all the functions in the stack starting from top to bottom are executed before execution can begin in the calling function. Now same thing will happen in the calling function as well.==
+
+Imagine a function call from **main** function to **f1** function to **f2** function
+
+**main**->**f1**->**f2**
+
+Below is the sequence that will be happening after f2 returns
+
+- Defer functions in **f2** will be executed if present. Control will return to the caller which is a function **f1**.
+
+- Defer functions in **f1** will be executed if present. Control will return to the caller which is a function **main**. Note that if there are more functions in between then the process will continue up the stack in a similar way
+
+- After main returns the defer  function if present in main will be executed
+
+Let’s see a program for that
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	defer fmt.Println("Defer in main")
+	fmt.Println("Stat main")
+	f1()
+	fmt.Println("Finish main")
+}
+
+func f1() {
+	defer fmt.Println("Defer in f1")
+	fmt.Println("Start f1")
+	f2()
+	fmt.Println("Finish f1")
+}
+
+func f2() {
+	defer fmt.Println("Defer in f2")
+	fmt.Println("Start f2")
+	fmt.Println("Finish f2")
+}
+```
+
+**Output**
+
+```go
+Stat main
+Start f1
+Start f2
+Finish f2
+Defer in f2
+Finish f1
+Defer in f1
+Finish main
+Defer in main
+```
+
+# **Evaluation of defer arguments**
+
+defer arguments are evaluated at the time defer statement is evaluated
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	sample := "abc"
+
+	defer fmt.Printf("In defer sample is: %s\n", sample)
+	sample = "xyz"
+}
+```
+
+**Output**
+
+```go
+In defer sample is: abc
+```
+
+when the defer statement was evaluated the value of the **sample** variable was **“abc”**. In the defer function, we print the  sample variable. After the defer statement we change the value of the **sample** variable to **“xyz”**.  But the program outputs **“abc”** instead of **“xyz”** because when the defer arguments were evaluated the value of the  sample variable was **“abc”**.
+
+# **Multiple defer functions in the same function**
+
+ In case we have multiple defer functions within a particular function, then all the  defer functions will be executed in last in first out order
+
+Let’s see a program for that
+
+```go
+package main
+import "fmt"
+func main() {
+    i := 0
+    i = 1
+    defer fmt.Println(i)
+    i = 2
+    defer fmt.Println(i)
+    i = 3
+    defer fmt.Println(i)
+}
+```
+
+**Output**
+
+```go
+3
+2
+1
+```
+
+# **Defer function and Named Return Values**
+
+In case of named return value in the function, the defer function can read as well as modified those named return values. If the defer function modifies the name return value then that modified value will  be returned
+
+```go
+package main
+import "fmt"
+func main() {
+    s := test()
+    fmt.Println(s)
+}
+func test() (size int) {
+    defer func() { size = 20 }()
+    size = 30
+    return
+}
+```
+
+**Output**
+
+```go
+20
+```
+
+# **Defer and Methods**
+
+**defer** statement is also applicable  for methods in a similar way it is applicable to functions. In the first example we had already seen the **Close** method which was called on the file instance. That shows that the  **defer** statement is also applicable for methods as well
+
+# **Defer and Panic**
+
+defer function will also be executed even if panic happens in a program.  When the panic is raised in a function then the execution of that function is stopped and any deferred function will be executed. In fact deferred function of all the function calls in the stack will also be executed until all the functions have returned .At that time the program will exit and it will print the panic message
+
+So if a  defer function is present it then it will be executed and the control will be  returned back to the caller function which will again execute its defer function if present and the chain goes on until the program exists.
+
+```go
+package main
+import "fmt"
+func main() {
+    defer fmt.Println("Defer in main")
+    panic("Panic with Defer")
+    fmt.Println("After painc in f2")
+}
+```
+
+**Output**
+
+```go
+Defer in main
+panic: Panic Create
+
+goroutine 1 [running]:
+main.main()
+        /Users/slohia/go/src/github.com/golang-examples/articles/tutorial/panicRecover/deferWithPanic/main.go:7 +0x95
+exit status 2
+```
+
+
+
+---
+
 # POINTER
 
-_**Pointers in Golang are utilized to enhance performance and flexibility by avoiding unnecessary copies of data and enabling efficient data structures and function calls.**_
+==_**Pointers in Golang are utilized to enhance performance and flexibility by avoiding unnecessary copies of data and enabling efficient data structures and function calls.**_==
 
 In Go, the general form of a pointer declaration with `var` is as follows:
 
@@ -2467,6 +2795,7 @@ fmt.Println()
 fmt.Printf("b: %d\n", &b)     // 824633778216
 fmt.Printf("*c: %d\n", c)     // 824633778216
 ```
+
 ---
 
 # STRUCT
@@ -2717,6 +3046,7 @@ A struct is a value type in Go. A new copy of the struct is created when:
 
 - A struct variable is assigned to another struct variable.
 - A struct variable is passed as an argument to a function.
+
 ---
 
 # METHOD
@@ -3167,6 +3497,8 @@ func main() {
 	fmt.Printf("Replacement character: %c\n", invalidChar)
 }
 ```
+
+---
 
 # PACKAGES AND MODULES 
 
@@ -4214,6 +4546,7 @@ Output:
 Using Assert: Error e is of type path error. Path: non-existing.txt
 Using As function: Error e is of type path error. Path: non-existing.txt
 ```
+
 ---
 
 # PANIC & RECOVER
@@ -4502,7 +4835,7 @@ Error:  <nil>
 
 In this case, the return value of the function is `0` for the `int` type and `<nil>` for the `error` type.
 
-
+---
 # GENERICS
 
 
@@ -6080,7 +6413,7 @@ for rows.Next() {
 }
 ```
 
-
+---
 # GO - TESTING
 
 Go'da birim testleri için standart kütüphanede bulunan testing paketi kullanır.
