@@ -1438,16 +1438,389 @@ testing or for small programs.
 ## Understanding Package Declarations and Imports
 
 
+Java comes with thousands of built-in classes, and there are countless more from developers
+like you. With all those classes, Java needs a way to organize them. It handles this in a way
+similar to a file cabinet.
+
+Java puts classes in packages. These are logical groupings for classes.
+Java needs you to tell it which packages to look in to find code.
+
+```java
+public class NumberPicker {
+public static void main(String[] args) {
+Random r = new Random(); // DOES NOT COMPILE
+System.out.println(r.nextInt(10));
+}
+}
+```
+
+the output: 
+
+```java
+error: cannot find symbol
+```
+
+This error could mean you made a typo in the name of the class.
+The other cause of this error is omitting a needed `import` statement.
+A statement is an instruction, and import statements tell Java which packages to look in for
+classes. Since you didn’t tell Java where to look for Random, it has no clue.
+
+```java
+import java.util.Random; // import tells us where to find Random
+public class NumberPicker {
+public static void main(String[] args) {
+Random r = new Random();
+System.out.println(r.nextInt(10)); // a number 0-9
+}
+}
+```
+
+### Packages
+
+Java classes are grouped into packages. The `import` statement tells the compiler which package to look in to find a class.
+
+==**Java only looks for class names in the package.**== Package names are hierarchical
+The rule for package names is that they are mostly letters or numbers separated by periods (.). Technically, you’re allowed a couple of other characters between the periods (.).
+
+### Wildcards
+
+Classes in the same package are often imported together. You can use a shortcut to import all the classes in a package.
+
+```java
+import java.util.*; // imports java.util.Random among other things
+public class NumberPicker {
+public static void main(String[] args) {
+Random r = new Random();
+System.out.println(r.nextInt(10));
+}
+}
+```
+
+The * is a wildcard that matches all classes in the package.  Every class in the` java.util` package
+is available to this program when Java compiles it. **==The `import` statement doesn’t bring in**==
+==**child packages, fields, or methods; it imports only classes directly under the package==**
+
+Example to use the class `AtomicInteger`
+
+```java
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+```
+
+Only the last import allows the class to be recognized because child packages are not
+included with the first two.
+
+Might think that including so many classes slows down your program execution, but
+it doesn’t. The compiler figures out what’s actually needed.
+
+- Listing the classes used makes the code easier to read
+- Using the wildcard can shorten the import list.
+
+### Redundant Imports
+
+There’s one special package in the Java world called `java.lang`. This package is special in that it is automatically imported.
+
+```java
+1: import java.lang.System;
+2: import java.lang.*;
+3: import java.util.Random;
+4: import java.util.*;
+5: public class NumberPicker {
+6: public static void main(String[] args) {
+7: Random r = new Random();
+8: System.out.println(r.nextInt(10));
+9: }
+10: }
+```
+
+How many of the imports do you think are redundant?  The answer is that three of the imports are redundant. Lines 1 and 2 are redundant because everything in `java.lang` is automatically imported. Line 4 is also redundant in this example because Random is already imported from `java.util.Random`
+
+Another case of redundancy involves importing a class that is in the same package as the
+class importing it. Java automatically looks in the current package for other classes.
+
+```java
+public class InputImports {
+public void read(Files files) {
+Paths.get("name");
+}
+}
+```
+
+Which import statements do you think would work to get this code to compile?
+
+There are two possible answers. The shorter one is to use a wildcard to import both at the
+same time.
+
+```java
+import java.nio.file.*;
+```
+
+The other answer is to import both classes explicitly.
+
+```java
+import java.nio.file.Files;
+import java.nio.file.Paths;
+```
+
+Some imports that don't work
+
+```java
+import java.nio.*; // NO GOOD -a wildcard only matches
+// class names, not "file.Files"
+import java.nio.*.*; // NO GOOD -you can only have one wildcard
+// and it must be at the end
+import java.nio.file.Paths.*; // NO GOOD -you cannot import methods
+// only class names
+```
+
+### Naming Conflicts
+
+One of the reasons for using packages is so that class names don’t have to be unique across
+all of Java. This means you’ll sometimes want to import a class that can be found in multiple
+places. A common example of this is the Date class. Java provides implementations of
+`java.util.Date` and `java.sql.Date`. What import statement can we use if we want the
+`java.util.Date` version?
+
+```java
+public class Conflicts {
+Date date;
+// some more code
+}
+```
+
+write either  `import java.util.*;` or  `import java.util.Date;`
+
+The tricky cases come about when other imports are present. 
+
+```java
+import java.util.*;
+import java.sql.*; // causes Date declaration to not compile
+```
+
+When the class name is found in multiple packages, Java gives you a compiler error.
+
+```java
+import java.util.Date;
+import java.sql.*;
+```
+
+now it works! If you explicitly import a class name, it takes precedence over any
+wildcards present. 
+
+> ==If you specifically mention the name of a class when importing in programming, it's more important than using a general import with a wildcard `(*)`. The specific import has priority.==
+
+What does Java do with “ties” for precedence? 
+
+```java
+import java.util.Date;
+import java.sql.Date;
+```
+
+Java is smart enough to detect that this code is no good. As a programmer, you’ve claimed
+to explicitly want the default to be both the `java.util.Date` and` java.sql.Date` implementations. Because there can’t be two defaults, the compiler tells you the imports are
+**ambiguous**.
+
+---
+**If You Really Need to Use Two Classes with the Same Name**
+
+you can pick one to use in the import statement and use the other’s fully qualified
+class name. Or you can drop both import statements and always use the fully qualified
+class name.
+
+```java
+public class Conflicts {
+java.util.Date date;
+java.sql.Date sqlDate;
+}
+```
+
+---
 
 
+### Creating a New Package
+
+the default package. This is a special unnamed package that you should use only for throwaway code. You can tell the code is in the default package, because there’s no package name. In real life, always name your packages to avoid naming conflicts and to allow others to reuse your code.
+
+```java
+package packageb;
+import packagea.ClassA; // Bold
+public class ClassB {
+public static void main(String[] args) {
+ClassA a; // Bold
+System.out.println("Got it");
+}
+}
+```
+
+When you run a Java program, Java knows where to look for those package names.
+
+### Compiling and Running Code with Packages 
+
+| Step | Windows                  | Mac/Linux                 |
+|------|--------------------------|---------------------------|
+| 1.   | Create first class.      | Create first class.       |
+|      | `C:\temp\packagea\`      | `/tmp/packagea/`          |
+|      | `ClassA.java`            | `ClassA.java`             |
+|      | `/tmp/packagea/ClassA.java`|                           |
+| 2.   | Create second class.     | Create second class.      |
+|      | `C:\temp\packageb\`      | `/tmp/packageb/`          |
+|      | `ClassB.java`            | `ClassB.java`             |
+|      | `/tmp/packageb/ClassB.java`|                           |
+| 3.   | Go to directory.         | Go to directory.          |
+|      | `cd C:\temp`             | `cd /tmp`                 |
+
+To compile, type the following command:
+```shell
+javac packagea/ClassA.java packageb/ClassB.java
+```
+
+---
+**Compiling with Wildcards**
+```shell
+javac packagea/*.java packageb/*.java
+```
+
+However, you cannot use a wildcard to include subdirectories. If you were to write
+`javac *.java`, the code in the packages would not be picked up.
+
+---
+
+can run it by typing the following command:
+
+```shell
+java packageb.ClassB
+```
+
+we typed `ClassB` rather than `ClassB.class`. As discussed earlier, you don’t pass the extension when running  a program.
+
+![[Pasted image 20240109140348.png]]
+
+**Compiling with packages**
 
 
+### Compiling to Another Directory
+
+By default, the javac command places the compiled classes in the same directory as the
+source code. It also provides an option to place the class files into a different directory. The
+-d option specifies this target directory.
 
 
+---
+**Note**
+Java options are case sensitive. This means you cannot pass -D instead of -d.
 
+---
 
+```shell
+javac -d classes packagea/ClassA.java packageb/ClassB.java
+```
 
+Where to create the file
+classes`/packagea/ClassA.class.` The package structure is preserved under the requested target directory.
 
+![[Pasted image 20240109140649.png]]
 
+To run the program, you specify the classpath so Java knows where to find the classes.
+There are three options you can use. All three of these do the same thing:
 
+- `java -cp classes packageb.ClassB` 
+- `java -classpath classes packageb.ClassB`
+- `java -- class- path classes packageb.ClassB`
+
+Notice that the last one requires two dashes (-- ), while the first two require one dash (-).
+
+### Compiling with JAR Files
+
+A Java archive (JAR) file is like a ZIP file of mainly Java class files.  On Windows, you type the following:
+
+```shell
+java -cp ".;C:\temp\someOtherLocation;c:\temp\myJar.jar" myPackage.MyClass
+```
+
+when you’re compiling, you can use a wildcard `(*)` to match all the JARs in a
+directory.
+
+```java
+java -cp "C:\temp\directoryWithJars\*" myPackage.MyClass
+```
+
+This command will add to the classpath all the JARs that are in `directoryWithJars`. It
+won’t include any JARs in the classpath that are in a subdirectory of `directoryWithJars`.
+
+### Creating a JAR File
+
+use the jar command. The simplest commands create a jar containing the files in the current directory. You can use the short or long form for each option.
+
+```shell
+jar -cvf myNewFile.jar .
+jar --create--verbose--filemyNewFile.jar .
+```
+
+Alternatively, you can specify a directory instead of using the current directory.
+
+```java
+jar -cvf myNewFile.jar -C dir .
+```
+
+| Option     | Description                                   |
+|------------|-----------------------------------------------|
+| `-c`       | `--create`                                    |
+|            | Creates a new JAR file                         |
+| `-v`       | `--verbose`                                   |
+|            | Prints details when working with JAR files    |
+| `-f`       | `<fileName>`                                  |
+|            | JAR filename                                  |
+| `-C`       | `<directory>`                                 |
+|            | Directory containing files to be used to create the JAR |
+
+### Ordering Elements in a Class
+
+Comments can go anywhere in the code.
+
+| Element                  | Example                | Required? | Where does it go?                                |
+|--------------------------|------------------------|-----------|--------------------------------------------------|
+| Package declaration      | `package abc;`         | No        | First line in the file (excluding comments or blank lines) |
+| Import statements        | `import java.util.*;`  | No        | Immediately after the package (if present)        |
+| Top-level type declaration| `public class C`       | Yes       | Immediately after the import (if any)            |
+| Field declarations       | `int value;`           | No        | Any top-level element within a class              |
+| Method declarations      | `void method()`        | No        | Any top-level element within a class              |
+a few example
+
+**Good**
+
+```java
+package structure; // package must be first non-comment
+import java.util.*; // import must come after package
+public class Meerkat { // then comes the class
+double weight; // fields and methods can go in either order
+public double getWeight() {
+return weight; }
+double height; // another field -they
+don't need to be together
+}
+```
+
+```java
+/* header */
+package structure;
+// class Meerkat
+public class Meerkat { }
+```
+
+**Bad**
+```java
+import java.util.*;
+package structure; // DOES NOT COMPILE
+String name; // DOES NOT COMPILE
+public class Meerkat { } // DOES NOT COMPILE
+```
+
+There are two problems here. One is that the package and import statements are
+reversed. Although both are optional, package must come before `import` if present.
+
+The other issue is that a field attempts a declaration outside a class. This is not allowed. Fields
+and methods must be within a class.
+
+## Creating Objects
 
