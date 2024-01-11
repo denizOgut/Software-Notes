@@ -2327,7 +2327,7 @@ boolean _alsoOK1d3ntifi3r;
 char __SStillOkbutKnotsonice$;
 ```
 
-**NOT LEGAL
+**NOT LEGAL**
 
 ```java
 int 3DPointClass; // identifiers cannot begin with a number
