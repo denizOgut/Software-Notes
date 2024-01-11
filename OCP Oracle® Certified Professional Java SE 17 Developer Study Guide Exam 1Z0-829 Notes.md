@@ -1824,3 +1824,567 @@ and methods must be within a class.
 
 ## Creating Objects
 
+an object is an instance of a class
+
+### Calling Constructors
+
+To create an instance of a class, all you have to do is write new before the class name and
+add parentheses after it.
+
+```java
+Park p = new Park();
+```
+
+First you declare the type that you’ll be creating (Park) and give the variable a name (p).
+This gives Java a place to store a reference to the object.  Then you write `new Park()` to actually create the object.
+
+`Park()` looks like a method since it is followed by parentheses. It’s called a **constructor**,
+which is a special type of method that creates a new object.
+
+```java
+public class Chick {
+public Chick() { // Chick Bold
+System.out.println("in constructor");
+}
+}
+```
+
+==***There are two key points to note about the constructor:***==
+- ==***the name of the constructor matches the name of the class***==
+- ==***there’s no return type***==
+
+```java
+public class Chick {
+public void Chick() { } // NOT A CONSTRUCTOR
+}
+```
+
+When you see a method name beginning with a capital letter and having a return type,
+pay special attention to it. It is not a constructor since there’s a return type. It’s a regular
+method that does compile but will not be called when you write new Chick().
+
+The purpose of a constructor is to initialize fields,  Another way to initialize fields is to do so directly on the line on which they’re declared.
+
+```java
+public class Chicken {
+int numEggs = 12; // initialize on line
+String name;
+public Chicken() {
+name = "Duke"; // initialize in constructor
+}
+}
+```
+
+For most classes, the compiler will supply a “do nothing” default constructor for you.
+
+### Reading and Writing Member Fields
+
+It’s possible to read and write instance variables directly from the caller.
+
+```java
+public class Swan {
+int numberEggs; // instance variable
+public static void main(String[] args) {
+Swan mother = new Swan();
+mother.numberEggs = 1; // set variable
+System.out.println(mother.numberEggs); // read variable
+}
+}
+```
+
+can even read values of already initialized fields on a line initializing a new field:
+
+```java
+1: public class Name {
+2: String first = "Theodore";
+3: String last = "Moose";
+4: String full = first + last;
+5: }
+```
+
+Lines 2 and 3 both write to fields. Line 4 both reads and writes data. It reads the fields
+`first` and `last`. It then writes the field full.
+
+### Executing Instance Initializer Blocks
+
+The code between the braces (sometimes called “inside the braces”) is called a code block. Anywhere you see braces is a code block.
+
+Sometimes code blocks are inside a method. These are run when the method is called.
+Other times, ==**code blocks appear outside a method. These are called instance initializers.**==
+
+```java
+1: public class Bird {
+2: public static void main(String[] args) {
+3: { System.out.println("Feathers"); }
+4: }
+5: { System.out.println("Snowy"); }
+6: }
+```
+
+There are four code blocks in this example: a class definition, a method declaration, an
+inner block, and an instance initializer.
+
+When you’re counting instance initializers, keep in mind that they cannot exist inside of a
+method. Line 5 is an instance initializer, with its braces outside a method.
+
+### Following the Order of Initialization
+
+This is simply the order in which different methods, constructors, or blocks are called when an instance of the class is created.
+
+| Order No. | Order of Initialization            | Description                                                                                      | Simple Example                                   |
+|-----------|-------------------------------------|--------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| 1         | **Static Variables Initialization** | Static variables are initialized first, either at the time of declaration or in a static block.  | `static int staticVariable = 42;`                |
+| 2         | **Static Initialization Blocks**    | Static initialization blocks are executed in the order they appear in the class after static variable initialization. | ```java static { /* initialization code */ }``` |
+| 3         | **Instance Variables Initialization** | Instance variables are initialized next, either at the time of declaration or in an instance initialization block. | `int instanceVariable = 10;`                     |
+| 4         | **Instance Initialization Blocks** | Instance initialization blocks are executed in the order they appear in the class after instance variable initialization, just before the constructor is invoked. | ```java { /* initialization code */ }```        |
+| 5         | **Constructor Execution**           | Finally, the constructor of the class is executed, allowing specific instance-level initialization tasks to be performed. | ```java public MyClass() { /* constructor code */ }``` |
+
+- ==**Fields and instance initializer blocks are run in the order in which they appear in the file.**==
+- ==**The constructor runs after all fields and instance initializer blocks have run.**==
+
+```java
+1: public class Chick {
+2: private String name = "Fluffy";
+3: { System.out.println("setting field"); }
+4: public Chick() {
+5: name = "Tiny";
+6: System.out.println("setting constructor");
+7: }
+8: public static void main(String[] args) {
+9: Chick chick = new Chick();
+10: System.out.println(chick.name); } }
+```
+
+the output: 
+
+```java
+Running this example prints this:
+setting field
+setting constructor
+Tiny
+```
+
+start with the main() method because that’s where Java starts execution. On line 9, we call the constructor of Chick. Java creates a new object. First it initializes name to "Fluffy" on line 2. Next it executes the `println()` statement in the instance initializer on line 3. Once all the fields and instance initializers have run, Java returns to the constructor. Line 5 changes the value of name to "Tiny", and line 6 prints another statement.
+
+Order matters for the fields and blocks of code. You can’t refer to a variable before it has
+been defined:
+
+```java
+{ System.out.println(name); } // DOES NOT COMPILE
+private String name = "Fluffy";
+```
+
+**Example**
+```java
+public class Egg {
+public Egg() {
+number = 5;
+}
+public static void main(String[] args) {
+Egg egg = new Egg();
+System.out.println(egg.number);
+}
+private int number = 3;
+{ number = 4; } }
+```
+
+Fields and blocks are run first in order, setting number to 3 and then 4. Then the constructor runs, setting number to 5.
+
+## Understanding Data Types
+
+Java applications contain two types of data: **primitive** types and **reference** types.
+
+### Using Primitive Types
+
+Java has eight built-in data types, referred to as the Java primitive types. These eight data
+types represent the building blocks for Java objects, because all Java objects are just a complex collection of these primitive data types. 
+A primitive is not an object in Java, nor does it represent an object. A primitive is just a single value in memory, such as a number or character.
+
+### The Primitive Types
+
+| Keyword  | Type                      | Min Value                   | Max Value                   | Default Value               | Example    |
+|----------|---------------------------|-----------------------------|-----------------------------|-----------------------------|------------|
+| boolean  | true or false              | n/a                         | n/a                         | false                       | true       |
+| byte     | 8-bit integral value       | -128                        | 127                         | 0                           | 123        |
+| short    | 16-bit integral value      | -32,768                     | 32,767                      | 0                           | 123        |
+| int      | 32-bit integral value      | -2,147,483,648              | 2,147,483,647               | 0                           | 123        |
+| long     | 64-bit integral value      | -9,223,372,036,854,775,808  | 9,223,372,036,854,775,807   | 0L                          | 123L       |
+| float    | 32-bit floating-point value| n/a                         | n/a                         | 0.0f                        | 123.45f    |
+| double   | 64-bit floating-point value| n/a                         | n/a                         | 0.0                         | 123.456   |
+| char     | 16-bit Unicode value       | 0                           | 65,535                      | '\u0000'                    | 'a'        |
+
+some key points:
+
+- ==**The byte, short, int, and long types are used for integer values without decimal**==
+==**points.**==
+
+- ==**Each numeric type uses twice as many bits as the smaller similar type. For example,**==
+==**short uses twice as many bits as byte does.**==
+
+- ==**All of the numeric types are signed and reserve one of their bits to cover a negative**==
+==**range.**==
+
+- ==**A float requires the letter f or F following the number so Java knows it is a float.**==
+==**Without an f or F, Java interprets a decimal value as a double.**==
+
+- ==**long requires the letter l or L following the number so Java knows it is a long.**==
+==**Without an l or L, Java interprets a number without a decimal point as an int in most**==
+==**scenarios.**==
+
+---
+**Signed and Unsigned: short and char**
+
+For the exam, you should be aware that short and char are closely related, as both are
+stored as integral types with the same 16-bit length. ==**The primary difference is that short is signed, which means it splits its range across the positive and negative integers. Alternatively, char is unsigned, which means its range is strictly positive, including 0.**==
+
+Often, short and char values can be cast to one another because the underlying data size
+is the same.
+
+---
+
+### Writing Literals
+
+When a number is present in the code, it is called a literal. By default, Java assumes you are defining an int value with a numeric literal.
+
+In the following example, the number listed is bigger than what fits in an int.
+
+```java
+long max = 3123456789; // DOES NOT COMPILE
+```
+
+Java complains the number is out of range. And it is—for an int. However, we don’t have an int. The solution is to add the character `L` to the number:
+
+```java
+long max = 3123456789L; // Now Java knows it is a long
+```
+
+Another way to specify numbers is to change the `base.`  Java allows you to specify digits in several other formats:
+
+- ==**Octal (digits 0–7), which uses the number 0 as a prefix—for example, 017.**==
+-  ==**Hexadecimal (digits 0–9 and letters A–F/a–f), which uses 0x or 0X as a prefix—for example, 0xFF, 0xff, 0XFf. Hexadecimal is case insensitive, so all of these examples mean the same value.**==
+-  ==**Binary (digits 0–1), which uses the number 0 followed by b or B as a prefix—for example, 0b10, 0B10.**==
+
+### Literals and the Underscore Character
+
+you can have underscores in numbers to make them easier to read:
+
+```java
+int million1 = 1000000;
+int million2 = 1_000_000;
+```
+
+You can add underscores anywhere except at the beginning of a literal, the end of a literal, right before a decimal point, or right after a decimal point.
+
+```java
+double notAtStart = _1000.00; // DOES NOT COMPILE
+double notAtEnd = 1000.00_; // DOES NOT COMPILE
+double notByDecimal = 1000_.00; // DOES NOT COMPILE
+double annoyingButLegal = 1_00_0.0_0; // Ugly, but compiles
+double reallyUgly = 1__________2; // Also compiles
+```
+
+### Using Reference Types
+
+**A reference type refers to an object (an instance of a class). Unlike primitive types that hold**
+**their values in the memory where the variable is allocated, references do not hold the value**
+**of the object they refer to. Instead, a reference “points” to an object by storing the memory address where the object is located, a concept referred to as a pointer.**
+
+```java
+String greeting;
+```
+
+The greeting variable is a reference that can only point to a String object. A value is
+assigned to a reference in one of two ways:
+
+- ==**A reference can be assigned to another object of the same or compatible type.**==
+- ==**A reference can be assigned to a new object using the new keyword.**==
+
+```java
+greeting = new String("How are you?");
+```
+
+The greeting reference points to a new String object, "How are you?". The String object does not have a name and can be accessed only via a corresponding reference.
+
+### Distinguishing between Primitives and Reference Types
+
+There are a few important differences between primitives and reference types.
+
+- ==**First, notice that all the primitive types have lowercase type names. All classes that come with Java begin with uppercase. Although not required, it is a standard practice, and you should follow this convention for classes you create as well.**==
+
+- ==**Next, reference types can be used to call methods, assuming the reference is not null. Primitives do not have methods declared on them.**==
+
+  ```java
+  String reference = "hello";
+  int len = reference.length();
+  int bad = len.length(); // DOES NOT COMPILE
+```
+
+Primitives do not have methods.
+
+- ==**Finally, reference types can be assigned `null`, which means they do not currently refer to an object. Primitive types will give you a compiler error if you attempt to assign them `null`.**==
+
+```java
+int value = null; // DOES NOT COMPILE
+String name = null;
+```
+
+### Creating Wrapper Classes
+
+Each primitive type has a wrapper class, which is an object type that corresponds to the primitive.
+
+| Primitive Type | Wrapper Class | Inherits Number? | Example of Creating |
+|-----------------|---------------|-------------------|----------------------|
+| boolean         | Boolean       | No                | `Boolean.valueOf(true)` |
+| byte            | Byte          | Yes               | `Byte.valueOf((byte) 1)` |
+| short           | Short         | Yes               | `Short.valueOf((short) 1)` |
+| int             | Integer       | Yes               | `Integer.valueOf(1)` |
+| long            | Long          | Yes               | `Long.valueOf(1)` |
+| float           | Float         | Yes               | `Float.valueOf((float) 1.0)` |
+| double          | Double        | Yes               | `Double.valueOf(1.0)` |
+| char            | Character     | No                | `Character.valueOf('c')` |
+
+There is also a `valueOf()` variant that converts a String into the wrapper class.
+
+```java
+int primitive = Integer.parseInt("123");
+Integer wrapper = Integer.valueOf("123");
+```
+
+All of the numeric classes extend the Number class, which means they all come with some useful helper methods: `byteValue(), shortValue(), intValue(), longValue(), floatValue()`, and `doubleValue()`. The Boolean and Character wrapper classes include `booleanValue()` and `charValue()`, respectively. These methods return the primitive value of a wrapper instance,
+in the type requested.
+
+```java
+Double apple = Double.valueOf("200.99");
+System.out.println(apple.byteValue()); // -56
+System.out.println(apple.intValue()); // 200
+System.out.println(apple.doubleValue()); // 200.99
+```
+
+These helper methods do their best to convert values but can result in a loss of precision. 
+
+### Defining Text Blocks
+
+What if we want to have a String with something more complicated?
+
+```java
+"Java Study Guide"
+by Scott & Jeanne
+```
+
+Building this as a String requires two things The syntax `\"` lets you say you want a " rather than to end the String, and `\n` says you want a new line. Both of these are called escape characters because the backslash provides a special meaning
+
+```java
+String eyeTest = "\"Java Study Guide\"\n by Scott & Jeanne";
+```
+
+While this does work, it is hard to read. Luckily, Java has text blocks, also known as multiline strings.
+
+![[Pasted image 20240111141502.png]]
+
+A text block starts and ends with three double quotes `(""")`, and the contents don’t need to be escaped. This is much easier to read.
+
+==**Essential whitespace is the intentional indentation and formatting that directly contributes to the structure and readability of your String. Incidental whitespace, on the other hand, is extra spacing added for code readability, but it doesn't affect the actual String value.**== 
+
+You can freely adjust incidental whitespace without impacting your String content. Visualize a vertical line on the leftmost non-whitespace character in your text block – everything to the left is incidental whitespace, and everything to the right is essential whitespace. Adjusting the left side won't change your String; it's there solely for code aesthetics.
+
+```java
+14: String pyramid = """
+15: *
+16: * *
+17: * * *
+18: """;
+19: System.out.print(pyramid);
+```
+
+The closing `"""` on line 18 are the leftmost characters, so the line is drawn at the leftmost position
+
+| Formatting                     | Meaning in Regular String | Meaning in Text Block    |
+|--------------------------------|---------------------------|--------------------------|
+| `\"`                           | `"`                       | `"`                      |
+| `\"""` (Invalid)               | n/a - Invalid             | n/a - Invalid            |
+| `\"\"\"`                       | n/a - Invalid             | `"""`                    |
+| Space (at end of line)          | Space                     | Ignored                  |
+| `\s` (Two spaces)              | Two spaces                | Two spaces (preserves leading space on the line) |
+| `\` (at end of line, Invalid)   | n/a - Invalid             | Omits new line on that line (Invalid in a text block) |
+
+**Examples**
+
+```java
+String block = """doe"""; // DOES NOT COMPILE
+```
+
+Text blocks require a line break after the opening """, making this one invalid
+
+```java
+String block = """
+doe \
+deer""";
+```
+
+How many lines ?  Just one. The output is doe deer since the \ tells Java not to add a new line before deer.
+
+```java
+String block = """
+doe \n
+deer
+""";
+```
+
+This time we have four lines. Since the text block has the closing `"""` on a separate line,
+we have three lines for the lines in the text block plus the explicit `\n`.
+
+1. "doe " (ends with a space)
+2. "deer" (no newline character here)
+3. "" (empty line due to the closing `"""`)
+
+
+## Declaring Variables
+
+A variable is a name for a piece of memory that stores data. When you declare a variable, you need to state the variable type along with giving it a name. Giving a variable a value is called initializing a variable. To initialize a variable, you just type the variable name followed by an equal sign, followed by the desired value
+
+```java
+String zooName = "The Best Zoo";
+```
+
+
+## Identifying Identifiers
+
+An identifier is the name of a variable, method, class, interface, or package.
+
+There are only four rules to remember for legal identifiers:
+1. **Begin with a letter, currency symbol, or _ symbol:** Identifiers must start with a letter (a-z or A-Z), a currency symbol (e.g., $, ¥, €), or an underscore (_).
+    
+2. **Include numbers but not start with them:** While identifiers can include numbers, they must not begin with a number.
+    
+3. **Single underscore _ is not allowed:** Using a single underscore by itself as an identifier is not allowed.
+    
+4. **Avoid Java reserved words:** Identifiers cannot have the same name as Java reserved words. Reserved words are special words in the Java language that have predefined meanings and cannot be used as identifiers.
+
+| Reserved Words | Explanation                                       |
+|-----------------|---------------------------------------------------|
+| **`abstract`**      | Used to declare abstract classes or methods.      |
+| **`assert`**        | Used for assertion checking in debugging.         |
+| **`boolean`**       | Represents a data type with two values: true or false. |
+| **`break`**         | Exits from the loop or switch statement.           |
+| **`byte`**          | Represents a data type with values from -128 to 127. |
+| **`case`**          | Used in switch statements to define different cases. |
+| **`catch`**         | Catches exceptions in try-catch blocks.            |
+| **`char`**          | Represents a data type for a single character.     |
+| **`class`**         | Declares a class.                                 |
+| **`const*`**        | Not used. (Reserved for future use.)              |
+| **`continue`**      | Skips the rest of the loop and starts the next iteration. |
+| **`default`**       | Used in switch statements as a default case.       |
+| **`do`**            | Starts a do-while loop.                           |
+| **`double`**        | Represents a data type for double-precision floating-point numbers. |
+| **`else`**          | Defines the else clause in if statements.         |
+| **`enum`**          | Declares an enumeration (a list of named values). |
+| **`extends`**       | Indicates a class is derived from another class.  |
+| **`final`**         | Prevents a class from being subclassed or a method from being overridden. |
+| **`finally`**       | Defines a block of code to be executed after try-catch blocks. |
+| **`float`**         | Represents a data type for single-precision floating-point numbers. |
+| **`for`**           | Starts a for loop.                                |
+| **`goto*`**         | Not used. (Reserved for future use.)              |
+| **`if`**            | Makes a decision in conditional statements.       |
+| **`implements`**    | Indicates a class implements an interface.        |
+| **`import`**        | Imports a package or a specific class.            |
+| **`instanceof`**    | Checks if an object is an instance of a particular class or interface. |
+| **`int`**           | Represents a data type for integer numbers.       |
+| **`interface`**     | Declares an interface.                            |
+| **`long`**          | Represents a data type for long integers.         |
+| **`native`**        | Specifies a method is implemented in a language other than Java. |
+| **`new`**           | Creates an instance of a class.                   |
+| **`package`**       | Declares a package.                               |
+| **`private`**       | Restricts access to members within the same class. |
+| **`protected`**     | Allows access to members within the same class and its subclasses. |
+| **`public`**        | Provides unrestricted access to a class or method. |
+| **`return`**        | Exits a method and optionally returns a value.   |
+| **`short`**         | Represents a data type for short integers.        |
+| **`static`**        | Declares a static method or field.                |
+| **`strictfp`**      | Enforces strict floating-point precision.         |
+| **`super`**         | Refers to the superclass.                          |
+| **`switch`**        | Provides multi-way decision-making based on a value. |
+| **`synchronized`**  | Coordinates access to objects by multiple threads. |
+| **`this`**          | Refers to the current object.                     |
+| **`throw`**         | Throws an exception manually.                     |
+| **`throws`**        | Indicates a method may throw specific exceptions. |
+| **`transient`**     | Specifies a field should not be serialized.      |
+| **`try`**           | Encloses a block of code in which exceptions may occur. |
+| **`void`**          | Specifies that a method does not return a value.  |
+| **`volatile`**      | Indicates that a variable may be changed by multiple threads. |
+| **`while`**         | Starts a while loop.                              |
+* The reserved words `const` and `goto` aren’t actually used in Java. They are reserved so that people coming from other programming languages don’t use them by accident
+
+- There are other names that you can’t use. For example, **`true`**, **`false`**, and **`null`** are literal
+values, so they can’t be variable names. Additionally, there are contextual keywords like
+**`module`**
+
+**LEGAL**
+
+```java
+long okidentifier;
+float $OK2Identifier;
+boolean _alsoOK1d3ntifi3r;
+char __SStillOkbutKnotsonice$;
+```
+
+**NOT LEGAL
+
+```java
+int 3DPointClass; // identifiers cannot begin with a number
+byte hollywood@vine; // @ is not a letter, digit, $ or _
+String *$coffee; // * is not a letter, digit, $ or _
+double public; // public is a reserved word
+short _; // a single underscore is not allowed
+```
+
+## Declaring Multiple Variables
+
+can also declare and initialize multiple variables in the same statement.
+
+```java
+void sandFence() {
+String s1, s2;
+String s3 = "yes", s4 = "no";
+}
+```
+
+Four String variables were declared: s1, s2, s3, and s4. ==**You can declare many variables**==
+==**in the same declaration as long as they are all of the same type**==
+
+```java
+void paintFence() {
+int i1, i2, i3 = 0;
+}
+```
+
+three variables were declared: i1, i2, and i3. However, only one of those values was initialized: i3. The other two remain declared but not yet initialized.  ==**That’s the trick. Each snippet separated by a comma is a little declaration of its own**==. The initialization of i3 only applies to i3. It doesn’t have anything to do with i1 or i2 despite being in the same statement.
+
+```java
+int num, String value; // DOES NOT COMPILE
+```
+
+```java
+4: boolean b1, b2;
+5: String s1 = "1", s2;
+6: double d1, double d2;
+7: int i1; int i2;
+8: int i3; i4;
+```
+
+- **Legal Declarations:**
+    
+    - Lines 4 and 5 are legal. Line 4 declares two boolean variables, and Line 5 declares a String variable (`s1`) and another uninitialized String variable (`s2`).
+- **Legal, but Uncommon:**
+    
+    - Line 7 is legal. It declares two int variables (`i1` and `i2`) in separate statements on the same line, separated by a semicolon.
+- **Illegal Declarations:**
+    
+    - Line 6 is not legal. Java doesn't allow the declaration of two different types in the same statement, even if the types are the same (e.g., `double d1, double d2`).
+    - Line 8 is not legal. It contains an oddly placed semicolon. To analyze, consider separating the code into individual lines and checking for valid declarations.
+
+==**In summary, for multiple variable declarations in the same line, variables must share the same type declaration**==, and oddly placed semicolons can affect the legality of the code.
+
+## Initializing Variables
+
+
+
