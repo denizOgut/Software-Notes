@@ -2386,5 +2386,451 @@ int num, String value; // DOES NOT COMPILE
 
 ## Initializing Variables
 
+Before you can use a variable, it needs a value.
+
+### Creating Local Variables
+
+==**A local variable is a variable defined within a constructor, method, or initializer block.**==
+
+### Final Local Variables
+
+The `final` keyword can be applied to local variables and is equivalent to declaring constants
+in other languages
+
+```java
+5: final int y = 10;
+6: int x = 20;
+7: y = x + 10; // DOES NOT COMPILE
+```
+
+The final modifier can also be applied to local variable references.
+
+```java
+5: final int[] favoriteNumbers = new int[10];
+6: favoriteNumbers[0] = 10;
+7: favoriteNumbers[1] = 20;
+8: favoriteNumbers = null; // DOES NOT COMPILE
+```
+
+The compiler error isn’t until line 8, when we try to change the value of the reference `favoriteNumbers`.
+
+### Uninitialized Local Variables
+
+Local variables do not have a default value and must be initialized before use. Furthermore,
+the compiler will report an error if you try to read an uninitialized value.
+
+```java
+4: public int notValid() {
+5: int y = 10;
+6: int x;
+7: int reply = x + y; // DOES NOT COMPILE
+8: return reply;
+9: }
+```
+
+The compiler is smart enough to recognize variables that have been initialized after their declaration but before they are used.
+
+```java
+public int valid() {
+int y = 10;
+int x; // x is declared here
+x = 3; // x is initialized here
+int z; // z is declared here but never initialized or used
+int reply = x + y;
+return reply;
+}
+```
+
+The compiler is also smart enough to recognize initializations that are more complex.
+
+```java
+public void findAnswer(boolean check) {
+int answer;
+int otherAnswer;
+int onlyOneBranch;
+if (check) {
+onlyOneBranch = 1;
+answer = 1;
+} else {
+answer = 2;
+}
+System.out.println(answer);
+System.out.println(onlyOneBranch); // DOES NOT COMPILE
+}
+```
+
+The `answer` variable is initialized in both branches of the if statement, so the compiler is perfectly happy. It knows that regardless of whether check is true or false, the value answer will be set to something before it is used. The `otherAnswer` variable is not initialized but never used, and the compiler is equally as happy. ==**The compiler is only concerned if you try to use uninitialized local variables; it doesn’t mind the ones you never use.**==
+
+---
+**On the exam, be wary of any local variable that is declared but not initialized in a single line. This is a common place on the exam that could result in a “Does not compile” answer. Be sure to check to make sure it’s initialized before it’s used on the exam.** #TIP 
+
+---
+
+### Passing Constructor and Method Parameters
+
+Variables passed to a constructor or method are called constructor parameters or method
+parameters, respectively. These parameters are like local variables that have been pre-initialized.
+
+```java
+public void findAnswer(boolean check) {} // check Bold
+```
+
+
+```java
+public void checkAnswer() {
+boolean value;
+findAnswer(value); // DOES NOT COMPILE
+}
+```
+
+The call to `findAnswer()` does not compile because it tries to use a variable that is not initialized.
+
+### Defining Instance and Class Variables
+
+Variables that are not local variables are defined either as instance variables or as class variables.
+
+- An instance variable, often called a field, is a value defined within a specific instance of an object. Let’s say we have a `Person` class with an instance variable name of type `String`.
+	Each instance of the class would have its own value for name, such as *Elysia* or *Sarah*.
+	==**Two instances could have the same value for name, but changing the value for one does not modify the other.**==
+
+- A class variable is one that is defined on the class level and shared among all instances of the class. It can even be publicly accessible to classes outside the class and doesn’t require an instance to use. ==**You can tell a variable is a class variable because it has the keyword `static` before it.**==
+
+Instance and class variables do not require you to initialize them. As soon as you declare
+these variables, they are given a default value. The compiler doesn’t know what value to use
+and so wants the simplest value it can give the type: `null` for an object, `zero` for the numeric
+types, and `false` for a `boolean`
+
+### Inferring the Type with `var`
+
+have the option of using the keyword var instead of the type when declaring local variables
+under certain conditions
+
+```java
+public class Zoo {
+public void whatTypeAmI() {
+var name = "Hello";
+var size = 7;
+}
+}
+```
+
+
+The formal name of this feature is ==**local variable type inference**==  You can only use this feature for
+local variables. The exam may try to trick you with code like this:
+
+```java
+public class VarKeyword {
+var tricky = "Hello"; // DOES NOT COMPILE
+}
+```
+
+The variable tricky is an instance variable. Local variable type inference works with local variables
+and not instance variables. 
+
+### Type Inference of var
+
+When you type `var`, you are instructing the compiler to determine the type for you The compiler looks at the code on the line of the declaration and uses it to infer the type.
+
+```java
+7: public void reassignment() {
+8: var number = 7;
+9: number = 4;
+10: number = "five"; // DOES NOT COMPILE
+11: }
+```
+
+---
+**In Java, var is still a specific type defined at compile time. It does not change type at runtime.** #TIP
+
+---
+
+### Examples with var
+
+```java
+3: public void doesThisCompile(boolean check) {
+4: var question;
+5: question = 1;
+6: var answer;
+7: if (check) {
+8: answer = 2;
+9: } else {
+10: answer = 3;
+11: }
+12: System.out.println(answer);
+13: }
+```
+
+The code does not compile. ==**for local variable type inference, the compiler looks only at the line with the declaration.**==  the initial value used to determine the type needs to be part of the same statement.
+
+```java
+var y;   // Compilation error: cannot infer type for local variable y
+y = 10;  // Type inference requires an initializer on the same line
+
+```
+
+
+```java
+4: public void twoTypes() {
+5: int a, var b = 3; // DOES NOT COMPILE
+6: var n = null; // DOES NOT COMPILE
+7: }
+```
+
+Line 5 wouldn’t work even if you replaced var with a real type. All the types declared on
+a single line must be the same type and share the same declaration.
+
+Line 6 is a single line. The compiler is being asked to infer the type of `null`. This could
+be any reference type. The only choice the compiler could make is `Object`. However  the designers of Java decided it would be better not to allow var for `null` than to have to guess at intent.
+
+
+```java
+4: public void twoTypes() {
+5: var a = 2, var b = 3; // DOES NOT COMPILE
+6: int x, int v = 3; // DOES NOT COMPILE 
+7: var a = 2; var b = 3; // DOES  COMPILE
+8: }
+```
+
+
+---
+
+**While a `var` cannot be initialized with a null value without a type, it can be reassigned a null value after it is declared, provided that the underlying data type is a reference type.**  #TIP 
+
+---
+
+```java
+public int addition(var a, var b) { // DOES NOT COMPILE
+return a + b;
+}
+```
+
+and b are method parameters. These are not local variables. Be on the lookout for var used with constructors, method parameters, or instance variables. **var is only used for local variable type inference!**
+
+==**one last rule  should be aware of:  `var` is not a reserved word and allowed to be used as an identifier. It is considered a reserved type name.  A reserved type name means it cannot be used to define a type, such as a class, interface, or enum.**==
+
+```java
+package var;
+public class Var {
+public void var() {
+var var = "var";
+}
+public void Var() {
+Var var = new Var();
+}
+}
+```
+
+this code does compile. 
+
+## Managing Variable Scope
+
+```java
+public void eat(int piecesOfCheese) {
+int bitesOfCheese = 1;
+}
+```
+
+There are two variables with local scope. The `bitesOfCheese` variable is declared inside the method. The `piecesOfCheese` variable is a method parameter. Neither variable can be used outside of where it is defined.
+
+### Limiting Scope
+
+==**Local variables can never have a scope larger than the method they are defined in.**== However, they can have a smaller scope.
+
+```java
+3: public void eatIfHungry(boolean hungry) {
+4: if (hungry) {
+5: int bitesOfCheese = 1;
+6: } // bitesOfCheese goes out of scope here
+7: System.out.println(bitesOfCheese); // DOES NOT COMPILE
+8: }
+```
+
+When you see a set of braces `({})` in the code, it means you have entered a new block of code. Each block of code has its own scope. When there are multiple blocks, you match them from the inside out.
+
+Remember that blocks can contain other blocks. These smaller contained blocks can reference variables defined in the larger scoped blocks, but not vice versa.
+
+```java
+16: public void eatIfHungry(boolean hungry) {
+17: if (hungry) {
+18: int bitesOfCheese = 1;
+19: {
+20: var teenyBit = true;
+21: System.out.println(bitesOfCheese);
+22: }
+23: }
+24: System.out.println(teenyBit); // DOES NOT COMPILE
+25: }
+```
+
+The variable defined on line 18 is in scope until the block ends on line 23. Using it in the smaller block from lines 19 to 22 is fine. The variable defined on line 20 goes out of scope on line 22. Using it on line 24 is not allowed.
+
+### Tracing Scope
+
+which line each of the five local variables goes into and out of scope:
+
+```java
+11: public void eatMore(boolean hungry, int amountOfFood) { // Method
+12: int roomInBelly = 5;
+13: if (hungry) { // if
+14: var timeToEat = true;
+15: while (amountOfFood > 0) { // while
+16: int amountEaten = 2;
+17: roomInBelly = roomInBelly -amountEaten;
+18: amountOfFood = amountOfFood -amountEaten;
+19: } // while
+20: } // if
+21: System.out.println(amountOfFood);
+22: } // Method
+```
+
+This method does compile. The first step in figuring out the scope is to identify the blocks of code. In this case, there are three blocks. You can tell this because there are three sets of braces.
+
+| Block Type | First Line in Block | Last Line in Block |
+|------------|----------------------|---------------------|
+| `while`    | 15                   | 19                  |
+| `if`       | 13                   | 20                  |
+| Method     | 11                   | 22                  |
+
+`hungry` and `amountOfFood` are method parameters, so they are available for the entire method. This means their scope is lines 11 to 22. The variable `roomInBelly` goes into scope on line 12 because that is where it is declared. It stays in scope for the rest of the method and goes out of scope on line 22. The variable `timeToEat` goes into scope on line 14 where it is declared. It goes out of scope on line 20 where the if block ends. Finally, the variable `amountEaten` goes into scope on line 16 where it is declared. It goes out of scope on line 19 where the while block ends.
+
+**Identifying blocks and variable scope needs to be second nature for the exam.**
+
+### Applying Scope to Classes
+
+- ==**the rule for instance variables is easier: they are available as soon as they are defined and last for the entire lifetime of the object itself.**==
+
+- ==**The rule for class, aka `static`, variables is even easier: they go into scope when declared like the other variable types. However, they stay in scope for the entire life of the program.**==
+
+```java
+1: public class Mouse {
+2: final static int MAX_LENGTH = 5; // End of the program - scope: 2 - 10
+3: int length; // End of the object - scope: 3 - 10
+4: public void grow(int inches) { // scope: 4 - 9
+5: if (length < MAX_LENGTH) {
+6: int newSize = length + inches; // scope: 6 - 8
+7: length = newSize;
+8: }
+9: }
+10: }
+```
+
+
+### Reviewing Scope
+
+- ==**Local variables: In scope from declaration to the end of the block**==
+- ==**Method parameters: In scope for the duration of the method**==
+- ==**Instance variables: In scope from declaration until the object is eligible for garbage collection**==
+- ==**Class variables: In scope from declaration until the program ends**==
+
+## Destroying Objects
+
+Java provides a garbage collector to automatically look for objects that aren’t needed anymore.  All Java objects are stored in your program memory’s heap. The heap, which is also referred to as the free store, represents a large pool of unused memory allocated to your Java application. If your program keeps instantiating objects and leaving them on the heap, eventually it will run out of memory and crash. garbage collection solves this problem.
+
+### Understanding Garbage Collection
+
+Garbage collection refers to the process of automatically freeing memory on the heap by deleting objects that are no longer reachable in your program. 
+
+As a developer, the most interesting part of garbage collection is determining when the memory belonging to an object can be reclaimed. In Java and other languages, ==**eligible for garbage collection refers to an object’s state of no longer being accessible in a program and therefore able to be garbage collected.**==
+
+Think of garbage-collection eligibility like shipping a package. You can take an item, seal it in a labeled box, and put it in your mailbox. This is analogous to making an item eligible for garbage collection. When the mail carrier comes by to pick it up, though, is not in your control 
+
+Java includes a built-in method to help support garbage collection where you can suggest that garbage collection run.
+
+```java
+System.gc();
+```
+
+Java is free to ignore you. This method is not guaranteed to do anything.
+
+### Tracing Eligibility
+
+How does the JVM know when an object is eligible for garbage collection? The JVM waits patiently and monitors each object until it determines that the code no longer needs that memory. An object will remain on the heap until it is no longer reachable. An object is no longer reachable when one of two situations occurs:
+
+-  ==**The object no longer has any references pointing to it.**==
+-  ==**All references to the object have gone out of scope.**==
+
+---
+**Objects vs. References**
+
+Do not confuse a reference with the object that it refers to; they are two different entities.
+
+The reference is a variable that has a name and can be used to access the contents of an object. A reference can be assigned to another reference, passed to a method, or returned from a method. All references are the same size, no matter what their type is.
+
+An object sits on the heap and does not have a name. Therefore, you have no way to access an object except through a reference. Objects come in all different shapes and sizes and consume varying amounts of memory. An object cannot be assigned to another object, and an object cannot be passed to a method or returned from a method. ==**It is the object that gets garbage collected, not its reference.**==
+
+			![[Pasted image 20240112123949.png]]
+
+---
+
+```java
+1: public class Scope {
+2: public static void main(String[] args) {
+3: String one, two;
+4: one = new String("a");
+5: two = new String("b");
+6: one = two;
+7: String three = one;
+8: one = null;
+9: } }
+```
+
+- Line 3: Declares two String variables, `one` and `two`.
+- Lines 4-5: Creates two String objects ("a" and "b") on the heap and assigns them to `one` and `two`.
+- Line 6: Makes `one` point to the same object as `two`.
+- Line 7: Declares a new variable `three` and makes it point to the same object as `one`.
+- Line 8: Sets `one` to `null`.
+- Garbage Collection Eligibility:
+    - Object with "a" becomes eligible for garbage collection on line 6 when the only arrow pointing to it is replaced.
+    - Object with "b" remains eligible until the end of the method (line 9) since `three` is still referencing it.
+
+
+---
+**Code Formatting on the Exam** #TIP 
+
+Not all questions will include package declarations and imports. Don’t worry about missing package statements or imports unless you are asked about them. The following are common cases where you don’t need to check the imports:
+
+- ==**Code that begins with a class name**==
+-  ==**Code that begins with a method declaration**==
+- ==**Code that begins with a code snippet that would normally be inside a class or method**==
+- ==**Code that has line numbers that don’t begin with 1**==
+ 
+ You’ll see code that doesn’t have a method. When this happens, assume any necessary plumbing code like the main() method and class definition were written correctly. You’re just being asked if the part of the code you’re shown compiles when dropped into valid surrounding code. Finally, remember that extra whitespace doesn’t matter in Java syntax. The exam may use varying amounts of whitespace to trick you.
+
+---
+
+## Summary #Summary 
+
+==**Java begins program execution with a `main()` method. The most common signature for this method run from the command line is `public static void main(String[] args)`. Arguments are passed in after the class name, as in java `NameOfClass` `firstArgument`. Arguments are indexed starting with 0.**==
+
+==**Java code is organized into folders called packages. To reference classes in other packages, you use an `import` statement. A wildcard ending an import statement means you want to import all classes in that package. It does not include packages that are inside that one. The package` java.lang` is special in that it does not need to be imported.**==
+
+==**For some class elements, order matters within the file. The package statement comes first if present. Then come the import statements if present. Then comes the class declaration. Fields and methods are allowed to be in any order within the class.**==
+
+==**Primitive types are the basic building blocks of Java types. They are assembled into reference types. Reference types can have methods and be assigned a null value. Numeric literals are allowed to contain underscores (_) as long as they do not start or end the literal and are not next to a decimal point `(.)`. Wrapper classes are reference types, and there is one for each primitive. Text blocks allow creating a String on multiple lines using `"""`.**==
+
+==**Declaring a variable involves stating the data type and giving the variable a name. Variables that represent fields in a class are automatically initialized to their corresponding 0, `null`, or `false` values during object instantiation. Local variables must be specifically initialized before they can be used. Identifiers may contain letters, numbers, currency symbols, or _. Identifiers may not begin with numbers. Local variable declarations may use the var keyword instead of the actual type. When using var, the type is set once at compile time and does not change.**==
+
+==**Scope refers to that portion of code where a variable can be accessed. There are three kinds of variables in Java, depending on their scope: instance variables, class variables, and local variables. Instance variables are the non-static fields of your class. Class variables are the static fields within a class. Local variables are declared within a constructor, method, or initializer block.**==
+
+==**Constructors create Java objects. A constructor is a method matching the class name and omitting the return type. When an object is instantiated, fields and blocks of code are initialized first. Then the constructor is run. Finally, garbage collection is responsible for removing objects from memory when they can never be used again. An object becomes eligible for garbage collection when there are no more references to it or its references have all gone out of scope.**==
+
+
+## Exam Essentials #Essential
+
+**Be able to write code using a main() method**. A `main()` method is usually written as `public static void main(String[] args)`. Arguments are referenced starting with `args[0]`. Accessing an argument that wasn’t passed in will cause the code to throw an exception.
+
+**Understand the effect of using packages and imports**. Packages contain Java classes. Classes can be imported by class name or wildcard. Wildcards do not look at subdirectories. In the event of a conflict, class name imports take precedence. Package and import statements are optional. If they are present, they both go before the class declaration in that order.
+
+**Be able to recognize a constructor.** A constructor has the same name as the class. It looks like a method without a return type.
+
+**Be able to identify legal and illegal declarations and initialization**. Multiple variables can be declared and initialized in the same statement when they share a type. Local variables require an explicit initialization; others use the default value for that type. Identifiers may contain letters, numbers, currency symbols, or _, although they may not begin with numbers. Also, you cannot define an identifier that is just a single underscore character _. Numeric literals may contain underscores between two digits, such as 1_000, but not in other places, such as _100_.0_.
+
+**Understand how to create text blocks.**  A text block begins with `"""` on the first line. On the next line begins the content. The last line ends with `""".` If `"""` is on its own line, a trailing line break is included.
+
+**Be able to use `var` correctly.** A var is `var` for a local variable. A `var` is initialized on the same line where it is declared, and while it can change value, it cannot change type. A `var` cannot be initialized with a `null` value without a type, nor can it be used in multiple variable declarations.
+
+**Be able to determine where variables go into and out of scope.** All variables go into scope when they are declared. Local variables go out of scope when the block they are declared in ends. Instance variables go out of scope when the object is eligible for garbage collection. Class variables remain in scope as long as the program is running.
+
+**Know how to identify when an object is eligible for garbage collection.** Draw a diagram to keep track of references and objects as you trace the code. When no arrows point to a box (object), it is eligible for garbage collection.
 
 
