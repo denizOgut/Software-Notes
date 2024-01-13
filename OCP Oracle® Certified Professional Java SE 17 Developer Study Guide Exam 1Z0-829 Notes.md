@@ -1088,17 +1088,15 @@ The Java Development Kit (JDK) contains the minimum software you need to do Java
 development. Key commands include:
 
 - `javac`: Converts .java source files into .class bytecode
-- java: Executes the program
-- jar: Packages files together
+- `java`: Executes the program
+- `jar`: Packages files together
 - `javadoc`: Generates documentation
 
-The `javac` program generates instructions in a special format called bytecode that
-the java command can run.
+The `javac` program generates instructions in a special format called bytecode that the java command can run.
 
 Then java launches the Java Virtual Machine (JVM) before running the code The JVM knows how to run bytecode on the actual machine it is on.
 
-think of the JVM as a special magic box on your machine that knows how to run your
-.class file within your particular operating system and hardware.
+think of the JVM as a special magic box on your machine that knows how to run your .class file within your particular operating system and hardware.
 
 ---
 
@@ -1141,23 +1139,17 @@ java -version
 
 ## Understanding the Class Structure
 
-In Java programs, classes are the basic building blocks. When defining a class, you describe
-all the parts and characteristics of one of those building blocks.
+In Java programs, classes are the basic building blocks. When defining a class, you describe all the parts and characteristics of one of those building blocks.
 
-To use most classes, you have to create objects.  An object is a runtime instance of a class
-in memory. An object is often referred to as an instance since it represents a single representation of the class.
+To use most classes, you have to create objects.  An object is a runtime instance of a class in memory. An object is often referred to as an instance since it represents a single representation of the class.
 
-All the various objects of all the different classes represent the state of
-your program. A reference is a variable that points to an object.
+All the various objects of all the different classes represent the state of your program. A reference is a variable that points to an object.
 
 ### Fields and Methods
 
-Java classes have two primary elements: **methods**, often called functions or procedures in
-other languages, and **fields**, more generally known as variables.
-Together these are called the members of the class.
+Java classes have ==**two primary elements**==: ==**methods**==, often called functions or procedures in other languages, and ==**fields**==, more generally known as variables. Together these are called the members of the class.
 
-Variables hold the state of the program, and methods operate on that
-state. If the change is important to remember, a variable stores that change.
+Variables hold the state of the program, and methods operate on that state. If the change is important to remember, a variable stores that change.
 
 The simplest Java class you can write looks like this:
 
@@ -1174,8 +1166,7 @@ Line 1 includes the `public` keyword, which allows other classes to use it. The 
 3: }
 ```
 
-On line 2, we define a variable named name. We also declare the type of that variable to
-be `String`.
+On line 2, we define a variable named name. We also declare the type of that variable to be `String`.
 
 ```java
 1: public class Animal {
@@ -1189,18 +1180,13 @@ be `String`.
 9: }
 ```
 
-On lines 3–5, we define a method. A method is an operation that can be called. Again,
-`public` is used to signify that this method may be called from other classes
+On lines 3–5, we define a method. A method is an operation that can be called. Again, `public` is used to signify that this method may be called from other classes
 
-Next comes the return type—in this case, the method returns a `String`.
-On lines 6–8 is another method. This one has a special return type called void.
-The `void` keyword means that no value at all is returned.
+Next comes the return type—in this case, the method returns a `String`. On lines 6–8 is another method. This one has a special return type called void. The `void` keyword means that no value at all is returned.
 
-This method requires that information be supplied to it from the calling method;
-this information is called a *parameter*.
+This method requires that information be supplied to it from the calling method; this information is called a *parameter*.
 
-The `setName()` method has one parameter named `newName`, and it is of type String.
-This means the caller should pass in one String parameter and expect nothing to be returned.
+The `setName()` method has one parameter named `newName`, and it is of type String. This means the caller should pass in one String parameter and expect nothing to be returned.
 
 The method name and parameter types are called the method signature.
 
@@ -1210,26 +1196,40 @@ public int numberVisitors(int month) {
 }
 ```
 
-The method name is `numberVisitors`. There’s one parameter named month,
-which is of type `int`, which is a numeric type. the method signature is
-**`numberVisitors(int).`**
+The method name is `numberVisitors`. There’s one parameter named month, which is of type `int`, which is a numeric type. the method signature is **`numberVisitors(int).`**
+
+---
+
+```java
+// Most of the time, each Java class is defined in its own .java file.  
+// A top-level class is often public, which means any code can call it.  
+// If you do have a public type, it needs to match the filename.  
+  
+/*public */ class AnimalV2 { // ONLY AnimalV2 class can be public in this source file.  
+    private String name;  
+}  
+  
+// You can even put two types in the same file.  
+// When you do so, at most one of the toplevel types in the file is allowed to be public.  
+class Animal2 {  
+}  
+  
+// public class Animal3{} // Compile Error
+```
+
+---
 
 ### Comments
 
-Another common part of the code is called a comment. Because comments aren’t executable
-code, you can place them in many places. Comments can make your code easier to read.
+Another common part of the code is called a comment. Because comments aren’t executable code, you can place them in many places. Comments can make your code easier to read.
 
-There are three types of comments in Java. 
-**single-line comment**:
+There are three types of comments in Java.  **single-line comment**:
 
 ```java
 // comment until end of line
 ```
 
-A single-line comment begins with two slashes. The compiler ignores anything you type
-after that on the same line.
-
-**multiple-line comment**
+A single-line comment begins with two slashes. The compiler ignores anything you type after that on the same line. **multiple-line comment**
 
 ```java
 /* Multiple
@@ -1238,7 +1238,6 @@ after that on the same line.
 ```
 
 A multiple-line comment includes anything starting from the symbol /* until the symbol  * /.
-
 **Javadoc comment**
 
 ```go
@@ -1248,7 +1247,6 @@ comment
 * @author Jeanne and Scott
 */
 ```
-
 
 This comment is similar to a multiline comment, except it starts with `/**`.   This special
 syntax tells the Javadoc tool to pay attention to the comment.
@@ -1275,10 +1273,7 @@ There is an extra `*/`. That’s not valid syntax
 
 ### Classes and Source Files
 
-Most of the time, each Java class is defined in its own .java file. 
-A top-level type is a data structure that can be defined independently within a source file.
-A top-level class is often `public`, which means any code can call it. Interestingly, Java does
-not require that the type be `public`
+Most of the time, each Java class is defined in its own .java file.  A top-level type is a data structure that can be defined independently within a source file. A top-level class is often `public`, which means any code can call it. Interestingly, Java does not require that the type be `public`
 
 ```java
 1: class Animal {
@@ -1286,8 +1281,7 @@ not require that the type be `public`
 3: }
 ```
 
-You can even put two types in the same file. When you do so, **==at most one of the top-level**==
-==**types in the file is allowed to be public==**
+You can even put two types in the same file. When you do so, ==**at most one of the top-level types in the file is allowed to be public**==
 
 ```java
 1: public class Animal {
@@ -1296,14 +1290,11 @@ You can even put two types in the same file. When you do so, **==at most one of 
 4: class Animal2 {} // Bold
 ```
 
-**==If you do have a public type, it needs to match the filename**. The declaration==
-==public class Animal2 would not compile in a file named **`Animal.java`**.==
+==**If you do have a public type, it needs to match the filename**. The declaration public class Animal2 would not compile in a file named **`Animal.java`**.==
 
+## Writing a `main()` Method
 
-## Writing a main() Method
-
-A Java program begins execution with its main() method. 
-The main() method is often called an entry point into the program, because it is the starting point that the JVM looks for when it begins running a new program.
+A Java program begins execution with its `main()` method.  The `main()` method is often called an entry point into the program, because it is the starting point that the JVM looks for when it begins running a new program.
 
 ### Creating a main() Method
 
@@ -1332,7 +1323,7 @@ for now, we follow this subset of the rules:
 - ==**The filename must match the class name, including case, and have a .java extension.**==
 - ==**If the Java class is an entry point for the program, it must contain a valid main() method.**==
 
-review the words in the main() method’s signature, one at a time. 
+review the words in the `main()` method’s signature, one at a time. 
 
 The keyword `public` is what’s called an access modifier. It declares this method’s level of exposure to potential callers in the program. Naturally, public means full access from anywhere in the program.
 
@@ -1354,8 +1345,7 @@ The variable name args is common because it hints that this list contains values
 ---
 **Optional Modifiers in main() Methods** #TIP
 
-While most modifiers, such as public and static, are required for main() methods,
-there are some optional modifiers allowed.
+While most modifiers, such as public and static, are required for main() methods, there are some optional modifiers allowed.
 
 ```java
 public final static void main(final String[] args) {}
@@ -1390,8 +1380,7 @@ Bronx
 Zoo
 ```
 
-The program correctly identifies the first two “words” as the arguments. Spaces are used
-to separate the arguments. **==want spaces inside an argument, you need to use quotes==**
+The program correctly identifies the first two “words” as the arguments. Spaces are used to separate the arguments. **==want spaces inside an argument, you need to use quotes==**
 
 ```shell
 javac Zoo.java
@@ -1405,8 +1394,7 @@ javac Zoo.java
 java Zoo Zoo
 ```
 
-Reading args[0] goes fine, and Zoo is printed out. Then Java panics. There’s no second
-argument! Java prints out an exception telling you it has no idea what to do with this argument at position 1.
+Reading args[0] goes fine, and Zoo is printed out. Then Java panics. There’s no second argument! Java prints out an exception telling you it has no idea what to do with this argument at position 1.
 
 ```java
 Zoo
@@ -1415,9 +1403,7 @@ Index 1 out of bounds for length 1
 at Zoo.main(Zoo.java:4)
 ```
 
-To review, the JDK contains a compiler. Java class files run on the JVM and therefore run
-on any machine with Java rather than just the machine or operating system they happened
-to have been compiled on.
+To review, the JDK contains a compiler. Java class files run on the JVM and therefore run on any machine with Java rather than just the machine or operating system they happened to have been compiled on.
 
 ---
 
@@ -1427,23 +1413,15 @@ to have been compiled on.
 java Zoo.java Bronx Zoo
 ```
 
-There is a key difference here. When compiling first, you omitted the .java extension
-when running java. When skipping the explicit compilation step, you include this
-extension. This feature is called launching single-file source-code programs and is useful for
-testing or for small programs.
+There is a key difference here. When compiling first, you omitted the .java extension when running java. When skipping the explicit compilation step, you include this extension. This feature is called launching single-file source-code programs and is useful for testing or for small programs.
 
 ---
-
-
 ## Understanding Package Declarations and Imports
 
 
-Java comes with thousands of built-in classes, and there are countless more from developers
-like you. With all those classes, Java needs a way to organize them. It handles this in a way
-similar to a file cabinet.
+Java comes with thousands of built-in classes, and there are countless more from developers. With all those classes, Java needs a way to organize them. It handles this in a way similar to a file cabinet.
 
-Java puts classes in packages. These are logical groupings for classes.
-Java needs you to tell it which packages to look in to find code.
+Java puts classes in packages. These are logical groupings for classes. Java needs you to tell it which packages to look in to find code.
 
 ```java
 public class NumberPicker {
@@ -1460,10 +1438,7 @@ the output:
 error: cannot find symbol
 ```
 
-This error could mean you made a typo in the name of the class.
-The other cause of this error is omitting a needed `import` statement.
-A statement is an instruction, and import statements tell Java which packages to look in for
-classes. Since you didn’t tell Java where to look for Random, it has no clue.
+This error could mean you made a typo in the name of the class. The other cause of this error is omitting a needed `import` statement. A statement is an instruction, and import statements tell Java which packages to look in for classes. Since you didn’t tell Java where to look for Random, it has no clue.
 
 ```java
 import java.util.Random; // import tells us where to find Random
@@ -1479,8 +1454,7 @@ System.out.println(r.nextInt(10)); // a number 0-9
 
 Java classes are grouped into packages. The `import` statement tells the compiler which package to look in to find a class.
 
-==**Java only looks for class names in the package.**== Package names are hierarchical
-The rule for package names is that they are mostly letters or numbers separated by periods (.). Technically, you’re allowed a couple of other characters between the periods (.).
+==**Java only looks for class names in the package.**== Package names are hierarchical. The rule for package names is that they are mostly letters or numbers separated by periods `(.)`. Technically, you’re allowed a couple of other characters between the periods` (.)`.
 
 ### Wildcards
 
@@ -1496,9 +1470,8 @@ System.out.println(r.nextInt(10));
 }
 ```
 
-The * is a wildcard that matches all classes in the package.  Every class in the` java.util` package
-is available to this program when Java compiles it. **==The `import` statement doesn’t bring in**==
-==**child packages, fields, or methods; it imports only classes directly under the package==**
+The `*` is a wildcard that matches all classes in the package.  Every class in the` java.util` package
+is available to this program when Java compiles it. ==**The `import` statement doesn’t bring in child packages, fields, or methods; it imports only classes directly under the package**==
 
 Example to use the class `AtomicInteger`
 
@@ -1508,11 +1481,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 ```
 
-Only the last import allows the class to be recognized because child packages are not
-included with the first two.
+Only the last import allows the class to be recognized because child packages are not included with the first two.
 
-Might think that including so many classes slows down your program execution, but
-it doesn’t. The compiler figures out what’s actually needed.
+Might think that including so many classes slows down your program execution, but it doesn’t. The compiler figures out what’s actually needed.
 
 - Listing the classes used makes the code easier to read
 - Using the wildcard can shorten the import list.
@@ -1536,8 +1507,7 @@ There’s one special package in the Java world called `java.lang`. This package
 
 How many of the imports do you think are redundant?  The answer is that three of the imports are redundant. Lines 1 and 2 are redundant because everything in `java.lang` is automatically imported. Line 4 is also redundant in this example because Random is already imported from `java.util.Random`
 
-Another case of redundancy involves importing a class that is in the same package as the
-class importing it. Java automatically looks in the current package for other classes.
+Another case of redundancy involves importing a class that is in the same package as the class importing it. Java automatically looks in the current package for other classes.
 
 ```java
 public class InputImports {
@@ -1549,8 +1519,7 @@ Paths.get("name");
 
 Which import statements do you think would work to get this code to compile?
 
-There are two possible answers. The shorter one is to use a wildcard to import both at the
-same time.
+There are two possible answers. The shorter one is to use a wildcard to import both at the same time.
 
 ```java
 import java.nio.file.*;
@@ -1576,11 +1545,7 @@ import java.nio.file.Paths.*; // NO GOOD -you cannot import methods
 
 ### Naming Conflicts
 
-One of the reasons for using packages is so that class names don’t have to be unique across
-all of Java. This means you’ll sometimes want to import a class that can be found in multiple
-places. A common example of this is the Date class. Java provides implementations of
-`java.util.Date` and `java.sql.Date`. What import statement can we use if we want the
-`java.util.Date` version?
+One of the reasons for using packages is so that class names don’t have to be unique across all of Java. This means you’ll sometimes want to import a class that can be found in multiple places. A common example of this is the Date class. Java provides implementations of `java.util.Date` and `java.sql.Date`. What import statement can we use if we want the `java.util.Date` version?
 
 ```java
 public class Conflicts {
@@ -1605,10 +1570,9 @@ import java.util.Date;
 import java.sql.*;
 ```
 
-now it works! If you explicitly import a class name, it takes precedence over any
-wildcards present. 
+now it works! If you explicitly import a class name, it takes precedence over any wildcards present. 
 
-> ==If you specifically mention the name of a class when importing in programming, it's more important than using a general import with a wildcard `(*)`. The specific import has priority.==
+ **==If you specifically mention the name of a class when importing in programming, it's more important than using a general import with a wildcard `(*)`. The specific import has priority.==**
 
 What does Java do with “ties” for precedence? 
 
@@ -1617,16 +1581,12 @@ import java.util.Date;
 import java.sql.Date;
 ```
 
-Java is smart enough to detect that this code is no good. As a programmer, you’ve claimed
-to explicitly want the default to be both the `java.util.Date` and` java.sql.Date` implementations. Because there can’t be two defaults, the compiler tells you the imports are
-**ambiguous**.
+Java is smart enough to detect that this code is no good. As a programmer, you’ve claimed to explicitly want the default to be both the `java.util.Date` and` java.sql.Date` implementations. Because there can’t be two defaults, the compiler tells you the imports are **ambiguous**.
 
 ---
 **If You Really Need to Use Two Classes with the Same Name**
 
-you can pick one to use in the import statement and use the other’s fully qualified
-class name. Or you can drop both import statements and always use the fully qualified
-class name.
+you can pick one to use in the import statement and use the other’s fully qualified class name. Or you can drop both import statements and always use the fully qualified class name.
 
 ```java
 public class Conflicts {
@@ -1636,8 +1596,6 @@ java.sql.Date sqlDate;
 ```
 
 ---
-
-
 ### Creating a New Package
 
 the default package. This is a special unnamed package that you should use only for throwaway code. You can tell the code is in the default package, because there’s no package name. In real life, always name your packages to avoid naming conflicts and to allow others to reuse your code.
@@ -1654,7 +1612,6 @@ System.out.println("Got it");
 ```
 
 When you run a Java program, Java knows where to look for those package names.
-
 ### Compiling and Running Code with Packages 
 
 | Step | Windows                  | Mac/Linux                 |
@@ -1681,8 +1638,7 @@ javac packagea/ClassA.java packageb/ClassB.java
 javac packagea/*.java packageb/*.java
 ```
 
-However, you cannot use a wildcard to include subdirectories. If you were to write
-`javac *.java`, the code in the packages would not be picked up.
+However, you cannot use a wildcard to include subdirectories. If you were to write `javac *.java`, the code in the packages would not be picked up.
 
 ---
 
@@ -1695,15 +1651,11 @@ java packageb.ClassB
 we typed `ClassB` rather than `ClassB.class`. As discussed earlier, you don’t pass the extension when running  a program.
 
 ![[Pasted image 20240109140348.png]]
-
-**Compiling with packages**
-
-
 ### Compiling to Another Directory
 
 By default, the javac command places the compiled classes in the same directory as the
 source code. It also provides an option to place the class files into a different directory. The
--d option specifies this target directory.
+`-d` option specifies this target directory.
 
 
 ---
@@ -1716,17 +1668,16 @@ Java options are case sensitive. This means you cannot pass -D instead of -d.
 javac -d classes packagea/ClassA.java packageb/ClassB.java
 ```
 
-Where to create the file
-classes`/packagea/ClassA.class.` The package structure is preserved under the requested target directory.
+Where to create the file classes`/packagea/ClassA.class.` The package structure is preserved under the requested target directory.
 
 ![[Pasted image 20240109140649.png]]
 
 To run the program, you specify the classpath so Java knows where to find the classes.
 There are three options you can use. All three of these do the same thing:
 
-- `java -cp classes packageb.ClassB` 
-- `java -classpath classes packageb.ClassB`
-- `java -- class- path classes packageb.ClassB`
+- **`java -cp classes packageb.ClassB`** 
+- **`java -classpath classes packageb.ClassB`**
+- **`java -- class- path classes packageb.ClassB`**
 
 Notice that the last one requires two dashes (-- ), while the first two require one dash (-).
 
@@ -1738,15 +1689,13 @@ A Java archive (JAR) file is like a ZIP file of mainly Java class files.  On Win
 java -cp ".;C:\temp\someOtherLocation;c:\temp\myJar.jar" myPackage.MyClass
 ```
 
-when you’re compiling, you can use a wildcard `(*)` to match all the JARs in a
-directory.
+when you’re compiling, you can use a wildcard `(*)` to match all the JARs in a directory.
 
 ```java
 java -cp "C:\temp\directoryWithJars\*" myPackage.MyClass
 ```
 
-This command will add to the classpath all the JARs that are in `directoryWithJars`. It
-won’t include any JARs in the classpath that are in a subdirectory of `directoryWithJars`.
+This command will add to the classpath all the JARs that are in `directoryWithJars`. It won’t include any JARs in the classpath that are in a subdirectory of `directoryWithJars`.
 
 ### Creating a JAR File
 
@@ -1778,14 +1727,14 @@ jar -cvf myNewFile.jar -C dir .
 
 Comments can go anywhere in the code.
 
-| Element                  | Example                | Required? | Where does it go?                                |
+| **Element**                  | **Example**                | **Required?** | **Where does it go?**                                |
 |--------------------------|------------------------|-----------|--------------------------------------------------|
-| Package declaration      | `package abc;`         | No        | First line in the file (excluding comments or blank lines) |
-| Import statements        | `import java.util.*;`  | No        | Immediately after the package (if present)        |
-| Top-level type declaration| `public class C`       | Yes       | Immediately after the import (if any)            |
-| Field declarations       | `int value;`           | No        | Any top-level element within a class              |
-| Method declarations      | `void method()`        | No        | Any top-level element within a class              |
-a few example
+| **Package declaration**      | **`package abc;`**         | **No**        | **First line in the file (excluding comments or blank lines)** |
+| **Import statements**        | **`import java.util.*;`**  | **No**        | **Immediately after the package (if present)**        |
+| **Top-level type declaration**| **`public class C`**       | **Yes**       | **Immediately after the import (if any)**            |
+| **Field declarations**       | **`int value;`**           | **No**        | **Any top-level element within a class**              |
+| **Method declarations**      | **`void method()`**        | **No**        | **Any top-level element within a class**              |
+**A Few Example**
 
 **Good**
 
@@ -1796,8 +1745,7 @@ public class Meerkat { // then comes the class
 double weight; // fields and methods can go in either order
 public double getWeight() {
 return weight; }
-double height; // another field -they
-don't need to be together
+double height; // another field -they don't need to be together
 }
 ```
 
@@ -1816,30 +1764,23 @@ String name; // DOES NOT COMPILE
 public class Meerkat { } // DOES NOT COMPILE
 ```
 
-There are two problems here. One is that the package and import statements are
-reversed. Although both are optional, package must come before `import` if present.
+There are two problems here. One is that the package and import statements are reversed. Although both are optional, package must come before `import` if present.
 
-The other issue is that a field attempts a declaration outside a class. This is not allowed. Fields
-and methods must be within a class.
-
+The other issue is that a field attempts a declaration outside a class. This is not allowed. Fields and methods must be within a class.
 ## Creating Objects
 
 an object is an instance of a class
-
 ### Calling Constructors
 
-To create an instance of a class, all you have to do is write new before the class name and
-add parentheses after it.
+To create an instance of a class, all you have to do is write new before the class name and add parentheses after it.
 
 ```java
 Park p = new Park();
 ```
 
-First you declare the type that you’ll be creating (Park) and give the variable a name (p).
-This gives Java a place to store a reference to the object.  Then you write `new Park()` to actually create the object.
+First you declare the type that you’ll be creating (Park) and give the variable a name (p). This gives Java a place to store a reference to the object.  Then you write `new Park()` to actually create the object.
 
-`Park()` looks like a method since it is followed by parentheses. It’s called a **constructor**,
-which is a special type of method that creates a new object.
+`Park()` looks like a method since it is followed by parentheses. It’s called a **constructor**, which is a special type of method that creates a new object.
 
 ```java
 public class Chick {
@@ -1859,9 +1800,9 @@ public void Chick() { } // NOT A CONSTRUCTOR
 }
 ```
 
-When you see a method name beginning with a capital letter and having a return type,
-pay special attention to it. It is not a constructor since there’s a return type. It’s a regular
-method that does compile but will not be called when you write new Chick().
+==**When you see a method name beginning with a capital letter and having a return type,**==
+==**pay special attention to it. It is not a constructor since there’s a return type. It’s a regular**==
+==**method that does compile but will not be called when you write new Chick().**== #TIP 
 
 The purpose of a constructor is to initialize fields,  Another way to initialize fields is to do so directly on the line on which they’re declared.
 
@@ -1876,7 +1817,6 @@ name = "Duke"; // initialize in constructor
 ```
 
 For most classes, the compiler will supply a “do nothing” default constructor for you.
-
 ### Reading and Writing Member Fields
 
 It’s possible to read and write instance variables directly from the caller.
@@ -1902,9 +1842,7 @@ can even read values of already initialized fields on a line initializing a new 
 5: }
 ```
 
-Lines 2 and 3 both write to fields. Line 4 both reads and writes data. It reads the fields
-`first` and `last`. It then writes the field full.
-
+Lines 2 and 3 both write to fields. Line 4 both reads and writes data. It reads the fields `first` and `last`. It then writes the field full.
 ### Executing Instance Initializer Blocks
 
 The code between the braces (sometimes called “inside the braces”) is called a code block. Anywhere you see braces is a code block.
@@ -1913,31 +1851,28 @@ Sometimes code blocks are inside a method. These are run when the method is call
 Other times, ==**code blocks appear outside a method. These are called instance initializers.**==
 
 ```java
-1: public class Bird {
-2: public static void main(String[] args) {
-3: { System.out.println("Feathers"); }
+1: public class Bird { // Class Definition
+2: public static void main(String[] args) { // Method Declaration
+3: { System.out.println("Feathers"); } // Inner Block
 4: }
-5: { System.out.println("Snowy"); }
+5: { System.out.println("Snowy"); } // Instance initializer
 6: }
 ```
 
-There are four code blocks in this example: a class definition, a method declaration, an
-inner block, and an instance initializer.
+There are four code blocks in this example: a class definition, a method declaration, an inner block, and an instance initializer.
 
-When you’re counting instance initializers, keep in mind that they cannot exist inside of a
-method. Line 5 is an instance initializer, with its braces outside a method.
-
+When you’re counting instance initializers, keep in mind that they cannot exist inside of a method. Line 5 is an instance initializer, with its braces outside a method.
 ### Following the Order of Initialization
 
 This is simply the order in which different methods, constructors, or blocks are called when an instance of the class is created.
 
 | Order No. | Order of Initialization            | Description                                                                                      | Simple Example                                   |
 |-----------|-------------------------------------|--------------------------------------------------------------------------------------------------|--------------------------------------------------|
-| 1         | **Static Variables Initialization** | Static variables are initialized first, either at the time of declaration or in a static block.  | `static int staticVariable = 42;`                |
-| 2         | **Static Initialization Blocks**    | Static initialization blocks are executed in the order they appear in the class after static variable initialization. | ```java static { /* initialization code */ }``` |
-| 3         | **Instance Variables Initialization** | Instance variables are initialized next, either at the time of declaration or in an instance initialization block. | `int instanceVariable = 10;`                     |
-| 4         | **Instance Initialization Blocks** | Instance initialization blocks are executed in the order they appear in the class after instance variable initialization, just before the constructor is invoked. | ```java { /* initialization code */ }```        |
-| 5         | **Constructor Execution**           | Finally, the constructor of the class is executed, allowing specific instance-level initialization tasks to be performed. | ```java public MyClass() { /* constructor code */ }``` |
+| 1         | Static Variables Initialization | Static variables are initialized first, either at the time of declaration or in a static block.  | `static int staticVariable = 42;`                |
+| 2         | Static Initialization Blocks    | Static initialization blocks are executed in the order they appear in the class after static variable initialization. | ```java static { /* initialization code */ }``` |
+| 3         | Instance Variables Initialization | Instance variables are initialized next, either at the time of declaration or in an instance initialization block. | `int instanceVariable = 10;`                     |
+| 4         | Instance Initialization Blocks | Instance initialization blocks are executed in the order they appear in the class after instance variable initialization, just before the constructor is invoked. | ```java { /* initialization code */ }```        |
+| 5         | Constructor Execution           | Finally, the constructor of the class is executed, allowing specific instance-level initialization tasks to be performed. | ```java public MyClass() { /* constructor code */ }``` |
 
 - ==**Fields and instance initializer blocks are run in the order in which they appear in the file.**==
 - ==**The constructor runs after all fields and instance initializer blocks have run.**==
@@ -1966,8 +1901,7 @@ Tiny
 
 start with the main() method because that’s where Java starts execution. On line 9, we call the constructor of Chick. Java creates a new object. First it initializes name to "Fluffy" on line 2. Next it executes the `println()` statement in the instance initializer on line 3. Once all the fields and instance initializers have run, Java returns to the constructor. Line 5 changes the value of name to "Tiny", and line 6 prints another statement.
 
-Order matters for the fields and blocks of code. You can’t refer to a variable before it has
-been defined:
+Order matters for the fields and blocks of code. You can’t refer to a variable before it has been defined:
 
 ```java
 { System.out.println(name); } // DOES NOT COMPILE
@@ -1993,13 +1927,9 @@ Fields and blocks are run first in order, setting number to 3 and then 4. Then t
 ## Understanding Data Types
 
 Java applications contain two types of data: **primitive** types and **reference** types.
-
 ### Using Primitive Types
 
-Java has eight built-in data types, referred to as the Java primitive types. These eight data
-types represent the building blocks for Java objects, because all Java objects are just a complex collection of these primitive data types. 
-A primitive is not an object in Java, nor does it represent an object. A primitive is just a single value in memory, such as a number or character.
-
+Java has eight built-in data types, referred to as the Java primitive types. These eight data types represent the building blocks for Java objects, because all Java objects are just a complex collection of these primitive data types.  A primitive is not an object in Java, nor does it represent an object. A primitive is just a single value in memory, such as a number or character.
 ### The Primitive Types
 
 | Keyword  | Type                      | Min Value                   | Max Value                   | Default Value               | Example    |
@@ -2015,30 +1945,23 @@ A primitive is not an object in Java, nor does it represent an object. A primiti
 
 some key points:
 
-- ==**The byte, short, int, and long types are used for integer values without decimal**==
-==**points.**==
+- ==**The byte, short, int, and long types are used for integer values without decimal** **points.**==
 
-- ==**Each numeric type uses twice as many bits as the smaller similar type. For example,**==
-==**short uses twice as many bits as byte does.**==
+- ==**Each numeric type uses twice as many bits as the smaller similar type. For example,** **short uses twice as many bits as byte does.**==
 
-- ==**All of the numeric types are signed and reserve one of their bits to cover a negative**==
-==**range.**==
+- ==**All of the numeric types are signed and reserve one of their bits to cover a negative** **range.**==
 
-- ==**A float requires the letter f or F following the number so Java knows it is a float.**==
-==**Without an f or F, Java interprets a decimal value as a double.**==
+- ==**A float requires the letter f or F following the number so Java knows it is a float.** **Without an f or F, Java interprets a decimal value as a double.**==
 
 - ==**long requires the letter l or L following the number so Java knows it is a long.**==
-==**Without an l or L, Java interprets a number without a decimal point as an int in most**==
-==**scenarios.**==
+==**Without an l or L, Java interprets a number without a decimal point as an int in most** **scenarios.**==
 
 ---
 **Signed and Unsigned: short and char**
 
-For the exam, you should be aware that short and char are closely related, as both are
-stored as integral types with the same 16-bit length. ==**The primary difference is that short is signed, which means it splits its range across the positive and negative integers. Alternatively, char is unsigned, which means its range is strictly positive, including 0.**==
+For the exam, you should be aware that short and char are closely related, as both are stored as integral types with the same 16-bit length. ==**The primary difference is that short is signed, which means it splits its range across the positive and negative integers. Alternatively, char is unsigned, which means its range is strictly positive, including 0.**==
 
-Often, short and char values can be cast to one another because the underlying data size
-is the same.
+Often, short and char values can be cast to one another because the underlying data size is the same.
 
 ---
 
@@ -2085,16 +2008,13 @@ double reallyUgly = 1__________2; // Also compiles
 
 ### Using Reference Types
 
-**A reference type refers to an object (an instance of a class). Unlike primitive types that hold**
-**their values in the memory where the variable is allocated, references do not hold the value**
-**of the object they refer to. Instead, a reference “points” to an object by storing the memory address where the object is located, a concept referred to as a pointer.**
+**A reference type refers to an object (an instance of a class). Unlike primitive types that hold their values in the memory where the variable is allocated, references do not hold the value of the object they refer to. Instead, a reference “points” to an object by storing the memory address where the object is located, a concept referred to as a pointer.**
 
 ```java
 String greeting;
 ```
 
-The greeting variable is a reference that can only point to a String object. A value is
-assigned to a reference in one of two ways:
+The greeting variable is a reference that can only point to a String object. A value assigned to a reference in one of two ways:
 
 - ==**A reference can be assigned to another object of the same or compatible type.**==
 - ==**A reference can be assigned to a new object using the new keyword.**==
@@ -2104,7 +2024,6 @@ greeting = new String("How are you?");
 ```
 
 The greeting reference points to a new String object, "How are you?". The String object does not have a name and can be accessed only via a corresponding reference.
-
 ### Distinguishing between Primitives and Reference Types
 
 There are a few important differences between primitives and reference types.
@@ -2150,8 +2069,7 @@ int primitive = Integer.parseInt("123");
 Integer wrapper = Integer.valueOf("123");
 ```
 
-All of the numeric classes extend the Number class, which means they all come with some useful helper methods: `byteValue(), shortValue(), intValue(), longValue(), floatValue()`, and `doubleValue()`. The Boolean and Character wrapper classes include `booleanValue()` and `charValue()`, respectively. These methods return the primitive value of a wrapper instance,
-in the type requested.
+All of the numeric classes extend the Number class, which means they all come with some useful helper methods: `byteValue(), shortValue(), intValue(), longValue(), floatValue()`, and `doubleValue()`. The Boolean and Character wrapper classes include `booleanValue()` and `charValue()`, respectively. These methods return the primitive value of a wrapper instance, in the type requested.
 
 ```java
 Double apple = Double.valueOf("200.99");
@@ -2237,7 +2155,170 @@ we have three lines for the lines in the text block plus the explicit `\n`.
 2. "deer" (no newline character here)
 3. "" (empty line due to the closing `"""`)
 
+---
+```java
+public static void main(String[] args) {  
+  
+  
+    // Since Java 15, text blocks are available as a standard feature.  
+    // A text block starts and ends with three double quotes ("""), and the contents don’t need to be escaped.  
+    String textBlocks1 = """  
+            Hello TextBlocks            """;  
+  
+    System.out.println("----textBlock1----");  
+    System.out.println(textBlocks1);  
+  
+    String textBlocks2 = """  
+                line1            """;  
+  
+    System.out.println("----textBlock2----");  
+    System.out.println(textBlocks2);  
+  
+  
+    String textBlocks3 = """  
+                        line1            """;  
+    System.out.println("----textBlock3----");  
+    System.out.println(textBlocks3);  
+  
+  
+    String textBlocks4 = """  
+            line1                                """;  
+  
+    System.out.println("----textBlock4----");  
+    System.out.println(textBlocks4);  
+  
+    String textBlocks5 = """  
+                line1            line2                """;  
+  
+    System.out.println("----textBlock5----");  
+    System.out.println(textBlocks5);  
+  
+    String textBlocks6 = """  
+                line1            line2         """;  
+  
+    System.out.println("----textBlock6----");  
+    System.out.println(textBlocks6);  
+  
+    String textBlocks7 = """  
+                line1            line2               line3                        line4      """;  
+  
+    System.out.println("----textBlock7----");  
+    System.out.println(textBlocks7);  
+  
+    String textBlocks8 = """  
+                "line1"            "line2"                "line3"                    "line4"         """;  
+  
+    System.out.println("----textBlock8----");  
+    System.out.println(textBlocks8);  
+  
+    String textBlocks9 = """  
+                \"line1\"            \"line2\"                \"line3\"                    \"line4\"                """;  
+  
+    System.out.println("----textBlock9----");  
+    System.out.println(textBlocks9);  
+  
+}
+```
 
+**the output**
+
+```java
+----textBlock1----
+Hello TextBlocks
+
+----textBlock2----
+    line1
+
+----textBlock3----
+            line1
+
+----textBlock4----
+line1
+
+----textBlock5----
+    line1
+line2
+
+----textBlock6----
+       line1
+   line2
+
+----textBlock7----
+    line1
+line2
+   line3
+            line4
+----textBlock8----
+       "line1"
+   "line2"
+       "line3"
+           "line4"
+
+----textBlock9----
+    "line1"
+"line2"
+    "line3"
+        "line4"
+```
+
+```java
+public class DefiningTextBlockFormatting {  
+  
+    public static void main(String[] args) {  
+  
+        String textBlock1 = """  
+                    \"sample"                """;  
+  
+        System.out.println(textBlock1);  
+  
+        String textBlock2 = """  
+                    \"""line1"                """;  
+  
+        System.out.println(textBlock2);  
+  
+        String textBlock3 = """  
+                    \"\"\"line1"                """;  
+  
+        System.out.println(textBlock3);  
+  
+  
+        String textBlock4 = """  
+                    \\\\\\line1"                """;  
+  
+        System.out.println(textBlock4);  
+  
+        String textBlock5 = """  
+                \s\s\sline1                """;  
+  
+        System.out.println(textBlock5);  
+  
+        String textBlock6 = """  
+                line1 \                    line1-part2 \                  line1-part3                """;  
+  
+        System.out.println(textBlock6);  
+  
+    }  
+}
+
+```
+
+**the output**
+
+```java
+"sample"
+
+    """line1"
+
+    """line1"
+
+    \\\line1"
+
+   line1
+
+line1     line1-part2   line1-part3
+```
+
+---
 ## Declaring Variables
 
 A variable is a name for a piece of memory that stores data. When you declare a variable, you need to state the variable type along with giving it a name. Giving a variable a value is called initializing a variable. To initialize a variable, you just type the variable name followed by an equal sign, followed by the desired value
@@ -2246,13 +2327,12 @@ A variable is a name for a piece of memory that stores data. When you declare a 
 String zooName = "The Best Zoo";
 ```
 
-
 ## Identifying Identifiers
 
 An identifier is the name of a variable, method, class, interface, or package.
 
 There are only four rules to remember for legal identifiers:
-1. **Begin with a letter, currency symbol, or _ symbol:** Identifiers must start with a letter (a-z or A-Z), a currency symbol (e.g., $, ¥, €), or an underscore (_).
+1. **Begin with a letter, currency symbol, or _ symbol:** Identifiers must start with a letter (a-z or A-Z), a currency symbol (e.g., $, ¥, €), or an underscore `(_)`.
     
 2. **Include numbers but not start with them:** While identifiers can include numbers, they must not begin with a number.
     
@@ -2314,9 +2394,7 @@ There are only four rules to remember for legal identifiers:
 | **`while`**         | Starts a while loop.                              |
 * The reserved words `const` and `goto` aren’t actually used in Java. They are reserved so that people coming from other programming languages don’t use them by accident
 
-- There are other names that you can’t use. For example, **`true`**, **`false`**, and **`null`** are literal
-values, so they can’t be variable names. Additionally, there are contextual keywords like
-**`module`**
+- There are other names that you can’t use. For example, **`true`**, **`false`**, and **`null`** are literal values, so they can’t be variable names. Additionally, there are contextual keywords like **`module`**
 
 **LEGAL**
 
@@ -2325,6 +2403,15 @@ long okidentifier;
 float $OK2Identifier;
 boolean _alsoOK1d3ntifi3r;
 char __SStillOkbutKnotsonice$;
+
+int _a;  
+int $c;  
+int ______2_w;  
+int _$;  
+int this_is_a_very_detailed_name_for_an_identifier;
+
+int ¥Ⅻ₤$ώ   = 100;  
+// https://www.rapidtables.com/code/text/unicode-characters.html
 ```
 
 **NOT LEGAL**
@@ -2335,6 +2422,12 @@ byte hollywood@vine; // @ is not a letter, digit, $ or _
 String *$coffee; // * is not a letter, digit, $ or _
 double public; // public is a reserved word
 short _; // a single underscore is not allowed
+
+int :b;  
+int -d;  
+int e#;  
+int .f;  
+int 7g;
 ```
 
 ## Declaring Multiple Variables
@@ -2348,8 +2441,7 @@ String s3 = "yes", s4 = "no";
 }
 ```
 
-Four String variables were declared: s1, s2, s3, and s4. ==**You can declare many variables**==
-==**in the same declaration as long as they are all of the same type**==
+Four String variables were declared: s1, s2, s3, and s4. ==**You can declare many variables**== ==**in the same declaration as long as they are all of the same type**==
 
 ```java
 void paintFence() {
@@ -2375,7 +2467,7 @@ int num, String value; // DOES NOT COMPILE
     
     - Lines 4 and 5 are legal. Line 4 declares two boolean variables, and Line 5 declares a String variable (`s1`) and another uninitialized String variable (`s2`).
 - **Legal, but Uncommon:**
-    
+
     - Line 7 is legal. It declares two int variables (`i1` and `i2`) in separate statements on the same line, separated by a semicolon.
 - **Illegal Declarations:**
     
@@ -2387,15 +2479,12 @@ int num, String value; // DOES NOT COMPILE
 ## Initializing Variables
 
 Before you can use a variable, it needs a value.
-
 ### Creating Local Variables
 
 ==**A local variable is a variable defined within a constructor, method, or initializer block.**==
-
 ### Final Local Variables
 
-The `final` keyword can be applied to local variables and is equivalent to declaring constants
-in other languages
+The `final` keyword can be applied to local variables and is equivalent to declaring constants in other languages
 
 ```java
 5: final int y = 10;
@@ -2414,10 +2503,26 @@ The final modifier can also be applied to local variable references.
 
 The compiler error isn’t until line 8, when we try to change the value of the reference `favoriteNumbers`.
 
+---
+```java
+void sampleKeywordsForLocalVariables() {  
+  
+     private int secret = 10; // DOES NOT COMPILE  
+     public int number = 100; // DOES NOT COMPILE  
+     static int size = 20 ; // DOES NOT COMPILE  
+     abstract int age = 25; // DOES NOT COMPILE  
+     volatile int counter = 10; // DOES NOT COMPILE  
+     transient int life = 50;  
+  
+    final int valid = 200;  
+  
+}
+```
+
+---
 ### Uninitialized Local Variables
 
-Local variables do not have a default value and must be initialized before use. Furthermore,
-the compiler will report an error if you try to read an uninitialized value.
+Local variables do not have a default value and must be initialized before use. Furthermore, the compiler will report an error if you try to read an uninitialized value.
 
 ```java
 4: public int notValid() {
@@ -2465,7 +2570,6 @@ The `answer` variable is initialized in both branches of the if statement, so th
 **On the exam, be wary of any local variable that is declared but not initialized in a single line. This is a common place on the exam that could result in a “Does not compile” answer. Be sure to check to make sure it’s initialized before it’s used on the exam.** #TIP 
 
 ---
-
 ### Passing Constructor and Method Parameters
 
 Variables passed to a constructor or method are called constructor parameters or method
@@ -2475,7 +2579,6 @@ parameters, respectively. These parameters are like local variables that have be
 public void findAnswer(boolean check) {} // check Bold
 ```
 
-
 ```java
 public void checkAnswer() {
 boolean value;
@@ -2484,7 +2587,6 @@ findAnswer(value); // DOES NOT COMPILE
 ```
 
 The call to `findAnswer()` does not compile because it tries to use a variable that is not initialized.
-
 ### Defining Instance and Class Variables
 
 Variables that are not local variables are defined either as instance variables or as class variables.
@@ -2495,15 +2597,13 @@ Variables that are not local variables are defined either as instance variables 
 
 - A class variable is one that is defined on the class level and shared among all instances of the class. It can even be publicly accessible to classes outside the class and doesn’t require an instance to use. ==**You can tell a variable is a class variable because it has the keyword `static` before it.**==
 
-Instance and class variables do not require you to initialize them. As soon as you declare
-these variables, they are given a default value. The compiler doesn’t know what value to use
-and so wants the simplest value it can give the type: `null` for an object, `zero` for the numeric
-types, and `false` for a `boolean`
+Instance and class variables do not require you to initialize them. As soon as you declare these variables, they are given a default value. The compiler doesn’t know what value to use and so wants the simplest value it can give the type: `null` for an object, `zero` for the numeric types, and `false` for a `boolean`
+
+![[Pasted image 20240114005317.png]]
 
 ### Inferring the Type with `var`
 
-have the option of using the keyword var instead of the type when declaring local variables
-under certain conditions
+have the option of using the keyword var instead of the type when declaring local variables under certain conditions
 
 ```java
 public class Zoo {
@@ -2514,7 +2614,6 @@ var size = 7;
 }
 ```
 
-
 The formal name of this feature is ==**local variable type inference**==  You can only use this feature for
 local variables. The exam may try to trick you with code like this:
 
@@ -2524,9 +2623,7 @@ var tricky = "Hello"; // DOES NOT COMPILE
 }
 ```
 
-The variable tricky is an instance variable. Local variable type inference works with local variables
-and not instance variables. 
-
+The variable tricky is an instance variable. Local variable type inference works with local variables and not instance variables. 
 ### Type Inference of var
 
 When you type `var`, you are instructing the compiler to determine the type for you The compiler looks at the code on the line of the declaration and uses it to infer the type.
@@ -2543,7 +2640,6 @@ When you type `var`, you are instructing the compiler to determine the type for 
 **In Java, var is still a specific type defined at compile time. It does not change type at runtime.** #TIP
 
 ---
-
 ### Examples with var
 
 ```java
@@ -2576,12 +2672,9 @@ y = 10;  // Type inference requires an initializer on the same line
 7: }
 ```
 
-Line 5 wouldn’t work even if you replaced var with a real type. All the types declared on
-a single line must be the same type and share the same declaration.
+Line 5 wouldn’t work even if you replaced var with a real type. All the types declared on a single line must be the same type and share the same declaration.
 
-Line 6 is a single line. The compiler is being asked to infer the type of `null`. This could
-be any reference type. The only choice the compiler could make is `Object`. However  the designers of Java decided it would be better not to allow var for `null` than to have to guess at intent.
-
+Line 6 is a single line. The compiler is being asked to infer the type of `null`. This could be any reference type. The only choice the compiler could make is `Object`. However  the designers of Java decided it would be better not to allow var for `null` than to have to guess at intent.
 
 ```java
 4: public void twoTypes() {
@@ -2622,6 +2715,138 @@ Var var = new Var();
 
 this code does compile. 
 
+---
+**Var Review**
+
+```java
+public class VarReview {  
+    
+ // Review of var Rules  
+  
+// 1- A var is used as a local variable in a constructor, method, or initializer block.   
+// 2- A var cannot be used in constructor parameters, method parameters, instance variables, or class variables.    
+// 3- A var is always initialized on the same line (or statement) where it is declared.    
+// 4- The value of a var can change, but the type cannot.    
+// 5- A var cannot be initialized with a null value without a type.    
+// 6- A var is not permitted in a multiple-variable declaration.    
+// 7- A var is a reserved type name but not a reserved word,    
+// meaning it can be used as an identifier except as a class, interface, or enum name.  
+  
+}  
+  
+// A var is used as a local variable in a constructor, method, or initializer block.  
+class Example {  
+  
+    public Example() {  
+        var number = 10;  
+    }  
+  
+    private void method() {  
+        var name = "username";  
+    }  
+  
+    {  
+        var initialized = true;  
+    }  
+}  
+  
+// A var cannot be used in constructor parameters, method parameters, instance variables, or class variables.  
+class Example2 {  
+  
+     private void notValid(var notAllowedHere) {} // DOES NOT COMPILE  
+     public Example2(var notAllowedHere) {} // DOES NOT COMPILE  
+     private var instanceVariableAsVarNotAllowed; // DOES NOT COMPILE  
+     private static var staticVariableAsVarNotAllowed; // DOES NOT COMPILE  
+}  
+  
+// A var is always initialized on the same line (or statement) where it is declared.  
+class Example3 {  
+  
+    void method() {  
+        var number = 10;  
+  
+        var sum  
+                = 20;  
+  
+         var notValid; notValid =20; // DOES NOT COMPILE  
+         var notValid2;  
+    }  
+}  
+  
+// The value of a var can change, but the type cannot.  
+  
+class Example4 {  
+  
+    void method() {  
+        var number = 10;  
+        number = 20;  
+        number = 30;  
+  
+        final var sum = 100;  
+        sum = 150; // DOES NOT COMPILE, final variable  
+  
+        var today = LocalDate.now();  
+  
+         today = LocalTime.now(); // DOES NOT COMPILE  
+  
+        var str = new StringBuilder("example content");  
+         str = "another content"; // DOES NOT COMPILE  
+    }  
+}  
+  
+// A var cannot be initialized with a null value without a type.  
+  
+class Example5 {  
+  
+    void method() {  
+  
+        var object = null; // DOES NOT COMPILE  
+  
+        var content = (String) null;  
+  
+        var invalid = (null)String; // DOES NOT COMPILE  
+        var size = 10;  
+         size = null; // DOES NOT COMPILE  
+  
+        var age = (Integer) 50;  
+        age = null;  
+  
+        var name = "username";  
+        name = null;  
+    }  
+}  
+  
+// A var is not permitted in a multiple-variable declaration.  
+class Example6 {  
+  
+    void method() {  
+  
+         var number = 100, size = 200; // DOES NOT COMPILE  
+        int number2 = 100, size2 = 200;  
+  
+         var number3 = 100, var size3 = 200; // DOES NOT COMPILE  
+         int number4 = 100, int number4 = 200; // DOES NOT COMPILE  
+    }  
+}  
+  
+// 7- A var is a reserved type name but not a reserved word,  
+// meaning it can be used as an identifier except as a class, interface, or enum name.  
+  
+// 'var' is a restricted identifier and cannot be used for type declarations  
+  
+class var { // DOES NOT COMPILE  
+  
+    public var() {}  
+  
+    private void var() {}  
+}  
+  
+ interface var {} // DOES NOT COMPILE  
+  
+ enum var {} // DOES NOT COMPILE
+```
+
+---
 ## Managing Variable Scope
 
 ```java
@@ -2631,7 +2856,6 @@ int bitesOfCheese = 1;
 ```
 
 There are two variables with local scope. The `bitesOfCheese` variable is declared inside the method. The `piecesOfCheese` variable is a method parameter. Neither variable can be used outside of where it is defined.
-
 ### Limiting Scope
 
 ==**Local variables can never have a scope larger than the method they are defined in.**== However, they can have a smaller scope.
@@ -2693,8 +2917,7 @@ This method does compile. The first step in figuring out the scope is to identif
 
 `hungry` and `amountOfFood` are method parameters, so they are available for the entire method. This means their scope is lines 11 to 22. The variable `roomInBelly` goes into scope on line 12 because that is where it is declared. It stays in scope for the rest of the method and goes out of scope on line 22. The variable `timeToEat` goes into scope on line 14 where it is declared. It goes out of scope on line 20 where the if block ends. Finally, the variable `amountEaten` goes into scope on line 16 where it is declared. It goes out of scope on line 19 where the while block ends.
 
-**Identifying blocks and variable scope needs to be second nature for the exam.**
-
+==**Identifying blocks and variable scope needs to be second nature for the exam.**==
 ### Applying Scope to Classes
 
 - ==**the rule for instance variables is easier: they are available as soon as they are defined and last for the entire lifetime of the object itself.**==
@@ -2713,8 +2936,6 @@ This method does compile. The first step in figuring out the scope is to identif
 9: }
 10: }
 ```
-
-
 ### Reviewing Scope
 
 - ==**Local variables: In scope from declaration to the end of the block**==
@@ -2722,7 +2943,46 @@ This method does compile. The first step in figuring out the scope is to identif
 - ==**Instance variables: In scope from declaration until the object is eligible for garbage collection**==
 - ==**Class variables: In scope from declaration until the program ends**==
 
-## Destroying Objects
+---
+```java
+public class ReviewingScope {  
+  
+    private String instanceVariable = "best object value";  
+  
+    private static String classVariable = "cool class";  
+  
+    private void method(int methodParameter) {  
+  
+        int localVariableX = 100;  
+  
+        var localVariableY = 200;  
+  
+        if (methodParameter > 10) {  
+            int localVariableInTheIfBlock = 30;  
+            System.out.println(localVariableInTheIfBlock);  
+            System.out.println(localVariableX);  
+            System.out.println(localVariableY);  
+            System.out.println(methodParameter);  
+            System.out.println(instanceVariable);  
+            System.out.println(classVariable);  
+        } else {  
+            int localVariableInTheElseBlock = 50;  
+            System.out.println(localVariableX);  
+            System.out.println(localVariableY);  
+            //System.out.println(localVariableInTheIfBlock); //DOES NOT COMPILE  
+            System.out.println(methodParameter);  
+            System.out.println(instanceVariable);  
+            System.out.println(ReviewingScope.classVariable);  
+        }  
+  
+        // System.out.println(localVariableInTheIfBlock); //DOES NOT COMPILE  
+  
+        System.out.println(instanceVariable);  
+        System.out.println(classVariable);  
+    }
+```
+
+---## Destroying Objects
 
 Java provides a garbage collector to automatically look for objects that aren’t needed anymore.  All Java objects are stored in your program memory’s heap. The heap, which is also referred to as the free store, represents a large pool of unused memory allocated to your Java application. If your program keeps instantiating objects and leaving them on the heap, eventually it will run out of memory and crash. garbage collection solves this problem.
 
