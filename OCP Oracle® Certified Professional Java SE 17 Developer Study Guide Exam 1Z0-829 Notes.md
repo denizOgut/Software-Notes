@@ -3106,6 +3106,10 @@ F. ``public static main(String[] args)``
 
 **My Answer: D, E / Correct Answer: D,E**
 
+D, E. Option E is the canonical main() method signature. You need to memorize it. Option D is an alternate form with the redundant final.
+
+
+
 ---
 
 Which answer options represent the order in which the following statements can be assembled
@@ -3124,6 +3128,8 @@ F. X, Z
 G. None of the above
 
 **My Answer: C,D  / Correct Answer: C,D,E**
+
+The package and import statements are both optional. If both are present, the order must be package, then import, and then class.
 
 ---
 
@@ -3144,6 +3150,8 @@ F. main is a reference to an object.
 G. The main() method doesn’t run because the parameter name is incorrect.
 
 **My Answer: A,E  / Correct Answer: A,E**
+
+Bunny is a class, which can be seen from the declaration: public class Bunny. The variable bun is a reference to an object. The method main() is the standard entry point to a program.
 
 ---
 
@@ -3188,6 +3196,8 @@ G. The code does not compile.
 
 **My Answer: A,D,F  / Correct Answer: A,D,F**
 
+Garbage collection is never guaranteed to run, making option F correct and option E incorrect. Next, the class compiles and runs without issue, so option G is incorrect. The Bear object created on line 9 is accessible until line 13 via the brownBear reference variable, which is option A. The Bear object created on line 10 is accessible via both the polarBear reference and the brownBear.pandaBear reference. After line 12, the object is still accessible via brownBear.pandaBear. After line 13, though, it is no longer accessible since brownBear is no longer accessible, which makes option D the final answer.
+
 ---
 
 6. Assuming the following class compiles, how many variables defined in the class or method are in scope on the line marked on line 14?
@@ -3221,6 +3231,8 @@ G. None of the above
 
 **My Answer: D  / Correct Answer: F**
 
+To solve this problem, you need to trace the braces {} and see when variables go in and out of scope. The variables on lines 2 and 7 are only in scope for a single line block. The variable on line 12 is only in scope for the for loop. None of these are in scope on line 14.  By contrast, the three instance variables on lines 3 and 4 are available in all instance methods. Additionally, the variables on lines 6, 9, and 10 are available since the method and while loop are still in scope.
+
 ---
 
 7. Which are true about this code? (Choose all that apply.)
@@ -3245,7 +3257,9 @@ D. The output includes a blank line.
 E. The output includes one or more lines that begin with whitespace.
 F. The code does not compile.
 
-**My Answer: F  / Correct Answer: C, D**
+**My Answer: F  / Correct Answer: C, E**
+
+The first thing to recognize is that this is a text block and the code inside the """ is just text. Options A and B are incorrect because the numForks and numKnives variables are not used. This is convenient since numKnives is not initialized and would not compile if it were referenced. Option C is correct as it is matching text. Option D is incorrect because the text block does not have a trailing blank line. Finally, option E is also an answer since " # knives is indented.
 
 ---
 
@@ -3262,6 +3276,8 @@ H. var morning = ""; morning = null;
 
 **My Answer: B,C,D,H  / Correct Answer: B,D,E,H**
 
+var cannot be initialized with a null value without a type, but it can be assigned a null value later if the underlying type is not a primitive. var cannot be used in a multiple-variable assignment.
+
 ---
 
 9. Which of the following are correct? (Choose all that apply.)
@@ -3273,7 +3289,9 @@ E. A class variable of type String defaults to null.
 F. A class variable of type String defaults to the empty string "".
 G. None of the above.
 
-**My Answer: B,F  / Correct Answer: B,E**
+**My Answer: B,F  / Correct Answer: E**
+
+local variables don’t have default values.  primitives do not default to null.  reference types in class variables default to null.
 
 ---
 
@@ -3325,6 +3343,9 @@ F. Does not compile
 
 **My Answer: E  / Correct Answer: E**
 
+The first two imports can be removed because java.lang is automatically imported. The
+following two imports can be removed because Tank and Water are in the same package,
+
 ---
 
 12. Which statements about the following class are correct? (Choose all that apply.)
@@ -3351,6 +3372,8 @@ G. The code prints 2.
 H. The code prints 3.
 
 **My Answer: A  / Correct Answer: A,C,D**
+
+Line 2 does not compile as only one type should be specified, making option A correct.  Line 4 does not compile because Java does not support setting default method parameter values, making option C correct. Finally, line 7 does not compile because fins is in scope and accessible only inside the instance initializer on line 3, making option D correct.
 
 ---
 
@@ -3406,6 +3429,8 @@ F. Line 8 generates a compiler error.
 
 **My Answer: A,B,D,E  / Correct Answer: A,B,D,E**
 
+Line 3 does not compile because the L suffix makes the literal value a long, which cannot be stored inside a short directly, making option A correct. Line 4 does not compile because int is an integral type, but 2.0 is a double literal value, making option B correct. both primitives, and you can call methods only on reference types, not primitive values, making options D and E correct
+
 ---
 
 15. Which of the following statements about garbage collection are correct? (Choose all that apply.)
@@ -3419,6 +3444,10 @@ F. An object is eligible for garbage collection once no references to it are acc
 G. Marking a variable final means its associated object will never be garbage collected.
 
 **My Answer: C,F  / Correct Answer: C,E,F**
+
+In Java, there are no guarantees about when garbage collection will run. The JVM
+is free to ignore calls to System.gc(). the purpose of garbage collection is to reclaim used memory. Option
+E is also correct that an object may never be garbage collected, such as if the program ends  before garbage collection runs. 
 
 ---
 
@@ -3439,6 +3468,8 @@ E. There are two lines with trailing whitespace.
 F. If we indented each line five characters, it would change the output.
 
 **My Answer: B,D  / Correct Answer: A,D**
+
+here are two lines. One starts with squirrel, and the other starts with pigeon. Remember that a backslash means to skip the line break. Option D is also correct as \s means to keep whitespace. In a text block, incidental indentation is ignored
 
 ---
 
@@ -3467,6 +3498,9 @@ G. Code = 0.0
 H. Code = 0f
 
 **My Answer: D,E,G  / Correct Answer: D,F,G**
+
+The code compiles and runs without issue, so options A and B are incorrect. A boolean field initializes to false, making option D correct with Empty = false being printed. Object references initialize to null, not the empty String, so option F is correct with Brand = null being printed.  Finally, the default value of floating-point
+numbers is 0.0. Although float values can be declared with an f suffix, they are not printed with an f suffix. For these reasons, option G is correct and Code = 0.0 is printed.
 
 ---
 
@@ -3499,6 +3533,8 @@ D. num1 is a primitive.
 E. num2 is a primitive.
 
 **My Answer: A  / Correct Answer: A,D**
+
+The first is a long primitive and the second is a Long reference object,
 
 ---
 
@@ -3535,6 +3571,10 @@ G. Line 13 does not compile.
 H. None of the above.
 
 **My Answer: F,G  / Correct Answer: C**
+
+The key thing to notice is that line 4 does not define a constructor, but instead a method named PoliceBox(), 
+since it has a return type of void. This method is never executed during the program run, and color and age are assigned the default values null and 0L, respectively. Lines 11 and 12 change the values for an object associated with p, but then, on line 13, the p variable is changed to point to the object associated with q, which still has the default values.
+For this reason, the program prints Q1=null, Q2=0, P1=null, and P2=0,
 
 ---
 
@@ -3624,3 +3664,4 @@ H. The program prints 49.0 on line 11.
 
 **My Answer: A  / Correct Answer: A,D**
 
+The first compiler error is on line 3. The variable temp is declared as a float, but the assigned value is 50.0, which is a double without the F/f postfix. Since a double doesn’t fit inside a float, line 3 does not compile. Next, depth is declared inside the for loop and only has scope inside this loop. Therefore, reading the value on line 10 triggers a compiler error.
