@@ -3095,41 +3095,39 @@ Not all questions will include package declarations and imports. Don’t worry a
 
 ## Review Questions
 
-1. Which of the following are legal entry point methods that can be run from the command
-line? (Choose all that apply.)
-A. ``private static void main(String[] args)``
-B. ``public static final main(String[] args)``
-C. ``public void main(String[] args)``
-D. ``public static final void main(String[] args)``
-E. ``public static void main(String[] args)``
-F. ``public static main(String[] args)``
+1. Which of the following are legal entry point methods that can be run from the command line? (Choose all that apply.)
+A.  ``private static void main(String[] args)``
+B.  ``public static final main(String[] args)``
+C.  ``public void main(String[] args)``
+D.  ``public static final void main(String[] args)``
+E.  ``public static void main(String[] args)``
+F.  ``public static main(String[] args)``
 
-**My Answer: D, E / Correct Answer: D,E**
+**My Answer: D, E
+Correct Answer: D,E**
 
-D, E. Option E is the canonical main() method signature. You need to memorize it. Option D is an alternate form with the redundant final.
-
-
+**D, E. Option E is the canonical main() method signature. You need to memorize it. Option D is an alternate form with the redundant final.**
 
 ---
 
-Which answer options represent the order in which the following statements can be assembled
-into a program that will compile successfully? (Choose all that apply.)
+Which answer options represent the order in which the following statements can be assembled into a program that will compile successfully? (Choose all that apply.)
 ```java
 X: class Rabbit {}
 Y: import java.util.*;
 Z: package animals;
 ```
-A. X, Y, Z
-B. Y, Z, X
-C. Z, Y, X
-D. Y, X
-E. Z, X
-F. X, Z
+A.  X, Y, Z
+B.  Y, Z, X
+C.  Z, Y, X
+D.  Y, X
+E.  Z, X
+F.  X, Z
 G. None of the above
 
-**My Answer: C,D  / Correct Answer: C,D,E**
+**My Answer: C,D  
+Correct Answer: C,D,E**
 
-The package and import statements are both optional. If both are present, the order must be package, then import, and then class.
+**The package and import statements are both optional. If both are present, the order must be package, then import, and then class.**
 
 ---
 
@@ -3141,30 +3139,32 @@ Bunny bun = new Bunny();
 } }
 ```
 
-A. Bunny is a class.
-B. bun is a class.
-C. main is a class.
-D. Bunny is a reference to an object.
-E. bun is a reference to an object.
-F. main is a reference to an object.
-G. The main() method doesn’t run because the parameter name is incorrect.
+A.  Bunny is a class.
+B.  bun is a class.
+C.  main is a class.
+D.  Bunny is a reference to an object.
+E.  bun is a reference to an object.
+F.  main is a reference to an object.
+G.  The main() method doesn’t run because the parameter name is incorrect.
 
-**My Answer: A,E  / Correct Answer: A,E**
+**My Answer: A,E  
+Correct Answer: A,E**
 
-Bunny is a class, which can be seen from the declaration: public class Bunny. The variable bun is a reference to an object. The method main() is the standard entry point to a program.
+**Bunny is a class, which can be seen from the declaration: public class Bunny. The variable bun is a reference to an object. The method main() is the standard entry point to a program.**
 
 ---
 
 4. Which of the following are valid Java identifiers? (Choose all that apply.)
-A. _
-B. _helloWorld$
-C. true
-D. java.lang
-E. Public
-F. 1980_s
-G. _Q2_
+A.  `_`
+B. ` _helloWorld$`
+C.  `true`
+D.  `java.lang`
+E.  Public
+F.  1980_s
+G.  _Q2_
 
-**My Answer: B,E,G  / Correct Answer: B,E,G**
+**My Answer: B,E,G 
+Correct Answer: B,E,G**
 
 ---
 
@@ -3186,17 +3186,18 @@ G. _Q2_
 14: System.gc(); } }
 ```
 
-A. The object created on line 9 is eligible for garbage collection after line 13.
-B. The object created on line 9 is eligible for garbage collection after line 14.
-C. The object created on line 10 is eligible for garbage collection after line 12.
-D. The object created on line 10 is eligible for garbage collection after line 13.
-E. Garbage collection is guaranteed to run.
-F. Garbage collection might or might not run.
-G. The code does not compile.
+A.  The object created on line 9 is eligible for garbage collection after line 13.
+B.  The object created on line 9 is eligible for garbage collection after line 14.
+C.  The object created on line 10 is eligible for garbage collection after line 12.
+D.  The object created on line 10 is eligible for garbage collection after line 13.
+E.  Garbage collection is guaranteed to run.
+F.  Garbage collection might or might not run.
+G.  The code does not compile.
 
-**My Answer: A,D,F  / Correct Answer: A,D,F**
+**My Answer: A,D,F  
+Correct Answer: A,D,F**
 
-Garbage collection is never guaranteed to run, making option F correct and option E incorrect. Next, the class compiles and runs without issue, so option G is incorrect. The Bear object created on line 9 is accessible until line 13 via the brownBear reference variable, which is option A. The Bear object created on line 10 is accessible via both the polarBear reference and the brownBear.pandaBear reference. After line 12, the object is still accessible via brownBear.pandaBear. After line 13, though, it is no longer accessible since brownBear is no longer accessible, which makes option D the final answer.
+**Garbage collection is never guaranteed to run, making option F correct and option E incorrect. Next, the class compiles and runs without issue, so option G is incorrect. The Bear object created on line 9 is accessible until line 13 via the brownBear reference variable, which is option A. The Bear object created on line 10 is accessible via both the polarBear reference and the `brownBear.pandaBear` reference. After line 12, the object is still accessible via `brownBear.pandaBear.` After line 13, though, it is no longer accessible since `brownBear` is no longer accessible, which makes option D the final answer.**
 
 ---
 
@@ -3229,9 +3230,10 @@ E. 6
 F. 7
 G. None of the above
 
-**My Answer: D  / Correct Answer: F**
+**My Answer: D  
+Correct Answer: F**
 
-To solve this problem, you need to trace the braces {} and see when variables go in and out of scope. The variables on lines 2 and 7 are only in scope for a single line block. The variable on line 12 is only in scope for the for loop. None of these are in scope on line 14.  By contrast, the three instance variables on lines 3 and 4 are available in all instance methods. Additionally, the variables on lines 6, 9, and 10 are available since the method and while loop are still in scope.
+**To solve this problem, you need to trace the braces {} and see when variables go in and out of scope. The variables on lines 2 and 7 are only in scope for a single line block. The variable on line 12 is only in scope for the for loop. None of these are in scope on line 14.  By contrast, the three instance variables on lines 3 and 4 are available in all instance methods. Additionally, the variables on lines 6, 9, and 10 are available since the method and while loop are still in scope.**
 
 ---
 
@@ -3251,20 +3253,22 @@ System.out.print("""
 ```
 
 A. The output includes: # forks = 0.
-B. The output includes: # knives = 0.
-C. The output includes: # cups = 0.
-D. The output includes a blank line.
-E. The output includes one or more lines that begin with whitespace.
-F. The code does not compile.
+B.  The output includes: # knives = 0.
+C.  The output includes: # cups = 0.
+D.  The output includes a blank line.
+E.  The output includes one or more lines that begin with whitespace.
+F.  The code does not compile.
 
-**My Answer: F  / Correct Answer: C, E**
+**My Answer: F 
+Correct Answer: C, E**
 
-The first thing to recognize is that this is a text block and the code inside the """ is just text. Options A and B are incorrect because the numForks and numKnives variables are not used. This is convenient since numKnives is not initialized and would not compile if it were referenced. Option C is correct as it is matching text. Option D is incorrect because the text block does not have a trailing blank line. Finally, option E is also an answer since " # knives is indented.
+**The first thing to recognize is that this is a text block and the code inside the `"""` is just text. Options A and B are incorrect because the `numForks` and `numKnives` variables are not used. This is convenient since `numKnives` is not initialized and would not compile if it were referenced. Option C is correct as it is matching text. Option D is incorrect because the text block does not have a trailing blank line. Finally, option E is also an answer since " # knives is indented.**
 
 ---
 
 8. Which of the following code snippets about `var` compile without issue when used in a method? (Choose all that apply.)
 
+```java
 A. var spring = null;
 B. var fall = "leaves";
 C. var evening = 2; evening = null;
@@ -3273,25 +3277,28 @@ E. var day = 1/0;
 F. var winter = 12, cold;
 G. var fall = 2, autumn = 2;
 H. var morning = ""; morning = null;
+```
 
-**My Answer: B,C,D,H  / Correct Answer: B,D,E,H**
+**My Answer: B,C,D,H  
+Correct Answer: B,D,E,H**
 
-var cannot be initialized with a null value without a type, but it can be assigned a null value later if the underlying type is not a primitive. var cannot be used in a multiple-variable assignment.
+**`var` cannot be initialized with a null value without a type, but it can be assigned a null value later if the underlying type is not a primitive. var cannot be used in a multiple-variable assignment.**
 
 ---
 
 9. Which of the following are correct? (Choose all that apply.)
-A. An instance variable of type float defaults to 0.
-B. An instance variable of type char defaults to null.
-C. A local variable of type double defaults to 0.0.
-D. A local variable of type int defaults to null.
-E. A class variable of type String defaults to null.
-F. A class variable of type String defaults to the empty string "".
-G. None of the above.
+A.  An instance variable of type float defaults to 0.
+B.  An instance variable of type char defaults to null.
+C.  A local variable of type double defaults to 0.0.
+D.  A local variable of type int defaults to null.
+E.  A class variable of type String defaults to null.
+F.  A class variable of type String defaults to the empty string "".
+G.  None of the above.
 
-**My Answer: B,F  / Correct Answer: E**
+**My Answer: B,F  
+Correct Answer: E**
 
-local variables don’t have default values.  primitives do not default to null.  reference types in class variables default to null.
+==**local variables don’t have default values.  primitives do not default to null.  reference types in class variables default to null.**==
 
 ---
 
@@ -3304,13 +3311,13 @@ System.out.println(magic);
 }
 ```
 
-A. 3_1
-B. 1_329_.0
-C. 3_13.0_
-D. 5_291._2
-E. 2_234.0_0
-F. 9___6
-G. _1_3_5_0
+A.  3_1
+B.  1_329_.0
+C.  3_13.0_
+D.  5_291._2
+E.  2_234.0_0
+F.  9___6
+G.  _1_3_5_0
 
 **My Answer: A,E,F  / Correct Answer: A,E,F**
 
@@ -3341,10 +3348,11 @@ D. 3
 E. 4
 F. Does not compile
 
-**My Answer: E  / Correct Answer: E**
+**My Answer: E  
+Correct Answer: E**
 
-The first two imports can be removed because java.lang is automatically imported. The
-following two imports can be removed because Tank and Water are in the same package,
+**The first two imports can be removed because `java.lang` is automatically imported. The**
+**following two imports can be removed because Tank and Water are in the same package,**
 
 ---
 
@@ -3362,18 +3370,19 @@ following two imports can be removed because Tank and Water are in the same pack
 9: } }
 ```
 
-A. Line 2 generates a compiler error.
-B. Line 3 generates a compiler error.
-C. Line 4 generates a compiler error.
-D. Line 7 generates a compiler error.
-E. The code prints 0.
-F. The code prints 2.0.
-G. The code prints 2.
-H. The code prints 3.
+A.  Line 2 generates a compiler error.
+B.  Line 3 generates a compiler error.
+C.  Line 4 generates a compiler error.
+D.  Line 7 generates a compiler error.
+E.  The code prints 0.
+F.  The code prints 2.0.
+G.  The code prints 2.
+H.  The code prints 3.
 
-**My Answer: A  / Correct Answer: A,C,D**
+**My Answer: A 
+Correct Answer: A,C,D**
 
-Line 2 does not compile as only one type should be specified, making option A correct.  Line 4 does not compile because Java does not support setting default method parameter values, making option C correct. Finally, line 7 does not compile because fins is in scope and accessible only inside the instance initializer on line 3, making option D correct.
+**Line 2 does not compile as only one type should be specified, making option A correct.  Line 4 does not compile because Java does not support setting default method parameter values, making option C correct. Finally, line 7 does not compile because fins is in scope and accessible only inside the instance initializer on line 3, making option D correct.**
 
 ---
 
@@ -3397,16 +3406,17 @@ Water water;
 
 A. import aquarium.*;
 B. import `aquarium.Water`;
-import `aquarium.jellies.*`;
+   import `aquarium.jellies.*`;
 C. import aquarium.*;
-import `aquarium.jellies.Water`;
+   import `aquarium.jellies.Water`;
 D. import aquarium.*;
-import `aquarium.jellies.*`;
+   import `aquarium.jellies.*`;
 E. import `aquarium.Water`;
-import `aquarium.jellies.Water`;
+   import `aquarium.jellies.Water`;
 F. None of these imports can make the code compile.
 
-**My Answer: A,B,C  / Correct Answer: A,B,C**
+**My Answer: A,B,C  
+Correct Answer: A,B,C**
 
 ---
 
@@ -3427,9 +3437,10 @@ D. Line 6 generates a compiler error.
 E. Line 7 generates a compiler error.
 F. Line 8 generates a compiler error.
 
-**My Answer: A,B,D,E  / Correct Answer: A,B,D,E**
+**My Answer: A,B,D,E 
+Correct Answer: A,B,D,E**
 
-Line 3 does not compile because the L suffix makes the literal value a long, which cannot be stored inside a short directly, making option A correct. Line 4 does not compile because int is an integral type, but 2.0 is a double literal value, making option B correct. both primitives, and you can call methods only on reference types, not primitive values, making options D and E correct
+**Line 3 does not compile because the L suffix makes the literal value a long, which cannot be stored inside a short directly, making option A correct. Line 4 does not compile because int is an integral type, but 2.0 is a double literal value, making option B correct. both primitives, and you can call methods only on reference types, not primitive values, making options D and E correct**
 
 ---
 
@@ -3443,11 +3454,10 @@ E. An object may be eligible for garbage collection but never removed from the h
 F. An object is eligible for garbage collection once no references to it are accessible in the program.
 G. Marking a variable final means its associated object will never be garbage collected.
 
-**My Answer: C,F  / Correct Answer: C,E,F**
+**My Answer: C,F  
+Correct Answer: C,E,F**
 
-In Java, there are no guarantees about when garbage collection will run. The JVM
-is free to ignore calls to System.gc(). the purpose of garbage collection is to reclaim used memory. Option
-E is also correct that an object may never be garbage collected, such as if the program ends  before garbage collection runs. 
+**In Java, there are no guarantees about when garbage collection will run. The JVM is free to ignore calls to `System.gc()`. the purpose of garbage collection is to reclaim used memory. Option E is also correct that an object may never be garbage collected, such as if the program ends  before garbage collection runs.** 
 
 ---
 
@@ -3467,9 +3477,10 @@ D. There is one line with trailing whitespace.
 E. There are two lines with trailing whitespace.
 F. If we indented each line five characters, it would change the output.
 
-**My Answer: B,D  / Correct Answer: A,D**
+**My Answer: B,D 
+Correct Answer: A,D**
 
-here are two lines. One starts with squirrel, and the other starts with pigeon. Remember that a backslash means to skip the line break. Option D is also correct as \s means to keep whitespace. In a text block, incidental indentation is ignored
+**here are two lines. One starts with squirrel, and the other starts with pigeon. Remember that a backslash means to skip the line break. Option D is also correct as \s means to keep whitespace. In a text block, incidental indentation is ignored**
 
 ---
 
@@ -3497,10 +3508,10 @@ F. Brand = null
 G. Code = 0.0
 H. Code = 0f
 
-**My Answer: D,E,G  / Correct Answer: D,F,G**
+**My Answer: D,E,G 
+Correct Answer: D,F,G**
 
-The code compiles and runs without issue, so options A and B are incorrect. A boolean field initializes to false, making option D correct with Empty = false being printed. Object references initialize to null, not the empty String, so option F is correct with Brand = null being printed.  Finally, the default value of floating-point
-numbers is 0.0. Although float values can be declared with an f suffix, they are not printed with an f suffix. For these reasons, option G is correct and Code = 0.0 is printed.
+**The code compiles and runs without issue, so options A and B are incorrect. A boolean field initializes to false, making option D correct with Empty = false being printed. Object references initialize to null, not the empty String, so option F is correct with Brand = null being printed.  Finally, the default value of floating-point numbers is 0.0. Although float values can be declared with an f suffix, they are not printed with an f suffix. For these reasons, option G is correct and Code = 0.0 is printed.**
 
 ---
 
@@ -3514,7 +3525,8 @@ E. The value of a var cannot change at runtime.
 F. The type of a var cannot change at runtime.
 G. The word var is a reserved word in Java.
 
-**My Answer: B,C,F  / Correct Answer: B,C,F**
+**My Answer: B,C,F 
+Correct Answer: B,C,F**
 
 ---
 
@@ -3532,9 +3544,10 @@ C. The code does not compile.
 D. num1 is a primitive.
 E. num2 is a primitive.
 
-**My Answer: A  / Correct Answer: A,D**
+**My Answer: A  
+Correct Answer: A,D**
 
-The first is a long primitive and the second is a Long reference object,
+==**The first is a long primitive and the second is a Long reference object,**==
 
 ---
 
@@ -3570,11 +3583,10 @@ F. Line 12 does not compile.
 G. Line 13 does not compile.
 H. None of the above.
 
-**My Answer: F,G  / Correct Answer: C**
+**My Answer: F,G  
+Correct Answer: C**
 
-The key thing to notice is that line 4 does not define a constructor, but instead a method named PoliceBox(), 
-since it has a return type of void. This method is never executed during the program run, and color and age are assigned the default values null and 0L, respectively. Lines 11 and 12 change the values for an object associated with p, but then, on line 13, the p variable is changed to point to the object associated with q, which still has the default values.
-For this reason, the program prints Q1=null, Q2=0, P1=null, and P2=0,
+**The key thing to notice is that line 4 does not define a constructor, but instead a method named `PoliceBox()`, since it has a return type of void. This method is never executed during the program run, and color and age are assigned the default values null and 0L, respectively. Lines 11 and 12 change the values for an object associated with p, but then, on line 13, the p variable is changed to point to the object associated with q, which still has the default values. For this reason, the program prints Q1=null, Q2=0, P1=null, and P2=0,**
 
 ---
 
@@ -3606,7 +3618,8 @@ F. The class does not compile because of line 3.
 G. The class does not compile because of line 4. 
 H. None of the above.
 
-**My Answer: D  / Correct Answer: D**
+**My Answer: D  
+Correct Answer: D**
 
 ---
 
@@ -3629,7 +3642,8 @@ F. int amount = 0b101;
 G. double amount = 9_2.1_2;
 H. double amount = 1_2_.0_0;
 
-**My Answer: A,C,F,G  / Correct Answer: C,F,G**
+**My Answer: A,C,F,G  
+Correct Answer: C,F,G**
 
 --- 
 
@@ -3662,6 +3676,7 @@ F. The program prints 4 on line 10.
 G. The program prints 50.0 on line 11.
 H. The program prints 49.0 on line 11.
 
-**My Answer: A  / Correct Answer: A,D**
+**My Answer: A  
+Correct Answer: A,D**
 
-The first compiler error is on line 3. The variable temp is declared as a float, but the assigned value is 50.0, which is a double without the F/f postfix. Since a double doesn’t fit inside a float, line 3 does not compile. Next, depth is declared inside the for loop and only has scope inside this loop. Therefore, reading the value on line 10 triggers a compiler error.
+**The first compiler error is on line 3. The variable temp is declared as a float, but the assigned value is 50.0, which is a double without the F/f postfix. Since a double doesn’t fit inside a float, line 3 does not compile. Next, depth is declared inside the for loop and only has scope inside this loop. Therefore, reading the value on line 10 triggers a compiler error.**

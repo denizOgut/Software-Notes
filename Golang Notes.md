@@ -5502,6 +5502,689 @@ Output:
 
 
 ---
+# TIME & DATE
+
+Go'da tarih-zaman işlemleri için genel olarak time nesnesi kullanılır.
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	now := time.Now()
+
+	fmt.Println(now)
+
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	now := time.Now()
+
+	fmt.Printf("%02d/%02d/%04d %02d:%02d:%02d\n", now.Day(), now.Month(), now.Year(), now.Hour(), now.Minute(), now.Second())
+}
+```
+
+Go'da tarih formatlama işlemi Format metodu ile yapılabilir. Bu metot'da formatlama için özel değerler kullanılır:
+
+2           	-> Gün
+1 		    	-> Ay
+2006	    	-> Yıl
+15/3	    	-> Saat (24/12)
+4		    	-> Dakika
+5		    	-> Saniye
+Mon, Monday 	-> Haftanın günü
+Jan, January 	-> Ay bilgisi
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	now := time.Now()
+	str := now.Format("02/01/2006 15:04:05")
+	fmt.Printf("%s\n", str)
+	str = now.Format("2/1/2006 15:4:5")
+	fmt.Printf("%s\n", str)
+	str = now.Format("02/01/2006 03:04:05 pm")
+	fmt.Printf("%s\n", str)
+	str = now.Format("2 Jan 2006 Mon 03:04:05 pm")
+	fmt.Printf("%s\n", str)
+	str = now.Format("2 January 2006 Monday 03:04:05 pm")
+	fmt.Printf("%s\n", str)
+}
+```
+
+Time yapısının Month metodu ile ay ilişkin değer elde edilebilir. Ay bilgisi 1 değerinden başlar. Weekday metodu
+ile ilgili tarihin haftanın hangi günün geldiği bilgisi elde edilebilir. Bu değer Pazar için sıfır, Pazartesi için 1, ..., Cumartesi için 6 değeridir.
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+var daysOfWeekTR = [7]string{"Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"}
+var monthsTR = [13]string{"", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+	"Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"}
+
+func main() {
+	now := time.Now()
+	str := now.Format(fmt.Sprintf("2 %s 2006 %s 15:04:05", monthsTR[now.Month()], daysOfWeekTR[now.Weekday()]))
+	str = now.Format(fmt.Sprintf("2 %s 2006 %s 15:04:05", now.Month(), now.Weekday()))
+
+	fmt.Printf("%s\n", str)
+	fmt.Printf("%s\n", str)
+}
+```
+
+Time yapısının Parse fonksiyon ile ilgili formatte bir yazı Time türüne çevrilebilr. Parse fonksiyonun geri dönüş değeri (Time, error)'dur.
+
+```go
+package main
+
+import (
+	"SampleGoLand/csd/console"
+	"fmt"
+	"time"
+)
+
+func main() {
+	str := console.ReadString("Input birthdate(DD/MM/YYYY):")
+	birthDate, err := time.Parse("02/01/2006", str)
+
+	if err == nil {
+		fmt.Println(birthDate)
+	} else {
+		fmt.Printf("Invalid date:%s\n", err.Error())
+	}
+}
+```
+
+Format ve Parse fonksiyonları için önceden tanımlanmış bazı format string'leri vardır. Bunlar resmi dokumanlara göre şu şekildedir:
+
+```go
+const (
+		Layout      = "01/02 03:04:05PM '06 -0700" // The reference time, in numerical order.
+		ANSIC       = "Mon Jan _2 15:04:05 2006"
+		UnixDate    = "Mon Jan _2 15:04:05 MST 2006"
+		RubyDate    = "Mon Jan 02 15:04:05 -0700 2006"
+		RFC822      = "02 Jan 06 15:04 MST"
+		RFC822Z     = "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
+		RFC850      = "Monday, 02-Jan-06 15:04:05 MST"
+		RFC1123     = "Mon, 02 Jan 2006 15:04:05 MST"
+		RFC1123Z    = "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
+		RFC3339     = "2006-01-02T15:04:05Z07:00"
+		RFC3339Nano = "2006-01-02T15:04:05.999999999Z07:00"
+		Kitchen     = "3:04PM"
+		// Handy time stamps.
+		Stamp      = "Jan _2 15:04:05"
+		StampMilli = "Jan _2 15:04:05.000"
+		StampMicro = "Jan _2 15:04:05.000000"
+		StampNano  = "Jan _2 15:04:05.000000000"
+		DateTime   = "2006-01-02 15:04:05"
+		DateOnly   = "2006-01-02"
+		TimeOnly   = "15:04:05"
+	)
+```
+
+İki tarihin karşılaştırılması için After, Before, Equal ve Compare metotları kullanılabilir. Bu metotları parametreleri
+karşılaştıracak zamandır. After, Before ve Equal metotlarının geri dönüş değerleri bool türdendir. Compare metodu int türden bir değere geri döner. Bu değer d1.Compare(d2) çağrısı için
+	1. negatifse <=> d1 zamanı d2 zamanından önce gelir
+	2. pozitifse <=> d1 zamanı d2 zamanından sonra gelir
+	3. sıfırsa <=> d1 ile d2 eşittir
+
+```go
+package app
+
+import (
+	"fmt"
+	"os"
+	"time"
+)
+
+func checkArgs(message string) {
+	if len(os.Args) != 2 {
+		fmt.Println(message)
+		os.Exit(1)
+	}
+}
+
+func checkError(err error, message string) {
+	if err != nil {
+		fmt.Println(message)
+		os.Exit(1)
+	}
+}
+
+func getAge(birthDate, now time.Time) float64 {
+	return float64(now.Unix()-birthDate.Unix()) / float64(60*60*24*365)
+}
+
+func Run() {
+	checkArgs("Geçersiz komut satırı argümanları!...")
+	str := os.Args[1]
+	birthDate, err := time.Parse("02/01/2006", str)
+	checkError(err, "Geçersiz tarih!...")
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	birthDay := time.Date(now.Year(), birthDate.Month(), birthDate.Day(), 0, 0, 0, 0, time.UTC)
+	age := getAge(birthDate, now)
+
+	switch status := now.Compare(birthDay); status {
+	case 1:
+		fmt.Printf("Geçmiş doğum gününüz kutlu olsun. Yani yaşınız:%f\n", age)
+	case -1:
+		fmt.Printf("Doğum gününüz şimdiden kutlu olsun. Yani yaşınız:%f\n", age)
+	default:
+		fmt.Printf("Doğum gününüz kutlu olsun. Yani yaşınız:%f\n", age)
+	}
+}
+```
+
+
+### WEB NOTES
+
+**Time** or **Date** is represented in Go using **time.Time** struct. time can be also be represented as a
+
+- **Unix Time (Also known as Epoch Time)** – It is the number of seconds elapsed since 00:00:00 UTC on 1 January 1970. This time is also known as the Unix epoch.
+
+# **Structure**
+
+**time.Time** object is used to represent a specific point in time. The **time.Time** struct is as below
+
+```go
+type Time struct {
+    // wall and ext encode the wall time seconds, wall time nanoseconds,
+    // and optional monotonic clock reading in nanoseconds.
+    wall uint64
+    ext  int64
+    //Location to represent timeZone
+    // The nil location means UTC
+    loc *Location
+}
+```
+
+every **time.Time** object has an associated **location** value which is used to determine the minute, hour, month, day and year corresponding to that time.
+
+# **Create a new time**
+
+## **Using time.Now()**
+
+This function can be used to get the current local timestamp. The signature of the function is
+
+```go
+func Now() Time
+```
+
+## **Using time.Date()**
+
+This function returns the time which is **yyyy-mm-dd hh:mm:ss + nsec** nanoseconds with the appropriate time zone corresponding to the given location. The signature of the function is:
+
+```go
+func Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location) Time
+```
+
+# **Understanding Duration**
+
+**duration** is the time that has elapsed between two instants of time. It is represented as **int64nanosecond** count. So duration is nothing in Go but just a number representing time in nanoseconds. So if duration value is  equal to **1000000000** then it represents **1 sec** or **1000 milliseconds** or **10000000000 nanoseconds**
+
+duration between two time values 1 hour apart will be below value which is equal number of nanoseconds in 1 hour.
+
+```go
+1 *60*60*1000*1000*1000
+```
+
+It is represented as below in the **time** package.
+
+```go
+type Duration int64
+```
+
+Below are some common duration which are defined in **time** package
+
+```go
+const (
+    Nanosecond  Duration = 1
+    Microsecond          = 1000 * Nanosecond
+    Millisecond          = 1000 * Microsecond
+    Second               = 1000 * Millisecond
+    Minute               = 60 * Second
+    Hour                 = 60 * Minute
+)
+```
+
+Some of the function defined on **time.Time** object that returns the **Duration** are
+
+- **func (t Time) Sub(u Time) Duration** – It returns the duration t-u
+- **func Since(t Time) Duration –** It returns the duration which has elapsed since t
+- **func Until(t Time) Duration** – It returns the duration until t
+
+# **Add or Subtract to a time**
+
+**Time** package in golang defines two ways of adding or subtracting to a time.
+
+- **Add** function – It is used to add/subtract a duration to time t. Since duration can be represented in hours, minutes, seconds, milliseconds, microseconds and nanoseconds, therefore Add function can be used to add/subtract hours, minutes, seconds, milliseconds, microseconds and nanoseconds from a time . Its signature is
+
+```go
+func (t Time) Add(d Duration) Time
+```
+
+- **AddDate** function – It is used to add/subtract years, months and days to time t. Its signature is
+
+```go
+func (t Time) AddDate(years int, months int, days int) Time
+```
+
+Note: Positive values are used to add to time and negative values are used to subtract.
+
+## **Add to time**
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    t := time.Now()
+
+    //Add 1 hours
+    newT := t.Add(time.Hour * 1)
+    fmt.Printf("Adding 1 hour\n: %s\n", newT)
+
+    //Add 15 min
+    newT = t.Add(time.Minute * 15)
+    fmt.Printf("Adding 15 minute\n: %s\n", newT)
+
+    //Add 10 sec
+    newT = t.Add(time.Second * 10)
+    fmt.Printf("Adding 10 sec\n: %s\n", newT)
+
+    //Add 100 millisecond
+    newT = t.Add(time.Millisecond * 10)
+    fmt.Printf("Adding 100 millisecond\n: %s\n", newT)
+
+    //Add 1000 microsecond
+    newT = t.Add(time.Millisecond * 10)
+    fmt.Printf("Adding 1000 microsecond\n: %s\n", newT)
+
+    //Add 10000 nanosecond
+    newT = t.Add(time.Nanosecond * 10000)
+    fmt.Printf("Adding 1000 nanosecond\n: %s\n", newT)
+
+    //Add 1 year 2 month 4 day
+    newT = t.AddDate(1, 2, 4)
+    fmt.Printf("Adding 1 year 2 month 4 day\n: %s\n", newT)
+}
+```
+
+**Output:**
+
+```go
+Adding 1 hour:
+ 2020-02-01 02:16:35.893847 +0530 IST m=+3600.000239893
+
+Adding 15 minute:
+ 2020-02-01 01:31:35.893847 +0530 IST m=+900.000239893
+
+Adding 10 sec:
+ 2020-02-01 01:16:45.893847 +0530 IST m=+10.000239893
+
+Adding 100 millisecond:
+ 2020-02-01 01:16:35.903847 +0530 IST m=+0.010239893
+
+Adding 1000 microsecond:
+ 2020-02-01 01:16:35.903847 +0530 IST m=+0.010239893
+
+Adding 1000 nanosecond:
+ 2020-02-01 01:16:35.893857 +0530 IST m=+0.000249893
+
+Adding 1 year 2 month 4 day:
+ 2021-04-05 01:16:35.893847 +0530 IST
+```
+
+## **Subtract to time**
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    t := time.Now()
+
+    //Add 1 hours
+    newT := t.Add(-time.Hour * 1)
+    fmt.Printf("Subtracting 1 hour:\n %s\n", newT)
+
+    //Add 15 min
+    newT = t.Add(-time.Minute * 15)
+    fmt.Printf("Subtracting 15 minute:\n %s\n", newT)
+
+    //Add 10 sec
+    newT = t.Add(-time.Second * 10)
+    fmt.Printf("Subtracting 10 sec:\n %s\n", newT)
+
+    //Add 100 millisecond
+    newT = t.Add(-time.Millisecond * 10)
+    fmt.Printf("Subtracting 100 millisecond:\n %s\n", newT)
+
+    //Add 1000 microsecond
+    newT = t.Add(-time.Millisecond * 10)
+    fmt.Printf("Subtracting 1000 microsecond:\n %s\n", newT)
+
+    //Add 10000 nanosecond
+    newT = t.Add(-time.Nanosecond * 10000)
+    fmt.Printf("Subtracting 1000 nanosecond:\n %s\n", newT)
+
+    //Add 1 year 2 month 4 day
+    newT = t.AddDate(-1, -2, -4)
+    fmt.Printf("Subtracting 1 year 2 month 4 day:\n %s\n", newT)
+}
+```
+
+**Output:**
+
+```go
+Subtracting 1 hour:
+ 2020-02-01 00:18:29.772673 +0530 IST m=-3599.999784391
+
+Subtracting 15 minute:
+ 2020-02-01 01:03:29.772673 +0530 IST m=-899.999784391
+
+Subtracting 10 sec:
+ 2020-02-01 01:18:19.772673 +0530 IST m=-9.999784391
+
+Subtracting 100 millisecond:
+ 2020-02-01 01:18:29.762673 +0530 IST m=-0.009784391
+
+Subtracting 1000 microsecond:
+ 2020-02-01 01:18:29.762673 +0530 IST m=-0.009784391
+
+Subtracting 1000 nanosecond:
+ 2020-02-01 01:18:29.772663 +0530 IST m=+0.000205609
+
+Subtracting 1 year 2 month 4 day:
+ 2018-11-27 01:18:29.772673 +0530 IST
+```
+
+# **Time Parsing/Formatting**
+
+Golang, instead of using codes, uses date and time format placeholders that look like date and time only. Go uses standard time, which is:
+
+```go
+Mon Jan 2 15:04:05 MST 2006  (MST is GMT-0700)
+or 
+01/02 03:04:05PM '06 -0700
+```
+
+  
+So if you notice go uses
+
+- 01 for day of the month ,
+- 02 for the month
+- 03 for hours ,
+- 04 for minutes
+- 05 for second
+- and so on
+
+Below placeholder table describes the exact mapping. Go takes a more pragmatic approach where you don’t need to remember or lookup for the traditional formatting codes as in other languages
+
+|   |   |
+|---|---|
+|**Type**|**Placeholder**|
+|Day|**2** or **02** or **_2**|
+|Day of Week|**Monday** or **Mon**|
+|Month|**01** or **1** or **Jan** or **January**|
+|Year|**2006** or **06**|
+|Hour|**03** or **3** or **15**|
+|Minutes|**04** or **4**|
+|Seconds|**05** or **5**|
+|Milli Seconds  (ms)|**.000**        //Trailing zero will be includedor **.999**   //Trailing zero will be omitted|
+|Micro Seconds (μs)|**.000000**             //Trailing zero will be includedor **.999999**        //Trailing zero will be omitted|
+|Nano Seconds (ns)|**.000000000**        //Trailing zero will be includedor **.999999999** //Trailing zero will be omitted|
+|am/pm|**PM** or **pm**|
+|Timezone|**MST**|
+|Timezone offset |**Z0700** or **Z070000** or **Z07** or **Z07:00** or **Z07:00:00**  or **-0700** or  **-070000** or **-07** or **-07:00** or **-07:00:00**|
+
+## **Time Parse Example**
+
+**time.Parse**. The signature of the function is
+
+```none
+func Parse(layout, value string) (Time, error)
+```
+
+**time.Parse** function takes in two arguments
+
+- First argument is the layout consisting of time format placeholder
+
+- Second argument is the actual formatted string representing a time.
+
+The way you have to go about this is to make sure that the layout string (first argument ) matches the string representation (second argument) of the time you want to parse into time.Time. For parsing
+
+- For parsing **2020-01-29**, layout string should be **06-01-02** or **2006-01-02** or something which maps correctly based on above placeholder table.
+
+- Similarly for parsing **“2020-Jan-29 Wednesday 12:19:25”** the layout string can be **“2006-Jan-02 Monday 03:04:05”**
+
+Below are the working Code Examples of **time.Parse().**
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    //Parse YYYY-MM-DD
+    timeT, _ := time.Parse("2006-01-02", "2020-01-29")
+    fmt.Println(timeT)
+
+    //Parse YY-MM-DD
+    timeT, _ = time.Parse("06-01-02", "20-01-29")
+    fmt.Println(timeT)
+
+    //Parse YYYY-#{MonthName}-DD
+    timeT, _ = time.Parse("2006-Jan-02", "2020-Jan-29")
+    fmt.Println(timeT)
+
+    //Parse YYYY-#{MonthName}-DD WeekDay HH:MM:SS
+    timeT, _ = time.Parse("2006-Jan-02 Monday 03:04:05", "2020-Jan-29 Wednesday 12:19:25")
+    fmt.Println(timeT)
+
+    //Parse YYYY-#{MonthName}-DD WeekDay HH:MM:SS PM Timezone TimezoneOffset
+    timeT, _ = time.Parse("2006-Jan-02 Monday 03:04:05 PM MST -07:00", "2020-Jan-29 Wednesday 12:19:25 AM IST +05:30")
+    fmt.Println(timeT)
+}
+```
+
+**Output:**
+
+```go
+2020-01-29 00:00:00 +0000 UTC
+2020-01-29 00:00:00 +0000 UTC
+2020-01-29 00:00:00 +0000 UTC
+2020-01-29 12:19:25 +0000 UTC
+2020-01-29 00:19:25 +0530 IST
+```
+
+## **Time Formatting Example**
+
+**time.Format** function can be used to format time to a string representation. The signature of the function is
+
+```go
+func (t Time) Format(layout string)
+```
+
+Let’s see some time format code examples
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    now := time.Now()
+    
+    //Format YYYY-MM-DD
+    fmt.Printf("YYYY-MM-DD: %s\n", now.Format("2006-01-02"))
+
+    //Format YY-MM-DD
+    fmt.Printf("YY-MM-DD: %s\n", now.Format("06-01-02"))
+
+    //Format YYYY-#{MonthName}-DD
+    fmt.Printf("YYYY-#{MonthName}-DD: %s\n", now.Format("2006-Jan-02"))
+
+    //Format HH:MM:SS
+    fmt.Printf("HH:MM:SS: %s\n", now.Format("03:04:05"))
+
+    //Format HH:MM:SS Millisecond
+    fmt.Printf("HH:MM:SS Millisecond: %s\n", now.Format("03:04:05 .999"))
+
+    //Format YYYY-#{MonthName}-DD WeekDay HH:MM:SS
+    fmt.Printf("YYYY-#{MonthName}-DD WeekDay HH:MM:SS: %s\n", now.Format("2006-Jan-02 Monday 03:04:05"))
+
+    //Format YYYY-#{MonthName}-DD WeekDay HH:MM:SS PM Timezone TimezoneOffset
+    fmt.Printf("YYYY-#{MonthName}-DD WeekDay HH:MM:SS PM Timezone TimezoneOffset: %s\n", now.Format("2006-Jan-02 Monday 03:04:05 PM MST -07:00"))
+}
+```
+
+**Output:**
+
+```go
+YYYY-MM-DD: 2020-01-25
+YY-MM-DD: 20-01-25
+YYYY-#{MonthName}-DD: 2020-Jan-25
+HH:MM:SS: 11:14:16
+HH:MM:SS Millisecond: 11:14:16 .213
+YYYY-#{MonthName}-DD WeekDay HH:MM:SS: 2020-Jan-25 Saturday 11:14:16
+YYYY-#{MonthName}-DD WeekDay HH:MM:SS PM Timezone TimezoneOffset: 2020-Jan-25 Saturday 11:14:16 PM IST +05:30
+```
+
+# **Time Diff**
+
+**time** package has a method **Sub** which can be used to get the difference between two different time values. The signature of the function is
+
+```go
+func (t Time) Sub(u Time) Duration
+```
+
+```go
+currentTime := time.Now()
+oldTime := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
+diff := currentTime.Sub(oldTime)
+```
+
+# **Time Conversion**
+
+Below code shows conversion of
+
+- time.Time to Unix Timestamp
+- Unix Timestamp to time.Time
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    tNow := time.Now()
+
+    //time.Time to Unix Timestamp
+    tUnix := tNow.Unix()
+    fmt.Printf("timeUnix %d\n", tUnix)
+
+    //Unix Timestamp to time.Time
+    timeT := time.Unix(tUnix, 0)
+    fmt.Printf("time.Time: %s\n", timeT)
+}
+```
+
+**Output:**
+
+```go
+timeUnix 1257894000
+time.Time: 2009-11-10 23:00:00 +0000 UTC
+```
+
+## **Convert time between different timezones**
+
+The **In** function can be used to change the **location** associated with a particular **time.Time** object. Whenever the **In** function is called on any **time.Time** object (say t)  then,
+
+- A copy of **t** is created representing the same time instant.
+
+- t’s location is set to the location passed to In function for display purposes
+
+- **t** is returned back
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    now := time.Now()
+
+    loc, _ := time.LoadLocation("UTC")
+    fmt.Printf("UTC Time: %s\n", now.In(loc))
+   
+    loc, _ = time.LoadLocation("Europe/Berlin")
+    fmt.Printf("Berlin Time: %s\n", now.In(loc))
+
+    loc, _ = time.LoadLocation("America/New_York")
+    fmt.Printf("New York Time: %s\n", now.In(loc))
+
+    loc, _ = time.LoadLocation("Asia/Dubai")
+    fmt.Printf("Dubai Time: %s\n", now.In(loc))
+}
+```
+
+**Output:**
+
+```go
+UTC Time: 2020-01-31 18:09:41.705858 +0000 UTC
+Berlin Time: 2020-01-31 19:09:41.705858 +0100 CET
+New York Time: 2020-01-31 13:09:41.705858 -0500 EST
+Dubai Time: 2020-01-31 22:09:41.705858 +0400 +04
+```
+
+---
+
 
 # GO - SQL
 
