@@ -3642,3 +3642,282 @@ H. The program prints 49.0 on line 11.
 Correct Answer: A,D**
 
 **The first compiler error is on line 3. The variable temp is declared as a float, but the assigned value is 50.0, which is a double without the F/f postfix. Since a double doesn’t fit inside a float, line 3 does not compile. Next, depth is declared inside the for loop and only has scope inside this loop. Therefore, reading the value on line 10 triggers a compiler error.**
+
+---
+
+# Chapter 2 - Operators #Chapter
+
+## Understanding Java Operators
+
+A Java operator is a special symbol that can be applied to a set of variables, values, or literals—referred to as operands—and that returns a result. The term operand, refers to the value or variable the operator is being applied to.
+
+![[Pasted image 20240116141817.png]]
+
+### Types of Operators
+
+==**Java supports three flavors of operators: unary, binary, and ternary.**== These types of operators
+can be applied to one, two, or three operands, respectively. 
+
+Java operators are not necessarily evaluated from left-to-right order.
+
+```java
+int cookies = 4;
+double reward = 3 + 2 * --cookies
+cookies;
+System.out.print("Zoo animal receives: "+reward+" reward points");
+```
+
+In this example, first decrement `cookies` to 3, then multiply the resulting value by 2, and finally add 3. The value then is automatically promoted from 9 to 9.0 and assigned to `reward`. The final values of `reward` and `cookies` are 9.0 and 3, respectively, with the following printed:
+
+```java
+Zoo animal receives: 9.0 reward points
+```
+
+### Operator Precedence
+
+In mathematics, certain operators can override other operators and be evaluated first. ==**Determining which operators are evaluated in what order is referred to as operator precedence.**== In this manner, Java more closely follows the rules for mathematics.
+
+```java
+var perimeter = 2 * height + 2 * length;
+// how the compiler evaluates this statement:
+var perimeter = ((2 * height) + (2 * length));
+```
+
+The multiplication operator `(*)` has a higher precedence than the addition operator `(+)`, The assignment
+operator `(=)` has the lowest order of precedence, so the assignment to the `perimeter` variable is performed last.
+
+==**Unless overridden with parentheses, Java operators follow order of operation, listed in Table 2.1, by decreasing order of operator precedence.**== If two operators have the same level of precedence, then Java guarantees left-to-right evaluation for most operators other than the ones marked in the table.
+
+![[Pasted image 20240116144727.png]]
+
+## Applying Unary Operators
+
+By definition, a unary operator is one that requires exactly one operand, or variable, to function. they often perform simple tasks, such as increasing a numeric variable by one or negating a `boolean` value.
+
+| Operator Type         | Example      | Description                                           |
+|------------------------|--------------|-------------------------------------------------------|
+| Logical Complement     | `!a`         | Inverts a boolean’s logical value                     |
+| Bitwise Complement     | `~b`         | Inverts all 0s and 1s in a number                     |
+| Plus                   | `+c`         | Indicates a number is positive (assumed positive in Java unless accompanied by a negative unary operator) |
+| Negation or Minus      | `-d`         | Indicates a literal number is negative or negates an expression |
+| Increment              | `++e`        | Increments a value by 1                               |
+| Increment (Postfix)    | `f++`        | Increments a value by 1 after its current value is used |
+| Decrement              | `--f`        | Decrements a value by 1                               |
+| Decrement (Postfix)    | `h--`        | Decrements a value by 1 after its current value is used |
+| Cast                   | `(String)i`  | Casts a value to a specific type                      |
+## Complement and Negation Operators
+
+The logical complement operator `(!)` flips the value of a `boolean` expression. For example, if the value is true, it will be converted to false, and vice versa.
+
+```java
+boolean isAnimalAsleep = false;
+System.out.print(isAnimalAsleep); // false
+isAnimalAsleep = !isAnimalAsleep;
+System.out.print(isAnimalAsleep); // true
+```
+
+For the exam, you also need to know about the **`bitwise complement operator (~)`**, which flips all of the 0s and 1s in a number. ==**It can only be applied to integer numeric types such as byte, short, char, int, and long.**==
+
+```java
+int value = 3; // Stored as 0011
+int complement = ~value; // Stored as 1100
+System.out.println(value); // 3
+System.out.println(complement); // -4
+```
+
+==**remember this rule: to find the bitwise complement of a number, multiply it by negative one and then subtract one.**==
+
+```java
+System.out.println(-1 * value -1); // -4
+System.out.println(-1 * complement -1); // 3
+```
+
+the negation operator `(-)` reverses the sign of a numeric expression
+
+```java
+double zooTemperature = 1.21;
+System.out.println(zooTemperature); // 1.21
+zooTemperature = -zooTemperature;
+System.out.println(zooTemperature); // -1.21
+zooTemperature = -(-zooTemperature);
+System.out.println(zooTemperature); // -1.21
+```
+
+Notice that in the last example we used parentheses, `()`, for the negation operator, `-`, to apply the negation twice. If we had instead written `--` , then it would have been interpreted as the decrement operator and printed -2.21.
+
+Based on the description, it might be obvious that some operators require the variable or expression they’re  acting on to be of a specific type. For example, you cannot apply a negation operator `(-)` to a boolean expression, nor can you apply a logical complement operator `(!)` to a numeric expression.
+
+```java
+int pelican = !5; // DOES NOT COMPILE
+boolean penguin = -true; // DOES NOT COMPILE
+boolean peacock = !0; // DOES NOT COMPILE
+```
+
+---
+ **Keep an eye out for questions on the exam that use numeric values (such as 0 or 1) with `boolean` expressions. Unlike in some other programming languages, in Java, 1 and `true` are not related in any way, just as 0 and `false` are not related.** #TIP 
+
+---
+
+### Increment and Decrement Operators
+
+==**Increment and decrement operators, `++` and `--`, respectively, can be applied to numeric variables and have a high order of precedence compared to binary operators. In other words, they are often applied first in an expression.**==
+
+Increment and decrement operators require special care because the order in which they are attached to their associated variable can make a difference in how an expression is processed.
+
+| Operator Type      | Example | Description                                               |
+|---------------------|---------|-----------------------------------------------------------|
+| Pre-increment       | `++w`   | Increases the value by 1 and returns the new value        |
+| Pre-decrement       | `--x`   | Decreases the value by 1 and returns the new value        |
+| Post-increment      | `y++`   | Increases the value by 1 and returns the original value  |
+| Post-decrement      | `z--`   | Decreases the value by 1 and returns the original value  |
+```java
+int parkAttendance = 0;
+System.out.println(parkAttendance); // 0
+System.out.println(++parkAttendance); // 1
+System.out.println(parkAttendance); // 1
+System.out.println(parkAttendance--); // 1
+System.out.println(parkAttendance); // 0
+```
+
+## Working with Binary Arithmetic Operators
+
+operators that take two operands, called binary operators. Binary operators are by far the most common operators in the Java language.  Binary operators are often combined in complex expressions with other binary operators; therefore, operator precedence is very important in evaluating expressions containing binary operators.
+
+| Operator Type | Example  | Description                                              |
+|---------------|----------|----------------------------------------------------------|
+| Addition      | `a + b`  | Adds two numeric values                                  |
+| Subtraction   | `c - d`  | Subtracts two numeric values                              |
+| Multiplication| `e * f`  | Multiplies two numeric values                              |
+| Division      | `g / h`  | Divides one numeric value by another                      |
+| Modulus       | `i % j`  | Returns the remainder after division of one numeric value by another |
+
+Arithmetic operators also include the unary operators, ++ and --
+
+```java
+int price = 2 * 5 + 3 * 4 -8; // First, you evaluate the 2 * 5 and 3 * 4, which reduces the expression to this:
+int price = 10 + 12 -8;
+```
+
+---
+
+**All of the arithmetic operators may be applied to any Java primitives, with the exception of `boolean`.**
+
+---
+
+### Adding Parentheses
+
+*Unless overridden with parentheses* prior to presenting Table 2.1 on operator precedence. That’s because you can change the order of operation explicitly by wrapping parentheses around the sections you want evaluated first.
+
+**Changing the Order of Operation**
+
+```java
+int price = 2 * ((5 + 3) * 4 -8);
+int price = 2 * (8 * 4 -8);
+int price = 2 * (32 -8);
+int price = 2 * 24;
+```
+
+---
+**When you encounter code in your professional career in which you are not sure about the order of operation, feel free to add optional parentheses. While often not required, they can improve readability, especially as you’ll see with ternary operators.**  #TIP 
+
+---
+
+**Verifying Parentheses Syntax**
+
+When working with parentheses, you need to make sure they are always valid and balanced.
+
+```java
+long pigeon = 1 + ((3 * 5) / 3; // DOES NOT COMPILE
+int blueJay = (9 + 2) + 3) / (2 * 4; // DOES NOT COMPILE
+```
+
+When reading from left to right, a new right parenthesis must match a previous left parenthesis. Likewise, all left parentheses must be closed by right parentheses before the end of the expression.
+
+```java
+short robin = 3 + [(4 * 2) + 4]; // DOES NOT COMPILE
+```
+
+This example does not compile because Java, unlike some other programming languages, does not allow brackets, [], to be used in place of parentheses.
+
+### Division and Modulus Operators
+
+The modulus operator, sometimes called the remainder operator, is simply the remainder when two numbers are divided.
+
+```java
+System.out.println(9 / 3); // 3
+System.out.println(9 % 3); // 0
+
+System.out.println(10 / 3); // 3
+System.out.println(10 % 3); // 1
+
+System.out.println(11 / 3); // 3
+System.out.println(11 % 3); // 2
+
+System.out.println(12 / 3); // 4
+System.out.println(12 % 3); // 0
+```
+
+Be sure to understand ==**the difference between arithmetic division and modulus. For integer values, division results in the floor value of the nearest integer that fulfills the operation, whereas modulus is the remainder value.**==
+
+---
+
+**The modulus operation is not limited to positive integer values in Java; it may also be applied to negative integers and floating-point numbers. For example, if the divisor is 5, then the modulus value of a negative number is between -4 and 0.**
+
+---
+
+### Numeric Promotion
+
+==**each primitive numeric type has a bit-length. You don’t need to know the exact size of these types for the exam, but you should know which are bigger than others.**==
+
+==**Numeric Promotion Rules**==
+
+1. ==**If two values have different data types, Java will automatically promote one of the values to the larger of the two data types.**==
+2. ==**If one of the values is integral and the other is floating-point, Java will automatically promote the integral value to the floating-point value’s data type.**==
+3. ==**Smaller data types, namely, `byte`, `short`, and `char`, are first promoted to int any time they’re used with a Java binary arithmetic operator with a variable (as opposed to a value), even if neither of the operands is int.**==
+4. ==**After all promotion has occurred and the operands have the same data type, the resulting value will have the same data type as its promoted operands.**==
+
+The last two rules are the ones most people have trouble with and the ones likely to trip you up on the exam. For the third rule, note that unary operators are excluded from this rule. For example, applying ++ to a short value results in a short value.
+
+**Examples**
+
+- What is the data type of x * y?
+```java
+int x = 1;
+long y = 33;
+var z = x * y;
+```
+
+In this case, we follow the first rule. Since one of the values is `int` and the other is `long`, and `long` is larger than `int`, the `int` value x is first promoted to a`long`long. The result z is then a `long` value.
+
+- What is the data type of x + y?
+```java
+double x = 39.21;
+float y = 2.1;
+var z = x + y;
+```
+
+This is actually a trick question, as ==**the second line does not compile! Floating-point literals are assumed to be double unless postfixed with an f, as in 2.1f.**== If the value of y was set properly to 2.1f, then the promotion would be similar to the previous example, with both operands being promoted to a `double`, and the result z would be a `double` value.
+
+- What is the data type of x * y?
+```java
+short x = 10;
+short y = 3;
+var z = x * y;
+```
+
+On the last line, we must apply the third rule: that x and y will both be promoted to `int` before the binary multiplication operation, resulting in an output of type `int`. If you were to try to assign the value to a `short` variable z without casting, then the code would not compile. 
+
+- What is the data type of w * x / y?
+```java
+short w = 14;
+float x = 13;
+double y = 30;
+var z = w * x / y;
+```
+
+In this case, must apply all of the rules. First, w will automatically be promoted to `int` solely because it is a `short` and is being used in an arithmetic binary operation. The promoted w value will then be automatically promoted to a `float` so that it can be multiplied with x. The result of w * x will then be automatically promoted to a `double` so that it can be divided by y, resulting in a `double` value. 
+
+When working with arithmetic operators in Java, you should always be aware of the data type of variables, intermediate values, and resulting values. You should apply operator precedence and parentheses and work outward, promoting data types along the way.
+
+## Assigning Values
+
