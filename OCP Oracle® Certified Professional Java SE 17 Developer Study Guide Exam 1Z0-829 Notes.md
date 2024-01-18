@@ -3921,3 +3921,202 @@ When working with arithmetic operators in Java, you should always be aware of th
 
 ## Assigning Values
 
+### Assignment Operator
+
+An assignment operator is a binary operator that modifies, or assigns, the variable on the left side of the operator with the result of the value on the right side of the equation.  Unlike most other Java operators, the assignment operator is evaluated from right to left.
+
+The simplest assignment operator is the `=` assignment
+
+```java
+int herd = 1;
+```
+
+==**Java will automatically promote from smaller to larger data types, on arithmetic operators, but it will throw a compiler exception if it detects that you are trying to convert from larger to smaller data types without casting.**==
+
+| Operator     | Example         | Description                                      |
+|--------------|-----------------|--------------------------------------------------|
+| Assignment   | `int a = 50;`    | Assigns the value on the right to the variable on the left. |
+
+### Casting Values
+
+Casting is a unary operation where one data type is explicitly interpreted as another data type. ==**Casting is optional and unnecessary when converting to a larger or widening data type, but it is required when converting to a smaller or narrowing data type.**== Without casting, the compiler will generate an error when trying to put a larger data type inside a smaller one.
+
+Casting is performed by placing the data type, enclosed in parentheses, to the left of the value you want to cast.
+
+```java
+int fur = (int)5;
+int hair = (short) 2;
+String type = (String) "Bird";
+short tail = (short)(4 + 10);
+long feathers = 10(long); // DOES NOT COMPILE
+```
+
+Spaces between the cast and the value are optional.  it is common for the right side to also be in parentheses. Since casting is a unary operation, it would only be applied to the 4 if we didn’t enclose 4 + 10 in parentheses.
+
+On the one hand, it is convenient that the compiler automatically casts smaller data types to larger ones. On the other hand, it makes for great exam questions when they do the opposite to see whether you are paying attention
+
+```java
+float egg = 2.0 / 9; // DOES NOT COMPILE
+int tadpole = (int)5 * 2L; // DOES NOT COMPILE
+short frog = 3 -2.0; // DOES NOT COMPILE
+```
+
+All of these examples involve putting a larger value into a smaller data type. casting can also be applied to objects and references. In those cases, though, no conversion is performed. ==**Put simply, casting a numeric value may change the data type, while casting an object only changes the reference to the object, not the object itself.**==
+
+**Reviewing Primitive Assignments**
+
+```java
+int fish = 1.0; // DOES NOT COMPILE
+short bird = 1921222; // DOES NOT COMPILE
+int mammal = 9f; // DOES NOT COMPILE
+long reptile = 192_301_398_193_810_323; // DOES NOT COMPILE
+```
+
+The first statement does not compile because you are trying to assign a double 1.0 to an integer value.
+The second statement does not compile because the literal value 1921222 is outside the range of short, and the compiler detects this. The third statement does not compile because the f added to the end of the number instructs the compiler to treat the number as a floating-point value, but the assignment is to an int. Finally the last statement does not compile because Java interprets the literal as an int and notices that the value is larger than int allows. The literal would need a postfix L or l to be considered a long.
+
+**Applying Casting**
+
+==**Remember, casting primitives is required any time you are going from a larger numerical data type to a smaller numerical data type, or converting from a floating-point number to an integral value.**==
+
+```java
+int fish = (int)1.0;
+short bird = (short)1921222; // Stored as 20678
+int mammal = (int)9f;
+```
+
+```java
+long reptile = (long)192301398193810323; // DOES NOT COMPILE
+```
+
+**This still does not compile because the value is first interpreted as an int by the compiler and is out of range.** The following fixes this code without requiring casting:
+
+```java
+long reptile = 192301398193810323L;
+```
+
+---
+**Overflow and Underflow** 
+
+The second value, 1,921,222, is too large to be stored as a short, so numeric overflow occurs, and it becomes 20,678. **Overflow is when a number is so large that it will no longer fit within the data type, so the system “wraps around” to the lowest negative value and counts up from there, similar to how modulus arithmetic works.  There’s also an analogous underflow, when the number is too low to fit in the data type, such as storing -200 in a byte field.**
+
+```java
+System.out.print(2147483647+1); // -2147483648
+```
+
+Since 2147483647 is the maximum int value, adding any strictly positive value to it will cause it to wrap to the smallest negative number.
+
+---
+
+**Numeric Promotion Example**
+
+```java
+short mouse = 10;
+short hamster = 3;
+short capybara = mouse * hamster; // DOES NOT COMPILE
+```
+
+short values are automatically promoted to int when applying any arithmetic operator, with the resulting value being of type int. Trying to assign a short variable with an int value results in a compiler error, as Java thinks you are trying to implicitly convert from a larger data type to a smaller one.  can be fix by casting
+
+```java
+short mouse = 10;
+short hamster = 3;
+short capybara = (short)(mouse * hamster);
+```
+ 
+ By casting a larger value into a smaller data type, you instruct the compiler to ignore its default behavior. In other words, you are telling the compiler that you have taken additional steps to prevent overflow or underflow. It is also possible that in your particular application and scenario, overflow or underflow would result in acceptable values.
+
+Last but not least, casting can appear anywhere in an expression, not just on the assignment.
+
+```java
+short mouse = 10;
+short hamster = 3;
+short capybara = (short)mouse * hamster; // DOES NOT COMPILE
+```
+
+casting was a unary operation. That means the cast in the last line is applied to mouse, and mouse alone. After the cast is complete, both operands are promoted to int since they are used with the binary multiplication operator `(*)`, making the result an int and causing a compiler error.
+
+```java
+short capybara = 1 + (short)(mouse * hamster); // DOES NOT COMPILE
+```
+
+casting is performed successfully, but the resulting value is automatically promoted to int because it is used with the binary arithmetic operator `(+)`.
+
+### Casting Values vs. Variables
+
+the compiler doesn’t require casting when working with literal values that fit into the data type.
+
+```java
+byte hat = 1;
+byte gloves = 7 * 10;
+short scarf = 5;
+short boots = 2 + 1;
+```
+
+```java
+short boots = 2 + hat; // DOES NOT COMPILE
+byte gloves = 7 * 100; // DOES NOT COMPILE
+```
+
+The first statement does not compile because hat is a variable, not a value, and both operands are automatically promoted to int. When working with values, the compiler had enough information to determine the writer’s intent. When working with variables, though, there is ambiguity about how to proceed, so the compiler reports an error.
+
+The second expression does not compile because 700 triggers an overflow for byte, which has a maximum value of 127.
+
+### Compound Assignment Operators
+
+| Operator               | Example      | Description                                                                      |
+|------------------------|--------------|----------------------------------------------------------------------------------|
+| Addition assignment    | `a += 5`      | Adds the value on the right to the variable on the left and assigns the sum to the variable.  |
+| Subtraction assignment | `b -= 0.2`    | Subtracts the value on the right from the variable on the left and assigns the difference to the variable. |
+| Multiplication assignment | `c *= 100` | Multiplies the value on the right with the variable on the left and assigns the product to the variable. |
+| Division assignment    | `d /= 4`      | Divides the variable on the left by the value on the right and assigns the quotient to the variable. |
+Compound operators are really just glorified forms of the simple assignment operator, with a built-in arithmetic or logical operation that applies the left and right sides of the statement and stores the resulting value in the variable on the left side of the statement. 
+
+```java
+int camel = 2, giraffe = 3;
+camel = camel * giraffe; // Simple assignment operator
+camel *= giraffe; // Compound assignment operator
+```
+
+The left side of the compound operator can be applied only to a variable that is already defined and cannot be used to declare a new variable.
+==**Compound operators are useful for more than just shorthand—they can also save you from having to explicitly cast a value.**==
+
+```java
+long goat = 10;
+int sheep = 5;
+sheep = sheep * goat; // DOES NOT COMPILE
+```
+
+We are trying to assign a long value to an int variable. This last line could be fixed with an explicit cast to (int), but there’s a better way using the compound assignment operator:
+
+```java
+long goat = 10;
+int sheep = 5;
+sheep *= goat;
+```
+
+The compound operator will first cast sheep to a long, apply the multiplication of two long values, and then cast the result to an int. Unlike the previous example, in which the compiler reported an error, the compiler will automatically cast the resulting value to the data type of the value on the left side of the compound operator.
+
+### Return Value of Assignment Operators
+
+One final thing to know about assignment operators is that ==**the result of an assignment is an expression in and of itself equal to the value of the assignment.**==
+
+```java
+long wolf = 5;
+long coyote = (wolf=3);
+System.out.println(wolf); // 3
+System.out.println(coyote); // 3
+```
+
+The key here is that (wolf=3) does two things. First, it sets the value of the variable wolf to be 3. Second, it returns a value of the assignment, which is also 3.
+
+```java
+boolean healthy = false;
+if(healthy = true)
+System.out.print("Good!");
+```
+
+While this may look like a test if healthy is true, it’s actually assigning healthy a value of true. The result of the assignment is the value of the assignment, which is true, resulting in this snippet printing Good!
+
+## Comparing Values
+
