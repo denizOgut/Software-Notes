@@ -3020,7 +3020,7 @@ Not all questions will include package declarations and imports. Don’t worry a
 
 ---
 
-## Summary #Summary 
+## Summary #OCP_Summary 
 
 ==**Java begins program execution with a `main()` method. The most common signature for this method run from the command line is `public static void main(String[] args)`. Arguments are passed in after the class name, as in java `NameOfClass` `firstArgument`. Arguments are indexed starting with 0.**==
 
@@ -4312,4 +4312,91 @@ System.out.println(rabbit);
 ```
 
 Because `rabbit >= 6` is `true`, the increment operator on the right side of the expression is never evaluated, so the output is 6.
+
+## Making Decisions with the Ternary Operator
+
+It is notable in that it is the only operator that takes three operands.
+```java
+booleanExpression ? expression1 : expression2
+```
+
+==**The first operand must be a boolean expression, and the second and third operands can be any expression that returns a value.** ==The ternary operation is really a condensed form of a combined if and else statement that returns a value.
+
+```java
+for an owl:
+int owl = 5;
+int food;
+if(owl < 2) {
+food = 3;
+} else {
+food = 4;
+}
+System.out.println(food); // 4
+```
+
+```java
+int owl = 5;
+int food = owl < 2 ? 3 : 4;
+System.out.println(food); // 4
+```
+
+These two code snippets are equivalent. Note that it is often helpful for readability to add parentheses around the expressions in ternary operations, although doing so is certainly not required.
+
+```java
+int food1 = owl < 4 ? owl > 2 ? 3 : 4 : 5;
+int food2 = (owl < 4 ? ((owl > 2) ? 3 : 4) : 5);
+```
+
+For the exam, you should know that there is no requirement that second and third expressions in ternary operations have the same data types, although it does come into play when combined with the assignment operator.
+
+```java
+int stripes = 7;
+System.out.print((stripes > 5) ? 21 : "Zebra");
+int animal = (stripes < 9) ? 3 : "Horse"; // DOES NOT COMPILE
+```
+
+Both expressions evaluate similar `boolean` values and return an `int` and a `String`, although only the first one will compile. `System.out.print()` does not care that the expressions are completely different types, because it can convert both to Object values and call `toString()` on them. On the other hand, the compiler does know that "Horse" is of the wrong data type and cannot be assigned to an int; therefore, it does not allow the code to be compiled.
+
+---
+**Ternary Expression and Unperformed Side Effects** #TIP 
+
+ternary expression can contain an unperformed side effect, as only one of the expressions on the right side will be evaluated at runtime.
+
+```java
+int sheep = 1;
+int zzz = 1;
+int sleep = zzz<10 ? sheep++ : zzz++;
+System.out.print(sheep + "," + zzz); // 2,1
+```
+
+Notice that since the left-hand `boolean` expression was true, only sheep was incremented.
+
+```java
+int sheep = 1;
+int zzz = 1;
+int sleep = sheep>=10 ? sheep++ : zzz++;
+System.out.print(sheep + "," + zzz); // 1,2
+```
+
+Now that the left-hand boolean expression evaluates to false, only `zzz` is incremented.
+
+---
+
+## Summary  #OCP_Summary 
+
+==**This chapter provides a comprehensive overview of Java operators, encompassing unary, binary, and ternary operators. Familiarity with these operators is crucial, and if any are not yet well-understood, a thorough study is recommended. A solid grasp of how to utilize the various Java operators covered in this chapter, coupled with an understanding of operator precedence and the impact of parentheses on expression interpretation, is essential.**==
+
+==**During the exam, seemingly unrelated questions may actually test knowledge of specific operators, potentially causing compilation failures. Always scrutinize numeric operators, verifying that appropriate data types are used and match where necessary. Since operators are pervasive in exam code samples, a strong comprehension of this chapter enhances preparedness for the OCP**==
+
+## Exam Essentials #Essential 
+
+**Be able to recognize which operators are associated with which data types.**  This chapter covered a wide variety of operator symbols. Go back and review them several times so that you are familiar with them throughout the rest of the book.
+
+**Be able to recognize which operators are associated with which data types.** Some operators may be applied only to numeric primitives, some only to boolean values, and some only to objects. It is important that you notice when an operator and operand(s) are mismatched, as this issue is likely to come up in a couple of exam questions.
+
+**Understand when casting is required or numeric promotion occurs.** Whenever you mix operands of two different data types, the compiler needs to decide how to handle the resulting data type. ==**When you’re converting from a smaller to a larger data type, numeric promotion is automatically applied. When you’re converting from a larger to a smaller data type casting is required.**==
+
+**Understand Java operator precedence.** Most Java operators you’ll work with are binary, but the number of expressions is often greater than two. Therefore, you must understand the order in which Java will evaluate each operator symbol.
+
+**Be able to write code that uses parentheses to override operator precedence.** can use parentheses in your code to manually change the order of precedence.
 
