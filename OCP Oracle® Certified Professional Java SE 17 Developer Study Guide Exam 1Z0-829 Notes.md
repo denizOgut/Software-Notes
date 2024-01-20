@@ -1129,9 +1129,9 @@ java -version
 
 In Java programs, classes are the basic building blocks. When defining a class, you describe all the parts and characteristics of one of those building blocks.
 
-To use most classes, you have to create objects.  An object is a runtime instance of a class in memory. An object is often referred to as an instance since it represents a single representation of the class.
+To use most classes, you have to create objects.  ==**An object is a runtime instance of a class in memory.**== An object is often referred to as an instance since it represents a single representation of the class.
 
-All the various objects of all the different classes represent the state of your program. A reference is a variable that points to an object.
+All the various objects of all the different classes represent the state of your program. ==**A reference is a variable that points to an object.**==
 ### Fields and Methods
 
 Java classes have ==**two primary elements**==: ==**methods**==, often called functions or procedures in other languages, and ==**fields**==, more generally known as variables. Together these are called the members of the class.
@@ -1167,7 +1167,7 @@ On line 2, we define a variable named name. We also declare the type of that var
 9: }
 ```
 
-The `setName()` method has one parameter named `newName`, and it is of type String. This means the caller should pass in one String parameter and expect nothing to be returned.
+The `setName()` method has one parameter named `newName`, and it is of type String. This means the caller should pass in one `String` parameter and expect nothing to be returned.
 
 ==**The method name and parameter types are called the method signature.**==
 
@@ -1296,13 +1296,13 @@ To keep things simple for now, we follow this subset of the rules:
 
 review the words in the `main()` method’s signature, one at a time. 
 
-- The keyword `public` is what’s called an access modifier. It declares this method’s level of exposure to potential callers in the program. Naturally, public means full access from anywhere in the program.
+- ==**The keyword `public` is what’s called an access modifier. It declares this method’s level of exposure to potential callers in the program. Naturally, public means full access from anywhere in the program.**==
 
-- The keyword `static` binds a method to its class so it can be called by just the class name  Java doesn’t need to create an object to call the main() method 
+- ==**The keyword `static` binds a method to its class so it can be called by just the class name  Java doesn’t need to create an object to call the main() method**== 
 
-- The keyword `void` represents the return type. A method that returns no data returns control to the caller silently.  In general, it’s good practice to use `void` for methods that change an object’s state. In that sense, the `main()` method changes the program state from started to finished.
+- ==**The keyword `void` represents the return type. A method that returns no data returns control to the caller silently.  In general, it’s good practice to use `void` for methods that change an object’s state. In that sense, the `main()` method changes the program state from started to finished.**==
 
-- Finally, the `main()` method’s parameter list, represented as an array of `java.lang.String` objects. can use any valid variable name along with any of these three formats:
+- ==**Finally, the `main()` method’s parameter list, represented as an array of `java.lang.String` objects. can use any valid variable name along with any of these three formats:**==
 
 - ==**`String[] args`**==
 - ==**`String options[]`**==
@@ -1405,7 +1405,7 @@ the output:
 error: cannot find symbol
 ```
 
-This error could mean you made a typo in the name of the class. The other cause of this error is omitting a needed `import` statement. A statement is an instruction, and import statements tell Java which packages to look in for classes. Since you didn’t tell Java where to look for Random, it has no clue.
+This error could mean you made a typo in the name of the class. The other cause of this error is omitting a needed `import` statement. A statement is an instruction, and import statements tell Java which packages to look in for classes. Since you didn’t tell Java where to look for `Random`, it has no clue.
 
 ```java
 import java.util.Random; // import tells us where to find Random
@@ -1418,7 +1418,6 @@ System.out.println(r.nextInt(10)); // a number 0-9
 ```
 
 ### Packages
-
 Java classes are grouped into packages. The `import` statement tells the compiler which package to look in to find a class.
 
 ==**Java only looks for class names in the package.**== Package names are hierarchical. The rule for package names is that they are mostly letters or numbers separated by periods `(.)`. Technically, you’re allowed a couple of other characters between the periods` (.)`.
@@ -1744,7 +1743,7 @@ To create an instance of a class, all you have to do is write new before the cla
 Park p = new Park();
 ```
 
-First you declare the type that you’ll be creating (Park) and give the variable a name (p). This gives Java a place to store a reference to the object.  Then you write `new Park()` to actually create the object.
+First you declare the type that you’ll be creating (`Park`) and give the variable a name (`p`). This gives Java a place to store a reference to the object.  Then you write `new Park()` to actually create the object.
 
 `Park()` looks like a method since it is followed by parentheses. It’s called a **constructor**, which is a special type of method that creates a new object.
 
@@ -1768,7 +1767,7 @@ public void Chick() { } // NOT A CONSTRUCTOR
 
 ==**When you see a method name beginning with a capital letter and having a return type,**==
 ==**pay special attention to it. It is not a constructor since there’s a return type. It’s a regular**==
-==**method that does compile but will not be called when you write new Chick().**== #TIP 
+==**method that does compile but will not be called when you write new `Chick()`.**== #TIP 
 
 The purpose of a constructor is to initialize fields,  Another way to initialize fields is to do so directly on the line on which they’re declared.
 
@@ -1833,10 +1832,10 @@ This is simply the order in which different methods, constructors, or blocks are
 | Order No. | Order of Initialization            | Description                                                                                      | Simple Example                                   |
 |-----------|-------------------------------------|--------------------------------------------------------------------------------------------------|--------------------------------------------------|
 | 1         | Static Variables Initialization | Static variables are initialized first, either at the time of declaration or in a static block.  | `static int staticVariable = 42;`                |
-| 2         | Static Initialization Blocks    | Static initialization blocks are executed in the order they appear in the class after static variable initialization. | ```static { /* initialization code */ }``` |
-| 3         | Instance Variables Initialization | Instance variables are initialized next, either at the time of declaration or in an instance initialization block. | `int instanceVariable = 10;`                     |
-| 4         | Instance Initialization Blocks | Instance initialization blocks are executed in the order they appear in the class after instance variable initialization, just before the constructor is invoked. | ```java { /* initialization code */ }```        |
-| 5         | Constructor Execution           | Finally, the constructor of the class is executed, allowing specific instance-level initialization tasks to be performed. | ```java public MyClass() { /* constructor code */ }``` |
+| 1         | Static Initialization Blocks    | Static initialization blocks are executed in the order they appear in the class after static variable initialization. | ```static { /* initialization code */ }``` |
+| 2         | Instance Variables Initialization | Instance variables are initialized next, either at the time of declaration or in an instance initialization block. | `int instanceVariable = 10;`                     |
+| 2         | Instance Initialization Blocks | Instance initialization blocks are executed in the order they appear in the class after instance variable initialization, just before the constructor is invoked. | ```java { /* initialization code */ }```        |
+| 3         | Constructor Execution           | Finally, the constructor of the class is executed, allowing specific instance-level initialization tasks to be performed. | ```java public MyClass() { /* constructor code */ }``` |
 
 - ==**Fields and instance initializer blocks are run in the order in which they appear in the file.**==
 - ==**The constructor runs after all fields and instance initializer blocks have run.**==
@@ -1889,7 +1888,7 @@ private int number = 3;
 Fields and blocks are run first in order, setting number to 3 and then 4. Then the constructor runs, setting number to 5.
 ## Understanding Data Types
 
-Java applications contain two types of data: **primitive** types and **reference** types.
+Java applications contain two types of data: **==primitive==** types and **==reference==** types.
 ### Using Primitive Types
 
 Java has eight built-in data types, referred to as the Java primitive types. These eight data types represent the building blocks for Java objects, because all Java objects are just a complex collection of these primitive data types.  A primitive is not an object in Java, nor does it represent an object. A primitive is just a single value in memory, such as a number or character.
@@ -1958,7 +1957,7 @@ int million1 = 1000000;
 int million2 = 1_000_000;
 ```
 
-You can add underscores anywhere except at the beginning of a literal, the end of a literal, right before a decimal point, or right after a decimal point.
+==**You can add underscores anywhere except at the beginning of a literal, the end of a literal, right before a decimal point, or right after a decimal point.**==
 
 ```java
 double notAtStart = _1000.00; // DOES NOT COMPILE
@@ -1985,7 +1984,7 @@ The greeting variable is a reference that can only point to a String object. A v
 greeting = new String("How are you?");
 ```
 
-The greeting reference points to a new String object, "How are you?". The String object does not have a name and can be accessed only via a corresponding reference.
+The greeting reference points to a new String object, *"How are you?"*. The String object does not have a name and can be accessed only via a corresponding reference.
 ### Distinguishing between Primitives and Reference Types
 
 There are a few important differences between primitives and reference types.
@@ -2294,7 +2293,7 @@ String zooName = "The Best Zoo";
 An identifier is the name of a variable, method, class, interface, or package.
 
 There are only four rules to remember for legal identifiers:
-1. ==**Begin with a letter, currency symbol, or _ symbol:**== Identifiers must start with a letter (a-z or A-Z), a currency symbol (e.g., $, ¥, €), or an underscore `(_)`.
+1. ==**Begin with a letter, currency symbol, or _ symbol:**== Identifiers must start with a letter `(a-z or A-Z)`, a currency symbol `(e.g., $, ¥, €)`, or an underscore `(_)`.
     
 2. ==**Include numbers but not start with them:**== While identifiers can include numbers, they must not begin with a number.
     
@@ -2584,7 +2583,7 @@ var tricky = "Hello"; // DOES NOT COMPILE
 }
 ```
 
-The variable tricky is an instance variable. Local variable type inference works with local variables and not instance variables. 
+The variable `tricky` is an instance variable. Local variable type inference works with local variables and not instance variables. 
 ### Type Inference of var
 
 When you type `var`, you are instructing the compiler to determine the type for you The compiler looks at the code on the line of the declaration and uses it to infer the type.
@@ -2679,21 +2678,16 @@ this code does compile.
 ---
 **Var Review**
 
+1. ==**A `var` is used as a local variable in a constructor, method, or initializer block.**==   
+ 2. ==**A `var` cannot be used in constructor parameters, method parameters, instance variables, or class variables.**==   
+ 3. ==**A `var` is always initialized on the same line (or statement) where it is declared.**==    
+ 4. ==**The value of a `var` can change, but the type cannot.**==    
+ 5. ==**A `var` cannot be initialized with a null value without a type.**==    
+ 6. ==**A `var` is not permitted in a multiple-variable declaration.**==    
+ 7.  ==**A `var` is a reserved type name but not a reserved word, meaning it can be used as an identifier except as a class, interface, or enum name.**== 
+
 ```java
-public class VarReview {  
-    
- // Review of var Rules  
-  
-// 1- A var is used as a local variable in a constructor, method, or initializer block.   
-// 2- A var cannot be used in constructor parameters, method parameters, instance variables, or class variables.    
-// 3- A var is always initialized on the same line (or statement) where it is declared.    
-// 4- The value of a var can change, but the type cannot.    
-// 5- A var cannot be initialized with a null value without a type.    
-// 6- A var is not permitted in a multiple-variable declaration.    
-// 7- A var is a reserved type name but not a reserved word,    
-// meaning it can be used as an identifier except as a class, interface, or enum name.  
-  
-}  
+
   
 // A var is used as a local variable in a constructor, method, or initializer block.  
 class Example {  
@@ -2962,7 +2956,7 @@ Java includes a built-in method to help support garbage collection where you can
 System.gc();
 ```
 
-Java is free to ignore you. This method is not guaranteed to do anything.
+Java is free to ignore you. ==**This method is not guaranteed to do anything**==.
 
 ### Tracing Eligibility
 
@@ -2976,9 +2970,9 @@ How does the JVM know when an object is eligible for garbage collection? The JVM
 
 Do not confuse a reference with the object that it refers to; they are two different entities.
 
-The reference is a variable that has a name and can be used to access the contents of an object. A reference can be assigned to another reference, passed to a method, or returned from a method. All references are the same size, no matter what their type is.
+- The reference is a variable that has a name and can be used to access the contents of an object. A reference can be assigned to another reference, passed to a method, or returned from a method. All references are the same size, no matter what their type is.
 
-An object sits on the heap and does not have a name. Therefore, you have no way to access an object except through a reference. Objects come in all different shapes and sizes and consume varying amounts of memory. An object cannot be assigned to another object, and an object cannot be passed to a method or returned from a method. ==**It is the object that gets garbage collected, not its reference.**==
+- An object sits on the heap and does not have a name. Therefore, you have no way to access an object except through a reference. Objects come in all different shapes and sizes and consume varying amounts of memory. An object cannot be assigned to another object, and an object cannot be passed to a method or returned from a method. ==**It is the object that gets garbage collected, not its reference.**==
 
 			![[Pasted image 20240112123949.png]]
 
