@@ -3656,8 +3656,7 @@ Java operators are not necessarily evaluated from left-to-right order.
 
 ```java
 int cookies = 4;
-double reward = 3 + 2 * --cookies
-cookies;
+double reward = 3 + 2 * --cookies;
 System.out.print("Zoo animal receives: "+reward+" reward points");
 ```
 
@@ -4038,7 +4037,7 @@ casting is performed successfully, but the resulting value is automatically prom
 
 ### Casting Values vs. Variables
 
-the compiler doesn’t require casting when working with literal values that fit into the data type.
+==**the compiler doesn’t require casting when working with literal values that fit into the data type.**==
 
 ```java
 byte hat = 1;
@@ -4102,7 +4101,7 @@ System.out.println(wolf); // 3
 System.out.println(coyote); // 3
 ```
 
-The key here is that (wolf=3) does two things. First, it sets the value of the variable wolf to be 3. Second, it returns a value of the assignment, which is also 3.
+The key here is that `(wolf=3)` does two things. First, it sets the value of the variable wolf to be 3. Second, it returns a value of the assignment, which is also 3.
 
 ```java
 boolean healthy = false;
