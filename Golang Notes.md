@@ -7096,6 +7096,1748 @@ for rows.Next() {
 }
 ```
 
+
+---
+
+# GO - ORM / GORM
+
+GORM, the Object Relational Mapping library for Go, streamlines the process of querying databases.
+
+## Install
+
+```shell
+go get -u gorm.io/gorm  
+go get -u gorm.io/driver/sqlite|
+```
+
+# Declaring Models
+
+GORM simplifies database interactions by mapping Go structs to database tables.
+
+Models are defined using normal structs. These structs can contain fields with basic Go types, pointers or aliases of these types, or even custom types, as long as they implement the [Scanner](https://pkg.go.dev/database/sql/?tab=doc#Scanner) and [Valuer](https://pkg.go.dev/database/sql/driver#Valuer) interfaces from the `database/sql` package
+
+```go
+type User struct {  
+  ID           uint           // Standard field for the primary key  
+  Name         string         // A regular string field  
+  Email        *string        // A pointer to a string, allowing for null values  
+  Age          uint8          // An unsigned 8-bit integer  
+  Birthday     *time.Time     // A pointer to time.Time, can be null  
+  MemberNumber sql.NullString // Uses sql.NullString to handle nullable strings  
+  ActivatedAt  sql.NullTime   // Uses sql.NullTime for nullable time fields  
+  CreatedAt    time.Time      // Automatically managed by GORM for creation time  
+  UpdatedAt    time.Time      // Automatically managed by GORM for update time  
+}
+```
+
+In this model:
+
+- Basic data types like `uint`, `string`, and `uint8` are used directly.
+- Pointers to types like `*string` and `*time.Time` indicate nullable fields.
+- `sql.NullString` and `sql.NullTime` from the `database/sql` package are used for nullable fields with more control.
+- `CreatedAt` and `UpdatedAt` are special fields that GORM automatically populates with the current time when a record is created or updated.
+
+### Conventions
+
+1. **Primary Key**: GORM uses a field named `ID` as the default primary key for each model.
+    
+2. **Table Names**: By default, GORM converts struct names to `snake_case` and pluralizes them for table names. For instance, a `User` struct becomes `users` in the database.
+    
+3. **Column Names**: GORM automatically converts struct field names to `snake_case` for column names in the database.
+    
+4. **Timestamp Fields**: GORM uses fields named `CreatedAt` and `UpdatedAt` to automatically track the creation and update times of records.
+
+### `gorm.Model`
+
+GORM provides a predefined struct named `gorm.Model`, which includes commonly used fields:
+
+```go
+// gorm.Model definition  
+type Model struct {  
+  ID        uint           `gorm:"primaryKey"`  
+  CreatedAt time.Time  
+  UpdatedAt time.Time  
+  DeletedAt gorm.DeletedAt `gorm:"index"`  
+}
+```
+
+- **Embedding in Your Struct**: You can embed `gorm.Model` directly in your structs to include these fields automatically. This is useful for maintaining consistency across different models and leveraging GORM’s built-in conventions
+- - **Fields Included**:
+    
+    - `ID`: A unique identifier for each record (primary key).
+    - `CreatedAt`: Automatically set to the current time when a record is created.
+    - `UpdatedAt`: Automatically updated to the current time whenever a record is updated.
+    - `DeletedAt`: Used for soft deletes (marking records as deleted without actually removing them from the database).
+
+## Advanced
+
+### Field-Level Permission
+
+Exported fields have all permissions when doing CRUD with GORM, and GORM allows you to change the field-level permission with tag, so you can make a field to be read-only, write-only, create-only, update-only or ignored
+
+```go
+type User struct {
+  Name1 string `gorm:"<-:create"`               // allow read and create
+  Name2 string `gorm:"<-:update"`               // allow read and update
+  Name3 string `gorm:"<-"`                      // allow read and write (create and update)
+  Name4 string `gorm:"<-:false"`                // allow read, disable write permission
+  Name5 string `gorm:"->"`                      // readonly (disable write permission unless it configured)
+  Name6 string `gorm:"->;<-:create"`            // allow read and create
+  Name7 string `gorm:"->:false;<-:create"`      // createonly (disabled read from db)
+  Name8 string `gorm:"-"`                       // ignore this field when write and read with struct
+  Name9 string `gorm:"-:all"`                   // ignore this field when write, read and migrate with struct
+  Name10 string `gorm:"-:migration"`            // ignore this field when migrate with struct
+}
+```
+
+
+### Embedded Struct
+
+For anonymous fields, GORM will include its fields into its parent struct, for example:
+
+```go
+type User struct {  
+  gorm.Model  
+  Name string  
+}  
+// equals  
+type User struct {  
+  ID        uint           `gorm:"primaryKey"`  
+  CreatedAt time.Time  
+  UpdatedAt time.Time  
+  DeletedAt gorm.DeletedAt `gorm:"index"`  
+  Name string  
+}
+```
+
+For a normal struct field, you can embed it with the tag `embedded`
+
+```go
+type Author struct {  
+  Name  string  
+  Email string  
+}  
+  
+type Blog struct {  
+  ID      int  
+  Author  Author `gorm:"embedded;embeddedPrefix:author_"`  
+  Upvotes int32  
+}  
+// equals  
+type Blog struct {  
+  ID    int64  
+  Name  string  
+  Email string  
+  Upvotes  int32  
+}
+```
+
+### Fields Tags
+
+Tags are optional to use when declaring models, GORM supports the following tags:  
+Tags are case insensitive, however `camelCase` is preferred.
+
+|Tag Name|Description|
+|---|---|
+|column|column db name|
+|type|column data type, prefer to use compatible general type, e.g: bool, int, uint, float, string, time, bytes, which works for all databases, and can be used with other tags together, like `not null`, `size`, `autoIncrement`… specified database data type like `varbinary(8)` also supported, when using specified database data type, it needs to be a full database data type, for example: `MEDIUMINT UNSIGNED NOT NULL AUTO_INCREMENT`|
+|serializer|specifies serializer for how to serialize and deserialize data into db, e.g: `serializer:json/gob/unixtime`|
+|size|specifies column data size/length, e.g: `size:256`|
+|primaryKey|specifies column as primary key|
+|unique|specifies column as unique|
+|default|specifies column default value|
+|precision|specifies column precision|
+|scale|specifies column scale|
+|not null|specifies column as NOT NULL|
+|autoIncrement|specifies column auto incrementable|
+|autoIncrementIncrement|auto increment step, controls the interval between successive column values|
+|embedded|embed the field|
+|embeddedPrefix|column name prefix for embedded fields|
+|autoCreateTime|track current time when creating, for `int` fields, it will track unix seconds, use value `nano`/`milli` to track unix nano/milli seconds, e.g: `autoCreateTime:nano`|
+|autoUpdateTime|track current time when creating/updating, for `int` fields, it will track unix seconds, use value `nano`/`milli` to track unix nano/milli seconds, e.g: `autoUpdateTime:milli`|
+|index|create index with options, use same name for multiple fields creates composite indexes, refer [Indexes](https://gorm.io/docs/indexes.html) for details|
+|uniqueIndex|same as `index`, but create uniqued index|
+|check|creates check constraint, eg: `check:age > 13`, refer [Constraints](https://gorm.io/docs/constraints.html)|
+|<-|set field’s write permission, `<-:create` create-only field, `<-:update` update-only field, `<-:false` no write permission, `<-` create and update permission|
+|->|set field’s read permission, `->:false` no read permission|
+|-|ignore this field, `-` no read/write permission, `-:migration` no migrate permission, `-:all` no read/write/migrate permission|
+|comment|add comment for field when migration|
+
+# Connecting to a Database
+
+GORM officially supports the databases MySQL, PostgreSQL, SQLite, SQL Server
+
+## MySQL
+
+```go
+import (  
+  "gorm.io/driver/mysql"  
+  "gorm.io/gorm"  
+)  
+  
+func main() {  
+  // refer https://github.com/go-sql-driver/mysql#dsn-data-source-name for details  
+  dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"  
+  db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})  
+}
+```
+
+### Customize Driver
+
+GORM allows to customize the MySQL driver with the `DriverName` option
+
+```go
+import (  
+  _ "example.com/my_mysql_driver"  
+  "gorm.io/driver/mysql"  
+  "gorm.io/gorm"  
+)  
+  
+db, err := gorm.Open(mysql.New(mysql.Config{  
+  DriverName: "my_mysql_driver",  
+  DSN: "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local", // data source name, refer https://github.com/go-sql-driver/mysql#dsn-data-source-name  
+}), &gorm.Config{})
+```
+
+### Existing database connection
+
+GORM allows to initialize `*gorm.DB` with an existing database connection
+
+```go
+import (  
+  "database/sql"  
+  "gorm.io/driver/mysql"  
+  "gorm.io/gorm"  
+)  
+  
+sqlDB, err := sql.Open("mysql", "mydb_dsn")  
+gormDB, err := gorm.Open(mysql.New(mysql.Config{  
+  Conn: sqlDB,  
+}), &gorm.Config{})
+```
+
+## PostgreSQL
+
+```go
+import (  
+  "gorm.io/driver/postgres"  
+  "gorm.io/gorm"  
+)  
+  
+dsn := "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"  
+db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+```
+
+### Customize Driver
+
+GORM allows to customize the PostgreSQL driver with the `DriverName` option
+
+```go
+import (  
+  _ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"  
+  "gorm.io/gorm"  
+)  
+  
+db, err := gorm.Open(postgres.New(postgres.Config{  
+  DriverName: "cloudsqlpostgres",  
+  DSN: "host=project:region:instance user=postgres dbname=postgres password=password sslmode=disable",  
+})
+```
+
+### Existing database connection
+
+GORM allows to initialize `*gorm.DB` with an existing database connection
+
+```go
+import (  
+  "database/sql"  
+  "gorm.io/driver/postgres"  
+  "gorm.io/gorm"  
+)  
+  
+sqlDB, err := sql.Open("pgx", "mydb_dsn")  
+gormDB, err := gorm.Open(postgres.New(postgres.Config{  
+  Conn: sqlDB,  
+}), &gorm.Config{})
+```
+
+
+# CRUD INTERFACE
+
+# Create
+## Create Record
+
+```go
+user := User{Name: "Jinzhu", Age: 18, Birthday: time.Now()}  
+  
+result := db.Create(&user) // pass pointer of data to Create  
+  
+user.ID             // returns inserted data's primary key  
+result.Error        // returns error  
+result.RowsAffected // returns inserted records count
+```
+
+can also create multiple records with `Create()`:
+
+```go
+users := []*User{  
+  User{Name: "Jinzhu", Age: 18, Birthday: time.Now()},  
+  User{Name: "Jackson", Age: 19, Birthday: time.Now()},  
+}  
+  
+result := db.Create(users) // pass a slice to insert multiple row  
+  
+result.Error        // returns error  
+result.RowsAffected // returns inserted records count
+```
+
+> **NOTE** You cannot pass a struct to ‘create’, so you should pass a pointer to the data.
+
+## Create Record With Selected Fields
+
+Create a record and assign a value to the fields specified.
+
+```go
+db.Select("Name", "Age", "CreatedAt").Create(&user)  
+// INSERT INTO `users` (`name`,`age`,`created_at`) VALUES ("jinzhu", 18, "2020-07-04 11:05:21.775")
+```
+
+Create a record and ignore the values for fields passed to omit.
+
+```go
+db.Omit("Name", "Age", "CreatedAt").Create(&user)  
+// INSERT INTO `users` (`birthday`,`updated_at`) VALUES ("2020-01-01 00:00:00.000", "2020-07-04 11:05:21.775")
+```
+
+## Batch Insert
+
+To efficiently insert large number of records, pass a slice to the `Create` method. GORM will generate a single SQL statement to insert all the data and backfill primary key values, hook methods will be invoked too. It will begin a **transaction** when records can be split into multiple batches.
+
+```go
+var users = []User{{Name: "jinzhu1"}, {Name: "jinzhu2"}, {Name: "jinzhu3"}}  
+db.Create(&users)  
+  
+for _, user := range users {  
+  user.ID // 1,2,3  
+}
+```
+
+You can specify batch size when creating with `CreateInBatches`
+
+```go
+var users = []User{{Name: "jinzhu_1"}, ...., {Name: "jinzhu_10000"}}  
+  
+// batch size 100  
+db.CreateInBatches(users, 100)
+```
+
+> **NOTE** initialize GORM with `CreateBatchSize` option, all `INSERT` will respect this option when creating record & associations
+
+```go
+db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{  
+  CreateBatchSize: 1000,  
+})  
+  
+db := db.Session(&gorm.Session{CreateBatchSize: 1000})  
+  
+users = [5000]User{{Name: "jinzhu", Pets: []Pet{pet1, pet2, pet3}}...}  
+  
+db.Create(&users)  
+// INSERT INTO users xxx (5 batches)  
+// INSERT INTO pets xxx (15 batches)
+```
+
+## Create Hooks
+
+GORM allows user defined hooks to be implemented for `BeforeSave`, `BeforeCreate`, `AfterSave`, `AfterCreate`. These hook method will be called when creating a record
+
+```go
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {  
+  u.UUID = uuid.New()  
+  
+  if u.Role == "admin" {  
+    return errors.New("invalid role")  
+  }  
+  return  
+}
+```
+
+## Create From Map
+
+GORM supports create from `map[string]interface{}` and `[]map[string]interface{}{}`
+
+```go
+db.Model(&User{}).Create(map[string]interface{}{  
+  "Name": "jinzhu", "Age": 18,  
+})  
+  
+// batch insert from `[]map[string]interface{}{}`  
+db.Model(&User{}).Create([]map[string]interface{}{  
+  {"Name": "jinzhu_1", "Age": 18},  
+  {"Name": "jinzhu_2", "Age": 20},  
+})
+```
+
+> **NOTE** When creating from map, hooks won’t be invoked, associations won’t be saved and primary key values won’t be back filled
+
+## Create From SQL Expression/Context Valuer
+
+GORM allows insert data with SQL expression, there are two ways to achieve this goal, create from `map[string]interface{}` or [Customized Data Types](https://gorm.io/docs/data_types.html#gorm_valuer_interface)
+
+```go
+// Create from map  
+db.Model(User{}).Create(map[string]interface{}{  
+  "Name": "jinzhu",  
+  "Location": clause.Expr{SQL: "ST_PointFromText(?)", Vars: []interface{}{"POINT(100 100)"}},  
+})  
+// INSERT INTO `users` (`name`,`location`) VALUES ("jinzhu",ST_PointFromText("POINT(100 100)"));  
+  
+// Create from customized data type  
+type Location struct {  
+  X, Y int  
+}  
+  
+// Scan implements the sql.Scanner interface  
+func (loc *Location) Scan(v interface{}) error {  
+  // Scan a value into struct from database driver  
+}  
+  
+func (loc Location) GormDataType() string {  
+  return "geometry"  
+}  
+  
+func (loc Location) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {  
+  return clause.Expr{  
+    SQL:  "ST_PointFromText(?)",  
+    Vars: []interface{}{fmt.Sprintf("POINT(%d %d)", loc.X, loc.Y)},  
+  }  
+}  
+  
+type User struct {  
+  Name     string  
+  Location Location  
+}  
+  
+db.Create(&User{  
+  Name:     "jinzhu",  
+  Location: Location{X: 100, Y: 100},  
+})  
+// INSERT INTO `users` (`name`,`location`) VALUES ("jinzhu",ST_PointFromText("POINT(100 100)"))
+```
+
+## Advanced
+
+### Create With Associations
+
+When creating some data with associations, if its associations value is not zero-value, those associations will be upserted, and its `Hooks` methods will be invoked.
+
+```go
+type CreditCard struct {  
+  gorm.Model  
+  Number   string  
+  UserID   uint  
+}  
+  
+type User struct {  
+  gorm.Model  
+  Name       string  
+  CreditCard CreditCard  
+}  
+  
+db.Create(&User{  
+  Name: "jinzhu",  
+  CreditCard: CreditCard{Number: "411111111111"}  
+})  
+// INSERT INTO `users` ...  
+// INSERT INTO `credit_cards` ...
+```
+
+### Default Values
+
+You can define default values for fields with tag `default`
+
+```go
+type User struct {  
+  ID   int64  
+  Name string `gorm:"default:galeone"`  
+  Age  int64  `gorm:"default:18"`  
+}
+```
+
+ Then the default value _will be used_ when inserting into the database for [zero-value](https://tour.golang.org/basics/12) fields
+> **NOTE** Any zero value like `0`, `''`, `false` won’t be saved into the database for those fields defined default value, you might want to use pointer type or Scanner/Valuer to avoid this, for example:
+
+```go
+type User struct {  
+  gorm.Model  
+  Name string  
+  Age  *int           `gorm:"default:18"`  
+  Active sql.NullBool `gorm:"default:true"`  
+}
+```
+
+# Query
+
+## Retrieving a single object
+
+GORM provides `First`, `Take`, `Last` methods to retrieve a single object from the database, it adds `LIMIT 1` condition when querying the database, and it will return the error `ErrRecordNotFound` if no record is found.
+
+```go
+// Get the first record ordered by primary key  
+db.First(&user)  
+// SELECT * FROM users ORDER BY id LIMIT 1;  
+  
+// Get one record, no specified order  
+db.Take(&user)  
+// SELECT * FROM users LIMIT 1;  
+  
+// Get last record, ordered by primary key desc  
+db.Last(&user)  
+// SELECT * FROM users ORDER BY id DESC LIMIT 1;  
+  
+result := db.First(&user)  
+result.RowsAffected // returns count of records found  
+result.Error        // returns error or nil  
+  
+// check error ErrRecordNotFound  
+errors.Is(result.Error, gorm.ErrRecordNotFound)
+```
+
+> If you want to avoid the `ErrRecordNotFound` error, you could use `Find` like `db.Limit(1).Find(&user)`, the `Find` method accepts both struct and slice data
+
+> Using `Find` without a limit for single object `db.Find(&user)` will query the full table and return only the first object which is not performant and nondeterministic
+
+The `First` and `Last` methods will find the first and last record (respectively) as ordered by primary key. They only work when a pointer to the destination struct is passed to the methods as argument or when the model is specified using `db.Model()`. Additionally, if no primary key is defined for relevant model, then the model will be ordered by the first field.
+
+```go
+var user User  
+var users []User  
+  
+// works because destination struct is passed in  
+db.First(&user)  
+// SELECT * FROM `users` ORDER BY `users`.`id` LIMIT 1  
+  
+// works because model is specified using `db.Model()`  
+result := map[string]interface{}{}  
+db.Model(&User{}).First(&result)  
+// SELECT * FROM `users` ORDER BY `users`.`id` LIMIT 1  
+  
+// doesn't work  
+result := map[string]interface{}{}  
+db.Table("users").First(&result)  
+  
+// works with Take  
+result := map[string]interface{}{}  
+db.Table("users").Take(&result)  
+  
+// no primary key defined, results will be ordered by first field (i.e., `Code`)  
+type Language struct {  
+  Code string  
+  Name string  
+}  
+db.First(&Language{})  
+// SELECT * FROM `languages` ORDER BY `languages`.`code` LIMIT 1
+```
+
+### Retrieving objects with primary key
+
+Objects can be retrieved using primary key by using [Inline Conditions](https://gorm.io/docs/query.html#inline_conditions) if the primary key is a number. When working with strings, extra care needs to be taken to avoid SQL Injection
+
+```go
+db.First(&user, 10)  
+// SELECT * FROM users WHERE id = 10;  
+  
+db.First(&user, "10")  
+// SELECT * FROM users WHERE id = 10;  
+  
+db.Find(&users, []int{1,2,3})  
+// SELECT * FROM users WHERE id IN (1,2,3);
+```
+
+
+If the primary key is a string (for example, like a uuid), the query will be written as follows:
+
+```go
+db.First(&user, "id = ?", "1b74413f-f3b8-409f-ac47-e8c062e3472a")  
+// SELECT * FROM users WHERE id = "1b74413f-f3b8-409f-ac47-e8c062e3472a";
+```
+
+## Retrieving all objects
+
+```go
+// Get all records  
+result := db.Find(&users)  
+// SELECT * FROM users;  
+  
+result.RowsAffected // returns found records count, equals `len(users)`  
+result.Error        // returns error
+```
+
+## Conditions
+
+### String Conditions
+
+```go
+// Get first matched record  
+db.Where("name = ?", "jinzhu").First(&user)  
+// SELECT * FROM users WHERE name = 'jinzhu' ORDER BY id LIMIT 1;  
+  
+// Get all matched records  
+db.Where("name <> ?", "jinzhu").Find(&users)  
+// SELECT * FROM users WHERE name <> 'jinzhu';  
+  
+// IN  
+db.Where("name IN ?", []string{"jinzhu", "jinzhu 2"}).Find(&users)  
+// SELECT * FROM users WHERE name IN ('jinzhu','jinzhu 2');  
+  
+// LIKE  
+db.Where("name LIKE ?", "%jin%").Find(&users)  
+// SELECT * FROM users WHERE name LIKE '%jin%';  
+  
+// AND  
+db.Where("name = ? AND age >= ?", "jinzhu", "22").Find(&users)  
+// SELECT * FROM users WHERE name = 'jinzhu' AND age >= 22;  
+  
+// Time  
+db.Where("updated_at > ?", lastWeek).Find(&users)  
+// SELECT * FROM users WHERE updated_at > '2000-01-01 00:00:00';  
+  
+// BETWEEN  
+db.Where("created_at BETWEEN ? AND ?", lastWeek, today).Find(&users)  
+// SELECT * FROM users WHERE created_at BETWEEN '2000-01-01 00:00:00' AND '2000-01-08 00:00:00';
+```
+
+### Struct & Map Conditions
+
+```go
+// Struct  
+db.Where(&User{Name: "jinzhu", Age: 20}).First(&user)  
+// SELECT * FROM users WHERE name = "jinzhu" AND age = 20 ORDER BY id LIMIT 1;  
+  
+// Map  
+db.Where(map[string]interface{}{"name": "jinzhu", "age": 20}).Find(&users)  
+// SELECT * FROM users WHERE name = "jinzhu" AND age = 20;  
+  
+// Slice of primary keys  
+db.Where([]int64{20, 21, 22}).Find(&users)  
+// SELECT * FROM users WHERE id IN (20, 21, 22);
+```
+
+
+> **NOTE** When querying with struct, GORM will only query with non-zero fields, that means if your field’s value is `0`, `''`, `false` or other [zero values](https://tour.golang.org/basics/12), it won’t be used to build query conditions
+
+### Specify Struct search fields
+
+When searching with struct, you can specify which particular values from the struct to use in the query conditions by passing in the relevant field name or the dbname to `Where()`
+
+```go
+db.Where(&User{Name: "jinzhu"}, "name", "Age").Find(&users)  
+// SELECT * FROM users WHERE name = "jinzhu" AND age = 0;  
+  
+db.Where(&User{Name: "jinzhu"}, "Age").Find(&users)  
+// SELECT * FROM users WHERE age = 0;
+```
+
+### Inline Condition
+
+Query conditions can be inlined into methods like `First` and `Find` in a similar way to `Where`.
+
+```go
+// Get by primary key if it were a non-integer type  
+db.First(&user, "id = ?", "string_primary_key")  
+// SELECT * FROM users WHERE id = 'string_primary_key';  
+  
+// Plain SQL  
+db.Find(&user, "name = ?", "jinzhu")  
+// SELECT * FROM users WHERE name = "jinzhu";  
+  
+db.Find(&users, "name <> ? AND age > ?", "jinzhu", 20)  
+// SELECT * FROM users WHERE name <> "jinzhu" AND age > 20;  
+  
+// Struct  
+db.Find(&users, User{Age: 20})  
+// SELECT * FROM users WHERE age = 20;  
+  
+// Map  
+db.Find(&users, map[string]interface{}{"age": 20})  
+// SELECT * FROM users WHERE age = 20;
+```
+### Not Conditions
+
+```go
+db.Not("name = ?", "jinzhu").First(&user)  
+// SELECT * FROM users WHERE NOT name = "jinzhu" ORDER BY id LIMIT 1;  
+  
+// Not In  
+db.Not(map[string]interface{}{"name": []string{"jinzhu", "jinzhu 2"}}).Find(&users)  
+// SELECT * FROM users WHERE name NOT IN ("jinzhu", "jinzhu 2");  
+  
+// Struct  
+db.Not(User{Name: "jinzhu", Age: 18}).First(&user)  
+// SELECT * FROM users WHERE name <> "jinzhu" AND age <> 18 ORDER BY id LIMIT 1;  
+  
+// Not In slice of primary keys  
+db.Not([]int64{1,2,3}).First(&user)  
+// SELECT * FROM users WHERE id NOT IN (1,2,3) ORDER BY id LIMIT 1;
+```
+
+### Or Conditions
+
+```go
+db.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&users)  
+// SELECT * FROM users WHERE role = 'admin' OR role = 'super_admin';  
+  
+// Struct  
+db.Where("name = 'jinzhu'").Or(User{Name: "jinzhu 2", Age: 18}).Find(&users)  
+// SELECT * FROM users WHERE name = 'jinzhu' OR (name = 'jinzhu 2' AND age = 18);  
+  
+// Map  
+db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2", "age": 18}).Find(&users)  
+// SELECT * FROM users WHERE name = 'jinzhu' OR (name = 'jinzhu 2' AND age = 18);
+```
+
+## Selecting Specific Fields
+
+`Select` allows you to specify the fields that you want to retrieve from database. Otherwise, GORM will select all fields by default.
+
+```go
+db.Select("name", "age").Find(&users)  
+// SELECT name, age FROM users;  
+  
+db.Select([]string{"name", "age"}).Find(&users)  
+// SELECT name, age FROM users;  
+  
+db.Table("users").Select("COALESCE(age,?)", 42).Rows()  
+// SELECT COALESCE(age,'42') FROM users;
+```
+
+## Order
+
+```go
+db.Order("age desc, name").Find(&users)  
+// SELECT * FROM users ORDER BY age desc, name;  
+  
+// Multiple orders  
+db.Order("age desc").Order("name").Find(&users)  
+// SELECT * FROM users ORDER BY age desc, name;  
+  
+db.Clauses(clause.OrderBy{  
+  Expression: clause.Expr{SQL: "FIELD(id,?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true},  
+}).Find(&User{})  
+// SELECT * FROM users ORDER BY FIELD(id,1,2,3)
+```
+
+## Limit & Offset
+
+`Limit` specify the max number of records to retrieve  
+`Offset` specify the number of records to skip before starting to return the records
+
+```go
+db.Limit(3).Find(&users)  
+// SELECT * FROM users LIMIT 3;  
+  
+// Cancel limit condition with -1  
+db.Limit(10).Find(&users1).Limit(-1).Find(&users2)  
+// SELECT * FROM users LIMIT 10; (users1)  
+// SELECT * FROM users; (users2)  
+  
+db.Offset(3).Find(&users)  
+// SELECT * FROM users OFFSET 3;  
+  
+db.Limit(10).Offset(5).Find(&users)  
+// SELECT * FROM users OFFSET 5 LIMIT 10;  
+  
+// Cancel offset condition with -1  
+db.Offset(10).Find(&users1).Offset(-1).Find(&users2)  
+// SELECT * FROM users OFFSET 10; (users1)  
+// SELECT * FROM users; (users2)
+```
+
+## Group By & Having
+
+```go
+type result struct {  
+Date time.Time  
+Total int  
+}  
+  
+db.Model(&User{}).Select("name, sum(age) as total").Where("name LIKE ?", "group%").Group("name").First(&result)  
+// SELECT name, sum(age) as total FROM `users` WHERE name LIKE "group%" GROUP BY `name` LIMIT 1  
+  
+  
+db.Model(&User{}).Select("name, sum(age) as total").Group("name").Having("name = ?", "group").Find(&result)  
+// SELECT name, sum(age) as total FROM `users` GROUP BY `name` HAVING name = "group"  
+  
+rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Rows()  
+defer rows.Close()  
+for rows.Next() {  
+...  
+}  
+  
+rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Rows()  
+defer rows.Close()  
+for rows.Next() {  
+...  
+}  
+  
+type Result struct {  
+Date time.Time  
+Total int64  
+}  
+db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Scan(&results)
+```
+
+## Distinct
+
+```go
+db.Distinct("name", "age").Order("name, age desc").Find(&results)
+```
+
+## Joins
+
+```go
+type result struct {  
+  Name  string  
+  Email string  
+}  
+  
+db.Model(&User{}).Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Scan(&result{})  
+// SELECT users.name, emails.email FROM `users` left join emails on emails.user_id = users.id  
+  
+rows, err := db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Rows()  
+for rows.Next() {  
+  ...  
+}  
+  
+db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Scan(&results)  
+  
+// multiple joins with parameter  
+db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Joins("JOIN credit_cards ON credit_cards.user_id = users.id").Where("credit_cards.number = ?", "411111111111").Find(&user)
+```
+
+
+# Update
+## Save All Fields
+
+`Save` will save all fields when performing the Updating SQL
+
+```go
+db.First(&user)  
+  
+user.Name = "jinzhu 2"  
+user.Age = 100  
+db.Save(&user)  
+// UPDATE users SET name='jinzhu 2', age=100, birthday='2016-01-01', updated_at = '2013-11-17 21:34:10' WHERE id=111;
+```
+
+`Save` is a combination function. If save value does not contain primary key, it will execute `Create`, otherwise it will execute `Update` (with all fields).
+
+## Update single column
+
+When updating a single column with `Update`, it needs to have any conditions or it will raise error `ErrMissingWhereClause`
+
+When using the `Model` method and its value has a primary value, the primary key will be used to build the condition
+
+```go
+// Update with conditions  
+db.Model(&User{}).Where("active = ?", true).Update("name", "hello")  
+// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE active=true;  
+  
+// User's ID is `111`:  
+db.Model(&user).Update("name", "hello")  
+// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111;  
+  
+// Update with conditions and model value  
+db.Model(&user).Where("active = ?", true).Update("name", "hello")  
+// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111 AND active=true;
+```
+
+## Updates multiple columns
+
+`Updates` supports updating with `struct` or `map[string]interface{}`, when updating with `struct` it will only update non-zero fields by default
+
+
+```go
+// Update attributes with `struct`, will only update non-zero fields  
+db.Model(&user).Updates(User{Name: "hello", Age: 18, Active: false})  
+// UPDATE users SET name='hello', age=18, updated_at = '2013-11-17 21:34:10' WHERE id = 111;  
+  
+// Update attributes with `map`  
+db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "active": false})  
+// UPDATE users SET name='hello', age=18, active=false, updated_at='2013-11-17 21:34:10' WHERE id=111;
+```
+
+## Update Hooks
+
+GORM allows the hooks `BeforeSave`, `BeforeUpdate`, `AfterSave`, `AfterUpdate`. Those methods will be called when updating a record
+
+```go
+func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {  
+  if u.Role == "admin" {  
+    return errors.New("admin user not allowed to update")  
+  }  
+  return  
+}
+```
+
+## Batch Updates
+
+If we haven’t specified a record having a primary key value with `Model`, GORM will perform a batch update
+
+```go
+// Update with struct  
+db.Model(User{}).Where("role = ?", "admin").Updates(User{Name: "hello", Age: 18})  
+// UPDATE users SET name='hello', age=18 WHERE role = 'admin';  
+  
+// Update with map  
+db.Table("users").Where("id IN ?", []int{10, 11}).Updates(map[string]interface{}{"name": "hello", "age": 18})  
+// UPDATE users SET name='hello', age=18 WHERE id IN (10, 11);
+```
+## Delete a Record
+
+When deleting a record, the deleted value needs to have primary key or it will trigger a [Batch Delete](https://gorm.io/docs/delete.html#batch_delete)
+
+```go
+// Email's ID is `10`  
+db.Delete(&email)  
+// DELETE from emails where id = 10;  
+  
+// Delete with additional conditions  
+db.Where("name = ?", "jinzhu").Delete(&email)  
+// DELETE from emails where id = 10 AND name = "jinzhu";
+```
+
+## Delete with primary key
+
+GORM allows to delete objects using primary key(s) with inline condition
+
+```go
+db.Delete(&User{}, 10)  
+// DELETE FROM users WHERE id = 10;  
+  
+db.Delete(&User{}, "10")  
+// DELETE FROM users WHERE id = 10;  
+  
+db.Delete(&users, []int{1,2,3})  
+// DELETE FROM users WHERE id IN (1,2,3);
+```
+
+## Delete Hooks
+
+GORM allows hooks `BeforeDelete`, `AfterDelete`, those methods will be called when deleting a record
+
+```go
+func (u *User) BeforeDelete(tx *gorm.DB) (err error) {  
+  if u.Role == "admin" {  
+    return errors.New("admin user not allowed to delete")  
+  }  
+  return  
+}
+```
+
+## Batch Delete
+
+The specified value has no primary value, GORM will perform a batch delete, it will delete all matched records
+
+```go
+db.Where("email LIKE ?", "%jinzhu%").Delete(&Email{})  
+// DELETE from emails where email LIKE "%jinzhu%";  
+  
+db.Delete(&Email{}, "email LIKE ?", "%jinzhu%")  
+// DELETE from emails where email LIKE "%jinzhu%";
+```
+
+To efficiently delete large number of records, pass a slice with primary keys to the `Delete` method.
+
+```go
+var users = []User{{ID: 1}, {ID: 2}, {ID: 3}}  
+db.Delete(&users)  
+// DELETE FROM users WHERE id IN (1,2,3);  
+  
+db.Delete(&users, "name LIKE ?", "%jinzhu%")  
+// DELETE FROM users WHERE name LIKE "%jinzhu%" AND id IN (1,2,3);
+```
+
+# **Associations**
+
+## Belongs To
+
+A `belongs to` association sets up a one-to-one connection with another model, such that each instance of the declaring model “belongs to” one instance of the other model.
+
+For example, if your application includes users and companies, and each user can be assigned to exactly one company, the following types represent that relationship. Notice here that, on the `User` object, there is both a `CompanyID` as well as a `Company`. By default, the `CompanyID` is implicitly used to create a foreign key relationship between the `User` and `Company` tables, and thus must be included in the `User` struct in order to fill the `Company` inner struct.
+
+```go
+// `User` belongs to `Company`, `CompanyID` is the foreign key  
+type User struct {  
+  gorm.Model  
+  Name      string  
+  CompanyID int  
+  Company   Company  
+}  
+  
+type Company struct {  
+  ID   int  
+  Name string  
+}
+```
+
+## Override Foreign Key
+
+To define a belongs to relationship, the foreign key must exist, the default foreign key uses the owner’s type name plus its primary field name.
+
+For the above example, to define the `User` model that belongs to `Company`, the foreign key should be `CompanyID` by convention
+
+GORM provides a way to customize the foreign key
+
+```go
+type User struct {  
+  gorm.Model  
+  Name         string  
+  CompanyRefer int  
+  Company      Company `gorm:"foreignKey:CompanyRefer"`  
+  // use CompanyRefer as foreign key  
+}  
+  
+type Company struct {  
+  ID   int  
+  Name string  
+}
+```
+
+For a belongs to relationship, GORM usually uses the owner’s primary field as the foreign key’s value. When you assign a user to a company, GORM will save the company’s `ID` into the user’s `CompanyID` field. You are able to change it with tag `references`
+
+```go
+type User struct {  
+  gorm.Model  
+  Name      string  
+  CompanyID string  
+  Company   Company `gorm:"references:Code"` // use Code as references  
+}  
+  
+type Company struct {  
+  ID   int  
+  Code string  
+  Name string  
+}
+```
+
+**NOTE** GORM usually guess the relationship as `has one` if override foreign key name already exists in owner’s type, we need to specify `references` in the `belongs to` relationship.
+
+```go
+type User struct {  
+  gorm.Model  
+  Name      string  
+  CompanyID string  
+  Company   Company `gorm:"references:CompanyID"` // use Company.CompanyID as references  
+}  
+  
+type Company struct {  
+  CompanyID   int  
+  Code        string  
+  Name        string  
+}
+```
+
+## CRUD with Belongs To
+
+## Eager Loading
+
+GORM allows eager loading belongs to associations with `Preload` or `Joins`
+
+## FOREIGN KEY Constraints
+
+You can setup `OnUpdate`, `OnDelete` constraints with tag `constraint`, it will be created when migrating with GORM
+
+```go
+type User struct {  
+  gorm.Model  
+  Name      string  
+  CompanyID int  
+  Company   Company `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`  
+}  
+  
+type Company struct {  
+  ID   int  
+  Name string  
+}
+```
+
+## Has One
+
+A `has one` association sets up a one-to-one connection with another model, but with somewhat different semantics (and consequences). This association indicates that each instance of a model contains or possesses one instance of another model.
+
+For example, if your application includes users and credit cards, and each user can only have one credit card.
+
+```go
+// User has one CreditCard, UserID is the foreign key  
+type User struct {  
+  gorm.Model  
+  CreditCard CreditCard  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number string  
+  UserID uint  
+}
+```
+
+```go
+// Retrieve user list with eager loading credit card  
+func GetAll(db *gorm.DB) ([]User, error) {  
+  var users []User  
+  err := db.Model(&User{}).Preload("CreditCard").Find(&users).Error  
+  return users, err  
+}
+```
+
+## Override Foreign Key
+
+For a `has one` relationship, a foreign key field must also exist, the owner will save the primary key of the model belongs to it into this field. 
+The field’s name is usually generated with `has one` model’s type plus its `primary key`, for the above example it is `UserID`.
+When you give a credit card to the user, it will save the User’s `ID` into its `UserID` field.
+If you want to use another field to save the relationship, you can change it with tag `foreignKey`
+
+```go
+type User struct {  
+  gorm.Model  
+  CreditCard CreditCard `gorm:"foreignKey:UserName"`  
+  // use UserName as foreign key  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number   string  
+  UserName string  
+}
+```
+
+## Override References
+
+By default, the owned entity will save the `has one` model’s primary key into a foreign key, you could change to save another field’s value, like using `Name`
+
+You are able to change it with tag `references`
+```go
+type User struct {  
+  gorm.Model  
+  Name       string     `gorm:"index"`  
+  CreditCard CreditCard `gorm:"foreignKey:UserName;references:name"`  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number   string  
+  UserName string  
+}
+```
+
+## Polymorphism Association
+
+GORM supports polymorphism association for `has one` and `has many`, it will save owned entity’s table name into polymorphic type’s field, primary key into the polymorphic field
+
+```go
+type Cat struct {  
+ID int  
+Name string  
+Toy Toy `gorm:"polymorphic:Owner;"`  
+}  
+  
+type Dog struct {  
+ID int  
+Name string  
+Toy Toy `gorm:"polymorphic:Owner;"`  
+}  
+  
+type Toy struct {  
+ID int  
+Name string  
+OwnerID int  
+OwnerType string  
+}  
+  
+db.Create(&Dog{Name: "dog1", Toy: Toy{Name: "toy1"}})  
+// INSERT INTO `dogs` (`name`) VALUES ("dog1")  
+// INSERT INTO `toys` (`name`,`owner_id`,`owner_type`) VALUES ("toy1","1","dogs")
+```
+
+## CRUD with Has One
+
+## Self-Referential Has One
+
+```go
+type User struct {  
+  gorm.Model  
+  Name      string  
+  ManagerID *uint  
+  Manager   *User  
+}
+```
+
+## FOREIGN KEY Constraints
+
+You can setup `OnUpdate`, `OnDelete` constraints with tag `constraint`, it will be created when migrating with GORM
+
+```go
+type User struct {  
+  gorm.Model  
+  CreditCard CreditCard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number string  
+  UserID uint  
+}
+```
+
+## Has Many
+
+A `has many` association sets up a one-to-many connection with another model, unlike `has one`, the owner could have zero or many instances of models
+
+For example, if your application includes users and credit card, and each user can have many credit cards.
+
+```go
+// User has many CreditCards, UserID is the foreign key  
+type User struct {  
+  gorm.Model  
+  CreditCards []CreditCard  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number string  
+  UserID uint  
+}
+```
+
+```go
+// Retrieve user list with eager loading credit cards  
+func GetAll(db *gorm.DB) ([]User, error) {  
+    var users []User  
+    err := db.Model(&User{}).Preload("CreditCards").Find(&users).Error  
+    return users, err  
+}
+```
+
+## Override Foreign Key
+
+To define a `has many` relationship, a foreign key must exist. The default foreign key’s name is the owner’s type name plus the name of its primary key field
+For example, to define a model that belongs to `User`, the foreign key should be `UserID`.
+To use another field as foreign key, you can customize it with a `foreignKey`
+
+```go
+type User struct {  
+  gorm.Model  
+  CreditCards []CreditCard `gorm:"foreignKey:UserRefer"`  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number    string  
+  UserRefer uint  
+}
+```
+
+## Override References
+
+GORM usually uses the owner’s primary key as the foreign key’s value, for the above example, it is the `User`‘s `ID`,
+When you assign credit cards to a user, GORM will save the user’s `ID` into credit cards’ `UserID` field.
+You are able to change it with tag `references`
+
+```go
+type User struct {  
+  gorm.Model  
+  MemberNumber string  
+  CreditCards  []CreditCard `gorm:"foreignKey:UserNumber;references:MemberNumber"`  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number     string  
+  UserNumber string  
+}
+```
+
+## Polymorphism Association
+
+GORM supports polymorphism association for `has one` and `has many`, it will save owned entity’s table name into polymorphic type’s field, primary key value into the polymorphic field
+
+```go
+type Dog struct {  
+ID int  
+Name string  
+Toys []Toy `gorm:"polymorphic:Owner;"`  
+}  
+  
+type Toy struct {  
+ID int  
+Name string  
+OwnerID int  
+OwnerType string  
+}  
+  
+db.Create(&Dog{Name: "dog1", Toys: []Toy{{Name: "toy1"}, {Name: "toy2"}}})  
+// INSERT INTO `dogs` (`name`) VALUES ("dog1")  
+// INSERT INTO `toys` (`name`,`owner_id`,`owner_type`) VALUES ("toy1","1","dogs"), ("toy2","1","dogs")
+```
+
+## CRUD with Has Many
+
+## Self-Referential Has Many
+
+```go
+type User struct {  
+  gorm.Model  
+  Name      string  
+  ManagerID *uint  
+  Team      []User `gorm:"foreignkey:ManagerID"`  
+}
+```
+
+## FOREIGN KEY Constraints
+
+You can setup `OnUpdate`, `OnDelete` constraints with tag `constraint`, it will be created when migrating with GORM
+
+```go
+type User struct {  
+  gorm.Model  
+  CreditCards []CreditCard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`  
+}  
+  
+type CreditCard struct {  
+  gorm.Model  
+  Number string  
+  UserID uint  
+}
+```
+
+## Many To Many
+
+Many to Many add a join table between two models.
+
+For example, if your application includes users and languages, and a user can speak many languages, and many users can speak a specified language.
+
+```go
+// User has and belongs to many languages, `user_languages` is the join table  
+type User struct {  
+  gorm.Model  
+  Languages []Language `gorm:"many2many:user_languages;"`  
+}  
+  
+type Language struct {  
+  gorm.Model  
+  Name string  
+}
+```
+
+When using GORM `AutoMigrate` to create a table for `User`, GORM will create the join table automatically
+
+## Back-Reference
+
+```go
+// User has and belongs to many languages, use `user_languages` as join table  
+type User struct {  
+  gorm.Model  
+  Languages []*Language `gorm:"many2many:user_languages;"`  
+}  
+  
+type Language struct {  
+  gorm.Model  
+  Name string  
+  Users []*User `gorm:"many2many:user_languages;"`  
+}
+```
+
+```go
+// Retrieve user list with eager loading languages  
+func GetAllUsers(db *gorm.DB) ([]User, error) {  
+  var users []User  
+  err := db.Model(&User{}).Preload("Languages").Find(&users).Error  
+  return users, err  
+}  
+  
+// Retrieve language list with eager loading users  
+func GetAllLanguages(db *gorm.DB) ([]Language, error) {  
+  var languages []Language  
+  err := db.Model(&Language{}).Preload("Users").Find(&languages).Error  
+  return languages, err  
+}
+```
+
+## Override Foreign Key
+
+For a `many2many` relationship, the join table owns the foreign key which references two models
+
+```go
+type User struct {  
+gorm.Model  
+Languages []Language `gorm:"many2many:user_languages;"`  
+}  
+  
+type Language struct {  
+gorm.Model  
+Name string  
+}  
+  
+// Join Table: user_languages  
+// foreign key: user_id, reference: users.id  
+// foreign key: language_id, reference: languages.id
+```
+
+To override them, you can use tag `foreignKey`, `references`, `joinForeignKey`, `joinReferences`, not necessary to use them together, you can just use one of them to override some foreign keys/references
+
+```go
+type User struct {  
+  gorm.Model  
+  Profiles []Profile `gorm:"many2many:user_profiles;foreignKey:Refer;joinForeignKey:UserReferID;References:UserRefer;joinReferences:ProfileRefer"`  
+  Refer    uint      `gorm:"index:,unique"`  
+}  
+  
+type Profile struct {  
+  gorm.Model  
+  Name      string  
+  UserRefer uint `gorm:"index:,unique"`  
+}  
+  
+// Which creates join table: user_profiles  
+//   foreign key: user_refer_id, reference: users.refer  
+//   foreign key: profile_refer, reference: profiles.user_refer
+```
+
+> **NOTE:**  
+>Some databases only allow create database foreign keys that reference on a field having unique index, so you need to specify the `unique index` tag if you are creating database foreign keys when migrating
+
+## Self-Referential Many2Many
+
+```go
+type User struct {  
+gorm.Model  
+Friends []*User `gorm:"many2many:user_friends"`  
+}  
+  
+// Which creates join table: user_friends  
+// foreign key: user_id, reference: users.id  
+// foreign key: friend_id, reference: users.id
+```
+
+## CRUD with Many2Many
+
+## Customize JoinTable
+
+`JoinTable` can be a full-featured model, like having `Soft Delete`，`Hooks` supports and more fields, you can set it up with `SetupJoinTable`
+
+> **NOTE:**  
+> Customized join table’s foreign keys required to be composited primary keys or composited unique index
+
+```go
+type Person struct {  
+  ID        int  
+  Name      string  
+  Addresses []Address `gorm:"many2many:person_addresses;"`  
+}  
+  
+type Address struct {  
+  ID   uint  
+  Name string  
+}  
+  
+type PersonAddress struct {  
+  PersonID  int `gorm:"primaryKey"`  
+  AddressID int `gorm:"primaryKey"`  
+  CreatedAt time.Time  
+  DeletedAt gorm.DeletedAt  
+}  
+  
+func (PersonAddress) BeforeCreate(db *gorm.DB) error {  
+  // ...  
+}  
+  
+// Change model Person's field Addresses' join table to PersonAddress  
+// PersonAddress must defined all required foreign keys or it will raise error  
+err := db.SetupJoinTable(&Person{}, "Addresses", &PersonAddress{})
+```
+
+## FOREIGN KEY Constraints
+
+You can setup `OnUpdate`, `OnDelete` constraints with tag `constraint`, it will be created when migrating with GORM
+
+```go
+type User struct {  
+gorm.Model  
+Languages []Language `gorm:"many2many:user_speaks;"`  
+}  
+  
+type Language struct {  
+Code string `gorm:"primarykey"`  
+Name string  
+}  
+  
+// CREATE TABLE `user_speaks` (`user_id` integer,`language_code` text,PRIMARY KEY (`user_id`,`language_code`),CONSTRAINT `fk_user_speaks_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE,CONSTRAINT `fk_user_speaks_language` FOREIGN KEY (`language_code`) REFERENCES `languages`(`code`) ON DELETE SET NULL ON UPDATE CASCADE);
+```
+
+## Composite Foreign Keys
+
+If you are using [Composite Primary Keys](https://gorm.io/docs/composite_primary_key.html) for your models, GORM will enable composite foreign keys by default
+
+You are allowed to override the default foreign keys, to specify multiple foreign keys, just separate those keys’ name by commas
+
+```go
+type Tag struct {  
+  ID     uint   `gorm:"primaryKey"`  
+  Locale string `gorm:"primaryKey"`  
+  Value  string  
+}  
+  
+type Blog struct {  
+  ID         uint   `gorm:"primaryKey"`  
+  Locale     string `gorm:"primaryKey"`  
+  Subject    string  
+  Body       string  
+  Tags       []Tag `gorm:"many2many:blog_tags;"`  
+  LocaleTags []Tag `gorm:"many2many:locale_blog_tags;ForeignKey:id,locale;References:id"`  
+  SharedTags []Tag `gorm:"many2many:shared_blog_tags;ForeignKey:id;References:id"`  
+}  
+  
+// Join Table: blog_tags  
+//   foreign key: blog_id, reference: blogs.id  
+//   foreign key: blog_locale, reference: blogs.locale  
+//   foreign key: tag_id, reference: tags.id  
+//   foreign key: tag_locale, reference: tags.locale  
+  
+// Join Table: locale_blog_tags  
+//   foreign key: blog_id, reference: blogs.id  
+//   foreign key: blog_locale, reference: blogs.locale  
+//   foreign key: tag_id, reference: tags.id  
+  
+// Join Table: shared_blog_tags  
+//   foreign key: blog_id, reference: blogs.id  
+//   foreign key: tag_id, reference: tags.id
+```
+
+# Associations
+
+## Auto Create/Update
+
+GORM automates the saving of associations and their references when creating or updating records, using an upsert technique that primarily updates foreign key references for existing associations.
+
+### Auto-Saving Associations on Create
+
+When you create a new record, GORM will automatically save its associated data. This includes inserting data into related tables and managing foreign key references.
+
+```go
+user := User{  
+  Name:            "jinzhu",  
+  BillingAddress:  Address{Address1: "Billing Address - Address 1"},  
+  ShippingAddress: Address{Address1: "Shipping Address - Address 1"},  
+  Emails:          []Email{  
+    {Email: "jinzhu@example.com"},  
+    {Email: "jinzhu-2@example.com"},  
+  },  
+  Languages:       []Language{  
+    {Name: "ZH"},  
+    {Name: "EN"},  
+  },  
+}  
+  
+// Creating a user along with its associated addresses, emails, and languages  
+db.Create(&user)  
+// BEGIN TRANSACTION;  
+// INSERT INTO "addresses" (address1) VALUES ("Billing Address - Address 1"), ("Shipping Address - Address 1") ON DUPLICATE KEY DO NOTHING;  
+// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);  
+// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com"), (111, "jinzhu-2@example.com") ON DUPLICATE KEY DO NOTHING;  
+// INSERT INTO "languages" ("name") VALUES ('ZH'), ('EN') ON DUPLICATE KEY DO NOTHING;  
+// INSERT INTO "user_languages" ("user_id","language_id") VALUES (111, 1), (111, 2) ON DUPLICATE KEY DO NOTHING;  
+// COMMIT;  
+  
+db.Save(&user)
+```
+### Updating Associations with `FullSaveAssociations`
+
+For scenarios where a full update of the associated data is required (not just the foreign key references), the `FullSaveAssociations` mode should be used.
+
+```go
+// Update a user and fully update all its associations  
+db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&user)  
+// SQL: Fully updates addresses, users, emails tables, including existing associated records
+```
+
+Using `FullSaveAssociations` ensures that the entire state of the model, including all its associations, is reflected in the database, maintaining data integrity and consistency throughout the application.
+
+## Skip Auto Create/Update
+
+GORM provides flexibility to skip automatic saving of associations during create or update operations. This can be achieved using the `Select` or `Omit` methods, which allow you to specify exactly which fields or associations should be included or excluded in the operation.
+
+Using `Select` to Include Specific Fields
+
+The `Select` method lets you specify which fields of the model should be saved. This means that only the selected fields will be included in the SQL operation.
+
+```go
+user := User{  
+  // User and associated data  
+}  
+  
+// Only include the 'Name' field when creating the user  
+db.Select("Name").Create(&user)  
+// SQL: INSERT INTO "users" (name) VALUES ("jinzhu");
+```
+
+### Using `Omit` to Exclude Fields or Associations
+
+Conversely, `Omit` allows you to exclude certain fields or associations when saving a model.
+
+```go
+// Skip creating the 'BillingAddress' when creating the user  
+db.Omit("BillingAddress").Create(&user)  
+  
+// Skip all associations when creating the user  
+db.Omit(clause.Associations).Create(&user)
+```
+
+Using `Select` and `Omit`, you can fine-tune how GORM handles the creation or updating of your models, giving you control over the auto-save behavior of associations.
+
+Select/Omit Association fields
+
+In GORM, when creating or updating records, you can use the `Select` and `Omit` methods to specifically include or exclude certain fields of an associated model.
+
+With `Select`, you can specify which fields of an associated model should be included when saving the primary model. This is particularly useful for selectively saving parts of an association.
+
+Conversely, `Omit` lets you exclude certain fields of an associated model from being saved. This can be useful when you want to prevent specific parts of an association from being persisted.
+
+```go
+user := User{  
+  Name:            "jinzhu",  
+  BillingAddress:  Address{Address1: "Billing Address - Address 1", Address2: "addr2"},  
+  ShippingAddress: Address{Address1: "Shipping Address - Address 1", Address2: "addr2"},  
+}  
+  
+// Create user and his BillingAddress, ShippingAddress, including only specified fields of BillingAddress  
+db.Select("BillingAddress.Address1", "BillingAddress.Address2").Create(&user)  
+// SQL: Creates user and BillingAddress with only 'Address1' and 'Address2' fields  
+  
+// Create user and his BillingAddress, ShippingAddress, excluding specific fields of BillingAddress  
+db.Omit("BillingAddress.Address2", "BillingAddress.CreatedAt").Create(&user)  
+// SQL: Creates user and BillingAddress, omitting 'Address2' and 'CreatedAt' fields
+```
+
+## Delete Associations
+
+GORM allows for the deletion of specific associated relationships (has one, has many, many2many) using the `Select` method when deleting a primary record.
+
+```go
+// Delete a user's account when deleting the user  
+db.Select("Account").Delete(&user)  
+  
+// Delete a user's Orders and CreditCards associations when deleting the user  
+db.Select("Orders", "CreditCards").Delete(&user)  
+  
+// Delete all of a user's has one, has many, and many2many associations  
+db.Select(clause.Associations).Delete(&user)  
+  
+// Delete each user's account when deleting multiple users  
+db.Select("Account").Delete(&users)
+```
+
+> **NOTE:**  
+>It’s important to note that associations will only be deleted if the primary key of the deleting record is not zero. GORM uses these primary keys as conditions to delete the selected associations.
+
+## Association Mode
+
+Association Mode in GORM offers various helper methods to handle relationships between models, providing an efficient way to manage associated data.
+
+To start Association Mode, specify the source model and the relationship’s field name. The source model must contain a primary key, and the relationship’s field name should match an existing association.
+
+```go
+var user User  
+db.Model(&user).Association("Languages")  
+// Check for errors  
+error := db.Model(&user).Association("Languages").Error
+```
+
+### Finding Associations
+
+Retrieve associated records with or without additional conditions.
+
+```go
+// Simple find  
+db.Model(&user).Association("Languages").Find(&languages)  
+  
+// Find with conditions  
+codes := []string{"zh-CN", "en-US", "ja-JP"}  
+db.Model(&user).Where("code IN ?", codes).Association("Languages").Find(&languages)
+```
+
+### Appending Associations
+
+Add new associations for `many to many`, `has many`, or replace the current association for `has one`, `belongs to`.
+
+```go
+// Append new languages  
+db.Model(&user).Association("Languages").Append([]Language{languageZH, languageEN})  
+  
+db.Model(&user).Association("Languages").Append(&Language{Name: "DE"})  
+  
+db.Model(&user).Association("CreditCard").Append(&CreditCard{Number: "411111111111"})
+```
+
+### Replacing Associations
+
+Replace current associations with new ones.
+
+```go
+// Replace existing languages  
+db.Model(&user).Association("Languages").Replace([]Language{languageZH, languageEN})  
+  
+db.Model(&user).Association("Languages").Replace(Language{Name: "DE"}, languageEN)
+```
+
+### Deleting Associations
+
+Remove the relationship between the source and arguments, only deleting the reference.
+
+```go
+// Delete specific languages  
+db.Model(&user).Association("Languages").Delete([]Language{languageZH, languageEN})  
+  
+db.Model(&user).Association("Languages").Delete(languageZH, languageEN)
+```
+
+### Clearing Associations
+
+Remove all references between the source and association.
+
+```go
+// Clear all languages  
+db.Model(&user).Association("Languages").Clear()
+```
+
+### Counting Associations
+
+Get the count of current associations, with or without conditions.
+
+```go
+// Count all languages  
+db.Model(&user).Association("Languages").Count()  
+  
+// Count with conditions  
+codes := []string{"zh-CN", "en-US", "ja-JP"}  
+db.Model(&user).Where("code IN ?", codes).Association("Languages").Count()
+```
+
+## Association Tags
+
+Association tags in GORM are used to specify how associations between models are handled. These tags define the relationship’s details, such as foreign keys, references, and constraints. Understanding these tags is essential for setting up and managing relationships effectively.
+
+|Tag|Description|
+|---|---|
+|`foreignKey`|Specifies the column name of the current model used as a foreign key in the join table.|
+|`references`|Indicates the column name in the reference table that the foreign key of the join table maps to.|
+|`polymorphic`|Defines the polymorphic type, typically the model name.|
+|`polymorphicValue`|Sets the polymorphic value, usually the table name, if not specified otherwise.|
+|`many2many`|Names the join table used in a many-to-many relationship.|
+|`joinForeignKey`|Identifies the foreign key column in the join table that maps back to the current model’s table.|
+|`joinReferences`|Points to the foreign key column in the join table that links to the reference model’s table.|
+|`constraint`|Specifies relational constraints like `OnUpdate`, `OnDelete` for the association.|
+
 ---
 # GO - TESTING
 
