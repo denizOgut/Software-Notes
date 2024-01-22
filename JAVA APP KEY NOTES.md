@@ -1643,6 +1643,16 @@ Note: All methods annotated with `@Bean` must be in `@Configuration` classes. Fo
 - Setter Injection
 - `@Autowired` annotation
 
+Field injection should be avoided because:
+
+- It uses reflection during injection of the field which will be costly in performance
+- Testing will be difficult as it will require using either reflection to set the field or starting the spring container which will make it an integration test
+- The objects cannot be immutable as in the constructor injection
+- The field can reference a null instance
+- The class can have additional dependencies without restricting it as in the constructor injection, therefore it can violate single responsibility principle
+
+Constructor injection should be used for mandatory dependencies whilst setter methods can be used for optional dependencies.
+
 ## @Scope
 
 We use `@Scope` to define the scope of a `@Component` class or a `@Bean` definition.
