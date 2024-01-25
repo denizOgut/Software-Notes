@@ -8839,6 +8839,1091 @@ Association tags in GORM are used to specify how associations between models are
 |`constraint`|Specifies relational constraints like `OnUpdate`, `OnDelete` for the association.|
 
 ---
+
+# GO - WEB PROGRAMMING
+
+### WEB NOTES
+
+# `NET/HTTP` PACKAGE
+
+The `net/http` package provides a rich set of features to build web applications and services. It includes an HTTP server, an HTTP client, methods to create custom HTTP servers, and methods to build RESTful APIs. Some of the key components of the `net/http` package are: 
+
+- **Server:** A simple and efficient HTTP server that can serve static files or dynamic content.
+- **Client:** An HTTP client that can send requests and receive responses from remote servers.
+- **Handler:** An interface to implement custom request handling logic.
+- **Request:** A structure that represents an HTTP request received by the server or sent by the client.
+- **Response:** A structure that represents an HTTP response received by the client or sent by the server.
+
+## Creating a Simple HTTP Server
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello, world!")
+	})
+
+	http.ListenAndServe(":8080", nil)
+}
+```
+
+The `http.HandleFunc` function registers a function to be called whenever a request is received on the specified path ("/" in this case). The registered function takes a `ResponseWriter` and a `*Request` as arguments. The `ResponseWriter` is an interface that allows you to send an HTTP response to the client. The `*Request` is a pointer to the Request object representing the incoming HTTP request.
+
+The `http.ListenAndServe` function starts an HTTP server that listens on the specified address and port. The second argument is the handler that will be used to process incoming requests.
+
+## HTTP Handlers
+
+In Go, an HTTP handler is any type that implements the `http.Handler` interface
+
+```go
+type Handler interface {
+    ServeHTTP(ResponseWriter, *Request)
+}
+```
+
+Any custom type that has a method `ServeHTTP` with the required signature can be used as an HTTP handler.
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+type MyHandler struct{}
+
+func (h *MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello from MyHandler!")
+}
+
+func main() {
+	handler := &MyHandler{}
+	http.Handle("/", handler)
+	http.ListenAndServe(":8080", nil)
+}
+```
+
+## Working with HTTP Requests
+
+The `net/http` package provides a `Request` structure that contains all the information about an incoming HTTP request. Some of the key fields and methods of the `Request` structure are:
+
+- **Method:** The HTTP method (GET, POST, PUT, DELETE, etc.) of the request.
+- **URL:** The URL of the request, represented as a `*url.URL` object.
+- **Header:** The HTTP headers of the request, stored as a `http.Header` map.
+- **Body:** The request body, if any, represented as an `io.ReadCloser`.
+- **Form:** The parsed form data from the request body or URL query string, stored as a `url.Values` map.
+
+```go
+func handler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "Method: %s\n", r.Method)
+    fmt.Fprintf(w, "URL: %s\n", r.URL)
+    fmt.Fprintf(w, "Header: %v\n", r.Header)
+    fmt.Fprintf(w, "Content-Type: %s\n", r.Header.Get("Content-Type"))
+
+    // Read and close the request body
+    body, _ := ioutil.ReadAll(r.Body)
+    r.Body.Close()
+    fmt.Fprintf(w, "Body: %s\n", body)
+
+    // Parse and access form data
+    r.ParseForm()
+    fmt.Fprintf(w, "Form: %v\n", r.Form)
+    fmt.Fprintf(w, "Form value 'name': %s\n", r.Form.Get("name"))
+}
+```
+
+## Working with HTTP Responses
+
+Some of the key methods of the `ResponseWriter` interface are:
+
+- **Header():** Returns the `http.Header` map representing the response headers.
+- **WriteHeader(statusCode int):** Sets the status code of the response.
+- **Write([]byte):** Writes the response body.
+
+```go
+func handler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+
+    response := map[string]interface{}{
+        "status":  "success",
+        "message": "Hello, world!",
+    }
+    json.NewEncoder(w).Encode(response)
+}
+```
+
+## Customizing the HTTP Client
+
+The `net/http` package provides a default HTTP client that can be used to send requests to remote servers. However, you might want to customize the client to set a custom timeout, use a custom transport, or configure other settings. To do this, you can create an instance of the `http.Client` type and set its fields accordingly.
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
+
+func main() {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	resp, err := client.Get("https://example.com")
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("Response status: %s\n", resp.Status)
+}
+```
+
+## Best Practices
+
+Here are some best practices to follow when working with the `net/http` package:
+
+- Always close the request body after reading it to prevent resource leaks.
+- Set a custom timeout for the HTTP client to avoid hanging indefinitely when the server doesn't respond.
+- Use the `http.Error` function to send error responses with a custom status code and message.
+- Handle panics in your HTTP handlers using a custom middleware or the `http.RecoverHandler` function.
+- Use context values to pass request-specific data between handlers or middleware.
+
+# `ENCODING/JSON` PACKAGE
+
+There are two key terminologies to note when working with JSON in Go:
+
+1. **Marshalling**: the act of converting a Go data structure into valid JSON.
+2. **Unmarshalling**: the act of parsing a valid JSON string into a data structure in Go.
+
+In other languages, marshalling is often referred to as “serializing”, while unmarshalling is referred to as “deserializing”.
+
+## Unmarshalling JSON in Go
+
+```go
+func Unmarshal(data []byte, v any) error
+```
+
+This methods accepts two arguments: the first is a `[]byte` which represents the JSON object to unmarshal, and the second is `any` which should be a pointer to the target data structure for storing the result of unmarshalling the JSON data. 
+
+```go
+func main() {
+    input := `{
+        "name": "John Doe",
+        "age": 15,
+        "hobbies": ["climbing", "cycling", "running"]
+    }`
+
+    var target map[string]any
+
+    err := json.Unmarshal([]byte(input), &target) 
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    for k, v := range target {
+        fmt.Printf("k: %s, v: %v\n", k, v)
+    }
+}
+```
+
+The `map[string]any` data type in Go is a generic container that can hold values of any type In this case, the JSON keys will be unmarshalled into the `string` type, and their corresponding values will be unmarshalled into the `any` type of the `map[string]any`. A `nil` map is permissible here as `Unmarshal()` will allocate a new map in such cases.
+
+The expected output
+
+```text
+k: name, v: John Doe
+k: age, v: 15
+k: hobbies, v: [climbing cycling running]
+```
+
+If an invalid JSON object is provided, an error will be returned by `Unmarshal()`. A common example of an invalid JSON object is one that has a [trailing comma](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Trailing_commas)
+
+```go
+input := `
+  {
+    name: "John Doe",
+    "age": 15,
+    "hobbies": ["climbing", "cycling", "running"],
+  }
+`
+```
+
+Attempting to unmarshal the JSON object above would yield the following error:
+
+ Output
+
+```text
+2023/03/23 07:24:39 Unable to marshal JSON due to invalid character '}' looking for beginning of object key string
+```
+
+While `map[string]any` can be used to unmarshal JSON, it is not the most optimal solution for several reasons:
+
+- You lose the type safety and compile-time checks that are provided by Go's static type system. This can make it harder to catch errors and maintain code over time.
+    
+- It can be slower than working with typed structs or custom types that implement the `json.Unmarshaler` interface. This is because accessing fields in a map requires a dynamic lookup, whereas accessing fields in a struct is done statically at compile-time.
+    
+- It can make it more difficult to reason about the structure of the JSON data being unmarshalled, as the values can be of any type. This can lead to more verbose and error-prone code.
+
+In general, it's best to use typed structs or custom types whenever possible for JSON unmarshalling in Go. These types provide better type safety, performance, and maintainability than using `map[string]any`.
+
+### Using structs for JSON unmarshalling
+
+When using structs for unmsarshalling JSON objects, the field names in the object are mapped to the field names in the `struct` and the values are assigned accordingly.
+
+
+```go
+type Dog struct {
+    Breed         string
+    Name          string
+    FavoriteTreat string
+    Age           int
+}
+
+func main() {
+    input := `{
+        "Breed": "Golden Retriever",
+        "Age": 8,
+        "Name": "Paws",
+        "FavoriteTreat": "Kibble"
+    }`
+
+    var dog Dog
+
+    err := json.Unmarshal([]byte(input), &dog)
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    fmt.Printf(
+        "%s is a %d years old %s who likes %s\n",
+        dog.Name,
+        dog.Age,
+        dog.Breed,
+        dog.FavoriteTreat,
+    )
+}
+```
+
+```text
+Paws is a 8 years old Golden Retriever who likes Kibble
+```
+
+In this example, the `json.Unmarshal()` function takes the `input` data, along with a pointer to a `Dog` struct.
+
+```json
+{
+  "name": "James Peterson",
+  "age": 37,
+  "address": {
+    "line1": "Block 78 Woodgrove Avenue 5",
+    "line2": "Unit #05-111",
+    "postal": "654378"
+  },
+  "pets": [
+    {
+      "name": "Lex",
+      "kind": "Dog",
+      "age": 4,
+      "color": "Gray"
+    },
+    {
+      "name": "Faye",
+      "kind": "Cat",
+      "age": 6,
+      "color": "Orange"
+    }
+  ]
+}
+```
+
+must design your target struct to include other structs as fields and allow `Unmarshal()` to handle the mapping of fields accordingly.
+
+```go
+type (
+    FullPerson struct {
+        Address Address
+        Name    string
+        Pets    []Pet
+        Age     int
+    }
+
+    Pet struct {
+        Name  string
+        Kind  string
+        Color string
+        Age   int
+    }
+
+    Address struct {
+        Line1  string
+        Line2  string
+        Postal string
+    }
+)
+
+func main() {
+    b, err := os.ReadFile("assets/complex.json")
+    if err != nil {
+        log.Fatalf("Unable to read file due to %s\n", err)
+    }
+
+    var person FullPerson
+
+    err = json.Unmarshal(b, &person)
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    litter.Dump(person)
+}
+```
+
+the output: 
+```text
+main.FullPerson{
+  Name: "James Peterson",
+  Age: 37,
+  Address: examples.Address{
+    Line1: "Block 78 Woodgrove Avenue 5",
+    Line2: "Unit #05-111",
+    Postal: "654378",
+  },
+  Pets: []examples.Pet{
+    examples.Pet{
+      Name: "Lex",
+      Kind: "Dog",
+      Age: 4,
+      Color: "Gray",
+    },
+    examples.Pet{
+      Name: "Faye",
+      Kind: "Cat",
+      Age: 6,
+      Color: "Orange",
+    },
+  },
+}
+```
+
+
+## Common pitfalls with JSON unmarshalling in Go
+
+### 1. Extra fields are omitted in the target struct
+
+If the input JSON contains additional fields that are not a part of the target struct fields, they will be discarded when unmarshalled.
+
+```go
+func main() {
+    input := `{
+        "Breed": "Golden Retriever",
+        "Age": 8,
+        "Name": "Paws",
+        "FavoriteTreat": "Kibble",
+        "Dislikes": "Cats"
+    }`
+
+
+    var dog Dog
+
+    err := json.Unmarshal([]byte(input), &dog)
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    litter.Dump(dog)
+}
+```
+
+the input JSON contains the additional field `Dislikes` but that field is not included in the target `Dog` struct. Therefore, it is discarded:
+
+ Output
+
+```text
+main.Dog{
+  Breed: "Golden Retriever",
+  Age: 8,
+  Name: "Paws",
+  FavoriteTreat: "Kibble",
+}
+```
+
+### 2. Missing fields fallback to zero values
+
+Missing fields in the input JSON will cause the zero value of the corresponding struct field to be used instead:
+
+```go
+func main() {
+    input := `{
+        "Breed": "Golden Retriever",
+        "Age": 8,
+        "Name": "Paws"
+    }`
+
+    var dog Dog
+
+    err := json.Unmarshal([]byte(input), &dog)
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    fmt.Printf("%s likes %s\n", dog.Name, dog.FavoriteTreat)
+}
+```
+
+ Output
+
+```text
+Paws likes
+```
+
+Since the `FavoriteTreat` field is been omitted from the input JSON, it will be an empty string in the resulting struct.
+
+### 3. Unmarshalling is case insensitive
+
+The `Unmarshal()` method will match the field name of the input JSON to the field in the `struct` in a case insensitive manner as long as the characters and their order are the same.
+
+examples/case_sensitivity/main.go
+
+```go
+func main() {
+    input := `{
+        "BreED": "Golden Retriever",
+        "age": 8,
+        "NaME": "Paws",
+        "favoriTeTrEat": "Kibble"
+    }`
+    var dog Dog
+
+    err := json.Unmarshal([]byte(input), &dog)
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    fmt.Printf(
+        "%s is a %d years old %s who likes %s\n",
+        dog.Name,
+        dog.Age,
+        dog.Breed,
+        dog.FavoriteTreat,
+    )
+}
+```
+
+ Output
+
+```text
+Paws is a 8 years old Golden Retriever who likes Kibble
+```
+
+Notice how the `Dog` struct was populated successfully despite the casing of the fields in the input JSON.
+
+### 4. Field names must match JSON keys exactly
+
+When defining structs for unmarshalling JSON, it's important to ensure that the names of struct fields match the keys in the JSON data exactly. If there is a mismatch, the field will not be populated with the corresponding value from the JSON data.
+
+
+```go
+func main() {
+    input := `{
+      "Breed": "Golden Retriever",
+      "Age": 8,
+      "Name": "Paws",
+      "favorite_treat": "Kibble"
+  }`
+
+    var dog Dog
+
+    err := json.Unmarshal([]byte(input), &dog)
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    fmt.Printf(
+        "%s is a %d years old %s who likes %s\n",
+        dog.Name,
+        dog.Age,
+        dog.Breed,
+        dog.FavoriteTreat,
+    )
+}
+```
+
+ Output
+
+```text
+Paws is a 8 years old Golden Retriever who likes
+```
+
+As you can see, the input JSON uses the key `favorite_treat` but the `Dog` struct declares the field as `FavoriteTreat` so the unmarshalled `struct` does not use the input JSON’s value for `favorite_treat`.
+
+### 5. Type aliases are preserved
+
+If there are type alias fields in your struct, their values and type alias will be preserved when unmarshalled:
+
+examples/type_alias.go
+
+```go
+type (
+    TypeAliasExample string
+
+    TypeAliasStruct struct {
+        Example TypeAliasExample
+    }
+)
+
+type (
+    TypeAliasExample string
+
+    TypeAliasStruct struct {
+        Example TypeAliasExample
+    }
+)
+```
+
+ Output
+
+```text
+main.TypeAliasStruct{
+  Example: "Hello world",
+}
+```
+
+## JSON Marshalling in Go
+
+The `json.Marshal()` method does the opposite of `Unmarshal()` by converting a given data structure into a JSON. When working with the basic types in Go (strings, integers, slices, maps), it generates the corresponding JSON accordingly.
+
+examples/basic_marshal/main.go
+
+```go
+func marshal(in any) []byte {
+    out, err := json.Marshal(in)
+    if err != nil {
+        log.Fatalf("Unable to marshal due to %s\n", err)
+    }
+
+    return out
+}
+
+func main() {
+    first := marshal(14)
+    second := marshal("Hello world")
+    third := marshal([]float32{1.66, 6.86, 10.1})
+    fourth := marshal(map[string]int{"num": 15, "other": 17})
+    fmt.Printf(
+        "first: %s\nsecond: %s\nthird: %s\nfourth: %s\n",
+        first,
+        second,
+        third,
+        fourth,
+    )
+}
+```
+
+ Output
+
+```text
+first: 14
+second: "Hello world"
+third: [1.66,6.86,10.1]
+fourth: {"num":15,"other":17}
+```
+
+abstracted `Marshal()` into a separate function to simplify the error handling process.
+### Marshalling structs
+
+Similar to unmarshalling JSON into structs, you can also marshal a struct into JSON.
+
+
+```go
+func main() {
+    p := Person{
+        Name:  "John Jones",
+        Age:   26,
+        Email: "johnjones@email.com",
+        Phone: "89910119",
+        Hobbies: []string{
+            "Swimming",
+            "Badminton",
+        },
+    }
+
+    b, err := json.Marshal(p)
+    if err != nil {
+        log.Fatalf("Unable to marshal due to %s\n", err)
+    }
+
+    fmt.Println(string(b))
+}
+```
+
+ Output
+
+```text
+{"Name":"John Jones","Age":26,"Email":"johnjones@email.com","Phone":"89910119","Hobbies":["Swimming","Badminton"]}
+```
+
+The `Marshal()` method produces a valid JSON from the given struct, including any nested JSON arrays or JSON objects.
+
+The generated JSON is a single line without proper formatting. Although this is an ideal form when transmitting information through a network, it is not a very user friendly representation of the JSON.
+
+If you wish to format the JSON object, you can use the `MarshalIndent()` method which performs the same function as `Marshal()` but applies some indentation to format the output.
+
+```go
+b, err := json.MarshalIndent(p, "", "  ")
+```
+
+
+```json
+{
+    "Name": "John Jones",
+    "Age": 26,
+    "Email": "johnjones@email.com",
+    "Phone": "89910119",
+    "Hobbies": [
+        "Swimming",
+        "Badminton"
+    ]
+}
+```
+
+You can configure two aspects of formatting with `MarshalIndent()`. The first is the prefix per line which appears at the start of every line. For most purposes, you would set this parameter to be an empty string. The second configures the indentation level
+
+## Customizing JSON field names with struct tags
+
+In Go, struct tags are annotations that can be added to the fields of a struct to provide additional information about how the fields should be treated by various tools and libraries. Struct tags are strings that are added to the end of a field declaration, enclosed in backticks.
+
+The most common use case for struct tags is to specify how a struct should be marshalled and unmarshalled to and from JSON. By adding tags to the fields of a struct, you can control how the fields are named, which fields are ignored, and how they are encoded and decoded.
+
+```go
+type Dog struct {
+    Breed         string
+    Name          string
+    FavoriteTreat string
+    Age           int
+}
+
+var dog = Dog{
+  Breed: "Golden Retriever",
+  Age: 8,
+  Name: "Paws",
+  FavoriteTreat: "Kibble",
+}
+```
+
+At the moment, the `dog` variable will be marshalled into the following JSON object where the properties correspond exactly to the struct field names:
+
+```json
+{"Breed":"Golden Retriever","Name":"Paws","FavoriteTreat":"Kibble","Age":8}
+```
+
+You can customize this output by using `json` struct tags on the `Dog` type:
+
+```go
+type Dog struct {
+    Breed         string `json:"breed"`
+    Name          string `json:"name"`
+    FavoriteTreat string `json:"favorite_treat"`
+    Age           int    `json:"age"`
+}
+```
+
+```json
+{"breed":"Golden Retriever","name":"Paws","favorite_treat":"Kibble","age":8}
+```
+
+It also works the same way for unmarshalling.
+
+### Other uses of struct tags
+
+Beyond customizing the field names, struct tags can also be used to omit empty fields or to ignore fields altogether during marshalling and unmarshalling.
+
+To omit an empty field (one with its zero value in Go), add the `omitempty` struct tag to the existing struct tag. To ignore a field whether it is empty or not, use `json:"-"`.
+
+```go
+type User struct {
+    Username string   `json:"username"`
+    Password string   `json:"-"`
+    Email    string   `json:"email"`
+    Hobbies  []string `json:"hobbies,omitempty"`
+}
+
+func main() {
+    user := User{
+        Username: "admin",
+        Password: "root",
+        Email:    "admin@email.com",
+    }
+
+    b, err := json.MarshalIndent(user, "", "  ")
+    if err != nil {
+        log.Fatalf("Unable to marshal due to %s\n", err)
+    }
+
+    fmt.Println(string(b))
+}
+```
+
+The above code generates the following JSON:
+
+ Output
+
+```json
+{
+  "username": "admin",
+  "email": "admin@email.com"
+}
+```
+
+## Converting JSON to Go
+
+```json
+{
+    "country": "string",
+    "display_name": "string",
+    "email": "string",
+    "explicit_content": {
+        "filter_enabled": true,
+        "filter_locked": true
+    },
+    "external_urls": {
+        "spotify": "string"
+    },
+    "followers": {
+        "href": "string",
+        "total": 0
+    },
+    "href": "string",
+    "id": "string",
+    "images": [
+        {
+            "url": "https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228\n",
+            "height": 300,
+            "width": 300
+        }
+    ],
+    "product": "string",
+    "type": "string",
+    "uri": "string"
+}
+```
+
+To manually map the JSON schema to a struct in Go would be a time consuming process, but this task can be eased through tools that can perform this conversion such as [JSON-to-Go](https://mholt.github.io/json-to-go/) and [JSON Typedef](https://jsontypedef.com/docs/go-codegen/).
+
+## Validating JSON data
+
+There are two main forms of JSON validation. The first kind is involves validating that a given JSON string is proper (i.e. not malformed). The second kind checks if the input JSON conforms to a predefined schema.
+
+First, let's use the `json.Valid()` method to check for malformed JSON in Go:
+
+```go
+func main() {
+    good := `{"name": "John Doe"}`
+    bad := `{name: "John Doe"}`
+
+    fmt.Println(json.Valid([]byte(good)))
+    fmt.Println(json.Valid([]byte(bad)))
+}
+```
+
+The `bad` input JSON string does not wrap the `name` key in double quotes.
+
+ Output
+
+```text
+true
+false
+```
+
+its often necessary to enforce a particular schema for the input JSON. This can be achieved using third-party validation packages such as [go-playground/validator](https://github.com/go-playground/validator). It also relies on struct tags to perform data validation.
+
+The `validator` package provides [several struct tags](https://pkg.go.dev/github.com/go-playground/validator/v10) that can be used to validate JSON input
+
+To implement data validation on a struct, you must use the `validate` tags shown below:
+
+
+```go
+type User struct {
+    Username string `json:"username" validate:"required"`
+    Password string `json:"password" validate:"required"`
+    Email    string `json:"email"    validate:"required,email"`
+    Age      int    `json:"age"      validate:"required,min=18,max=99"`
+}
+```
+
+Notice that the validation rules are provided as a set of comma-separated values with some properties having a value after an `=` symbol.
+
+Given the following invalid JSON, we should expect the validation to flag out the invalid fields:
+
+```json
+{
+  "username": "johndoe",
+  "email": "johndoe@emai",
+  "age": -14
+}
+```
+
+
+```go
+func main() {
+    input := `{
+    "username": "johndoe",
+    "email": "johndoe@emai",
+    "age": -14
+  }`
+
+    var user User
+
+    err := json.Unmarshal([]byte(input), &user)
+    if err != nil {
+        log.Fatalf("Unable to marshal JSON due to %s", err)
+    }
+
+    fmt.Printf("User before validation: %v\n", user)
+
+    err = validator.New().Struct(user)
+    if err != nil {
+        log.Fatalf("Validation failed due to %v\n", err)
+    }
+}
+```
+
+As expected, the validator returns an error that flags the erroneous fields in the input JSON after unmarshalling:
+
+ Output
+
+```text
+User before validation: {johndoe  johndoe@emai -14}
+Validation failed due to Key: 'ValidatedUser.Password' Error:Field validation for 'Password' failed on the 'required' tag
+Key: 'ValidatedUser.Email' Error:Field validation for 'Email' failed on the 'email' tag
+Key: 'ValidatedUser.Age' Error:Field validation for 'Age' failed on the 'min' tag
+```
+
+Note that the prior to using the `validator` package, the JSON was successfully unmarshalled since the validation struct tags are only evaluated when explicitly called.
+
+By altering the input JSON to abide by the validation rules set out above, we can expect the validation to pass.
+
+```json
+{
+  "username": "johndoe",
+  "password": "root",
+  "email": "johndoe@email.com",
+  "age": 18
+}
+```
+
+This time, with a valid JSON input, the validation passes:
+
+ Output
+
+```text
+User before validation: {johndoe root johndoe@email.com 18}
+User after validation: {johndoe root johndoe@email.com 18}
+```
+
+
+## Defining custom behavior for marshalling and unmarshalling data
+
+In Go, you can define custom behavior for marshalling data by implementing the `json.Marshaler` interface. This interface defines a single method, `MarshalJSON()` which takes no arguments and returns a byte slice and an error.
+
+```go
+type (
+    CustomTime struct {
+        time.Time
+    }
+
+    Baby struct {
+        BirthDate CustomTime `json:"birth_date"`
+        Name      string    `json:"name"`
+        Gender    string    `json:"gender"`
+    }
+)
+```
+
+```go
+func main() {
+    baby := Baby{
+        Name:   "johnny",
+        Gender: "male",
+        BirthDate: CustomTime{
+            time.Date(2023, 1, 1, 12, 0, 0, 0, time.Now().Location()),
+        },
+    }
+
+    b, err := json.Marshal(baby)
+    if err != nil {
+        log.Fatalf("Unable to marshal due to %s\n", err)
+    }
+
+    fmt.Println(string(b))
+}
+```
+
+```json
+{"birth_date":"2023-01-01T12:00:00+01:00","name":"johnny","gender":"male"}
+```
+
+Notice how the `birth_date` presented in the [RFC 3339 format](https://www.rfc-editor.org/rfc/rfc3339). You can now define the custom marshalling behavior that will return a different format for `CustomTime` values (such as `DD-MM-YYYY`) instead of the default RFC 3339 timestamp format.
+
+```go
+func (ct CustomTime) MarshalJSON() ([]byte, error) {
+    return []byte(fmt.Sprintf(`%q`, ct.Time.Format("02-01-2006"))), nil
+}
+```
+
+Now, when you marshal the `baby` variable once more, you will observe the new format for `birth_date`:
+
+ Output
+
+```json
+{"birth_date":"01-01-2023","name":"johnny","gender":"male"}
+```
+
+Customizing the unmarshalling behavior for a type works in a similar way. You need to implement the `json.Unmarshaler` type instead:
+
+```go
+type Unmarshaler interface {
+    UnmarshalJSON([]byte) error
+}
+```
+
+```go
+func (ct *CustomTime) UnmarshalJSON(input []byte) error {
+    value := strings.Trim(string(input), `"`)
+
+    t, err := dateparse.ParseAny(value)
+    if err != nil {
+        return err
+    }
+
+    ct.Time = t
+
+    return nil
+}
+```
+
+Here, the `UnmarshalJSON()` method unmarshals a JSON string in variety of formats into a `CustomTime` value as long as it is supported by the `dateparse` package. With this in place, any of the following date formats (and many others) will be unmarshalled successfully:
+
+```json
+{"name": "Mary", "gender": "F", "birth_date": "19-02-2023"}
+{"name": "Mary", "gender": "F", "birth_date": "Mon 30 Sep 2022 09:09:09 PM UTC"}
+{"name": "Mary", "gender": "F", "birth_date": "2022/12/31"}
+```
+
+### The difference between JSON encoding and marshalling
+
+The `encoding/json` package also provides two other constructs for working with JSON in Go which are `json.Encoder` and `json.Decoder`. These types essentially do the same thing as `Marshal` and `Unmarshal` but they operate on streams of data instead of JSON objects that are already fully loaded in memory.
+
+```go
+func main() {
+    coffeeFile, err := os.Open("assets/coffee.json")
+    if err != nil {
+        log.Fatalf("Unable to read file due to %s\n", err)
+    }
+
+    var coffee Dog
+
+    decoder := json.NewDecoder(coffeeFile)
+
+    err = decoder.Decode(&coffee)
+    if err != nil {
+        log.Fatalf("Unable to decode due to %s\n", err)
+    }
+
+    litter.Dump(coffee)
+}
+```
+
+
+ Output
+
+```text
+main.Dog{
+  Breed: "Toy Poodle",
+  Name: "Coffee",
+  FavoriteTreat: "Kibble",
+  Age: 5,
+}
+```
+
+One difference between `json.Decode()` and `json.Unmarshal` is that the former allows you to display an error when the input JSON contains properties that do not match any non-ignored, exported fields in the destination unlike the latter where such fields are simply ignored.
+
+This is done through the `DisallowUnknownFields()` method on the `Decoder`:
+
+```go
+decoder := json.NewDecoder(coffeeFile)
+decoder.DisallowUnknownFields()
+```
+
+Assuming the input JSON contains a property that is not present in the `Dog` struct:
+
+```json
+{
+  "name": "Coffee",
+  "breed": "Toy Poodle",
+  "age": 5,
+  "favorite_treat": "Kibble",
+  "color": "brown"
+}
+```
+
+ error:
+
+```text
+2023/03/23 15:29:51 Unable to decode due to json: unknown field "color"
+```
+
+The `json.Encoder` type, on the other hand, writes the JSON encoding of a Go type into a provided writable stream (`io.Writer`). It is often used to write a JSON response to a client request:
+
+
+```go
+func main() {
+    newDog := Dog{
+        Breed:         "Poodle",
+        Age:           15,
+        Name:          "Chloe",
+        FavoriteTreat: "Dog Sticks",
+    }
+
+    mux := http.NewServeMux()
+    mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+        encoder := json.NewEncoder(w)
+
+        err := encoder.Encode(newDog)
+        if err != nil {
+            log.Fatalf("Unable to encode due to %s\n", err)
+        }
+    })
+
+    log.Fatal(http.ListenAndServe(":3000", mux))
+}
+```
+
+When you start the server and make a request to it, you will observe the following response:
+
+```command
+curl locahosst:3000
+```
+
+ Output
+
+```json
+{"breed":"Poodle","name":"Chloe","favorite_treat":"Dog Sticks","age":15}
+```
+
+
+
+---
 # GO - TESTING
 
 Go'da birim testleri için standart kütüphanede bulunan testing paketi kullanır.
