@@ -1,19 +1,19 @@
 {
   "main": {
-    "id": "77821de362816b55",
+    "id": "764e73451e6b17ae",
     "type": "split",
     "children": [
       {
-        "id": "5515b5ce582320af",
+        "id": "1d370276c563ee5e",
         "type": "tabs",
         "children": [
           {
-            "id": "138f74f6d398b84f",
+            "id": "d6a0e2d87b187845",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Golang Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "mode": "source",
                 "source": false
               }
@@ -25,15 +25,15 @@
     "direction": "vertical"
   },
   "left": {
-    "id": "3d6dbd21171cc57d",
+    "id": "6a6d5140a68ac850",
     "type": "split",
     "children": [
       {
-        "id": "4eb8f9ce1c0b8689",
+        "id": "4b741fb34eb8e329",
         "type": "tabs",
         "children": [
           {
-            "id": "e063be275fca154d",
+            "id": "6241a3657894e912",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -43,12 +43,12 @@
             }
           },
           {
-            "id": "362797808881bde5",
+            "id": "453c8930fe7176ef",
             "type": "leaf",
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#Chapter",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -58,7 +58,7 @@
             }
           },
           {
-            "id": "89be7a40c5147536",
+            "id": "1cfcd38ff7731f5c",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -72,20 +72,20 @@
     "width": 300
   },
   "right": {
-    "id": "337c470970fcbed7",
+    "id": "cc2ccd42a0d2fd37",
     "type": "split",
     "children": [
       {
-        "id": "1bc80a2b6a1042fc",
+        "id": "b3d37bb1f86cfd7e",
         "type": "tabs",
         "children": [
           {
-            "id": "5fc1f066bb94e90f",
+            "id": "5dfc17372a064e44",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Golang Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -97,19 +97,19 @@
             }
           },
           {
-            "id": "d3003c8faaab6235",
+            "id": "2ea49bd747a07d04",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Golang Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
             }
           },
           {
-            "id": "c4289293f48141eb",
+            "id": "c223eba8dfc0521e",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -120,12 +120,12 @@
             }
           },
           {
-            "id": "82e5c9d06623a92a",
+            "id": "08ad88d0580c42e9",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
-                "file": "Golang Notes.md"
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
               }
             }
           }
@@ -146,30 +146,6 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "138f74f6d398b84f",
-  "lastOpenFiles": [
-<<<<<<< HEAD
-    "Algorithms_4TH Edition Summary.md",
-=======
->>>>>>> 7be8ad5edcf1edd628a048d1b7525cb1fa8c51a3
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-    "JAVA APP KEY NOTES.md",
-    "Golang Notes.md",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240118220950.png",
-    "DATABASE PROGRAMMING NOTES.md",
-    "Pasted image 20240116144942.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240116141817.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240116144727.png",
-    "UML & DESIGN PATTERNS.md",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240114005317.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240112123949.png",
-    "Pasted image 20240112124148.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240111141502.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240109140348.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240109140649.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots",
-    "100 Go Mistakes and How to Avoid Them.md",
-    "CLEAN CODE NOTES.md",
-    "EFFECTIVE JAVA NOTES.md"
-  ]
+  "active": "d6a0e2d87b187845",
+  "lastOpenFiles": []
 }

@@ -4833,3 +4833,272 @@ G. None of the above
 
 # Chapter 3 - Making Decisions #Chapter
 
+
+## Creating Decision-Making Statements
+
+### Statements and Blocks
+
+a Java statement is a complete unit of execution in Java, terminated with a semicolon `(;)`. 
+*Control flow* statements break up the flow of execution by using decision-making, looping, and branching, allowing the application to selectively execute particular segments of code.
+
+a block of code in Java is a group of zero or more statements between balanced braces `({})` and can be used anywhere a single statement is allowed.
+
+```java
+// Single statement
+patrons++;
+
+// Statement inside a block
+{
+patrons++;
+}
+```
+
+A statement or block often serves as the target of a decision-making statement.
+
+```java
+// Single statement
+if(ticketsTaken > 1)
+patrons++;
+// Statement inside a block
+if(ticketsTaken > 1)
+{
+patrons++;
+}
+```
+
+the target of a decision-making statement can be a single statement or block of statements.
+
+---
+**While both of the previous examples are equivalent, stylistically using blocks is often preferred, even if the block has only one statement. The second form has the advantage that you can quickly insert new lines of code into the block, without modifying the surrounding structure.**
+
+---
+
+### The `if` Statement
+
+==**The `if` statement, execute a particular block of code if and only if a `boolean` expression evaluates to `true` at runtime.**==
+
+```java
+if(hourOfDay < 11)
+System.out.println("Good Morning");
+
+if(hourOfDay < 11) {
+System.out.println("Good Morning");
+morningGreetingCount++;
+}
+```
+
+---
+**Watch Indentation and Braces**  #TIP
+**One area where the exam writers will try to trip you up is if statements without braces `({})`. For example, take a look at this slightly modified form of our example:**
+
+```java
+if(hourOfDay < 11)
+System.out.println("Good Morning");
+morningGreetingCount++;
+```
+ 
+ **Based on the indentation, you might be inclined to think the variable `morningGreetingCount` is only going to be incremented if `hourOfDay` is less than 11, but that’s not what this code does. It will execute the print statement only if the condition is met, but it will always execute the increment operation.** 
+
+**in Java, unlike some other programming languages, tabs are just whitespace and are not evaluated as part of the execution. When you see a control flow statement in a question, be sure to trace the open and close braces of the block, ignoring any indentation you may come across.**
+
+---
+
+### The `else` Statement
+
+```java
+if(hourOfDay < 11) {
+System.out.println("Good Morning");
+}
+if(hourOfDay >= 11) {
+System.out.println("Good Afternoon");
+}
+```
+
+**redundant**
+
+```java
+if(hourOfDay < 11) {
+System.out.println("Good Morning");
+} else System.out.println("Good Afternoon");
+```
+
+code is truly branching between one of the two possible options, with the `boolean` evaluation happening only once. The `else` operator takes a statement or block of statements, in the same manner as the `if` statement. Similarly, we can append additional if statements to an else block to arrive at a more refined
+
+```java
+if(hourOfDay < 11) {
+System.out.println("Good Morning");
+} else if(hourOfDay < 15) {
+System.out.println("Good Afternoon");
+} else {
+System.out.println("Good Evening");
+}
+```
+
+---
+**Verifying That the if Statement Evaluates to a Boolean Expression**
+
+**Another common way the exam may try to lead you astray is by providing code where the `boolean` expression inside the if statement is not actually a boolean expression**
+
+```java
+int hourOfDay = 1;
+if(hourOfDay) { // DOES NOT COMPILE
+...
+}
+```
+
+---
+
+### Shortening Code with Pattern Matching
+
+Pattern matching is reduce the boilerplate in your code.  A lot of the newer enhancements to the Java language focus on reducing boilerplate code.
+
+```java
+void compareIntegers(Number number) {
+	if(number instanceof Integer) {
+		Integer data = (Integer)number;
+		System.out.print(data.compareTo(5));
+	}
+}
+```
+
+The cast is needed since the `compareTo()` method is defined on Integer, but not on Number. 
+
+```java
+void compareIntegers(Number number) {
+	if(number instanceof Integer data) { 
+		System.out.print(data.compareTo(5));
+	}
+}
+```
+
+==**The variable data in this example is referred to as the pattern variable**==. Notice that this code also avoids any potential `ClassCastException` because the cast operation is executed only if the implicit instanceof operator returns true.
+
+---
+
+**Reassigning Pattern Variables**
+
+**While possible, it is a bad practice to reassign a pattern variable since doing so can lead to ambiguity about what is and is not in scope.**
+
+```java
+if(number instanceof Integer data) {
+	data = 10;
+}
+```
+
+**The reassignment can be prevented with a `final` modifier, but it is better not to reassign the variable at all.**
+
+```java
+if(number instanceof final Integer data) {
+	data = 10; // DOES NOT COMPILE
+}
+```
+
+---
+
+#### Pattern Variables and Expressions
+
+```java
+void printIntegersGreaterThan5(Number number) {
+	if(number instanceof Integer data && data.compareTo(5)>0)
+	System.out.print(data);
+}
+```
+
+We can apply a number of filters, or patterns, so that the if statement is executed only in specific circumstances. ==**Notice that we’re using the pattern variable in an expression in the same line in which it is declared.**==
+
+#### Subtypes
+
+==**The type of the pattern variable must be a subtype of the variable on the left side of the expression. It also cannot be the same type. This rule does not exist for traditional `instanceof` operator expressions**==, though
+
+```java
+Integer value = 123;
+if(value instanceof Integer) {}
+if(value instanceof Integer data) {} // DOES NOT COMPILE
+```
+
+While the second line compiles, ==**the last line does not compile because pattern matching requires that the pattern variable type Integer be a strict subtype of Integer.**==
+
+
+---
+**Limitations of Subtype Enforcement**
+
+The compiler has some limitations on enforcing pattern matching types when we mix classes and interfaces. For example, given the non-final class Number and interface List, this does compile even though they are unrelated:
+
+```java
+Number value = 123;
+if(value instanceof List) {}
+if(value instanceof List data) {}
+```
+
+---
+
+#### Flow Scoping
+
+The compiler applies flow scoping when working with pattern matching. ==**Flow scoping means the variable is only in scope when the compiler can definitively determine its type.**== 
+
+Flow scoping is unlike any other type of scoping in that it is not strictly hierarchical like instance, class, or local scoping. It is determined by the compiler based on the branching and flow of the program.
+
+```java
+void printIntegersOrNumbersGreaterThan5(Number number) {
+	if(number instanceof Integer data || data.compareTo(5)>0)
+		System.out.print(data);
+}
+```
+
+If the input does not inherit Integer, the data variable is undefined. Since the compiler cannot guarantee that data is an instance of Integer, data is not in scope, and the code does not compile. 
+
+```java
+void printIntegerTwice(Number number) {
+if (number instanceof Integer data)
+	System.out.print(data.intValue());
+	System.out.print(data.intValue()); // DOES NOT COMPILE
+}
+```
+
+Since the input might not have inherited Integer, data is no longer in scope after the if statement.
+
+```java
+void printOnlyIntegers(Number number) {
+if (!(number instanceof Integer data))
+return;
+System.out.print(data.intValue());
+}
+```
+
+this code does compile! The method returns if the input does not inherit Integer. This means that when the last line of the method is reached, the input must inherit Integer, and therefore data stays in scope even after the if statement ends.
+
+---
+**Flow Scoping and else Branches**
+
+**Another way to think about it is to rewrite the logic to something equivalent that uses an `else` statement:**
+
+```java
+void printOnlyIntegers(Number number) {
+	if (!(number instanceof Integer data))
+		return;
+	else
+		System.out.print(data.intValue());
+	}
+```
+
+**go one step further and reverse the if and else branches by inverting the boolean expression:**
+
+```java
+void printOnlyIntegers(Number number) {
+	if (number instanceof Integer data)
+		System.out.print(data.intValue());
+	else
+		return;
+	}
+```
+
+new code is equivalent to our original and better demonstrates how the compiler was able to determine that data was in scope only when number is an Integer.
+
+---
+
+==**In particular, it is possible to use a pattern variable outside of the if statement, but only when the compiler can definitively determine its type.**==
+
+
+## Applying `switch` Statements
+
+
