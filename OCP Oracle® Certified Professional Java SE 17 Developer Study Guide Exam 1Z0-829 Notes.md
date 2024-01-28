@@ -5474,5 +5474,224 @@ Since all possible permutations of ``Season`` are covered, a default branch is n
 **What happens if you use an ``enum`` with three values and later someone adds a fourth value? Any ``switch`` expressions that use the enum without a default branch will suddenly fail to compile. If this was done frequently, you might have a lot of code to fix! For this reason, consider including a default branch in every ``switch`` expression, even those that involve ``enum`` values.** #TIP 
 
 ---
-## Writing while Loops
+## Writing `while` Loops
+
+A loop is a repetitive control structure that can execute a statement of code multiple times in succession. By using variables that can be assigned new values, each repetition of the statement may be different.
+
+```java
+int counter = 0;
+while (counter < 10) {
+double price = counter * 10;
+System.out.println(price);
+counter++;
+}
+```
+
+### The ``while`` Statement
+
+The simplest repetitive control structure in Java is the ``while`` statement, Like all repetition control structures, it has a termination condition, implemented as a ``boolean`` expression, that will continue as long as the expression evaluates to ``true``.
+
+a ``while`` loop is similar to an ``if`` statement in that it is composed of a boolean expression and a statement, or a block of statements. During execution, the boolean expression is evaluated before each iteration of the loop and exits if the evaluation returns false.
+
+```java
+int roomInBelly = 5;
+public void eatCheese(int bitesOfCheese) {
+while (bitesOfCheese > 0 && roomInBelly > 0) {
+bitesOfCheese--;
+roomInBelly--;
+}
+System.out.println(bitesOfCheese+" pieces of cheese left");
+}
+```
+
+==**One thing to remember is that a while loop may terminate after its first evaluation of the ``boolean`` expression**==
+
+```java
+int full = 5;
+while(full < 5) {
+System.out.println("Not full!");
+full++;
+}
+```
+
+On the first iteration of the loop, the condition is reached, and the loop exits. imply put, the body of the loop may not execute at all or may execute many times.
+
+### The ``do/while`` Statement
+
+==**Unlike a ``while`` loop, though, a ``do/while`` loop guarantees that the statement or block will be executed at least once.**==
+
+```java
+int lizard = 0;
+do {
+lizard++;
+} while(false);
+System.out.println(lizard); // 1
+```
+
+Java will execute the statement block first and then check the loop condition. Even though the loop exits right away, the statement block is still executed once, and the program prints 1.
+
+### Infinite Loops
+ 
+ ==**The single most important thing you should be aware of when you are using any repetition control structures is to make sure they always terminate!**== Failure to terminate a loop can lead to numerous problems in practice, including overflow exceptions, memory leaks, slow performance, and even bad data.
+
+```java
+int pen = 2;
+int pigs = 5;
+while(pen < 10)
+pigs++;
+```
+
+The result is that the loop will never end, creating what is commonly referred to as an infinite loop. An infinite loop is a loop whose termination condition is never reached during runtime.  
+
+Anytime you write a loop, you should examine it to determine whether the termination condition is always eventually met under some condition. make sure the loop condition, or the variables the condition is dependent on, are changing between executions. Then, ensure that the termination condition will be eventually reached in all circumstances.
+
+## Constructing ``for`` Loops
+
+A basic ``for`` loop has the same conditional boolean expression and statement, or block of statements, as the ``while`` loops, as well as two new sections: an ***initialization block*** and an ***update statement.***
+
+==**Each of the three sections is separated by a semicolon. In addition, the initialization and update sections may contain multiple statements, separated by commas.**==
+
+Variables declared in the initialization block of a for loop have limited scope and are accessible only within the for loop. Be wary of any exam questions in which a variable is declared within the initialization block of a for loop and then read outside the loop.
+
+```java
+for(int i=0; i < 10; i++)
+System.out.println("Value is: "+i);
+System.out.println(i); // DOES NOT COMPILE
+```
+
+Alternatively, variables declared before the ``for`` loop and assigned a value in the initialization block may be used outside the ``for`` loop because their scope precedes the creation of the for loop.
+
+```java
+int i;
+for(i=0; i < 10; i++)
+System.out.println("Value is: "+i);
+System.out.println(i);
+```
+
+```java
+for(int i = 0; i < 5; i++) {
+System.out.print(i + " ");
+}
+```
+ 
+ The local variable ``i`` is initialized first to 0. The variable ``i`` is only in scope for the duration of the loop and is not available outside the loop once the loop has completed. Like a while loop, the boolean condition is evaluated on every iteration of the loop before the loop executes. Since it returns true, the loop executes and outputs 0 followed by a space. Next, the loop executes the update section, which in this case increases the value of ``i`` to 1. The loop then evaluates the boolean expression a second time, and the process repeats multiple times, printing the following:
+
+```text
+0 1 2 3 4
+```
+
+#### Printing Elements in Reverse
+
+```java
+for (var counter = 4; counter >= 0; counter--)
+{
+	System.out.print(counter + " ");
+}
+```
+
+---
+
+**For the exam, you are going to have to know how to read forward and backward ``for`` loops. When you see a ``for`` loop on the exam, pay close attention to the loop variable and operations if the decrement operator, ``--`` , is used. While incrementing from 0 in a ``for`` loop is often straightforward, decrementing tends to be less intuitive. In fact, if you do see a for loop with a decrement operator on the exam, you should assume they are trying to test your knowledge of loop operations.** 
+
+---
+
+#### Working with ``for`` Loops
+
+**1. Creating an Infinite Loop**
+
+```java
+for( ; ; )
+	System.out.println("Hello World");
+```
+
+it will in fact compile and run without issue. It is actually an infinite loop that will print the same statement repeatedly.
+
+**2. Adding Multiple Terms to the for Statement**
+
+```java
+int x = 0;
+for(long y = 0, z = 4; x < 5 && y < 10; x++, y++) {
+System.out.print(y + " "); }
+System.out.print(x + " ");
+```
+
+This code demonstrates three variations of the for loop
+
+- ==**First, you can declare a variable, such as x in this example, before the loop begins and use it after it completes.**==
+- ==**Second, your initialization block, boolean expression, and update statements can include extra variables that may or may not reference each other**==
+- ==**Finally, the update statement can modify multiple variables.**==
+
+**3. Redeclaring a Variable in the Initialization Block**
+
+```java
+int x = 0;
+for(int x = 4; x < 5; x++) // DOES NOT COMPILE
+System.out.print(x + " ");
+```
+
+It does not compile because of the initialization block. The difference is that x is repeated in the initialization block after already being declared before the loop, resulting in the compiler stopping because of a duplicate variable declaration. 
+
+**4. Using Incompatible Data Types in the Initialization Block**
+
+```java
+int x = 0;
+for(long y = 0, int z = 4; x < 5; x++) // DOES NOT COMPILE
+	System.out.print(y + " ");
+```
+
+The variables in the initialization block must all be of the same type. In the multiple-terms example, y and z were both long, so the code compiled without issue; but in this example, they have different types, so the code will not compile.
+
+**5. Using Loop Variables Outside the Loop**
+
+```java
+for(long y = 0, x = 4; x < 5 && y < 10; x++, y++)
+System.out.print(y + " ");
+System.out.print(x); // DOES NOT COMPILE
+```
+
+If you notice, x is defined in the initialization block of the loop and then used after the loop terminates. Since x was only scoped for the loop, using it outside the loop will cause a compiler error.
+
+### The ``for-each`` Loop
+
+The ``for-each`` loop is a specialized structure designed to iterate over arrays and various Collections Framework classes
+
+==**The ``for-each`` loop declaration is composed of an initialization section and an object to be iterated over. The right side of the for-each loop must be one of the following:**==
+
+- ==**A built-in Java array**==  
+- ==**An object whose type implements`` java.lang.Iterable``**==
+
+For the exam, you should know that this does not include all of the Collections Framework classes or interfaces, but only those that implement or extend that Collection interface. For example, Map is not supported in a for-each loop, although Map does include methods that return Collection instances.
+
+The left side of the ``for-each`` loop must include a declaration for an instance of a variable whose type is compatible with the type of the array or collection on the right side of the statement. On each iteration of the loop, the named variable on the left side of the statement is assigned a new value from the array or collection on the right side of the statement.
+
+```java
+public void printNames(String[] names) {
+	for(int counter=0; counter<names.length; counter++)
+		System.out.println(names[counter]);
+}
+
+public void printNames(String[] names) {
+	for(var name : names)
+		System.out.println(name);
+}
+```
+
+Like using a ``for`` loop in place of a ``while`` loop, ``for-each`` loops are meant to reduce boilerplate code, making code easier to read/write, and freeing you to focus on the parts of your code that really matter.
+
+==**on each iteration, a ``for-each`` loop assigns a variable with the same type as the generic argument.**==
+
+```java
+String birds = "Jay";
+for(String bird : birds) // DOES NOT COMPILE
+	System.out.print(bird + " ");
+
+String[] sloths = new String[3];
+for(int sloth : sloths) // DOES NOT COMPILE
+	System.out.print(sloth + " ");
+```
+
+- The first ``for-each`` loop does not compile because ``String`` cannot be used on the right side of the statement.
+- The second example does not compile because the loop type on the left side of the statement is ``int`` and doesn’t match the expected type of ``String``.
+
+## Controlling Flow with Branching
 
