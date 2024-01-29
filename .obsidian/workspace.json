@@ -8,18 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "d6a0e2d87b187845",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
             "id": "cbd9052c8a78dc2e",
             "type": "leaf",
             "state": {
@@ -97,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "JAVA APP - 2 NOTES.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -114,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "JAVA APP - 2 NOTES.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -137,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+                "file": "JAVA APP - 2 NOTES.md"
               }
             }
           }
@@ -158,14 +146,18 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "d6a0e2d87b187845",
+  "active": "cbd9052c8a78dc2e",
   "lastOpenFiles": [
+    "JAVA APP - 1 NOTES.md",
     "JAVA APP - 2 NOTES.md",
+    "100 Go Mistakes and How to Avoid Them.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "JAVA APP KEY NOTES.md",
+    "Golang Notes.md",
+    "Pasted image 20240116144942.png",
     "Algorithms_4TH Edition Summary.md",
     "JAVA APP Screen Shoots",
     "JAVA APP Screen Shoots/Pasted image 20240128000016.png",
-    "JAVA APP - 1 NOTES.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240126193026.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240126183854.png"
   ]

@@ -6729,8 +6729,6 @@ func main() {
 }
 ```
 
-
-
 ##  Prepared Statements
 
 At the database level, a prepared statement is bound to a single database connection. The typical flow is that the client sends a SQL statement with placeholders to the server for preparation, the server responds with a statement ID, and then the client executes the statement by sending its ID and parameters.
@@ -6795,12 +6793,9 @@ MySQL               PostgreSQL            Oracle
 WHERE col = ?       WHERE col = $1        WHERE col = :col
 VALUES(?, ?, ?)     VALUES($1, $2, $3)    VALUES(:val1, :val2, :val3)
 ```
-
-
 ##  Errors
 
 Almost all operations with `database/sql` types return an error as the last value.  Always check these errors, never ignore them.
-
 ### Errors From Iterating Resultsets
 
 ```go
@@ -6911,8 +6906,6 @@ What if your connection to the database is dropped, killed, or has an error?
 If you execute a query or other statement and the underlying connection has a failure, Go will reopen a new connection (or just get another from the connection pool) and retry, up to 10 times.
 
 There can be some unintended consequences, however. Some types of errors may be retried when other error conditions happen. This might also be driver-specific.
-
-
 ## NULLS
 
 There are types for nullable booleans, strings, integers, and floats
@@ -7100,6 +7093,145 @@ for rows.Next() {
 ---
 
 # GO - ORM / GORM
+
+### Entity Layer
+
+```go
+package entity
+
+import (
+	"gorm.io/gorm"
+	"time"
+)
+
+type Flight struct {
+	gorm.Model
+	DepartureAirportID   int
+	DestinationAirportID int
+	DepartureTime        time.Time
+	DestinationTime      time.Time
+	Price                float64
+}
+```
+
+```go
+package entity
+
+import "gorm.io/gorm"
+
+type Airport struct {
+	gorm.Model
+	City               string
+	DepartureFlights   []Flight `gorm:"foreignKey:DepartureAirportID"`
+	DestinationFlights []Flight `gorm:"foreignKey:DestinationAirportID"`
+}
+```
+
+### Repository Layer
+
+```go
+package repository
+
+import (
+	"SampleTimeServiceApp/app/data/repository/entity"
+	_ "github.com/lib/pq"
+	"gorm.io/gorm"
+)
+
+type AirPortRepository struct {
+	db *gorm.DB
+}
+
+func NewAirPortRepository(db *gorm.DB) *AirPortRepository {
+	return &AirPortRepository{db}
+}
+
+func (ar *AirPortRepository) Save(a *entity.Airport) {
+	ar.db.Create(a)
+}
+
+func (ar *AirPortRepository) Count() int64 {
+	var count int64
+
+	ar.db.Count(&count)
+
+	return count
+}
+```
+
+```go
+package repository
+
+import (
+	"SampleTimeServiceApp/app/data/repository/entity"
+	_ "github.com/lib/pq"
+	"gorm.io/gorm"
+)
+
+type FlightRepository struct {
+	db *gorm.DB
+}
+
+func NewFlightRepository(db *gorm.DB) *FlightRepository {
+	return &FlightRepository{db}
+}
+
+func (fr *FlightRepository) Save(f *entity.Flight) {
+	fr.db.Create(f)
+}
+```
+
+### Data Access Layer
+
+```GO
+package dal
+
+import (
+	"SampleTimeServiceApp/app/data/repository"
+	"SampleTimeServiceApp/app/data/repository/entity"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+type FlightSearchHelper struct {
+	ar *repository.AirPortRepository
+	fr *repository.FlightRepository
+}
+
+func NewFlightSearchHelper() (*FlightSearchHelper, error) {
+	const URL = "postgres://postgres:csystem1993@csd-postgresql-db.cmxkkfycsomh.us-east-1.rds.amazonaws.com:5432/gs23_flightsearchdb"
+	db, err := gorm.Open(postgres.Open(URL), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.AutoMigrate(&entity.Airport{})
+	if err != nil {
+		return nil, err
+	}
+	err = db.AutoMigrate(&entity.Flight{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &FlightSearchHelper{repository.NewAirPortRepository(db), repository.NewFlightRepository(db)}, nil
+}
+
+func (h *FlightSearchHelper) CountAirPort() int64 {
+	return h.ar.Count()
+}
+
+func (h *FlightSearchHelper) SaveAirPort(a *entity.Airport) {
+	h.ar.Save(a)
+}
+
+func (h *FlightSearchHelper) SaveFlight(f *entity.Flight) {
+	h.fr.Save(f)
+}
+```
+
+### WEB NOTES
 
 GORM, the Object Relational Mapping library for Go, streamlines the process of querying databases.
 
