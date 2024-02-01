@@ -5695,3 +5695,291 @@ for(int sloth : sloths) // DOES NOT COMPILE
 
 ## Controlling Flow with Branching
 
+### Nested Loops
+
+A nested loop is a loop that contains another loop, including ``while``, ``do/while``, ``for``, and ``for-each`` loops.
+
+```java
+int[][] myComplexArray = {{5,2,1,3},{3,9,8,9},{5,7,12,7}};
+for(int[] mySimpleArray : myComplexArray) {
+for(int i=0; i<mySimpleArray.length; i++) {
+System.out.print(mySimpleArray[i]+"\t");
+}
+System.out.println();
+}
+```
+
+```text
+5 2 1 3
+3 9 8 9
+5 7 12 7
+```
+
+Nested loops can include ``while`` and ``do/while``
+
+```java
+int hungryHippopotamus = 8;
+while(hungryHippopotamus>0) {
+do {
+hungryHippopotamus -=2;
+} while (hungryHippopotamus>5);
+hungryHippopotamus--;
+System.out.print(hungryHippopotamus+", ");
+}
+```
+
+The first time this loop executes, the inner loop repeats until the value of ``hungryHippopotamus`` is 4. The value will then be decremented to 3, and that will be the output at the end of the first iteration of the outer loop.
+
+On the second iteration of the outer loop, the inner do/while will be executed once, even though ``hungryHippopotamus`` is already not greater than 5. As you may recall, do/while statements always execute the body at least once. This will reduce the value to 1, which will be further lowered by the decrement operator in the outer loop to 0. Once the value reaches 0, the outer loop will terminate.
+
+```text
+3, 0,
+```
+
+### Adding Optional Labels
+
+A label is an optional pointer to the head of a statement that allows the application flow to jump to it or break from it. It is a single identifier that is followed by a colon ``(:)``.
+
+```java
+int[][] myComplexArray = {{5,2,1,3},{3,9,8,9},{5,7,12,7}};
+OUTER_LOOP: for(int[] mySimpleArray : myComplexArray) {
+INNER_LOOP: for(int i=0; i<mySimpleArray.length; i++) {
+System.out.print(mySimpleArray[i]+"\t");
+}
+System.out.println();
+}
+```
+
+Labels follow the same rules for formatting as identifiers. For readability, they are commonly expressed using uppercase letters in snake_case with underscores between words. When dealing with only one loop, labels do not add any value, they are extremely useful in nested structures.
+
+### The ``break`` Statement
+
+``break`` statement transfers the flow of control out to the enclosing statement. The same holds true for a ``break`` statement that appears inside of a ``while``, ``do/while``, or for loop, as it will end the loop early
+
+the ``break`` statement can take an optional label parameter. Without a label parameter, the ``break`` statement will terminate the nearest inner loop it is currently in the process of executing. The optional label parameter allows us to break out of a higher-level outer loop.
+
+```java
+public class FindInMatrix {
+    public static void main(String[] args) {
+        int[][] list = {{1, 13}, {5, 2}, {2, 2}};
+        int searchValue = 2;
+        int positionX = -1;
+        int positionY = -1;
+
+        PARENT_LOOP:
+        for (int i = 0; i < list.length; i++) {
+            for (int j = 0; j < list[i].length; j++) {
+                if (list[i][j] == searchValue) {
+                    positionX = i;
+                    positionY = j;
+                    break PARENT_LOOP;
+                }
+            }
+        }
+
+        if (positionX == -1 || positionY == -1) {
+            System.out.println("Value " + searchValue + " not found");
+        } else {
+            System.out.println("Value " + searchValue + " found at: " +
+                    "(" + positionX + "," + positionY + ")");
+        }
+    }
+}
+
+```
+
+```text
+Value 2 found at: (1,1)
+```
+
+the statement ``break PARENT_LOOP``. This statement will break out of the entire loop structure as soon as the first matching value is found.
+
+```java
+if(list[i][j]==searchValue) {
+	positionX = i;
+	positionY = j;
+	break;
+}
+```
+
+Instead of exiting when the first matching value is found, the program would now only exit the inner loop when the condition was met. In other words, the structure would find the first matching value of the last inner loop to contain the value
+
+```text
+Value 2 found at: (2,0)
+```
+
+```java
+if(list[i][j]==searchValue) {
+	positionX = i;
+	positionY = j;
+}
+```
+
+the code would search for the last value in the entire structure that had the matching value.
+
+```text
+Value 2 found at: (2,1)
+```
+
+### The ``continue`` Statement
+
+the ``continue`` statement, a statement that causes flow to finish the execution of the ==**current loop iteration**==
+
+==**While the ``break`` statement transfers control to the enclosing statement, the ``continue`` statement transfers control to the boolean expression that determines if the loop should continue.**== In other words, it ends the current iteration of the loop. Also, like the ``break`` statement, the ``continue`` statement is applied to the nearest inner loop under execution, using optional label statements to override this behavior.
+
+```java
+1: public class CleaningSchedule {
+2:     public static void main(String[] args) {
+3:         CLEANING: for(char stables = 'a'; stables<='d'; stables++) {
+4:             for(int leopard = 1; leopard<4; leopard++) {
+5:                 if(stables=='b' || leopard==2) {
+6:                     continue CLEANING;
+7:                 }
+8:                 System.out.println("Cleaning: "+stables+","+leopard);
+9:             }
+10:         }
+11:     }
+12: }
+
+```
+
+```text
+Cleaning: a,1
+Cleaning: c,1
+Cleaning: d,1
+```
+
+remove the ``CLEANING`` label in the ``continue`` statement so that control is returned to the inner loop instead of the outer. Line 6 becomes the following:
+
+```java
+6: continue;
+```
+
+This corresponds to the zookeeper cleaning all leopards except those labeled 2 or in stable b. The output is then the following:
+
+```text
+Cleaning: a,1
+Cleaning: a,3
+Cleaning: c,1
+Cleaning: c,3
+Cleaning: d,1
+Cleaning: d,3
+```
+
+### The ``return`` Statement
+
+creating methods and using ``return`` statements can be used as an alternative to using labels and ``break`` statements.
+
+```java
+public class FindInMatrixUsingReturn {
+    private static int[] searchForValue(int[][] list, int v) {
+        for (int i = 0; i < list.length; i++) {
+            for (int j = 0; j < list[i].length; j++) {
+                if (list[i][j] == v) {
+                    return new int[]{i, j};
+                }
+            }
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        int[][] list = {{1, 13}, {5, 2}, {2, 2}};
+        int searchValue = 2;
+        int[] results = searchForValue(list, searchValue);
+
+        if (results == null) {
+            System.out.println("Value " + searchValue + " not found");
+        } else {
+            System.out.println("Value " + searchValue + " found at: " +
+                    "(" + results[0] + "," + results[1] + ")");
+        }
+    }
+}
+```
+
+the code without labels and break statements a lot easier to read and debug. Also, making the search logic an independent function makes the code more reusable and the calling main() method a lot easier to read.
+
+Just remember that return statements can be used to exit loops quickly and can lead to more readable code in practice, especially when used with nested loops.
+
+### Unreachable Code
+
+==**One facet of ``break``, ``continue``, and ``return`` that you should be aware of is that any code placed immediately after them in the same block is considered unreachable and will not compile.**==
+
+```java
+int checkDate = 0;
+while(checkDate<10) {
+checkDate++;
+if(checkDate>100) {
+break;
+checkDate++; // DOES NOT COMPILE
+}
+}
+```
+
+the compiler notices that you have statements immediately following the ``break`` and will fail to compile with “unreachable code” as the reason. The same is true for ``continue`` and ``return`` statements
+
+```java
+int minute = 1;
+WATCH: while (minute > 2) {
+    if (minute++ > 2) {
+        continue WATCH;
+         System.out.print(minute); // DOES NOT COMPILE
+    }
+}
+
+int hour = 2;
+switch (hour) {
+    case 1:
+        return; 
+         hour++; // DOES NOT COMPILE
+    case 2:
+}
+```
+
+One thing to remember is that it does not matter if the loop or decision structure actually visits the line of code. For example, the loop could execute zero or infinite times at runtime. Regardless of execution, the compiler will report an error if it finds any code it deems unreachable, in this case any statements immediately following a break, continue, or return statement.
+
+### Reviewing Branching
+
+| Control Statement | Support Labels | Support Break | Support Continue | Support Yield |
+|-------------------|----------------|---------------|-------------------|---------------|
+| while             | Yes            | Yes           | Yes               | No            |
+| do/while          | Yes            | Yes           | Yes               | No            |
+| for               | Yes            | Yes           | Yes               | No            |
+| switch            | Yes            | Yes           | No                | Yes           |
+
+---
+
+**Some of the most time-consuming questions you may see on the exam could involve nested loops with lots of branching. Unless you spot an obvious compiler error, we recommend skipping these questions and coming back to them at the end. Remember, all questions on the exam are weighted evenly!** #TIP 
+
+---
+
+## Summary #OCP_Summary 
+
+This chapter presented how to make intelligent decisions in Java.
+
+We covered basic decision-making constructs such as if, else, and switch statements and showed how to use them to change the path of the process at runtime. We also presented newer features in the Java language, including pattern matching and switch expressions, both designed to reduce boilerplate code.
+
+We then moved our discussion to repetition control structures, starting with while and do/while loops.
+
+Next, we covered the extremely convenient repetition control structures: the for and for-each loops. While their syntax is more complex than the traditional while or do/while loops, they are extremely useful in everyday coding and allow you to create complex expressions in a single line of code.
+
+We concluded this chapter by discussing advanced control options and how flow can be enhanced through nested loops coupled with break, continue, and return statements.
+
+## Exam Essentials #Essential 
+
+- **Understand if and else decision control statements**. The if and else statements come up frequently throughout the exam in questions unrelated to decision control, so make sure you fully understand these basic building blocks of Java.
+
+- **Apply pattern matching and flow scoping**. Pattern matching can be used to reduce boilerplate code involving an if statement, instanceof operator, and cast operation using a pattern variable. It can also include a pattern or filter after the pattern variable declaration. Pattern matching uses flow scoping in which the pattern variable is in scope as long as the compiler can definitively determine its type.
+
+- **Understand switch statements and their proper usage**. You should be able to spot a poorly formed ``switch`` statement on the exam. The switch value and data type should be compatible with the case statements, and the values for the case statements must evaluate to compile-time constants. Finally, at runtime, a ``switch`` statement branches to the first matching ``case``, or ``default`` if there is no match, or exits entirely if there is no match and no default branch. The process then ``continues`` into any proceeding case or default statements until a break or return statement is reached.
+
+- **Use switch expressions correctly**. Discern the differences between ``switch`` expressions and ``switch`` statements. Understand how to write switch expressions correctly, including proper use of semicolons, writing ``case`` expressions and blocks that ``yield`` a consistent value, and making sure all possible values of the switch variable are handled by the switch expression.
+
+- **Write while loops**. Know the syntactical structure of all ``while`` and ``do/while`` loops. In particular, know when to use one versus the other.
+
+- **Be able to use for loops**. You should be familiar with ``for`` and ``for-each`` loops and know how to write and evaluate them. Each loop has its own special properties and structures. You should know how to use for-each loops to iterate over lists and arrays.
+
+- **Understand how break, continue, and return can change flow control**. Know how to change the flow control within a statement by applying a break, continue, or return statement. Also know which control statements can accept break statements and which can accept continue statements. Finally, you should understand how these statements work inside embedded loops or switch statements.
+
+
