@@ -6184,8 +6184,196 @@ Dubai Time: 2020-01-31 22:09:41.705858 +0400 +04
 ```
 
 ---
+# GO-CRON 
+
+The **`cron`** command-line utility is a job scheduler "Job scheduler") on Unix-like operating systems. Users who set up and maintain software environments use cron to schedule jobs **cron jobs**, to run periodically at fixed times, dates, or intervals. It typically automates system maintenance or administration—though its general-purpose nature makes it useful for things like downloading files from the Internet and downloading email at regular intervals.
+
+```
+# ┌───────────── minute (0 - 59)
+# │ ┌───────────── hour (0 - 23)
+# │ │ ┌───────────── day of the month (1 - 31)
+# │ │ │ ┌───────────── month (1 - 12)
+# │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday)
+# │ │ │ │ │                                   OR sun, mon, tue, wed, thu, fri, sat
+# │ │ │ │ │ 
+# │ │ │ │ │
+# * * * * *
+```
+
+``gocron`` is a job scheduling package which lets you run Go functions at pre-determined intervals.
+
+```shell
+go get github.com/go-co-op/gocron/v2
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/go-co-op/gocron/v2"
+)
+
+func main() {
+	// create a scheduler
+	s, err := gocron.NewScheduler()
+	if err != nil {
+		// handle error
+	}
+
+	// add a job to the scheduler
+	j, err := s.NewJob(
+		gocron.DurationJob(
+			10*time.Second,
+		),
+		gocron.NewTask(
+			func(a string, b int) {
+				// do things
+			},
+			"hello",
+			1,
+		),
+	)
+	if err != nil {
+		// handle error
+	}
+	// each job has a unique id
+	fmt.Println(j.ID())
+
+	// start the scheduler
+	s.Start()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Minute):
+	}
+
+	// when you're done, shut it down
+	err = s.Shutdown()
+	if err != nil {
+		// handle error
+	}
+}
+```
+
+## Concepts
+
+- **Job**: The job encapsulates a "task", which is made up of a go function and any function parameters. The Job then provides the scheduler with the time the job should next be scheduled to run.
+- **Scheduler**: The scheduler keeps track of all the jobs and sends each job to the executor when it is ready to be run.
+- **Executor**: The executor calls the job's task and manages the complexities of different job execution timing requirements
+
+## Features
+
+### Job Types
+
+Jobs can be run at various intervals.
+
+- [**Duration**](https://pkg.go.dev/github.com/go-co-op/gocron/v2#DurationJob): Jobs can be run at a fixed `time.Duration`.
+- [**Random duration**](https://pkg.go.dev/github.com/go-co-op/gocron/v2#DurationRandomJob): Jobs can be run at a random `time.Duration` between a min and max.
+- [**Cron**](https://pkg.go.dev/github.com/go-co-op/gocron/v2#CronJob): Jobs can be run using a crontab.
+- [**Daily**](https://pkg.go.dev/github.com/go-co-op/gocron/v2#DailyJob): Jobs can be run every x days at specific times.
+- [**Weekly**](https://pkg.go.dev/github.com/go-co-op/gocron/v2#WeeklyJob): Jobs can be run every x weeks on specific days of the week and at specific times.
+- [**Monthly**](https://pkg.go.dev/github.com/go-co-op/gocron/v2#MonthlyJob): Jobs can be run every x months on specific days of the month and at specific times.
+- [**One time**](https://pkg.go.dev/github.com/go-co-op/gocron/v2#OneTimeJob): Jobs can be run once at a specific time. These are non-recurring jobs.
+
+**Examples**
+
+```GO
+package main
+
+import (
+	"fmt"
+	"github.com/go-co-op/gocron/v2"
+	"os"
+	"time"
+)
+
+func printMessage(message string) {
+	fmt.Println(message)
+}
+
+func runApp() {
+	scheduler, err := gocron.NewScheduler()
+
+	if err != nil {
+		fmt.Printf("Problem occurred while creating scheduler:%s\n", err.Error())
+		os.Exit(1)
+	}
+
+	job, err := scheduler.NewJob(gocron.DurationJob(10*time.Second), gocron.NewTask(printMessage, "Hello, World!..."))
+
+	if err != nil {
+		fmt.Printf("Problem occurred while creating job:%s\n", err.Error())
+		os.Exit(1)
+	}
+	fmt.Printf("Job Id = %v, Job Name:%s\n", job.ID(), job.Name())
+	scheduler.Start()
+
+	console.ReadString("")
+
+	err = scheduler.Shutdown()
+	if err != nil {
+		fmt.Printf("Problem occurred while shut down:%s\n", err.Error())
+		os.Exit(1)
+	}
+
+}
+
+func main() {
+	runApp()
+}
+```
+
+```GO
+package main
+
+import (
+	"SampleGoLand/csd/console"
+	"fmt"
+	"github.com/go-co-op/gocron/v2"
+	"os"
+)
+
+func printMessage(message string) {
+	fmt.Println(message)
+}
+
+func runApp() {
+	scheduler, err := gocron.NewScheduler()
+
+	defer func() {
+		err = scheduler.Shutdown()
+		if err != nil {
+			fmt.Printf("Problem occurred while shut down:%s\n", err.Error())
+			os.Exit(1)
+		}
+	}()
+
+	if err != nil {
+		fmt.Printf("Problem occurred while creating scheduler:%s\n", err.Error())
+		os.Exit(1)
+	}
+
+	_, err = scheduler.NewJob(gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(19, 9, 10))), gocron.NewTask(printMessage, "Hello, World!..."))
+
+	if err != nil {
+		fmt.Printf("Problem occurred while creating job:%s\n", err.Error())
+		os.Exit(1)
+	}
+	scheduler.Start()
+
+	console.ReadString("")
+}
+
+func main() {
+	runApp()
+}
+```
 
 
+---
 # GO - SQL
 
 ## User 
@@ -9322,7 +9510,7 @@ func main() {
 ```
 
 the output: 
-```text
+```json
 main.FullPerson{
   Name: "James Peterson",
   Age: 37,
