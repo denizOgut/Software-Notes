@@ -6068,6 +6068,8 @@ F. The code will not compile because of line 8.
 **My Answer: E,F**
 **Correct Answer: B**
 
+**The code compiles and runs without issue, Even though two consecutive else statements on lines 7 and 8 look a little odd, they are associated with separate if statements on lines 5 and 6, respectively**
+
 ---
 
 3. Which of the following data types are permitted on the right side of a for-each expression? (Choose all that apply.)
@@ -6109,6 +6111,8 @@ F. None of the above
 **My Answer: C**
 **Correct Answer: F**
 
+**The code does not compile because the switch expression requires all possible case values to be handled, making option F correct. If a valid default statement was added, then the code would compile**
+
 ---
 
 5. What is the output of the following code snippet?
@@ -6140,6 +6144,8 @@ H. The code contains an infinite loop and does not terminate.
 
 **My Answer: C**
 **Correct Answer: E**
+
+**The second for-each loop contains a continue followed by a print() statement. Because the continue is not conditional and always included as part of the body of the for-each loop, the print() statement is not reachable**
 
 ---
 
@@ -6236,6 +6242,8 @@ G. None of the above, as the code contains a compiler error.
 **My Answer: B,E**
 **Correct Answer: B,C,E**
 
+**The code contains a nested loop and a conditional expression that is executed if the sum of col + row is an even number; otherwise, count is incremented**
+
 ---
 
 10. Given the following method, how many lines contain compilation errors? (Choose all that apply.)
@@ -6267,6 +6275,12 @@ H. The code compiles but may produce an error at runtime.
 
 **My Answer: H**
 **Correct Answer: E**
+
+**Line 15 does not compile, as continue cannot be used inside a switch statement like this.**
+**Line 16 is not a compile-time constant since any int value can be passed as a parameter. Marking it final does not change this, so it doesn’t compile.**
+**Line 18 does not compile because Sunday is not marked as final. Being effectively final is insufficient.**
+**line 19 does not compile because DayOfWeek.MONDAY is not an int value. While switch statements do support enum values, each case statement must have the same data type as the switch variable otherDay, which is int**
+
 
 ---
 
@@ -6442,6 +6456,7 @@ G. None of the above
 **My Answer: A,D**
 **Correct Answer: A,B,D**
 
+
 ---
 
 17. What distinct numbers are printed when the following method is executed? (Choose all that apply.)
@@ -6510,6 +6525,8 @@ G. None of the above
 **My Answer: E**
 **Correct Answer: F**
 
+**The variable snake is declared within the body of the do/while statement, so it is out of scope on line 7.**
+
 ---
 
 20. Which statements, when inserted into the following blanks, allow the code to compile and run without entering an infinite loop? (Choose all that apply.)
@@ -6539,6 +6556,8 @@ F. None of the above, as the code contains a compiler error
 **My Answer: B,E**
 **Correct Answer: A,E**
 
+**The most important thing to notice when reading this code is that the innermost loop is an infinite loop. Therefore, you are looking for solutions that skip the innermost loop entirely or that exit that loop.**
+
 ---
 
 21. A minimum of how many lines need to be corrected before the following method will compile?
@@ -6564,6 +6583,7 @@ F. Five
 **My Answer: D**
 **Correct Answer: E**
 
+**Line 22 does not compile because Long is not a compatible type for a switch statement or expression. Line 23 does not compile because it is missing a semicolon after "Jane" and a yield statement. Line 24 does not compile because it contains an extra semicolon at the end. Finally, lines 25 and 26 do not compile because they use the same case value**
 
 ---
 
@@ -6588,8 +6608,10 @@ E. 5 2 1
 F. The code will not compile because of lines 3–5.
 G. The code will not compile because of line 6.
 
-**My Answer: E**
-**Correct Answer: G**
+**My Answer: G**
+**Correct Answer: E**
+
+**The code compiles without issue var is supported in both switch and while loops, provided the compiler determines that the type is compatible with these statements. In addition, the variable one is allowed in a case statement because it is a final local variable, making it a compile-time constant.**
 
 ---
 
@@ -6613,6 +6635,8 @@ F. None of the above
 **My Answer: D**
 **Correct Answer: F**
 
+**Line 19 starts with an else statement, but there is no preceding if statement that it matches. For this reason, line 19 does not compile, making option F the correct answer** 
+
 ---
 
 24. Which of the following are possible data types for friends that would allow the code to compile? (Choose all that apply.)
@@ -6633,6 +6657,8 @@ G. None of the above
 
 **My Answer: A,D,E**
 **Correct Answer: G**
+
+**The statement is not a valid for-each loop (or a traditional for loop) since it uses a nonexistent in keyword**
 
 ---
 
@@ -6662,6 +6688,8 @@ F. The code does not compile.
 **My Answer: F**
 **Correct Answer: D**
 
+**The code compiles without issue, so option F is incorrect. The viola variable created on line 8 is never used and can be ignored. If it had been used as the case value on line 15, it would have caused a compilation error since it is not marked final. Since "violin" and "VIOLIN" are not an exact match, the default branch of the switch statement is executed at runtime. This execution path increments p a total of three times, bringing the final value of p to 2 and making option D the correct answer.**
+
 ---
 
 26. What is the output of the following code snippet? (Choose all that apply.)
@@ -6690,6 +6718,8 @@ G. The code compiles but throws a NullPointerException at runtime.
 
 **My Answer: B**
 **Correct Answer: F**
+
+**The code snippet does not contain any compilation errors, There is a problem with this code snippet, though. While it may seem complicated, the key is to notice that the variable r is updated outside of the do/while loop. This is allowed from a compilation standpoint, since it is defined before the loop, but it means the innermost loop never breaks the termination condition r <= 1. At runtime, this will produce an infinite loop the first time the innermost loop is entered**
 
 ---
 
@@ -6742,6 +6772,8 @@ F. None of the above
 **My Answer: F**
 **Correct Answer: F**
 
+**Based on flow scoping, guppy is in scope after lines 41–42 if the type is not a String. In this case, line 43 declares a variable guppy that is a duplicate of the previously defined local variable defined on line 41. For this reason, the code does not compile, and option F is correct.**
+
 ---
 
 29. What is the result of the following code?
@@ -6755,11 +6787,9 @@ F. None of the above
 6: } }
 ```
 
-A. -2 -1
-0 1 2 3 4 5
+A. -2 -1 0 1 2 3 4 5
 B. -2 -1 0 1 2 3 4
-C. -1
-0 1 2 3 4 5 6
+C. -1 0 1 2 3 4 5 6
 D. -1 0 1 2 3 4 5
 E. The code will not compile because of line 5.
 F. The code contains an infinite loop and does not terminate.
@@ -6770,5 +6800,434 @@ F. The code contains an infinite loop and does not terminate.
 ---
 
 # Chapter 4 - Core APIs #Chapter
+
+## Creating and Manipulating Strings
+
+A string is basically a sequence of characters;
+
+```JAVA
+String name = "Fluffy";
+```
+
+this is an example of a reference type. reference types are created using the *new* keyword. In Java, these two
+snippets both create a ``String``:
+
+```JAVA
+String name = "Fluffy";
+String name = new String("Fluffy");
+```
+
+Both give you a reference variable named name pointing to the String object *Fluffy*. String class is special and doesn’t need to be instantiated with ``new``.  Further, text blocks are another way of creating a String. To review, this text block is the same as the previous variables:
+
+```java
+String name = """
+Fluffy""";
+```
+
+Since a ``String`` is a sequence of characters, it implements the interface ``CharSequence``. This interface is a general way of representing several classes, including ``String`` and ``StringBuilder`` . 
+
+### Concatenating
+
+Java combines the two String objects. Placing one String before the other String and combining them is called string *concatenation.* 
+The exam creators like string concatenation because the ``+`` operator can be used in two ways within the same line of code.
+
+1. ==**If both operands are numeric, ``+`` means numeric addition.**==
+2. ==**If either operand is a String, ``+`` means concatenation.**==
+3. ==**The expression is evaluated left to right.**==
+
+```java
+System.out.println(1 + 2); // 3
+System.out.println("a" + "b"); // ab
+System.out.println("a" + "b" + 3); // ab3
+System.out.println(1 + 2 + "c"); // 3c
+System.out.println("c" + 1 + 2); // c12
+System.out.println("c" + null); // cnull
+```
+
+- The first example uses the first rule. Both operands are numbers, so we use normal addition.
+- The second example is simple string concatenation, described in the second rule.
+- The third example combines the second and third rules. Since we start on the left, Java
+	figures out what "a" + "b" evaluates to. Then Java looks at the remaining expression of "ab" + 3. The second rule tells us to concatenate since one of the operands is a ``String``.
+- In the fourth example, start with the third rule, which tells us to consider 1 + 2. Both operands are numeric, so the first rule tells us the answer is 3. Then we have 3 + "c", which uses the second rule to give us "3c". 
+- The fifth example shows the importance of the third rule. First we have "c" + 1, which uses the second rule to give us "c1". Then we have "c1" + 2, which uses the second rule again to give us "c12".
+- Finally, the last example shows how ``null`` is represented as a string when concatenated or printed, giving us ``"cnull"``.
+
+```java
+int three = 3;
+String four = "4";
+System.out.println(1 + 2 + three + four); // 64 type String
+```
+
+just take it slow, remember the three rules, and be sure to check the variable types. 
+There is one more thing to know about concatenation, s += "2" means the same thing as s = s + "2".
+
+```java
+	4: var s = "1"; // s currently holds "1"
+	5: s += "2"; // s currently holds "12"
+	6: s += 3; // s currently holds "123"
+	7: System.out.println(s); // 123
+```
+
+==**use numeric addition if two numbers are involved, use concatenation otherwise, and evaluate from left to right.**==
+
+### Important String Methods
+
+For all these methods, you need to remember that a string is a sequence of characters and ==**Java counts from 0 when indexed.**==
+
+also need to know that a ==**String is immutable, or unchangeable. This means calling a method on a String will return a different String object rather than changing the value of the reference.**==
+
+#### Determining the Length
+
+The method ``length()`` returns the number of characters in the String.
+```java
+public int length()
+```
+
+```java
+var name = "animals";
+System.out.println(name.length()); // 7
+```
+
+Java counts from 0? The difference is that zero counting happens only when you’re using indexes or positions 
+within a list. When determining the total size or length, Java uses normal counting again.
+
+#### Getting a Single Character
+
+The method ``charAt()`` lets you query the string to find out what character is at a specific index.
+```java
+public char charAt(int index)
+```
+
+```java
+var name = "animals";
+System.out.println(name.charAt(0)); // a
+System.out.println(name.charAt(6)); // s
+System.out.println(name.charAt(7)); // exception
+```
+
+#### Finding an Index
+
+The method ``indexOf()`` looks at the characters in the string and finds the first index that matches the desired value. The ``indexOf`` method can work with an individual character or a whole String as input. It can also start from a requested position. char can be passed to an int parameter type.
+
+```java
+public int indexOf(int ch)
+public int indexOf(int ch, int fromIndex)
+public int indexOf(String str)
+public int indexOf(String str, int fromIndex)
+```
+
+```java
+var name = "animals";
+System.out.println(name.indexOf('a')); // 0
+System.out.println(name.indexOf("al")); // 4
+System.out.println(name.indexOf('a', 4)); // 4
+System.out.println(name.indexOf("al", 5)); // -1
+```
+
+==**Unlike ``charAt()``, the ``indexOf()`` method doesn’t throw an exception if it can’t find a match, instead returning –1.**== Because indexes start with 0, the caller knows that –1 couldn’t be a valid index.
+
+#### Getting a Substring
+
+The method ``substring()`` also looks for characters in a string. It returns parts of the string. The first parameter is the index to start with for the returned string. As usual, this is a zero-based index. There is an optional second parameter, which is the end index you want to stop at.
+
+==**Notice  “stop at” rather than “include.”**== This means the ``endIndex`` parameter is allowed to be one past the end of the sequence if you want to stop at the end of the sequence. That would be redundant, though, since you could omit the second parameter entirely in that case
+
+```java
+public String substring(int beginIndex)
+public String substring(int beginIndex, int endIndex)
+```
+
+![[Pasted image 20240204161904.png]]
+
+```java
+var name = "animals";
+System.out.println(name.substring(3)); // mals
+System.out.println(name.substring(name.indexOf('m'))); // mals
+System.out.println(name.substring(3, 4)); // m
+System.out.println(name.substring(3, 7)); // mals
+```
+
+The ``substring()`` method is the trickiest String method on the exam. The second example calls ``indexOf()`` to get the index rather than hard-coding it. This is a common practice when coding because you may not know the index in advance.
+
+```java
+System.out.println(name.substring(3, 3)); // empty string
+System.out.println(name.substring(3, 2)); // exception
+System.out.println(name.substring(3, 8)); // exception
+```
+
+The first example in this set prints an empty string. The request is for the characters starting with index 3 until we get to index 3. ==**Since we start and end with the same index, there are no characters in between.**==
+
+==**The method returns the string starting from the requested index. If an end index is requested, it stops right before that index. Otherwise, it goes to the end of the string.**==
+
+#### Adjusting Case
+
+```java
+public String toLowerCase()
+public String toUpperCase()
+```
+
+```java
+var name = "animals";
+System.out.println(name.toUpperCase()); // ANIMALS
+System.out.println("Abc123".toLowerCase()); // abc123
+```
+
+==**These methods leave alone any characters other than letters. Also, remember that strings are immutable, so the original string stays the same.**==
+
+#### Checking for Equality
+
+- ==**The ``equals()`` method checks whether two String objects contain exactly the same characters in the same order.**== 
+- ==**The ``equalsIgnoreCase()`` method checks whether two String objects contain the same characters, with the exception that it ignores the characters’ case.**==
+
+```java
+public boolean equals(Object obj)
+public boolean equalsIgnoreCase(String str)
+```
+
+``equals()`` takes an Object rather than a String. This is because the method is the same for all objects. If you pass in something that isn’t a String, it will just return false. By contrast, the ``equalsIgnoreCase()`` method only applies to String objects, so it can take the more specific type as the parameter.
+
+```java
+System.out.println("abc".equals("ABC")); // false
+System.out.println("ABC".equals("ABC")); // true
+System.out.println("abc".equalsIgnoreCase("ABC")); // true
+```
+
+---
+**Overriding`` toString()``, ``equals(Object)``, and ``hashCode()``**
+
+- **``toString()``: The ``toString()`` method is called when you try to print an object or concatenate the object with a String. It is commonly overridden with a version that prints a unique description of the instance using its instance fields.**
+- **``equals(Object)``: The ``equals(Object)`` method is used to compare objects, with the default implementation just using the == operator. You should override the ``equals(Object)`` method any time you want to conveniently compare elements for equality, especially if this requires checking numerous fields.**
+- **``hashCode()``: Any time you override ``equals(Object)``, you must override ``hashCode()`` to be consistent. This means that for any two objects, ``if a.equals(b)`` is true, then ``a.hashCode() == b.hashCode()`` must also be true. If they are not consistent, this could lead to invalid data and side effects in hash-based collections such as ``HashMap`` and ``HashSet``.**
+
+---
+
+#### Searching for Substrings
+
+The ``startsWith()`` and ``endsWith()`` methods look at whether the provided value matches part of the String. The ``contains()`` method isn’t as particular; it looks for matches anywhere in the String.
+
+```java
+public boolean startsWith(String prefix)
+public boolean endsWith(String suffix)
+public boolean contains(CharSequence charSeq)
+```
+
+```java
+System.out.println("abc".startsWith("a")); // true
+System.out.println("abc".startsWith("A")); // false
+
+System.out.println("abc".endsWith("c")); // true
+System.out.println("abc".endsWith("a")); // false
+
+System.out.println("abc".contains("b")); // true
+System.out.println("abc".contains("B")); // false
+```
+
+#### Replacing Values
+
+The ``replace()`` method does a simple search and replace on the string. There’s a version that takes char parameters as well as a version that takes ``CharSequence`` parameters.
+
+```java
+public String replace(char oldChar, char newChar)
+public String replace(CharSequence target, CharSequence replacement)
+```
+
+```java
+System.out.println("abcabc".replace('a', 'A')); // AbcAbc
+System.out.println("abcabc".replace("a", "A")); // AbcAbc
+```
+
+#### Removing Whitespace
+ 
+ These methods remove blank space from the beginning and/or end of a String. The`` strip()`` and ``trim()`` methods remove whitespace from the beginning and end of a String. In terms of the exam, whitespace consists of spaces along with the \t (tab) and \n (newline) characters. Other characters, such as \r (carriage return), are also included in what gets trimmed.
+The ``strip()`` method does everything that ``trim()`` does, but it supports Unicode.
+
+Additionally, the ``stripLeading()`` method removes whitespace from the beginning of the String and leaves it at the end. The ``stripTrailing()`` method does the opposite. It removes whitespace from the end of the String and leaves it at the beginning.
+
+```java
+public String strip()
+public String stripLeading()
+public String stripTrailing()
+public String trim()
+```
+
+```java
+System.out.println("abc".strip()); // abc
+System.out.println("\t a b c\n".strip()); // a b c
+
+String text = " abc\t ";
+System.out.println(text.trim().length()); // 3
+System.out.println(text.strip().length()); // 3
+System.out.println(text.stripLeading().length()); // 5
+System.out.println(text.stripTrailing().length());// 4
+```
+
+First, remember that ``\t`` is a single character. The backslash escapes the t to represent a tab.
+The second example gets rid of the leading tab, subsequent spaces, and the trailing newline. It leaves the spaces that are in the middle of the string.
+The remaining examples just print the number of characters remaining
+
+#### Working with Indentation
+
+```java
+public String indent(int numberSpaces)
+public String stripIndent()
+```
+
+The`` indent()`` method 
+- ==**Positive: Adds the same number of blank spaces to the beginning of each line.**==
+- ==**Negative: Tries to remove the specified number of whitespace characters from the beginning of the line.**==
+- ==**Zero: The indentation remains unchanged.**==
+
+---
+
+**If you call ``indent()`` with a negative number and try to remove more whitespace characters than are present at the beginning of the line, Java will remove all that it can find.**
+
+---
+
+``indent()`` also normalizes whitespace characters. What does normalizing whitespace mean, you ask?
+- ==**First, a line break is added to the end of the string if not already there.**==
+- ==**Second, any line breaks are converted to the ``\n`` format. Regardless of whether your operating system uses**==
+
+The ``stripIndent()`` method is useful when a String was built with concatenation rather than using a text block. ==**It gets rid of all incidental whitespace.**== This means that all non-blank lines are shifted left so the same number of whitespace characters are removed from each line and the first character that remains is not blank
+
+Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`` method does not add a trailing line break if it is missing.**==
+
+| Method               | Indent change                                    | Normalizes existing line breaks | Adds line break at end if missing |
+|----------------------|--------------------------------------------------|---------------------------------|------------------------------------|
+| `indent(n)` where n > 0 | Adds n spaces to beginning of each line           | Yes                             | Yes                                |
+| `indent(n)` where n == 0| No change                                        | Yes                             | Yes                                |
+| `indent(n)` where n < 0 | Removes up to n spaces from each line             | Yes                             | Yes                                |
+| `stripIndent()`       | Removes all leading incidental whitespace         | Yes                             | No                                 |
+
+```java
+10: var block = """
+11: a
+12: b
+13: c""";
+14: var concat = " a\n"
+15: + " b\n"
+16: + " c";
+17: System.out.println(block.length()); // 6
+18: System.out.println(concat.length()); // 9
+19: System.out.println(block.indent(1).length()); // 10
+20: System.out.println(concat.indent(-1).length()); // 7
+21: System.out.println(concat.indent(-4).length()); // 6
+22: System.out.println(concat.stripIndent().length()); // 6
+```
+
+- Lines 10–16 create similar strings using a text block and a regular String, respectively. We say “similar” because concat has a whitespace character at the beginning of each line while block does not.
+- Line 17 counts the six characters in block, which are the three letters, the blank space before b, and the \n after a and b.
+- Line 18 counts the nine characters in concat, which are the three letters, one blank space before a, two blank spaces before b, one blank space before c, and the \n after a and b.
+- line 19, we ask Java to add a single blank space to each of the three lines in block. However, the output says we added 4 characters rather than 3 since the length went from 6 to 10 This mysterious additional character is thanks to the line termination normalization. ==**Since the text block doesn’t have a line break at the end, indent() adds one!**==
+- line 20, we remove one whitespace character from each of the three lines of concat. This gives a length of seven.
+- line 21, we ask Java to remove four whitespace characters from the same three lines. Since there are not four whitespace characters, Java does its best. The single space is removed before a and c. Both spaces are removed before b. The length of six should make sense here; we removed one more character here than on line 20.
+- line 22 uses the ``stripIndent()`` method. All of the lines have at least one whitespace character. Since they do not all have two whitespace characters, the method only gets rid of one character per line. Since no new line is added by ``stripIndent()``, the length is six, which is three less than the original nine.
+
+#### Translating Escapes
+
+When we escape characters, we use a single backslash. For example, ``\t`` is a tab. If we don’t want this behavior, we add another backslash to escape the backslash, so ``\\t`` is the literal string ``\t``.
+The ``translateEscapes()`` method takes these literals and turns them into the equivalent escaped character.
+
+```java
+public String translateEscapes()
+```
+
+```java
+var str = "1\\t2";
+System.out.println(str); // 1\t2
+System.out.println(str.translateEscapes()); // 1 2
+```
+
+- The first line prints the literal string \t because the backslash is escaped.
+- The second line prints an actual tab since we translated the escape.
+
+This method can be used for escape sequences such as ``\t`` (tab), ``\n`` (new line), ``\s`` (space), ``\"`` (double quote), and ``\'`` (single quote.)
+
+#### Checking for Empty or Blank Strings
+
+```java
+public boolean isEmpty()
+public boolean isBlank()
+```
+
+```java
+System.out.println(" ".isEmpty()); // false
+System.out.println("".isEmpty()); // true
+System.out.println(" ".isBlank()); // true
+System.out.println("".isBlank()); // true
+```
+
+- The first line prints ``false`` because the ``String`` is not empty; it has a blank space in it.
+- The second line prints ``true`` because this time, there are no characters in the ``String``.
+- The final two lines print true because there are no characters other than whitespace present.
+
+#### Formatting Values
+
+Two of the methods take the format string as a parameter, and the other uses an instance for that value. One method takes a ``Locale``
+
+The method parameters are used to construct a formatted String in a single method call, rather than via a lot of format and concatenation operations. They return a reference to the instance they are called on so that operations can be chained together.
+
+```java
+public static String format(String format, Object args...)
+public static String format(Locale loc, String format, Object args...)
+public String formatted(Object args...)
+```
+
+```java
+var name = "Kate";
+var orderId = 5;
+// All print: Hello Kate, order 5 is ready
+System.out.println("Hello "+name+", order "+orderId+" is ready");
+System.out.println(String.format("Hello %s, order %d is ready",
+name, orderId));
+System.out.println("Hello %s, order %d is ready"
+.formatted(name, orderId));
+```
+
+In the ``format()`` and ``formatted()`` operations, the parameters are inserted and formatted via symbols in the order that they are provided in the ``vararg``.
+
+| Symbol | Description                                      |
+|--------|--------------------------------------------------|
+| `%s`   | Applies to any type, commonly String values      |
+| `%d`   | Applies to integer values like int and long      |
+| `%f`   | Applies to floating-point values like float and double |
+| `%n`   | Inserts a line break using the system-dependent line separator |
+```java
+var name = "James";
+var score = 90.25;
+var total = 100;
+System.out.println("%s:%n Score: %f out of %d"
+.formatted(name, score, total));
+```
+
+```text
+James:
+Score: 90.250000 out of 100
+```
+
+==**Mixing data types may cause exceptions at runtime.**== 
+
+### Method Chaining
+
+It is common to call multiple methods as shown here:
+```java
+var start = "AniMaL ";
+var trimmed = start.trim(); // "AniMaL"
+var lowercase = trimmed.toLowerCase(); // "animal"
+var result = lowercase.replace('a', 'A'); // "AnimAl"
+System.out.println(result);
+```
+
+Each time one is called, the returned value is put in a new variable. There are four String values along the way, and ``AnimAl`` is output.
+==**However, on the exam, there is a tendency to cram as much code as possible into a small space. You’ll see code using a technique called *method chaining.***==
+
+```java
+String result = "AniMaL ".trim().toLowerCase().replace('a', 'A');
+System.out.println(result);
+```
+
+==**To read code that uses method chaining, start at the left and evaluate the first method. Then call the next method on the returned value of the first method. Keep going until you get to the semicolon.**==
+
+## Using the ``StringBuilder`` Class
+
 
 
