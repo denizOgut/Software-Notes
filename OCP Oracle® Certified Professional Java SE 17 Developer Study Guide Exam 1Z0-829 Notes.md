@@ -7229,5 +7229,643 @@ System.out.println(result);
 
 ## Using the ``StringBuilder`` Class
 
+```java
+10: String alpha = "";
+11: for(char current = 'a'; current <= 'z'; current++)
+12: alpha += current;
+13: System.out.println(alpha);
+```
 
+==**because the ``String`` object is immutable, a new String object is assigned to alpha, and the ``""`` object becomes eligible for garbage collection.**==
+
+The sequence of events continues, and after 26 iterations through the loop, a total of 27 objects are instantiated, most of which are immediately eligible for garbage collection. 
+
+The ``StringBuilder`` class creates a ``String`` without storing all those interim ``String`` values. Unlike the ``String`` class, ``StringBuilder`` is not immutable.
+
+```java
+15: StringBuilder alpha = new StringBuilder();
+16: for(char current = 'a'; current <= 'z'; current++)
+17: alpha.append(current);
+18: System.out.println(alpha);
+```
+
+This code reuses the same `StringBuilder` without creating an interim String each time.
+
+### Mutability and Chaining
+
+The exam will likely try to trick you with respect to String and StringBuilder being mutable.
+Chaining makes this even more interesting. **==When we chained String method calls, the result was a new String with the answer.==** Chaining StringBuilder methods doesn’t work this way. Instead, the **==StringBuilder changes its own state and returns a reference to itself.==**
+
+```java
+4: StringBuilder sb = new StringBuilder("start");
+5: sb.append("+middle"); // sb = "start+middle"
+6: StringBuilder same = sb.append("+end"); // "start+middle+end"
+```
+
+Line 5 adds text to the end of sb. It also returns a reference to sb, which is ignored. Line 6 also adds text to the end of sb and returns a reference to sb. This time the reference is stored in same. This means sb and same point to the same object and would print out the same value.
+
+```java
+4: StringBuilder a = new StringBuilder("abc");
+5: StringBuilder b = a.append("de");
+6: b = b.append("f").append("g");
+7: System.out.println("a=" + a);
+8: System.out.println("b=" + b);
+```
+
+both print "abcdefg". ==**There’s only one ``StringBuilder`` object here. We know that because new StringBuilder() is called only once.**==
+
+
+### Creating a ``StringBuilder``
+
+```java
+StringBuilder sb1 = new StringBuilder();
+StringBuilder sb2 = new StringBuilder("animal");
+StringBuilder sb3 = new StringBuilder(10);
+```
+
+The final example tells Java that we have some idea of how big the eventual value will be and would like the ``StringBuilder`` to reserve a certain capacity, or number of slots, for characters.
+
+### Important ``StringBuilder`` Methods
+
+#### Using Common Methods
+
+==**These four methods work exactly the same as in the String class.**==
+
+```java
+var sb = new StringBuilder("animals");
+String sub = sb.substring(sb.indexOf("a"), sb.indexOf("al"));
+int len = sb.length();
+char ch = sb.charAt(6);
+System.out.println(sub + " " + len + " " + ch);
+```
+
+**Notice that substring() returns a String rather than a StringBuilder. That is why sb is not changed.**
+
+#### Appending Values
+
+The ``append()`` method is by far the most frequently used method in StringBuilder. it adds the parameter to the StringBuilder and returns a reference to the current StringBuilder.
+
+```java
+public StringBuilder append(String str)
+```
+
+```java
+var sb = new StringBuilder().append(1).append('c');
+sb.append("-").
+append(true);
+System.out.println(sb); // 1c-true
+```
+
+can just call ``append()`` without having to convert your parameter to a String first.`
+
+#### Inserting Data
+
+The ``insert()`` method adds characters to the StringBuilder at the requested index and returns a reference to the current ``StringBuilder``
+
+```java
+public StringBuilder insert(int offset, String str)
+```
+
+```java
+3: var sb = new StringBuilder("animals");
+4: sb.insert(7, "-");
+// sb = animals-5:
+sb.insert(0, "-"); // sb = -animals-
+6:sb.insert(4, "-"); // sb = -ani-mals-
+7:System.out.println(sb);
+```
+
+#### Deleting Contents
+
+The ``delete()`` method is the opposite of the ``insert()`` method.  It removes characters from the sequence and returns a reference to the current StringBuilder. The ``deleteCharAt(``) method is convenient when you want to delete only one character.
+
+```java
+public StringBuilder delete(int startIndex, int endIndex)
+public StringBuilder deleteCharAt(int index)
+```
+
+```java
+var sb = new StringBuilder("abcdef");
+sb.delete(1, 3); // sb = adef
+sb.deleteCharAt(5); // exception
+```
+
+The ``delete()`` method is more flexible than some others when it comes to array indexes. If you specify a second parameter that is past the end of the StringBuilder, Java will just assume you meant the end.
+
+#### Replacing Portions
+
+The ``replace()`` method works differently for StringBuilder than it did for String
+
+```java
+public StringBuilder replace(int startIndex, int endIndex, String newString)
+```
+
+```java
+var builder = new StringBuilder("pigeon dirty");
+builder.replace(3, 6, "sty");
+System.out.println(builder); // pigsty dirty
+```
+
+First, Java deletes the characters starting with index 3 and ending right before index 6. This gives us pig dirty. Then Java inserts the value "sty" in that position. In this example, the number of characters removed and inserted are the same. However, there is no reason they have to be.
+
+```java
+var builder = new StringBuilder("pigeon dirty");
+builder.replace(3, 100, "");
+System.out.println(builder);
+```
+
+the method is first doing a logical delete. The replace() method allows specifying a second parameter that is past the end of the StringBuilder. That means only the first three characters remain.
+
+#### Reversing
+
+The ``reverse()`` method does just what it sounds like: it reverses the characters in the sequences and returns a reference to the current ``StringBuilder``.
+
+```java
+public StringBuilder reverse()
+```
+
+```java
+var sb = new StringBuilder("ABC");
+sb.reverse();
+System.out.println(sb);
+```
+
+
+----
+
+**Working with `toString()`**
+
+The ``Object`` class contains a ``toString()`` method that many classes provide custom implementations of. The ``StringBuilder`` class is one of these.
+
+```java
+var sb = new StringBuilder("ABC");
+String s = sb.toString();
+```
+
+**Often ``StringBuilder`` is used internally for performance purposes, but the end result needs to be a String.**
+
+---
+
+
+## Understanding Equality
+
+### Comparing ``equals()`` and ``==``
+
+```java
+var one = new StringBuilder();
+var two = new StringBuilder();
+var three = one.append("a");
+System.out.println(one == two); // false
+System.out.println(one == three); // true
+```
+
+The one and two variables are both completely separate ``StringBuilder`` objects, giving us two objects. Therefore, the first print statement gives us ``false``.  The three variable is more interesting. Remember how ``StringBuilder`` methods like to return the current reference for chaining? This means one and three both point to the same object, and the second print statement gives us ``true``.
+
+``equals()`` uses logical equality rather than object equality for String objects:
+
+```java
+var x = "Hello World";
+var z = " Hello World".trim();
+System.out.println(x.equals(z)); // true
+```
+
+==**``equals()`` to check the values inside the String rather than the string reference itself.**==
+==**If a class doesn’t have an ``equals()`` method, Java determines whether the references point to the same object, which is exactly what ``==`` does.**==
+
+StringBuilder did not implement equals(). If you call equals() on two StringBuilder instances, it will check reference equality. You can call ``toString()`` on StringBuilder to get a String to check for equality instead.
+
+the exam might try to trick you with a question like this.
+
+```java
+var name = "a";
+var builder = new StringBuilder("a");
+System.out.println(name == builder); // DOES NOT COMPILE
+```
+
+``==`` is checking for object reference equality. The compiler is smart enough to know that two references can’t possibly point to the same object when they are completely different types.
+
+### The String Pool
+
+Since strings are everywhere in Java, they use up a lot of memory. Java realizes that many strings repeat in the program and solves this issue by reusing common ones. ==**The string pool, also known as the intern pool, is a location in the Java Virtual Machine (JVM) that collects all these strings.**==
+
+==**The string pool contains literal values and constants that appear in your program. For example, *"name"* is a literal and therefore goes into the string pool. The ``myObject.toString()`` method returns a string but not a literal, so it does not go into the string pool.**==
+
+```java
+var x = "Hello World";
+var y = "Hello World";
+System.out.println(x == y); // true
+```
+
+Remember that ==**a String is immutable and literals are pooled. The JVM created only one literal in memory. The x and y variables both point to the same location in memory**==; therefore, the statement outputs true
+
+```java
+var x = "Hello World";
+var z = " Hello World".trim();
+System.out.println(x == z); // false
+```
+
+we don’t have two of the same String literal. ==**Although x and z happen to evaluate to the same string, one is computed at runtime. Since it isn’t the same at compile-time, a new String object is created**==
+
+```java
+var singleString = "hello world";
+var concat = "hello ";
+concat += "world";
+System.out.println(singleString == concat); // false
+```
+
+==**Calling ``+=`` is just like calling a method and results in a new String**==
+
+```java
+var x = "Hello World"; // String Pool
+var y = new String("Hello World"); // New Object @ Heap
+System.out.println(x == y); // false
+```
+
+ ==**The ``intern()`` method will use an object in the string pool if one is present.**==
+
+```java
+public String intern()
+```
+
+```java
+var name = "Hello World";
+var name2 = new String("Hello World").intern();
+System.out.println(name == name2); // true
+```
+
+
+```java
+15: var first = "rat" + 1;
+16: var second = "r" + "a" + "t" + "1";
+17: var third = "r" + "a" + "t" + new String("1");
+18: System.out.println(first == second); // true
+19: System.out.println(first == second.intern()); // true
+20: System.out.println(first == third); // false
+21: System.out.println(first == third.intern()); // false 
+```
+
+- On line 15, we have a compile-time constant that automatically gets placed in the string pool as "rat1".
+- On line 16, we have a more complicated expression that is also a compile-time constant. Therefore, first and second share the same string pool reference. This makes lines 18 and 19 print true.
+- On line 17, we have a String constructor. This means we no longer have a compile-time constant, and third does not point to a reference in the string pool. Therefore, line 20 prints false.
+- On line 21, the intern() call looks in the string pool. Java notices that first points to the same String and prints true.
+
+## Understanding Arrays 
+
+An array is an area of memory on the heap with space for a designated number of elements.
+an array can be of any other Java type.
+
+```java
+char[] letters;
+```
+
+==**Keep in mind that letters is a reference variable and not a primitive. The char type is a primitive. But char is what goes into the array and not the type of the array itself. The array itself is of type char[].**==
+
+An array is an ordered list. It can contain duplicates.
+
+### Creating an Array of Primitives
+
+The most common way to create an array
+
+![[Pasted image 20240206131327.png]]
+
+
+==**When you use this form to instantiate an array, all elements are set to the default value for that type.**==
+
+Another way to create an array is to specify all the elements it should start out with:
+
+```java
+int[] moreNumbers = new int[] {42, 55, 99};
+```
+
+Java recognizes that this expression is redundant. Since you are specifying the type of the array on the left side of the equals sign, Java already knows the type. And since you are specifying the initial values, it already knows the size. As a shortcut, Java lets you write this:
+
+```java
+int[] moreNumbers = {42, 55, 99};
+```
+
+This approach is called an ***anonymous array***.
+
+```java
+int[] numAnimals;
+int [] numAnimals2;
+int []numAnimals3;
+int numAnimals4[];
+int numAnimals5 [];
+```
+
+
+---
+
+**Multiple “*Arrays*” in Declarations**
+
+```java
+int[] ids, types;
+```
+
+**two variables of type int[]. This seems logical enough. After all, int a, b; created two int variables**
+
+```java
+int ids[], types;
+```
+
+**This time we get one variable of type int[] and one variable of type int. Java sees this line of code and thinks something like this: “They want two variables of type int. The first one is called ids[]. This one is an int[] called ids. The second one is just called types. No brackets, so it is a regular integer.”**
+
+---
+
+### Creating an Array with Reference Variables
+
+You can choose any Java type to be the type of the array. This includes classes you create yourself.
+
+```java
+String[] bugs = { "cricket", "beetle", "ladybug" };
+String[] alias = bugs;
+System.out.println(bugs.equals(alias)); // true
+System.out.println(bugs.toString()); // [Ljava.lang.String;@160bc7c0
+```
+
+We can call ``equals()`` because an array is an object. It returns true because of reference equality. The ``equals()`` method on arrays does not look at the elements of the array.
+
+what do you think this array points to?
+
+```java
+public class Names {
+	String names[];
+}
+```
+
+==**The code never instantiated the array, so it is just a reference variable to null**==
+
+```java
+public class Names {
+String names[] = new String[2];
+}
+```
+
+Each of those two slots currently is null but has the potential to point to a String object.
+
+```java
+3: String[] strings = { "stringValue" };
+4: Object[] objects = strings;
+5: String[] againStrings = (String[]) objects;
+6: againStrings[0] = new StringBuilder(); // DOES NOT COMPILE
+7: objects[0] = new StringBuilder(); // Careful!
+```
+ 
+ Line 7 is where this gets interesting. From the point of view of the compiler, this is just fine. A ``StringBuilder`` object can clearly go in an ``Object[]``. The problem is that we don’t actually have an ``Object[]``. We have a ``String[]`` referred to from an ``Object[]`` variable. At runtime, the code throws an ``ArrayStoreException``.
+
+### Using an Array
+
+```java
+4: String[] mammals = {"monkey", "chimp", "donkey"};
+5: System.out.println(mammals.length); // 3
+6: System.out.println(mammals[0]); // monkey
+7: System.out.println(mammals[1]); // chimp
+8: System.out.println(mammals[2]); // donkey
+```
+
+Note that there are no parentheses after length since it is not a method.
+
+```java
+4: String[] mammals = {"monkey", "chimp", "donkey"};
+5: System.out.println(mammals.length()); // DOES NOT COMPILE
+```
+
+
+```java
+var birds = new String[6];
+System.out.println(birds.length);
+```
+
+Even though all six elements of the array are null, there are still six of them. ==**The length attribute does not consider what is in the array; it only considers how many slots have been allocated.**==
+
+```java
+5: var numbers = new int[10];
+6: for (int i = 0; i < numbers.length; i++)
+7: numbers[i] = i + 5;
+```
+
+The exam will test whether you are being observant by trying to access elements that are not in the array.
+why each of these throws an `ArrayIndexOutOfBoundsException` for our array of size 10?
+
+```java
+numbers[10] = 3;
+numbers[numbers.length] = 5;
+for (int i = 0; i <= numbers.length; i++)
+numbers[i] = i + 5;
+```
+
+- The first one is trying to see whether you know that indexes start with 0. Since we have 10 elements in our array, this means only numbers[0] through numbers[9] are valid.
+- The second example assumes you are clever enough to know that 10 is invalid and disguises it by using the length field. However, the length is always one more than the maximum valid index.
+- Finally, the for loop incorrectly uses <= instead of <, which is also a way of referring to that tenth element.
+
+### Sorting
+
+Java makes it easy to sort an array by providing a sort method—or rather, a bunch of sort methods.
+```java
+import java.util.*; // import whole package including Arrays
+import java.util.Arrays; // import just Arrays
+
+Arrays.sort()
+```
+
+Remember that if you are shown a code snippet, you can assume the necessary imports are there.
+
+```java
+int[] numbers = { 6, 9, 1 };
+Arrays.sort(numbers);
+for (int i = 0; i < numbers.length; i++)
+System.out.print(numbers[i] + " "); // 1 6 9
+```
+
+```java
+String[] strings = { "10", "9", "100" };
+Arrays.sort(strings);
+for (String s : strings)
+System.out.print(s + " "); // 10 100 9
+```
+
+==**The problem is that String sorts in alphabetic order, and 1 sorts before 9. (Numbers sort before letters, and uppercase sorts before lowercase.)**==
+
+### Searching
+Java also provides a convenient way to search, ==**but only if the array is already sorted.**==
+
+==**Returns:**==
+==**index of the search key, if it is contained in the array; otherwise,`` (-(insertion point) - 1)``. The insertion point is defined as the point at which the key would be inserted into the array**==
+
+| Scenario                          | Result                                                                       |
+| --------------------------------- | ---------------------------------------------------------------------------- |
+| Target element found in sorted array | Index of match                                                               |
+| Target element not found in sorted array | Negative value showing one smaller than the negative of the index, where a match needs to be inserted to preserve sorted order  |
+| Unsorted array                    | A surprise; this result is undefined                                       |
+
+```java
+3: int[] numbers = {2,4,6,8};
+4: System.out.println(Arrays.binarySearch(numbers, 2)); // 0
+5: System.out.println(Arrays.binarySearch(numbers, 4)); // 1
+6: System.out.println(Arrays.binarySearch(numbers, 1)); // -1
+7: System.out.println(Arrays.binarySearch(numbers, 3)); // -2
+8: System.out.println(Arrays.binarySearch(numbers, 9)); // -5
+```
+
+- line 3 is a sorted array
+- Line 4 searches for the index of 2. The answer is index 0.
+- Line 5 searches for the index of 4, which is 1.
+- Line 6 searches for the index of 1. Although 1 isn’t in the list, the search can determine that it should be inserted at element 0 to preserve the sorted order. Since 0 already means something for array indexes, Java needs to subtract 1 to give us the answer of –1.
+- Line 7 is similar. Although 3 isn’t in the list, it would need to be inserted at element 1 to preserve the sorted order. We negate and subtract 1 for consistency, getting –1 –1, also known as –2.
+- line 8 wants to tell us that 9 should be inserted at index 4. We again negate and subtract 1, getting –4 –1, also known as –5.
+
+```java
+5: int[] numbers = new int[] {3,2,1};
+6: System.out.println(Arrays.binarySearch(numbers, 2));
+7: System.out.println(Arrays.binarySearch(numbers, 3));
+```
+
+Note that on line 5, the array isn’t sorted. This means the output will not be defined. ==**As soon as you see the array isn’t sorted, look for an answer choice about unpredictable output.**==
+
+### Comparing
+
+Java also provides methods to compare two arrays to determine which is ***“smaller.”***
+
+#### Using ``compare()``
+There are a bunch of rules you need to know before calling ``compare()``.
+
+- ==**A negative number means the first array is smaller than the second.**==
+- ==**A zero means the arrays are equal.**==
+-  ==**A positive number means the first array is larger than the second.**==
+
+```java
+System.out.println(Arrays.compare(new int[] {1}, new int[] {2})); // -1 Negative
+```
+
+how to compare arrays of different lengths:
+
+- ==**If both arrays are the same length and have the same values in each spot in the same order, return zero.**==
+- ==**If all the elements are the same but the second array has extra elements at the end, return a negative number.**==
+- ==**If all the elements are the same, but the first array has extra elements at the end, return a positive number.**==
+- ==**If the first element that differs is smaller in the first array, return a negative number.**==
+- ==**If the first element that differs is larger in the first array, return a positive number.**==
+
+What does smaller means? 
+
+-  ==**null is smaller than any other value.**==
+- ==**For numbers, normal numeric order applies.**==
+- ==**For strings, one is smaller if it is a prefix of another.**==
+- ==**For strings/characters, numbers are smaller than letters.**==
+- ==**For strings/characters, uppercase is smaller than lowercase.**==
+
+
+
+| First array                | Second array               | Result           | Reason                                       |
+|----------------------------|----------------------------|------------------|----------------------------------------------|
+| `new int[] {1, 2}`          | `new int[] {1}`            | Positive number  | The first element is the same, but the first array is longer.   |
+| `new int[] {1, 2}`          | `new int[] {1, 2}`         | Zero             | Exact match                                  |
+| `new String[] {"a"}`        | `new String[] {"aa"}`      | Negative number  | The first element is a substring of the second.                |
+| `new String[] {"a"}`        | `new String[] {"A"}`       | Positive number  | Uppercase is smaller than lowercase.                        |
+| `new String[] {"a"}`        | `new String[] {null}`      | Positive number  | null is smaller than a letter.                              |
+
+==**When comparing two arrays, they must be the same array type.**== 
+
+```java
+System.out.println(Arrays.compare(
+new int[] {1}, new String[] {"a"})); // DOES NOT COMPILE
+```
+
+### Using ``mismatch()``
+
+==**If the arrays are equal, ``mismatch()`` returns -1.Otherwise, it returns the first index where they differ.**==
+
+```java
+System.out.println(Arrays.mismatch(new int[] {1}, new int[] {1}));
+System.out.println(Arrays.mismatch(new String[] {"a"},
+new String[] {"A"}));
+System.out.println(Arrays.mismatch(new int[] {1, 2}, new int[] {1}));
+```
+
+- In the first example, the arrays are the same, so the result is -1. 
+- In the second example, the entries at element 0 are not equal, so the result is 0.
+- In the third example, the entries at element 0 are equal, so we keep looking. The element at index 1 is not equal. Or, more specifically, one array has an element at index 1, and the other does not. Therefore, the result is 1.
+
+| Method     | When arrays contain the same data | When arrays are different        |
+|------------|------------------------------------|-----------------------------------|
+| equals()   | true                               | false                             |
+| compare()  | 0                                  | Positive or negative number      |
+| mismatch() | -1                                 | Zero or positive index           |
+### Using Methods with ``Varargs``
+
+```java
+public static void main(String[] args)
+public static void main(String args[])
+public static void main(String... args) // varargs
+```
+
+you can use a variable defined using ``varargs`` as if it were a normal array.
+
+### Working with Multidimensional Arrays
+
+#### Creating a Multidimensional Array
+
+Multiple array separators are all it takes to declare arrays with multiple dimensions.
+
+```java
+int[][] vars1; // 2D array
+int vars2 [][]; // 2D array
+int[] vars3[]; // 2D array
+int[] vars4 [], space [][]; // a 2D AND a 3D array
+```
+
+- The third example also declares a 2D array.
+- The final example declares two arrays on the same line. Adding up the brackets, we see that the vars4 is a 2D array and space is a 3D array.
+
+You can specify the size of your multidimensional array in the declaration if you like:
+
+```java
+String [][] rectangle = new String[3][2];
+```
+
+You can think of the addressable range as [0][0] through ``[2][1]``, but don’t think of it as a structure of addresses like ``[0,0]`` or ``[2,1]``.
+
+```java
+rectangle[0][1] = "set";
+```
+
+This array is sparsely populated because it has a lot of null values.
+
+```java
+int[][] differentSizes = {{1, 4}, {3}, {9,8,7}};
+```
+
+Another way to create an asymmetric array is to initialize just an array’s first dimension and define the size of each array component in a separate statement:
+
+```java
+int [][] args = new int[4][];
+args[0] = new int[5];
+args[1] = new int[3];
+```
+
+This technique reveals what you really get with Java: arrays of arrays that, properly managed, offer a multidimensional effect.
+
+#### Using a Multidimensional Array
+
+The most common operation on a multidimensional array is to loop through it.
+
+```java
+var twoD = new int[3][2];
+for(int i = 0; i < twoD.length; i++) {
+for(int j = 0; j < twoD[i].length; j++)
+System.out.print(twoD[i][j] + " "); // print element
+System.out.println(); // time for a new row
+}
+```
+
+two loops here. The first uses index i and goes through the first subarray for twoD. The second uses a different loop variable, j. It is important that these be different variable names so the loops don’t get mixed up. The inner loop looks at how many elements are in the second-level array. The inner loop prints the element and leaves a space for readability. When the inner loop completes, the outer loop goes to a new line and repeats the process for the next element.
+
+```java
+for(int[] inner : twoD) {
+for(int num : inner)
+System.out.print(num + " ");
+System.out.println();
+}
+```
+
+## Calculating with Math APIs
 
