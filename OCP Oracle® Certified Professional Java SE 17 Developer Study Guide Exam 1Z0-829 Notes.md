@@ -7869,3 +7869,564 @@ System.out.println();
 
 ## Calculating with Math APIs
 
+Pay special attention to return types in math questions. They are an excellent opportunity for trickery!
+
+### Finding the Minimum and Maximum
+
+The ``min()`` and ``max()`` methods compare two values and return one of them. 
+
+```java
+public static double min(double a, double b)
+public static float min(float a, float b)
+public static int min(int a, int b)
+public static long min(long a, long b)
+```
+
+```java
+int first = Math.max(3, 7); // 7
+int second = Math.min(7, -9); // -9
+```
+
+### Rounding Numbers
+
+The ``round()`` method gets rid of the decimal portion of the value, choosing the next higher
+number if appropriate. ==**If the fractional part is .5 or higher, we round up.**==
+
+```java
+public static long round(double num)
+public static int round(float num)
+```
+
+```java
+long low = Math.round(123.45); // 123
+long high = Math.round(123.50); // 124
+int fromFloat = Math.round(123.45f); // 123
+```
+
+### Determining the Ceiling and Floor
+
+The ``ceil()`` method takes a double value. If it is a whole number, it returns the same value. If it has any fractional value, it rounds up to the next whole number. By contrast, the ``floor()`` method discards any values after the decimal.
+
+```java
+public static double ceil(double num)
+public static double floor(double num)
+```
+
+```java
+double c = Math.ceil(3.14); // 4.0
+double f = Math.floor(3.14); // 3.0
+```
+
+### Calculating Exponents
+
+The ``pow()`` method handles exponents.
+```java
+public static double pow(double number, double exponent)
+```
+
+```java
+double squared = Math.pow(5, 2); // 25.0
+```
+
+### Generating Random Numbers
+
+The ``random()`` method ==**returns a value greater than or equal to 0 and less than 1**==
+
+```java
+public static double random()
+```
+
+```java
+double num = Math.random();
+```
+
+## Working with Dates and Times
+
+### Creating Dates and Times
+
+When working with dates and times, the first thing to do is to decide how much information you need. The exam gives you four choices:
+
+- ==**`LocalDate` Contains just a date—no time and no time zone.**== 
+- ==**``LocalTime`` Contains just a time—no date and no time zone**==. 
+- ==**``LocalDateTime`` Contains both a date and time but no time zone**.== 
+- ==**``ZonedDateTime`` Contains a date, time, and time zone.**== 
+
+```java
+System.out.println(LocalDate.now());
+System.out.println(LocalTime.now());
+System.out.println(LocalDateTime.now());
+System.out.println(ZonedDateTime.now());
+```
+
+```text
+2021–10–25
+09:13:07.768
+2021–10–25T09:13:07.768
+2021–10–25T09:13:07.769–05:00[America/New_York]
+```
+
+==**The key is the type of information in the output. The output uses ``T`` to separate the date and time when converting ``LocalDateTime`` to a ``String``. Finally, the fourth adds the time zone offset and time zone.**==
+
+---
+
+**The time zone offset can be listed in different ways: +02:00, GMT+2, and UTC+2 all mean the same thing. You might see any of them on the exam.**
+
+---
+
+Both of these examples create the same date:
+
+```java
+var date1 = LocalDate.of(2022, Month.JANUARY, 20);
+var date2 = LocalDate.of(2022, 1, 20);
+```
+
+```java
+public static LocalDate of(int year, int month, int dayOfMonth)
+public static LocalDate of(int year, Month month, int dayOfMonth)
+```
+
+---
+
+Java counts starting with 0. Well, months are an exception. For months in the new date and time methods, Java counts starting from 1, just as we humans do.
+
+---
+
+When creating a time, you can choose how detailed you want to be. You can specify just the hour and minute, or you can include the number of seconds. You can even include nanoseconds if you want to be very precise.
+
+```java
+var time1 = LocalTime.of(6, 15); // hour and minute
+var time2 = LocalTime.of(6, 15, 30); // + seconds
+var time3 = LocalTime.of(6, 15, 30, 200); // + nanoseconds
+```
+
+```java
+public static LocalTime of(int hour, int minute)
+public static LocalTime of(int hour, int minute, int second)
+public static LocalTime of(int hour, int minute, int second, int nanos)
+```
+
+You can combine dates and times into one object:
+
+```java
+var dateTime1 = LocalDateTime.of(2022, Month.JANUARY, 20, 6, 15, 30);
+var dateTime2 = LocalDateTime.of(date1, time1);
+```
+
+The following method signatures use integer values:
+
+```java
+public static LocalDateTime of(int year, int month, int dayOfMonth, int hour, int minute)
+public static LocalDateTime of(int year, int month, int dayOfMonth, int hour, int minute, int second)
+public static LocalDateTime of(int year, int month, int dayOfMonth, int hour, int minute, int second, int nanos)
+```
+
+Others take a Month reference:
+
+```java
+public static LocalDateTime of(int year, Month month, int dayOfMonth, int hour, int minute)
+public static LocalDateTime of(int year, Month month, int dayOfMonth, int hour, int minute, int second)
+public static LocalDateTime of(int year, Month month, int dayOfMonth, int hour, int minute, int second, int nanos)
+```
+
+Finally, one takes an existing ``LocalDate`` and ``LocalTime``:
+
+```java
+public static LocalDateTime of(LocalDate date, LocalTime time)
+```
+
+In order to create a ``ZonedDateTime``, we first need to get the desired time zone.
+
+```java
+var zone = ZoneId.of("US/Eastern");
+var zoned1 = ZonedDateTime.of(2022, 1, 20, 6, 15, 30, 200, zone);
+var zoned2 = ZonedDateTime.of(date1, time1, zone);
+var zoned3 = ZonedDateTime.of(dateTime1, zone);
+```
+
+A better approach is to pass a ``LocalDate`` object and a ``LocalTime`` object, or a ``LocalDateTime`` object. Instead of Integers
+
+```java
+public static ZonedDateTime of(int year, int month,
+int dayOfMonth, int hour, int minute, int second, int nanos, ZoneId zone)
+public static ZonedDateTime of(LocalDate date, LocalTime time, ZoneId zone)
+public static ZonedDateTime of(LocalDateTime dateTime, ZoneId zone)
+```
+
+==**The date and time classes have private constructors along with static methods that return instances.**==
+
+```java
+var d = new LocalDate(); // DOES NOT COMPILE
+```
+
+==**You are not allowed to construct a date or time object directly**==. Another trick is what happens when you pass invalid numbers to ``of()``,
+
+```java
+var d = LocalDate.of(2022, Month.JANUARY, 32) // DateTimeException
+java.time.DateTimeException: Invalid value for DayOfMonth (valid values 1-28/ 31): 32
+```
+
+### Manipulating Dates and Times
+
+==**The date and time classes are immutable**==. Remember to assign the results of these methods to a reference variable so they are not lost.
+
+```java
+12: var date = LocalDate.of(2022, Month.JANUARY, 20);
+13: System.out.println(date); // 2022–01–20
+14: date = date.plusDays(2);
+15: System.out.println(date); // 2022–01–22
+16: date = date.plusWeeks(1);
+17: System.out.println(date); // 2022–01–29
+18: date = date.plusMonths(1);
+19: System.out.println(date); // 2022–02–28
+20: date = date.plusYears(5);
+21: System.out.println(date); // 2027–02–28
+```
+
+There are also nice, easy methods to go backward in time.
+
+```java
+22: var date = LocalDate.of(2024, Month.JANUARY, 20);
+23: var time = LocalTime.of(5, 15);
+24: var dateTime = LocalDateTime.of(date, time);
+25: System.out.println(dateTime); // 2024–01–20T05:15
+26: dateTime = dateTime.minusDays(1);
+27: System.out.println(dateTime); // 2024–01–19T05:15
+28: dateTime = dateTime.minusHours(10);
+29: System.out.println(dateTime); // 2024–01–18T19:15
+30: dateTime = dateTime.minusSeconds(30);
+31: System.out.println(dateTime); // 2024–01–18T19:14:30
+```
+
+Java is smart enough to hide the seconds and nanoseconds when we aren’t using them.
+It is common for date and time methods to be chained.
+
+```java
+var date = LocalDate.of(2024, Month.JANUARY, 20);
+var time = LocalTime.of(5, 15);
+var dateTime = LocalDateTime.of(date, time).minusDays(1).minusHours(10).minusSeconds(30);
+```
+
+There are two ways that the exam creators can try to trick you.
+
+```java
+var date = LocalDate.of(2024, Month.JANUARY, 20);
+date.plusDays(10);
+System.out.println(date);
+```
+
+Adding 10 days was useless because the program ignored the result. ==**Whenever you see immutable types, pay attention to make sure that the return value of a method call isn’t ignored.**==
+
+```java
+var date = LocalDate.of(2024, Month.JANUARY, 20);
+date = date.plusMinutes(1); // DOES NOT COMPILE
+```
+
+**==``LocalDate`` does not contain time. This means that you cannot add minutes to it==**. This can be tricky in a chained sequence of addition/subtraction operations
+
+| Method            | Can call on LocalDate? | Can call on LocalTime? | Can call on LocalDateTime or ZonedDateTime? |
+|-------------------|------------------------|------------------------|----------------------------------------------|
+| plusYears()       | Yes                    | No                     | Yes                                          |
+| minusYears()      | Yes                    | No                     | Yes                                          |
+| plusMonths()      | Yes                    | No                     | Yes                                          |
+| minusMonths()     | Yes                    | No                     | Yes                                          |
+| plusWeeks()       | Yes                    | No                     | Yes                                          |
+| minusWeeks()      | Yes                    | No                     | Yes                                          |
+| plusDays()        | Yes                    | No                     | Yes                                          |
+| minusDays()       | Yes                    | No                     | Yes                                          |
+| plusHours()       | No                     | Yes                    | Yes                                          |
+| minusHours()      | No                     | Yes                    | Yes                                          |
+| plusMinutes()     | No                     | Yes                    | Yes                                          |
+| minusMinutes()    | No                     | Yes                    | Yes                                          |
+| plusSeconds()     | No                     | Yes                    | Yes                                          |
+| minusSeconds()    | No                     | Yes                    | Yes                                          |
+| plusNanos()       | No                     | Yes                    | Yes                                          |
+| minusNanos()      | No                     | Yes                    | Yes                                          |
+### Working with Periods
+
+```java
+public static void main(String[] args) {
+var start = LocalDate.of(2022, Month.JANUARY, 1);
+var end = LocalDate.of(2022, Month.MARCH, 30);
+performAnimalEnrichment(start, end);
+}
+private static void performAnimalEnrichment(LocalDate start, LocalDate end) {
+var upTo = start;
+while (upTo.isBefore(end)) { // check if still before end
+System.out.println("give new toy: " + upTo);
+upTo = upTo.plusMonths(1); // add a month
+} }
+```
+
+This code works fine. It adds a month to the date until it hits the end date. The problem is that this method can’t be reused.
+Java has a ``Period`` class that we can pass in. This code does the same thing as the previous example:
+
+```java
+public static void main(String[] args) {
+    var start = LocalDate.of(2022, Month.JANUARY, 1);
+    var end = LocalDate.of(2022, Month.MARCH, 30);
+    var period = Period.ofMonths(1); // create a period
+    performAnimalEnrichment(start, end, period);
+}
+
+private static void performAnimalEnrichment(LocalDate start, LocalDate end, Period period) {
+    // uses the generic period
+    var upTo = start;
+    while (upTo.isBefore(end)) {
+        System.out.println("give new toy: " + upTo);
+        upTo = upTo.plus(period); // adds the period
+    }
+}
+
+```
+
+The method can add an arbitrary period of time that is passed in. This allows us to reuse the same method for different periods of time
+
+```java
+var annually = Period.ofYears(1); // every 1 year
+var quarterly = Period.ofMonths(3); // every 3 months
+var everyThreeWeeks = Period.ofWeeks(3); // every 3 weeks
+var everyOtherDay = Period.ofDays(2); // every 2 days
+var everyYearAndAWeek = Period.of(1, 0, 7); // every year and 7 days
+```
+
+There’s one catch. ==**You cannot chain methods when creating a ``Period``.**== The following code looks like it is equivalent to the ``everyYearAndAWeek`` example, but it’s not. **==Only the last method is used because the ``Period.of ``methods are static methods.==**
+
+```java
+var wrong = Period.ofYears(1).ofWeeks(1); // every week
+```
+
+```java
+var wrong = Period.ofYears(1);
+wrong = Period.ofWeeks(1);
+```
+
+==**The ``of()`` method takes only years, months, and days**==. The ability to use another factory method to pass weeks is merely a convenience. As you might imagine, the actual period is stored in terms of years, months, and days. When you print out the value, Java displays any non-zero parts using the format
+
+![[Pasted image 20240207145939.png]]
+
+```java
+System.out.println(Period.ofMonths(3)); // P3M.
+```
+
+Java omits any measures that are zero. The last thing to know about Period is what objects it can be used with.
+
+```java
+3: var date = LocalDate.of(2022, 1, 20);
+4: var time = LocalTime.of(6, 15);
+5: var dateTime = LocalDateTime.of(date, time);
+6: var period = Period.ofMonths(1);
+7: System.out.println(date.plus(period)); // 2022–02–20
+8: System.out.println(dateTime.plus(period)); // 2022–02–20T06:15
+9: System.out.println(time.plus(period)); // Exception
+```
+
+Line 9 attempts to add a month to an object that has only a time. This won’t work. Java throws an ``UnsupportedTemporalTypeException`` and complains that we attempted to use an ``Unsupported unit: Months``
+
+==**You have to pay attention to the type of date and time objects every place you see them.**==
+
+### Working with Durations
+
+``Period`` is a day or more of time. There is also ``Duration``, which is intended for smaller units of time. For ``Duration``, you can specify the number of days, hours, minutes, seconds, or nanoseconds. And yes, you could pass 365 days to make a year, but you really shouldn’t—that’s what Period is for.
+
+**==``Duration`` works roughly the same way as ``Period``, except it is used with objects that have time.==** ``Duration`` is output beginning with ``PT``, which you can think of as a period of time. A ``Duration`` is stored in hours, minutes, and seconds.
+
+```java
+var daily = Duration.ofDays(1); // PT24H
+var hourly = Duration.ofHours(1); // PT1H
+var everyMinute = Duration.ofMinutes(1); // PT1M
+var everyTenSeconds = Duration.ofSeconds(10); // PT10S
+var everyMilli = Duration.ofMillis(1); // PT0.001S
+var everyNano = Duration.ofNanos(1); // PT0.000000001S
+```
+
+**==``Duration`` doesn’t have a factory method that takes multiple units like ``Period`` does==**. If you want something to happen every hour and a half, you specify 90 minutes.
+
+``Duration`` includes another more generic factory method. It takes a number and a ``TemporalUnit``. The idea is, say, something like “5 seconds.” However, ``TemporalUnit`` is an interface. At the moment, there is only one implementation named ``ChronoUnit``.
+
+```java
+var daily = Duration.of(1, ChronoUnit.DAYS);
+var hourly = Duration.of(1, ChronoUnit.HOURS);
+var everyMinute = Duration.of(1, ChronoUnit.MINUTES);
+var everyTenSeconds = Duration.of(10, ChronoUnit.SECONDS);
+var everyMilli = Duration.of(1, ChronoUnit.MILLIS);
+var everyNano = Duration.of(1, ChronoUnit.NANOS);
+```
+
+---
+
+**``ChronoUnit`` for Differences**
+
+**``ChronoUnit`` is a great way to determine how far apart two Temporal values are. Temporal includes ``LocalDate``, ``LocalTime``, and so on. ``ChronoUnit`` is in the java. ``time.temporal`` package.**
+
+```java
+var one = LocalTime.of(5, 15);
+var two = LocalTime.of(6, 30);
+var date = LocalDate.of(2016, 1, 20);
+System.out.println(ChronoUnit.HOURS.between(one, two)); // 1
+System.out.println(ChronoUnit.MINUTES.between(one, two)); // 75
+System.out.println(ChronoUnit.MINUTES.between(one, date)); // DateTimeExce
+```
+
+**The last reminds us that Java will throw an exception if we mix up what can be done on date vs. time objects.**
+**Alternatively, you can truncate any object with a time element.**
+
+```java
+LocalTime time = LocalTime.of(3,12,45);
+System.out.println(time); // 03:12:45
+LocalTime truncated = time.truncatedTo(ChronoUnit.MINUTES);
+System.out.println(truncated); // 03:12
+```
+
+**This example zeroes out any fields smaller than minutes. In our case, it gets rid of the seconds.**
+
+---
+
+Using a ``Duration`` works the same way as using a Period. 
+
+```java
+7: var date = LocalDate.of(2022, 1, 20);
+8: var time = LocalTime.of(6, 15);
+9: var dateTime = LocalDateTime.of(date, time);
+10: var duration = Duration.ofHours(6);
+11: System.out.println(dateTime.plus(duration)); // 2022–01–20T12:15
+12: System.out.println(time.plus(duration)); // 12:15
+13: System.out.println(
+14: date.plus(duration)); // UnsupportedTemporalTypeException
+```
+
+==**Line 13 fails because we cannot add hours to an object that does not contain a time.**==
+
+```java
+7: var date = LocalDate.of(2022, 1, 20);
+8: var time = LocalTime.of(6, 15);
+9: var dateTime = LocalDateTime.of(date, time);
+10: var duration = Duration.ofHours(23);
+11: System.out.println(dateTime.plus(duration)); // 2022–01–21T05:15
+12: System.out.println(time.plus(duration)); // 05:15
+13: System.out.println(
+14: date.plus(duration)); // UnsupportedTemporalTypeException
+```
+
+### Period vs. Duration
+
+Remember that ``Period`` and ``Duration`` are not equivalent.
+
+```java
+var date = LocalDate.of(2022, 5, 25);
+var period = Period.ofDays(1);
+var days = Duration.ofDays(1);
+System.out.println(date.plus(period)); // 2022–05–26
+System.out.println(date.plus(days)); // Unsupported unit: Seconds
+```
+
+Since we are working with a ``LocalDate``, we are required to use ``Period``. ``Duration`` has time units in it, even if we don’t see them, and they are meant only for objects with time.
+
+|               | Can use with Period? | Can use with Duration? |
+|---------------|----------------------|------------------------|
+| LocalDate     | Yes                  | No                     |
+| LocalDateTime | Yes                  | Yes                    |
+| LocalTime     | No                   | Yes                    |
+| ZonedDateTime | Yes                  | Yes                    |
+
+### Working with Instants
+
+The ``Instant`` class represents a specific moment in time in the GMT time zone.
+
+```java
+var now = Instant.now();
+// do something time consuming
+var later = Instant.now();
+var duration = Duration.between(now, later);
+System.out.println(duration.toMillis()); // Returns number milliseconds
+```
+
+If you have a ``ZonedDateTime``, you can turn it into an ``Instant``:
+
+```java
+var date = LocalDate.of(2022, 5, 25);
+var time = LocalTime.of(11, 55, 00);
+var zone = ZoneId.of("US/Eastern");
+var zonedDateTime = ZonedDateTime.of(date, time, zone);
+var instant = zonedDateTime.toInstant(); // 2022–05–25T15:55:00Z
+System.out.println(zonedDateTime); // 2022–05–25T11:55–04:00[US/Eastern]
+System.out.println(instant); // 202–05–25T15:55:00Z
+```
+
+The last two lines represent the same moment in time. The ``ZonedDateTime`` includes a time zone. The ``Instant`` gets rid of the time zone and turns it into an Instant of time in GMT.
+
+### Accounting for Daylight Saving Time
+
+Some countries observe daylight saving time. This is where the clocks are adjusted by an hour twice a year to make better use of the sunlight. You only have to work with U.S. daylight saving time on the exam, and that’s what we describe here.
+
+The question will let you know if a date/time mentioned falls on a weekend when the clocks are scheduled to be changed. If it is not mentioned in a question, you can assume that it is a normal weekend. The act of moving the clock forward or back occurs at 2:00 a.m., which falls very early Sunday morning.
+
+For example, on March 13, 2022, we move our clocks forward an hour and jump from 2:00 a.m. to 3:00 a.m. This means that there is no 2:30 a.m. that day. If we wanted to know the time an hour later than 1:30, it would be 3:30.
+
+```java
+var date = LocalDate.of(2022, Month.MARCH, 13);
+var time = LocalTime.of(1, 30);
+var zone = ZoneId.of("US/Eastern");
+var dateTime = ZonedDateTime.of(date, time, zone);
+System.out.println(dateTime); // 2022–03-13T01:30-05: 00[US/Eastern]
+System.out.println(dateTime.getHour()); // 1
+System.out.println(dateTime.getOffset()); // -05:00
+dateTime = dateTime.plusHours(1);
+System.out.println(dateTime); // 2022–03-13T03:30-04:00[US/Eastern]
+System.out.println(dateTime.getHour()); // 3
+System.out.println(dateTime.getOffset()); // -04:00
+```
+
+Notice that two things change in this example. The time jumps from 1:30 to 3:30. The UTC offset also changes. Remember when we calculated GMT time by subtracting the time zone from the time? You can see that we went from 6:30 GMT (1:30 minus –5:00) to 7:30 GMT (3:30 minus –4:00). This shows that the time really did change by one hour from GMT’s point of view.
+
+```java
+var date = LocalDate.of(2022, Month.NOVEMBER, 6);
+var time = LocalTime.of(1, 30);
+var zone = ZoneId.of("US/Eastern");
+var dateTime = ZonedDateTime.of(date, time, zone);
+System.out.println(dateTime); // 2022-11-06T01:30-04:00[US/Eastern]
+dateTime = dateTime.plusHours(1);
+System.out.println(dateTime); // 2022-11-06T01:30-05:00[US/Eastern]
+dateTime = dateTime.plusHours(1);
+System.out.println(dateTime); // 2022-11-06T02:30-05:00[US/Eastern]
+```
+
+went from 5:30 GMT to 6:30 GMT, to 7:30 GMT. Finally, trying to create a time that doesn’t exist just rolls forward:
+
+```java
+var date = LocalDate.of(2022, Month.MARCH, 13);
+var time = LocalTime.of(2, 30);
+var zone = ZoneId.of("US/Eastern");
+var dateTime = ZonedDateTime.of(date, time, zone);
+System.out.println(dateTime); // 2022–03–13T03:30–04:00[US/Eastern]
+```
+
+Java is smart enough to know that there is no 2:30 a.m. that night and switches over to the appropriate GMT offset.
+
+## Summary #OCP_Summary 
+
+- ==**a ``String`` is an immutable sequence of characters. Calling the constructor explicitly is optional. The concatenation operator ``(+)`` creates a new ``String`` with the content of the first ``String`` followed by the content of the second ``String``. If either operand involved in the + expression is a ``String``, concatenation is used; otherwise, addition is used. String literals are stored in the string pool. The ``String`` class has many methods. By contrast, a ``StringBuilder`` is a mutable sequence of characters. Most of the methods return a reference to the current object to allow method chaining. The ``StringBuilder`` class has many methods.**==
+
+- ==**Calling ``==`` on ``String`` objects will check whether they point to the same object in the pool. Calling ``==`` on ``StringBuilder`` references will check whether they are pointing to the same ``StringBuilder`` object. Calling ``equals()`` on ``String`` objects will check whether the sequence of characters is the same. Calling ``equals()`` on ``StringBuilder`` objects will check whether they are pointing to the same object rather than looking at the values inside.**==
+
+- ==**An array is a fixed-size area of memory on the heap that has space for primitives or pointers to objects. You specify the size when creating it. For example, int[] a = new int[6];. Indexes begin with 0, and elements are referred to using a [0]. The ``Arrays.sort()`` method sorts an array. ``Arrays.binarySearch()`` searches a sorted array and returns the index of a match. If no match is found, it negates the position where the element would need to be inserted and subtracts 1. ``Arrays.compare()`` and ``Arrays.mismatch()`` check whether two arrays are equivalent. Methods that are passed ``varargs (...)`` can be used as if a normal array was passed in. In a multidimensional array, the second-level arrays and beyond can be different sizes.**==
+
+- ==**The Math class provides a number of static methods for performing mathematical operations. For example, you can get minimums or maximums. You can round or even generate random numbers. Some methods work on any numeric primitive, and others only work on double.**==
+
+- ==**A ``LocalDate`` contains just a date, a ``LocalTime`` contains just a time, and a ``LocalDateTime`` contains both a date and a time. All three have private constructors and are created using ``LocalDate.now()`` or ``LocalDate.of()`` (or the equivalents for that class). Dates and times can be manipulated using plusXXX or minusXXX methods. The ``Period`` class represents a number of days, months, or years to add to or subtract from a ``LocalDate`` or ``LocalDateTime``. The date and time classes are all immutable, which means the return value must be used.**==
+
+
+## Exam Essentials #Essential
+
+- **Be able to determine the output of code using String**. : Know the rules for concatenating with String and how to use common String methods. Know that a String is immutable. Pay special attention to the fact that indexes are zero-based and that the ``substring()`` method gets the string up until right before the index of the second parameter.
+
+- **Be able to determine the output of code using StringBuilder.**: Know that a StringBuilder is mutable and how to use common StringBuilder methods. Know that ``substring()`` does not change the value of a StringBuilder, whereas ``append(), delete(), and insert()`` do change it. Also note that most StringBuilder methods return a reference to the current instance of StringBuilder.
+
+- **Understand the difference between == and equals().**: ``==`` checks object equality. ``equals()`` depends on the implementation of the object it is being called on. For the String class, ``equals()`` checks the characters inside of it.
+
+- **Be able to determine the output of code using arrays.**: Know how to declare and instantiate one-dimensional and multidimensional arrays. Be able to access each element and know when an index is out of bounds. Recognize correct and incorrect output when searching and sorting.
+
+- **Identify the return types of Math methods**. Depending on the primitive passed in, the Math methods may return different primitive results.
+
+- **Recognize invalid uses of dates and times.**: ``LocalDate`` does not contain time fields, and ``LocalTime`` does not contain date fields. Watch for operations being performed on the wrong time. Also watch for adding or subtracting time and ignoring the result. Be comfortable with date math, including time zones and daylight saving time.
+
+## Review Questions
