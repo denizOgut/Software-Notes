@@ -874,3 +874,209 @@ Elements present in stack : 20 10
 
 - Requires extra memory due to the involvement of pointers.
 - Random accessing is not possible in stack.
+
+
+# Concurrency and Multithreading
+
+## What is Multithreading?
+
+Multithreading means that you have multiple _threads of execution_ inside the same application. A thread is like a separate CPU executing your application. Thus, a multithreaded application is like an application that has multiple CPUs executing different parts of the code at the same time. Usually a single CPU will share its execution time among multiple threads, switching between executing each of the threads for a given amount of time.
+
+![[Pasted image 20240208092843.png]]
+
+## Why Multithreading?
+
+There are several reasons as to why one would use multithreading in an application. Some of the most common reasons for multithreading are:
+
+- **Better CPU Utilization:** Enables more efficient use of CPU resources, especially on multi-core processors.
+    
+- **Simpler Program Design:** Facilitates simpler program architecture in certain scenarios, allowing for more streamlined code organization.
+    
+- **More Responsive Programs:** Enhances program responsiveness by concurrently handling tasks, preventing delays during resource-intensive operations.
+    
+- **Fair Division of CPU Resources:** Ensures a fair distribution of CPU resources among different tasks, preventing resource monopolization and promoting equitable performance
+
+## Multithreading Benefits
+### Better CPU Utilization
+
+Multithreading improves CPU utilization by allowing a program to execute multiple threads simultaneously. In traditional single-threaded applications, the CPU may not be fully engaged while waiting for certain tasks to complete, leading to underutilization of processing power. With multithreading, different threads can execute independently, enabling better exploitation of available CPU resources. This is particularly advantageous on multi-core processors, where each core can handle a separate thread, leading to parallel execution and overall increased efficiency.
+
+### Simpler Program Design
+
+Multithreading can contribute to simpler program design in certain situations by allowing developers to modularize and separate tasks that can run concurrently. This modularization often leads to cleaner and more maintainable code. Instead of having complex, intertwined code for various tasks, developers can isolate different functionalities into separate threads, making it easier to understand, debug, and modify specific components of the program. However, it's important to note that while multithreading can simplify design in some cases, it also introduces challenges such as thread synchronization and communication, which need careful consideration during the development process.
+
+### More Responsive Programs
+
+Multithreading enhances program responsiveness by allowing a program to continue executing other tasks while waiting for certain operations to complete. In a single-threaded application, if one task takes a significant amount of time (e.g., file I/O, network communication), the entire program might become unresponsive during that period. With multithreading, other threads can continue executing, ensuring that the program remains responsive to user input or other external events. This is particularly beneficial in applications where user interaction is critical, providing a smoother and more interactive experience for the end user.
+
+### More Fair Distribution of CPU Resources
+
+Multithreading promotes a more fair distribution of CPU resources among different tasks by preventing one thread from monopolizing the processor. In a single-threaded environment, a resource-intensive task could dominate the CPU, leading to delays for other tasks and potentially causing an unresponsive system. With multithreading, the operating system or the program itself can allocate CPU time more evenly among various threads, ensuring that each task gets a fair share of processing power. This prevents one thread from starving others and contributes to a more equitable division of resources, enhancing overall system stability and performance.
+
+## Multithreading Costs
+
+- **More Complex Design:** Multithreading can introduce complexity to program design due to the need for synchronization mechanisms to manage shared resources among threads. Coordination between threads must be carefully handled to avoid issues like data corruption and race conditions.
+    
+- **Context Switching Overhead:** Switching between threads (context switching) comes with an overhead. When the operating system transitions from one thread to another, it needs to save and restore the state of the CPU, which consumes additional processing time. Excessive context switching can impact overall performance.
+    
+- **Increased Resource Consumption:** Each thread requires its own stack and resources, leading to increased memory consumption. While this may not be a significant concern for lightweight threads, a large number of threads or resource-intensive threads can lead to higher overall resource usage.
+
+## Concurrency Models
+
+A _concurrency model_ specifies how threads in the the system collaborate to complete the tasks they are are given. Different concurrency models split the tasks in different ways, and the threads may communicate and collaborate in different ways.
+
+### Concurrency Models and Distributed System Similarities
+
+In a concurrent system different threads communicate with each other. In a distributed system different processes communicate with each other (possibly on different computers). Threads and processes are quite similar to each other in nature. That is why the different concurrency models often look similar to different distributed system architectures.
+
+Because concurrency models are similar to distributed system architectures, they can often borrow ideas from each other. For instance, models for distributing work among workers (threads) are often similar to models of load balancing in distributed systems. The same is true of error handling techniques like logging, fail-over, idempotency of tasks etc.
+###  Shared State vs. Separate State
+
+One important aspect of a concurrency model is, whether the components and threads are designed to share state among the threads, or to have separate state which is never shared among the threads.
+
+***Shared state*** means that the different threads in the system will share some state among them. By state is meant some data, typically one or more objects or similar. When threads share state, problems like **race conditions** and **deadlock** etc. may occur. It depends on how the threads use and access the shared objects, of course.
+
+![[Pasted image 20240208095557.png]]
+
+**_Separate state_** means that the different threads in the system do not share any state among them. In case the different threads need to communicate, they do so either by exchanging immutable objects among them, or by sending copies of objects (or data) among them. Thus, when no two threads write to the same object (data / state), you can avoid most of the common concurrency problems.
+
+![[Pasted image 20240208100716.png]]
+
+###  Parallel Workers
+
+The Parallel Workers concurrency model involves independent workers executing tasks simultaneously, enabling parallel processing and efficient utilization of resources. Each worker operates concurrently, handling different aspects of a task, and their results are often combined to achieve the overall goal. This model is particularly effective for parallelizable tasks on multi-core processors, enhancing performance by dividing the workload among multiple workers.
+
+![[Pasted image 20240208101201.png]]
+
+#### Parallel Workers Advantages
+
+- **Increased Performance:** Parallel Workers concurrency allows tasks to be executed simultaneously, leveraging multiple processors or cores, leading to faster overall processing.
+    
+- **Efficient Resource Utilization:** This model efficiently utilizes available resources by distributing tasks among independent workers, maximizing the use of multi-core processors.
+    
+- **Scalability:** As the workload increases, additional workers can be added to scale performance, making it adaptable to varying computational demands.
+    
+- **Improved Responsiveness:** Tasks can progress independently, enhancing the system's responsiveness by avoiding bottlenecks that may occur in a sequential execution model.
+    
+- **Enhanced Throughput:** Parallel processing can lead to higher throughput, enabling the system to handle more tasks or data in a given timeframe.
+
+#### Parallel Workers Disadvantages
+
+- **Complexity:** Implementing and managing parallel workers can introduce complexity to the design and programming of the system. Coordinating independent workers and ensuring proper synchronization can be challenging.
+    
+- **Potential for Race Conditions:** Concurrent execution may introduce race conditions, where multiple workers access shared resources simultaneously, leading to unpredictable behavior and data corruption.
+    
+- **Difficulty in Debugging:** Identifying and resolving issues in a parallel environment can be more challenging than in a sequential one. Debugging tools and techniques must handle the complexities of parallel execution.
+    
+- **Overhead of Coordination:** Coordinating the activities of parallel workers introduces overhead due to synchronization mechanisms. This overhead may impact the overall performance gain achieved through parallelism.
+    
+- **Limited Applicability:** Not all tasks can be effectively parallelized. Some algorithms and processes inherently depend on sequential execution, limiting the benefits of parallel workers in certain scenarios.
+
+### Assembly Line
+
+The Assembly Line concurrency model involves breaking down a task into sequential stages, each handled by a dedicated worker or thread. Each stage processes a specific aspect of the task, and work progresses in a linear fashion from one stage to the next. This model is efficient for tasks that can be divided into discrete steps and is particularly useful for optimizing throughput and resource utilization.
+
+![[Pasted image 20240208103053.png]]
+
+Systems using the assembly line concurrency model are usually designed to use non-blocking IO. Non-blocking IO means that when a worker starts an IO operation (e.g. reading a file or data from a network connection) the worker does not wait for the IO call to finish. IO operations are slow, so waiting for IO operations to complete is a waste of CPU time. The CPU could be doing something else in the meanwhile. When the IO operation finishes, the result of the IO operation ( e.g. data read or status of data written) is passed on to another worker.
+
+With non-blocking IO, the IO operations determine the boundary between workers. A worker does as much as it can until it has to start an IO operation. Then it gives up control over the job. When the IO operation finishes, the next worker in the assembly line continues working on the job, until that too has to start an IO operation etc.
+
+![[Pasted image 20240208103325.png]]
+
+In reality, the jobs may not flow along a single assembly line. Since most systems can perform more than one job, jobs flows from worker to worker depending on what part of the job that needs to be executed next. In reality there could be multiple different virtual assembly lines running on at the same time.
+
+![[Pasted image 20240208103730.png]]
+
+Jobs may even be forwarded to more than one worker for concurrent processing. For instance, a job may be forwarded to both a job executor and a job logger.
+
+![[Pasted image 20240208103813.png]]
+
+####  Assembly Line Advantages
+
+- **Optimized Throughput:** The Assembly Line concurrency model is designed for efficient task processing, leading to optimized throughput as each stage works on a specific aspect of the task simultaneously.
+    
+- **Clear Task Division:** Breaking down a task into sequential stages provides a clear and modular division of labor, making it easier to understand, implement, and maintain the code.
+    
+- **Resource Utilization:** This model can make effective use of available resources, as each stage can be assigned to a dedicated worker or thread, enabling parallel execution on multi-core processors.
+    
+- **Predictable Execution:** The linear progression of tasks in the Assembly Line model facilitates predictability in execution, simplifying debugging and performance tuning.
+    
+- **Scalability:** As the workload increases, additional stages or workers can be added to the assembly line, allowing for scalability and adaptability to varying computational demands.
+
+#### Assembly Line Disadvantages
+
+- **Limited Parallelism:** While the Assembly Line model is efficient for tasks with clear sequential stages, it may not fully exploit parallelism in situations where stages are not entirely independent or where dependencies are complex.
+    
+- **Rigid Structure:** The fixed linear structure of the assembly line can be restrictive, making it less suitable for tasks that don't neatly fit into a sequential workflow.
+    
+- **Uneven Work Distribution:** If certain stages of the assembly line take significantly longer than others, it can lead to uneven work distribution and potential idle time for some workers.
+    
+- **Challenge with Dynamic Workloads:** Adapting the Assembly Line model to dynamic workloads or tasks with unpredictable variations in processing requirements can be challenging.
+    
+- **Complexity in Stage Interaction:** Coordinating and managing interactions between stages, especially when there are dependencies or shared resources, can introduce complexities and potential bottlenecks.
+
+###  Functional Parallelism
+
+The Functional Parallelism concurrency model involves dividing a task into smaller, independent functions that can be executed concurrently. Each function operates on distinct data, and parallel processing is achieved by simultaneously executing these functions. This model aligns well with functional programming principles and is effective for tasks that can be decomposed into parallelizable functions.
+
+## Same-threading
+
+Same-threading is a concurrency model that scales out by replicating single-threaded systems N times, resulting in N independent single-threaded systems running concurrently in parallel.
+
+###  Why Single-threaded Systems?
+
+Single-threaded systems are often chosen for simplicity, ease of programming, and predictable execution, but they can be scaled out in a same-threading model to achieve parallelism and handle increased workloads.
+
+Single-threaded systems have gained popularity because their concurrency models are much simpler than multi-threaded systems. Single-threaded systems do not share any state (objects / data) with other threads. This enables the single thread to use non-concurrent data structures, and utilize the CPU and CPU caches better.
+
+### Same-threading: Single-threading Scaled Out
+
+In order to utilize all the cores in the CPU, a single-threaded system can be scaled out to utilize the whole computer.
+
+### No Shared State
+
+A same-threaded system looks similar to a traditional multi-threaded system, since a same-threaded system has multiple threads running inside it. But there is a subtle difference.
+
+**The difference between a same-threaded and a traditional multi-threaded system is that the threads in a same-threaded system do not share state.** There is no shared memory which the threads access concurrently. No concurrent data structures etc. via which the threads share data.
+
+![[Pasted image 20240208111557.png]]
+
+The lack of shared state is what makes each thread behave as it if was a single-threaded system. 
+Same-threaded basically means that data processing stays within the same thread, and that no threads in a same-threaded system share data concurrently. Sometimes this is also referred to just as ***no shared state concurrency***, or ***separate state-concurrency***.
+
+### Load Distribution
+
+If only one thread gets any work, the system would in effect be single-threaded.
+Exactly how you distribute the load over the different threads depend on the design of your system
+
+#### Single-threaded Microservices
+
+If your system consists of multiple microservices, each microservice can run in single-threaded mode. When you deploy multiple single-threaded microservices to the same machine, each microservice can run a single thread on a single CPU.
+
+Microservices do not share any data by nature, so microservices is a good use case for a same-threaded system.
+
+#### Services With Sharded Data
+
+If your system does actually need to share data, or at least a database, you may be able to shard the database. Sharding means that the data is divided among multiple databases. The data is typically divided so that all data related to each other is located together in the same database. For instance, all data belonging to some "owner" entity will be inserted into the same database.
+
+### Thread Communication
+
+If the threads in a same-threaded system need to communicate, they do so by message passing. If Thread A wants to send a message to Thread B, Thread A can do so by generating a message (a byte sequence). Thread B can then copy that message (byte sequence) and read it. By copying the message Thread B makes sure that Thread A cannot modify the message while Thread B reads it. Once copied, the message copy is inaccessible for Thread A.
+
+![[Pasted image 20240208113246.png]]
+
+The thread communication can take place via queues, pipes, unix sockets, TCP sockets etc. Whatever fits your system.
+
+
+
+
+
+
+
+
+
+
+
+
+
