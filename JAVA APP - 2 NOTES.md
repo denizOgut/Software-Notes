@@ -1069,6 +1069,441 @@ If the threads in a same-threaded system need to communicate, they do so by mess
 The thread communication can take place via queues, pipes, unix sockets, TCP sockets etc. Whatever fits your system.
 
 
+##  Single-threaded Concurrency
+
+In single-threaded concurrency, a single thread is adept at making progress on multiple tasks by interleaving their execution, eliminating the need for multiple threads. Unlike traditional multithreading where the OS manages task switching between threads, single-threaded concurrency achieves this by internally switching between tasks within the same thread.
+
+
+###  Classic Multi-threaded Concurrency
+
+typically assign each task to a separate thread for execution. Each thread only executes a single task at a time.
+In some designs a new thread will be created for each task, and the thread thus dies once the task is completed. 
+In other designs a pool of threads is kept alive which take one task at a time from a task queue, executes it - and then takes another task etc.
+
+Multi-threaded architectures have the advantage that it is relatively easy to distribute the work load across multiple threads and multiple CPUs. However, if the tasks being executed need to share data, a multi-threaded architecture can lead to a lot of concurrency problems such as race conditions, deadlock, starvation, slipped conditions, nested monitor lockout etc.
+
+In general, the more multiple threads share the same data and data structures, the higher the probability is that a concurrency problem may occur.
+
+### Single-threaded or Same-threaded Concurrency
+
+In a single-threaded concurrency design you will have to implement task switching yourself.
+You can scale a single-threaded architecture up to use multiple threads, where each thread behaves as if it was a separate, isolated single-threaded system.
+
+###  Single-threaded Concurrency Benefits
+
+- **Full Thread Visibility** 
+- **No Race Conditions**: When you only have one thread accessing a data structure shared by multiple tasks you avoid the problems of race conditions.
+- **Control Over Task Switching**: manually controlling task switches provides the advantage of ensuring shared resources are left in a consistent state, allowing customization of work increment sizes. This control optimizes CPU utilization by minimizing unnecessary task switching overhead and enables prioritization of tasks based on their assigned work increments.
+
+### Single-threaded Concurrency Challenges
+
+- **Implementation Required**: Having to implement task switching yourself requires that you learn how to implement such designs
+- **Blocking Operations Have to be Avoided or Handled in Background Threads**: The thread cannot switch to another task while waiting for the blocking IO operation to complete.
+- **A Single Thread Can Only Utilize a Single CPU** 
+
+### Single-threaded Concurrency Designs
+
+#### Thread Loops
+
+Most long-running applications execute in some kind of a loop, where the main application thread is waiting for input from outside the application, processes that input, and then goes back to waiting.
+
+![[Pasted image 20240208202647.png]]
+
+#####  Pausing the Thread Loop
+
+the thread executing the loop is free to "sleep" if it estimates that sleeping a few milliseconds would be okay. That way the CPU time waste can be decreased.
+
+####  Agents
+
+A thread loop typically calls some component which carries out the work of the application.
+The life span of an agent may vary
+
+- Run for the entire life-time of your application.
+- Run a longer-running job - which eventually finishes.
+- Run a one-off task - which finishes quickly.
+	
+the term agent covers multiple sizes of tasks and responsibility.
+
+#### Thread Loops Call Agents
+
+Thread loops typically call an agent component repeatedly - handing over the actual responsibility of the application to the agent.
+The thread loop takes care of looping (repeating the calls to the agent) and detecting when the agent has terminated, and thus terminate the thread loop.
+The agent is responsible for executing the application logic itself, but not the looping.
+
+![[Pasted image 20240208203118.png]]
+
+
+#### Agents May Call Other Agents
+
+An agent may divide its work among other agents. Thus, agents have different levels of responsibility.
+
+![[Pasted image 20240208203201.png]]
+
+#### Single-threaded Task Switching
+
+To enable progress on multiple tasks within a single-threaded system, the tasks must be split into increments.
+This allows the thread to switch between tasks, executing one or more increments at each call to an agent. 
+By repeatedly calling agents to process these increments, the system can make progress on various tasks without being blocked by the completion of a single lengthy job.
+
+![[Pasted image 20240208203419.png]]                           
+![[Pasted image 20240208203439.png]]
+
+#### Increment Size Balancing
+
+If a single thread is to be able to switch between multiple tasks it is imperative that these tasks are not divided into too big increments. In other words, it is the responsibility of each task to help assure fair division of execution time between the tasks.
+#### Prioritized Execution
+
+If a single thread is to be able to switch between multiple tasks it is imperative that these tasks are not divided into too big increments. In other words, it is the responsibility of each task to help assure fair division of execution time between the tasks.
+#### Agent Parking
+
+If an agent is waiting for some asynchronous operation to finish, e.g. a reply from a remote server, the agent will not be able to make any more progress until the asynchronous operation it is waiting for has finished.
+In that case it may not make sense to call that agent over and over again just for the agent to immediately realize that it cannot make any progress and return control immediately to the calling thread.
+In such situation it may make sense for an agent to be able to "park" itself so it is no longer being called.
+#### Scaling Single-threaded Concurrency
+
+To leverage multiple CPUs in a single-threaded architecture, the solution is to introduce more threads, often aligning with the number of available CPUs.  While technically not single-threaded, each subsystem in this multi-threaded setup is designed and behaves as a single-threaded system. 
+#### Event Loops vs. Thread Loops
+
+In an event loop, the loop controls the time between events, limiting application control. 
+In contrast, a thread loop allows the application to manage time between events, providing flexibility to prioritize ongoing tasks and decide when to check for new events.
+
+## Concurrency vs. Parallelism
+
+### Concurrency
+
+Concurrency means that an application is making progress on more than one task - at the same time or at least seemingly at the same time (concurrently).
+
+![[Pasted image 20240208204018.png]]
+
+### Parallel Execution
+
+when a computer has more than one CPU or CPU core, and makes progress on more than one task simultaneously. **parallel execution is not parallelism**
+
+![[Pasted image 20240208204123.png]]
+
+
+### Parallel Concurrent Execution
+
+It is possible to have parallel concurrent execution, where threads are distributed among multiple CPUs. 
+Thus, the threads executed on the same CPU are executed concurrently, whereas threads executed on different CPUs are executed in parallel.
+
+![[Pasted image 20240208204338.png]]
+
+### Parallelism
+
+means that an application splits its tasks up into smaller subtasks which can be processed in parallel, for instance on multiple CPUs at the exact same time. To achieve true parallelism your application must have more than one thread running - and each thread must run on separate CPUs
+
+![[Pasted image 20240208204454.png]]
+
+### Concurrency and Parallelism Combinations
+
+To recap, concurrency refers to how a single CPU can make progress on multiple tasks seemingly at the same time Parallelism on the other hand, is related to how an application can parallelize the execution of a single task - typically by splitting the task up into subtasks which can be completed in parallel.	These two execution styles can be combined within the same application
+#### Concurrent, Not Parallel
+
+means that it makes progress on more than one task seemingly at the same time (concurrently), but the application switches between making progress on each of the tasks - until the tasks are completed.
+There is no true parallel execution of tasks going in parallel threads / CPUs.
+#### Parallel, Not Concurrent
+
+means that the application only works on one task at a time, and this task is broken down into subtasks which can be processed in parallel. However, each task (+ subtask) is completed before the next task is split up and executed in parallel.
+#### Neither Concurrent Nor Parallel
+
+an application can be neither concurrent nor parallel. This means that it works on only one task at a time, and the task is never broken down into subtasks for parallel execution.
+#### Concurrent and Parallel
+
+An application can be both concurrent and parallel by either executing multiple threads concurrently on multiple CPUs or by concurrently working on multiple tasks while breaking each task down into subtasks for parallel execution;  however, careful analysis and measurement are essential as combining these approaches may yield only marginal performance gains or even losses.
+
+## Creating and Starting Java Threads
+
+A Java Thread is like a virtual CPU that can execute your Java code - inside your Java application. 
+Java threads are objects like any other Java objects. Threads are instances of class ``java.lang.Thread``, or instances of subclasses of this class In addition to being objects, java threads can also execute code
+
+### Creating and Starting Threads
+
+```java
+ Thread thread = new Thread();
+ thread.start();
+```
+
+There are two ways to specify what code the thread should execute.
+The first is to create a subclass of Thread and override the ``run()`` method.
+The second method is to pass an object that implements Runnable (``java.lang.Runnable``) to the Thread constructor.
+
+### Thread Subclass
+
+The first way to specify what code a thread is to run, is to create a subclass of Thread and override the ``run()`` method. The ``run()`` method is what is executed by the thread after you call ``start()``.
+
+```java
+public class MyThread extends Thread {
+
+    public void run(){
+       System.out.println("MyThread running");
+    }
+  }
+```
+
+```java
+MyThread myThread = new MyThread();
+myTread.start();
+```
+
+The ``start()`` call will return as soon as the thread is started. It will not wait until the ``run()`` method is done. The ``run()`` method will execute as if executed by a different CPU. can also create an anonymous subclass of Thread like this:
+
+```java
+Thread thread = new Thread(){
+    public void run(){
+      System.out.println("Thread Running");
+    }
+  }
+  thread.start();
+```
+
+### Runnable Interface Implementation
+
+The second way to specify what code a thread should run is by creating a class that implements the ``java.lang.Runnable`` interface. The Runnable interface only has a single method ``run()``.
+
+```java
+public interface Runnable() {
+    public void run();
+}
+```
+
+Whatever the thread is supposed to do when it executes must be included in the implementation of the ``run()`` method. There are three ways to implement the Runnable interface:
+
+- **Create a Java class that implements the Runnable interface.**
+
+```java
+public class MyRunnable implements Runnable {
+    public void run(){
+       System.out.println("MyRunnable running");
+    }
+  }
+```
+
+* **Create an anonymous class that implements the Runnable interface.**
+
+```java
+Runnable myRunnable =
+    new Runnable(){
+        public void run(){
+            System.out.println("Runnable running");
+        }
+    }
+```
+
+* **Create a Java Lambda that implements the Runnable interface.**
+
+```java
+Runnable runnable =
+        () -> { System.out.println("Lambda Runnable running"); };
+```
+
+#### Starting a Thread With a Runnable
+
+To have the run() method executed by a thread, pass an instance of a class, anonymous class or lambda expression that implements the Runnable interface to a Thread in its constructor.
+```java
+Runnable runnable = new MyRunnable(); // or an anonymous class, or lambda...
+Thread thread = new Thread(runnable);
+thread.start();
+```
+
+### Subclass or Runnable?
+
+1. **Subclassing Thread:**
+    
+    When you subclass the `Thread` class, you create a new class that extends `Thread` and overrides its `run()` method. This approach is straightforward, and it involves creating an instance of your custom thread class to start a new thread.
+    
+    - **Advantages:**
+        
+        - Simplicity: Creating and starting a thread is a concise process.
+        - Direct access to `this`: The thread code has direct access to the instance variables of the class.
+    - **Disadvantages:**
+        
+        - Inheritance limitations: Java supports single inheritance, limiting the ability to extend other classes.
+        - Less flexibility: The class is dedicated to being a thread, which might be restrictive in terms of design.
+2. **Implementing Runnable:**
+    
+    When you implement the `Runnable` interface, you create a separate class that defines the `run()` method. This class can then be used to instantiate a `Thread` object.
+    
+    - **Advantages:**
+        
+        - Better design: Implementing `Runnable` adheres to the composition over inheritance principle, providing more flexibility in the class hierarchy.
+        - Reusability: The same `Runnable` instance can be shared among multiple threads.
+        - Stateless: The `Runnable` interface is stateless, which can be beneficial in certain scenarios.
+    - **Disadvantages:**
+        
+        - Slightly more code: The process involves a bit more code compared to subclassing `Thread`.
+        - Functional interface: Implementing `Runnable` involves using a functional interface, which can be perceived as an additional layer.
+
+In summary, using `Runnable` is often favored for its better design principles, reusability, and statelessness. It provides a more flexible approach to threading, allowing for improved organization and adaptability in complex applications. However, the choice between the two approaches ultimately depends on the specific requirements of your application and design preferences.
+
+### Common Pitfall: Calling ``run()`` Instead of ``start()``
+
+```java
+Thread newThread = new Thread(MyRunnable());
+newThread.run();  //should be start();
+```
+
+Calling ``run()`` instead of ``start()`` when creating a thread in Java results in the ``run()`` method being executed by the current thread, not the newly created one; to ensure execution by the new thread, ``start()`` should be used.
+### Thread Names
+
+When you create a Java thread you can give it a name. The name can help you distinguish different threads from each other. 
+
+```java
+Thread thread = new Thread("New Thread") {
+      public void run(){
+        System.out.println("run by: " + getName());
+      }
+   };
+
+
+   thread.start();
+   System.out.println(thread.getName());
+```
+
+```java
+MyRunnable runnable = new MyRunnable();
+Thread thread = new Thread(runnable, "New Thread");
+
+thread.start();
+System.out.println(thread.getName());
+```
+### ``Thread.currentThread()``
+
+The ``Thread.currentThread()`` method returns a reference to the Thread instance executing ``currentThread()`` 
+This way you can get access to the Java Thread object representing the thread executing a given block of code.
+
+```java
+Thread thread = Thread.currentThread();
+String threadName = Thread.currentThread().getName();
+```
+### Pause a Thread
+
+A thread can pause itself by calling the static method ``Thread.sleep()``.  The ``sleep()`` takes a number of milliseconds as parameter. The ``sleep()`` method will attempt to sleep that number of milliseconds before resuming execution. 
+
+```java
+try {
+    Thread.sleep(10L * 1000L);
+} catch (InterruptedException e) {
+    e.printStackTrace();
+}
+```
+
+###  Stop a Thread
+
+Stopping a Java Thread requires careful handling as the deprecated ``stop()`` method can leave shared objects in an unpredictable state.  Instead, it's recommended to implement a thread with a ``doStop()`` method and an internal ``keepRunning()`` method, ensuring a controlled stop.
+
+```java
+public class MyRunnable implements Runnable {
+
+    private boolean doStop = false;
+
+    public synchronized void doStop() {
+        this.doStop = true;
+    }
+
+    private synchronized boolean keepRunning() {
+        return this.doStop == false;
+    }
+
+    @Override
+    public void run() {
+        while(keepRunning()) {
+            // keep doing what this thread should do.
+            System.out.println("Running");
+
+            try {
+                Thread.sleep(3L * 1000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+}
+```
+
+```java
+public class MyRunnableMain {
+
+    public static void main(String[] args) {
+        MyRunnable myRunnable = new MyRunnable();
+
+        Thread thread = new Thread(myRunnable);
+
+        thread.start();
+
+        try {
+            Thread.sleep(10L * 1000L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        myRunnable.doStop();
+    }
+}
+```
+
+## Virtual Threads
+
+Java virtual threads are different from the original platform threads in that virtual threads are much more lightweight in terms of how many resources (RAM) they demand from the system to run. With more virtual threads running you can do more blocking IO in parallel than with fewer platform threads
+
+### Java Virtual Thread Diagram
+
+- **Application**: The application initiates a JVT.
+- **Java Virtual Machine (JVM)**: The JVM manages JVTs, creating and scheduling them according to the task-oriented paradigm.
+- **Thread Scheduler**: The Thread Scheduler within the JVM orchestrates the execution of multiple JVTs, allowing for efficient use of system resources.
+- **Operating System (OS)**: The OS is not directly involved in managing JVTs. Instead, the JVM handles their execution, making them more lightweight and scalable.
+![[Pasted image 20240208214103.png]]
+
+### Virtual Threads are Mounted to Platform Threads
+
+Java virtual threads are executed by platform threads. A platform thread can only execute one virtual thread at a time While the virtual thread is being executed by a platform thread - the virtual thread is said to be mounted to that thread.
+
+New virtual threads are queued up until a platform thread is ready to execute it. When a platform thread becomes ready, it will take a virtual thread and start executing it. A virtual thread that executes some blocking network call (IO) will be unmounted from the platform thread while waiting for the response. In the meantime the platform thread can execute another virtual thread.
+
+#### No Time Slicing Between Virtual Threads
+
+the platform thread does not switch between executing multiple virtual threads - except in the case of blocking network calls. As long as a virtual thread is running code and is not blocked waiting for a network response - the platform thread will keep executing the same virtual thread.
+
+### Virtual Thread Pinning
+
+In Java Virtual Thread (JVT) behavior, a virtual thread remains mounted to a platform thread until it encounters certain blocking operations, such as a network call or a call to a ``BlockingQueue``. However, during blocking file system calls, the virtual thread remains pinned to the platform thread, preventing the execution of other virtual threads.  Additionally, situations like entering a synchronized block may also pin a virtual thread to a platform thread.
+
+### Creating a Java Virtual Thread
+
+use the new ``Thread.ofVirtual()`` factory method, passing an implementation of the Runnable interface.
+
+```java
+Runnable runnable = () -> {
+    for(int i=0; i<10; i++) {
+        System.out.println("Index: " + i);
+    }
+};
+Thread vThread = Thread.ofVirtual().start(runnable);
+```
+
+If you do not want the virtual thread to start immediately, you can use the ``unstarted()`` method instead.
+
+```java
+Thread vThreadUnstarted = Thread.ofVirtual().unstarted(runnable);
+vThreadUnstarted.start();
+```
+
+### Join a Virtual Thread
+
+waiting until the virtual thread has finished its work and stopped executing. In other words, the ``join()`` method blocks the calling thread until the virtual thread has finished its work and stopped executing.
+
+```java
+Thread vThread = Thread.ofVirtual().start(runnable);
+vThread.join();
+```
+
+## Race Conditions and Critical Sections
+
+
+
+
+
 
 
 
