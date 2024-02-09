@@ -1500,17 +1500,615 @@ vThread.join();
 
 ## Race Conditions and Critical Sections
 
+A race condition is a concurrency problem that may occur inside a critical section.
+A critical section is a section of code that is executed by multiple threads and where the sequence of execution for the threads makes a difference in the result of the concurrent execution of the critical section.
+When the result of multiple threads executing a critical section may differ depending on the sequence in which the threads execute, the critical section is said to contain a race condition.
+
+### Two Types of Race Conditions
+
+Race conditions can occur when two or more threads read and write the same variable according to one of these two patterns:
+
+- Read-modify-write
+	two or more threads first read a given variable, then modify its value and write it back to the variable.
+	For this to cause a problem, the new value must depend one way or another on the previous value.
+
+- Check-then-act
+	involves multiple threads checking a condition concurrently and then taking action based on the result.
+	An issue arises when two or more threads simultaneously check and act on the condition, leading to potential conflicts and unexpected outcomes, such as attempting to access the same resource concurrently.
+
+### Read-Modify-Write Critical Sections
+
+```java
+public class Counter {
+
+     protected long count = 0;
+
+     public void add(long value){
+         this.count = this.count + value;
+     }
+  }
+```
+
+if two threads, A and B, are executing the add method on the same instance of the Counter class. There is no way to know when the operating system switches between the two threads. The code in the ``add()`` method is not executed as a single atomic instruction by the Java virtual machine. Rather it is executed as a set of smaller instructions,
+
+- Read ``this.count`` from memory into register.
+- Add value to register.
+- Write register to memory.
+
+```java
+this.count = 0;
+
+A:  Reads this.count into a register (0)
+B:  Reads this.count into a register (0)
+B:  Adds value 2 to register
+B:  Writes register value (2) back to memory. this.count now equals 2
+A:  Adds value 3 to register
+A:  Writes register value (3) back to memory. this.count now equals 3
+```
+
+#### Race Conditions in Read-Modify-Write Critical Sections
+
+The code in the ``add()`` method in the example earlier contains a critical section. When multiple threads execute this critical section, race conditions occur.
+
+More formally, the situation where two threads compete for the same resource, where the sequence in which the resource is accessed is significant, is called race conditions.  A code section that leads to race conditions is called a critical section.
+
+### Check-Then-Act Critical Sections
+
+If two threads check the same condition, then act upon that condition in a way that changes the condition it can lead to race conditions. If two threads both check the condition at the same time, and then one thread goes ahead and changes the condition, this can lead to the other thread acting incorrectly on that condition.
+
+```java
+public class CheckThenActExample {
+
+    public void checkThenAct(Map<String, String> sharedMap) {
+        if(sharedMap.containsKey("key")){
+            String val = sharedMap.remove("key");
+            if(val == null) {
+                System.out.println("Value for 'key' was null");
+            }
+        } else {
+            sharedMap.put("key", "value");
+        }
+    }
+}
+```
+
+When multiple threads call the ``checkThenAct()`` method on the same object concurrently, a race condition occurs. If two or more threads simultaneously enter the if statement, each may attempt to remove the "key" from the shared map, but only one succeeds, and the others receive a null value. This can lead to unexpected behavior and highlights the need for synchronization mechanisms.
+
+### Preventing Race Conditions
+
+make sure that the critical section is executed as an atomic instruction. That means that once a single thread is executing it, no other threads can execute it until the first thread has left the critical section.
+Race conditions can be avoided by proper thread synchronization in critical sections Thread synchronization can be achieved using a synchronized block of Java code. Thread synchronization can also be achieved using other synchronization constructs like locks or atomic variables like ``java.util.concurrent.atomic.AtomicInteger``.
+
+### Critical Section Throughput
+
+For smaller critical sections making the whole critical section a synchronized block may work. 
+But, for larger critical sections it may be beneficial to break the critical section into smaller critical sections, to allow multiple threads to execute each a smaller critical section.
+This may decrease contention on the shared resource, and thus increase throughput of the total critical section.
+
+```java
+public class TwoSums {
+    
+    private int sum1 = 0;
+    private int sum2 = 0;
+    
+    public void add(int val1, int val2){
+        synchronized(this){
+            this.sum1 += val1;   
+            this.sum2 += val2;
+        }
+    }
+}
+```
+
+To prevent race conditions the summing is executed inside a Java synchronized block. With this implementation only a single thread can ever execute the summing at the same time.
+However, since the two sum variables are independent of each other, you could split their summing up into two separate synchronized blocks
+
+```java
+public class TwoSums {
+    
+    private int sum1 = 0;
+    private int sum2 = 0;
+
+    private Integer sum1Lock = new Integer(1);
+    private Integer sum2Lock = new Integer(2);
+
+    public void add(int val1, int val2){
+        synchronized(this.sum1Lock){
+            this.sum1 += val1;   
+        }
+        synchronized(this.sum2Lock){
+            this.sum2 += val2;
+        }
+    }
+}
+```
+
+## Thread Safety and Shared Resources
+
+Code that is safe to call by multiple threads simultaneously is called thread safe. If a piece of code is thread safe, then it contains no race conditions.
+Race condition only occur when multiple threads update shared resources.
+
+### Local Variables
+
+Local variables are stored in each thread's own stack.
+That means that local variables are never shared between threads. That also means that all local primitive variables are thread safe
+### Local Object References
+
+The reference itself is not shared. The object referenced however, is not stored in each threads 's local stack. All objects are stored in the shared heap.
+
+If an object created locally never escapes the method it was created in, it is thread safe.  In fact you can also pass it on to other methods and objects as long as none of these methods or objects make the passed object available to other threads.
+
+If an object created within a method (a local object) doesn't extend beyond that method and is not shared with other threads, it is inherently thread-safe because no other threads can access or modify it.
+
+```java
+public void someMethod(){
+
+  LocalObject localObject = new LocalObject();
+
+  localObject.callMethod();
+  method2(localObject);
+}
+
+public void method2(LocalObject localObject){
+  localObject.setValue("value");
+}
+```
+
+``localStringBuilder`` is a local object created within the process() method. Since it doesn't escape the method and is not shared with other threads, it is thread-safe.
+### Object Member Variables
+
+Object member variables (fields) are stored on the heap along with the object. Therefore, if two threads call a method on the same object instance and this method updates object member variables, the method is not thread safe.
+
+```java
+public class NotThreadSafe{
+    StringBuilder builder = new StringBuilder();
+
+    public add(String text){
+        this.builder.append(text);
+    }
+}
+```
+
+If two threads call the ``add()`` method simultaneously on the same ``NotThreadSafe`` instance then it leads to race conditions.
+
+```java
+NotThreadSafe sharedInstance = new NotThreadSafe();
+
+new Thread(new MyRunnable(sharedInstance)).start();
+new Thread(new MyRunnable(sharedInstance)).start();
+
+public class MyRunnable implements Runnable{
+  NotThreadSafe instance = null;
+
+  public MyRunnable(NotThreadSafe instance){
+    this.instance = instance;
+  }
+
+  public void run(){
+    this.instance.add("some text");
+  }
+}
+```
+
+the two ``MyRunnable`` instances share the same ``NotThreadSafe`` instance. Therefore, when they call the add() method on the ``NotThreadSafe`` instance it leads to race condition.
+However, if two threads call the ``add()`` method simultaneously on "different instances" then it does not lead to race condition.
+
+```java
+new Thread(new MyRunnable(new NotThreadSafe())).start();
+new Thread(new MyRunnable(new NotThreadSafe())).start();
+```
+
+### The Thread Control Escape Rule
+
+The Thread Control Escape Rule states that if a resource is created, used, and disposed within the control of the same thread, without escaping to other threads, its use is considered thread-safe. Disposal involves losing or nullifying the reference to the object. However, if the object points to a shared resource like a file or a database, caution is needed to ensure overall thread safety, as simultaneous operations by multiple threads on the shared resource can lead to potential issues.
+
+## Thread Safety and Immutability
+
+Race conditions occur only if multiple threads are accessing the same resource, and one or more of the threads write to the resource. If multiple threads read the same resource race conditions do not occur.
+
+```java
+public class ImmutableValue{
+
+  private int value = 0;
+
+  public ImmutableValue(int value){
+    this.value = value;
+  }
+
+  public int getValue(){
+    return this.value;
+  }
+}
+```
+
+We can make sure that objects shared between threads are never updated by any of the threads by making the shared objects immutable, and thereby thread safe. If you need to perform operations on the ``ImmutableValue`` instance you can do so by returning a new instance with the value resulting from the operation.
+
+```java
+public class ImmutableValue{
+
+  private int value = 0;
+
+  public ImmutableValue(int value){
+    this.value = value;
+  }
+
+  public int getValue(){
+    return this.value;
+  }
+
+  **public ImmutableValue add(int valueToAdd){
+      return new ImmutableValue(this.value + valueToAdd);
+      }**
+  
+}
+```
+
+### The Reference is not Thread Safe!
+
+even if an object is immutable and thereby thread safe, the reference to this object may not be thread safe.
+
+```java
+public class Calculator{
+  private ImmutableValue currentValue = null;
+
+  public ImmutableValue getValue(){
+    return currentValue;
+  }
+
+  public void setValue(ImmutableValue newValue){
+    this.currentValue = newValue;
+  }
+
+  public void add(int newValue){
+    this.currentValue = this.currentValue.add(newValue);
+  }
+}
+```
+
+The ``ImmutableValue`` class is thread safe, but the use of it is not. This is something to keep in mind when trying to achieve thread safety through immutability. To make the Calculator class thread safe you could have declared the ``getValue()``,`` setValue()``, and ``add()`` methods synchronized.
+
+## Java Memory Model
+
+specifies how the Java virtual machine works with the computer's memory (RAM). The Java virtual machine is a model of a whole computer so this model naturally includes a memory model - AKA the Java memory model.
+
+>**The statement means that the Java virtual machine (JVM) is designed to emulate the behavior of an entire computer, including its memory management.  The Java memory model, in this context, refers to the rules and specifications that dictate how the JVM interacts with the computer's RAM, ensuring consistency and predictability in handling memory-related operations within Java programs.**
+
+The Java memory model specifies how and when different threads can see values written to shared variables by other threads, and how to synchronize access to shared variables when necessary.
+
+### The Internal Java Memory Model
+
+The Java memory model used internally in the JVM divides memory between thread stacks and the heap
+In the Java virtual machine, each thread has its own thread stack, including a "call stack" that tracks method calls and local variables for the methods being executed. 
+
+Local variables of primitive types are fully stored on the thread stack, invisible to other threads. However, objects, including object versions of primitives, are stored in the heap and can be accessed by any thread. 
+Each thread has its own version of local variables, promoting thread isolation.
+
+![[Pasted image 20240209131403.png]]
+
+In Java, a local variable can be either of a primitive type, stored entirely on the thread stack, or a reference to an object, where the reference is on the thread stack, but the object itself is stored on the heap.
+If an object contains methods with local variables, those variables are also stored on the thread stack.
+Member variables of an object, whether of a primitive type or a reference to an object, are stored on the heap with the object.  Static class variables are also stored on the heap.
+
+![[Pasted image 20240209131501.png]]
+
+Objects on the heap are accessible by all threads with a reference to them, allowing access to their member variables.  If multiple threads call a method on the same object simultaneously, they share access to the object's member variables, each having its own copy of local variables.
+![[Pasted image 20240209131535.png]]
+
+```java
+public class MyRunnable implements Runnable() {
+
+    public void run() {
+        methodOne();
+    }
+
+    public void methodOne() {
+        int localVariable1 = 45;
+
+        MySharedObject localVariable2 =
+            MySharedObject.sharedInstance;
+
+        //... do more with local variables.
+
+        methodTwo();
+    }
+
+    public void methodTwo() {
+        Integer localVariable1 = new Integer(99);
+
+        //... do more with local variable.
+    }
+}
+```
+
+```java
+public class MySharedObject {
+
+    //static variable pointing to instance of MySharedObject
+
+    public static final MySharedObject sharedInstance =
+        new MySharedObject();
 
 
+    //member variables pointing to two objects on the heap
+
+    public Integer object2 = new Integer(22);
+    public Integer object4 = new Integer(44);
+
+    public long member1 = 12345;
+    public long member2 = 67890;
+}
+```
+
+``MyRunnable`` is a class implementing the Runnable interface with two methods, ``methodOne`` and ``methodTwo``.
+``methodOne`` has two local variables, localVariable1 of type int and localVariable2 of type ``MySharedObject``, which points to the shared instance of ``MySharedObject``. ``methodTwo`` creates a local variable localVariable1 of type Integer. ``MySharedObject`` is a class with a ``sharedInstance`` representing a shared instance accessible to all threads.
+``MySharedObject`` has member variables pointing to two objects on the heap (object2 and object4) and two long variables (member1 and member2).
+
+When two threads execute the run() method, each creates its own copy of local variables, like localVariable1 and localVariable2. Primitive variables (localVariable1) are entirely separated on each thread's stack, while object references (localVariable2) may point to the same shared object on the heap.  Member variables of ``MySharedObject`` are stored on the heap, and since they are shared among all threads, changes to them are visible to all. Primitive member variables, like long, are also stored on the heap. Each execution of ``methodTwo()`` creates new Integer objects on the heap, but separate instances for each thread.
+
+### Hardware Memory Architecture
+
+![[Pasted image 20240209131945.png]]
+
+In a modern computer with multiple CPUs, each CPU, having its set of registers, can execute one thread at a time, and CPUs may run threads concurrently. The CPU's internal registers offer faster access than main memory. 
+Additionally, CPUs often have a cache memory layer, faster than main memory but slower than registers, which stores frequently accessed data. When a CPU needs to access main memory, it reads part of it into its cache, performs operations, and flushes the results back to main memory.
+### Bridging The Gap Between The Java Memory Model And The Hardware Memory Architecture
+
+![[Pasted image 20240209132101.png]]
+
+The hardware memory architecture does not distinguish between thread stacks and heap. On the hardware, both the thread stack and the heap are located in main memory. 
+Parts of the thread stacks and heap may sometimes be present in CPU caches and in internal CPU registers.
+
+When objects and variables can be stored in various different memory areas in the computer, certain problems may occur. The two main problems are:
+
+- Visibility of thread updates (writes) to shared variables.
+- Race conditions when reading, checking and writing shared variables.
+
+#### Visibility of Shared Objects
+
+When multiple threads share an object without proper volatile declarations or synchronization, changes to the shared object made by one thread may not be visible to others Without synchronization, each thread might have its own copy of the object in different CPU caches, leading to visibility issues.  Using the volatile keyword in Java ensures that the variable is read directly from and written back to main memory, addressing this problem.
+
+#### Race Conditions
+
+Without proper synchronization, two threads updating the same variable can lead to unexpected results, as the increments may not be carried out sequentially. Using a Java synchronized block ensures that only one thread can enter a critical section at a time, preventing race conditions by ensuring proper coordination and visibility of variables between threads.
+
+## Java Happens Before Guarantee
+
+The Java happens before guarantee is a set of rules that govern how the Java VM and CPU is allowed to reorder instructions for performance gains. makes it possible for threads to rely on when a variable value is synchronized to or from main memory, and which other variables have been synchronized at the same time.  centered around access to volatile variables and variables accessed from within synchronized blocks.
+
+### Instruction Reordering
+
+Modern CPUs have the ability to execute instructions in parallel if the instructions do not depend on each other.
+
+```java
+a = b + c
+
+d = e + f
+```
+
+However, the following two instructions cannot easily be executed in parallel, because the second instruction depends on the result of the first instruction:
+
+```java
+a = b + c
+d = a + e
+```
+
+Imagine the two instructions above were part of a larger set of instructions
+
+```java
+a = b + c
+d = a + e
+
+l = m + n
+y = x + z
+```
+
+The instructions could be reordered like below. Then the CPU can execute at least the first 3 instructions in parallel, and as soon as the first instructions is finished, it can start executing the 4th instruction
+
+```java
+a = b + c
+
+l = m + n
+y = x + z
+
+d = a + e
+```
+
+reordering instructions can increase parallel execution of instructions in the CPU. Increased parallelization means increased performance.
+### Instruction Reordering Problems in Multi CPU Computers
+
+can introduce unexpected behavior in multithreaded environments, especially when certain assumptions about the order of execution are violated. Consider a scenario where two threads are updating a shared counter variable. The counter is initially set to zero, and each thread increments it by one. Without proper synchronization mechanisms, instruction reordering can lead to a race condition:
+
+```java
+// Shared Counter
+int counter = 0;
+
+// Thread 1
+counter++; // Assume this is instruction 1
+
+// Thread 2
+counter++; // Assume this is instruction 2
+```
+
+In a non-synchronized environment, the compiler or CPU may decide to reorder the instructions for better performance:
+
+```java
+// Possible Reordered Execution
+counter++; // Thread 1
+counter++; // Thread 2
+```
+
+In the above scenario, both threads increment the counter, but the final value may not be what is expected. 
+The expected result is 2 (initial value + 1 + 1), but due to instruction reordering, the counter might end up with a value of 1 or some other unexpected result.
+### The Java volatile Visibility Guarantee
+
+when a variable is declared as volatile in Java, it ensures that any changes made to that variable by one thread are immediately visible to other threads. Similarly, when one thread reads the value of a volatile variable, it sees the most up-to-date value from main memory.
+
+In essence, volatile helps in keeping the variable's value synchronized across different threads, preventing situations where one thread might not see the latest changes made by another thread due to caching or optimization.
+
+#### The Java volatile Write Visibility Guarantee
+
+When you write to a Java volatile variable, not only is its value guaranteed to be written directly to main memory, but also the values of all other variables that are visible to the writing thread.
+####  The Java volatile Read Visibility Guarantee
+
+when you read the value of a Java volatile variable, not only is its value guaranteed to be read directly from memory, but also the values of all other variables that are visible to the reading thread will be refreshed from main memory.
+
+### The Java Volatile Happens Before Guarantee
+
+the Java volatile happens-before guarantee ensures that when a thread writes to a volatile variable, all preceding operations are guaranteed to be completed before the write, and when a thread reads a volatile variable, all subsequent operations are guaranteed to see the effects of the read.
+
+```java
+public class FrameExchanger  {
+
+    private long framesStoredCount = 0:
+    private long framesTakenCount  = 0;
+
+    private volatile boolean hasNewFrame = false;
+
+    private Frame frame = null;
+
+        // called by Frame producing thread
+    public void storeFrame(Frame frame) {
+        this.frame = frame;
+        this.framesStoredCount++;
+        this.hasNewFrame = true;
+    }
+
+        // called by Frame drawing thread
+    public Frame takeFrame() {
+        while( !hasNewFrame) {
+            //busy wait until new frame arrives
+        }
+
+        Frame newFrame = this.frame;
+        this.framesTakenCount++;
+        this.hasNewFrame = false;
+        return newFrame;
+    }
+
+}
+```
+
+Without the volatile keyword, the compiler or the CPU might reorder instructions, potentially leading to unexpected behavior.  The use of volatile ensures a consistent and predictable order of operations when dealing with shared variables in a multi-threaded environment.
+#### Happens Before Guarantee for Writes to volatile Variables
+
+the volatile write happens-before guarantee ensures that when a non-volatile or volatile variable is written before a write to a volatile variable, the writes will be performed in the specified order.
+
+```java
+// called by Frame producing thread
+public void storeFrame(Frame frame) {
+	this.frame = frame;            // Write to non-volatile variable
+	this.framesStoredCount++;      // Another write to non-volatile variable
+	this.hasNewFrame = true;       // Write to volatile variable
+}
+```
+
+The guarantee ensures that the writes to frame and ``framesStoredCount`` (non-volatile variables) before the write to the ``hasNewFrame (volatile variable)`` will always happen before the volatile write. This prevents reordering that could lead to incorrect behavior in multi-threaded scenarios.
+
+#### Happens Before Guarantee for Reads of volatile Variables
+
+A read of a volatile variable will happen before any subsequent reads of both volatile and non-volatile variables.
+
+```java
+// called by Frame drawing thread
+public Frame takeFrame() {
+	while( !hasNewFrame) {
+		// busy wait until a new frame arrives
+	}
+
+	Frame newFrame = this.frame;    // Read of volatile variable
+	this.framesTakenCount++;        // Subsequent read of non-volatile variable
+	this.hasNewFrame = false;       // Another subsequent read of non-volatile variable
+	return newFrame;
+}
+```
+
+### The Java Synchronized Visibility Guarantee
+
+In essence, the Java synchronized visibility guarantee ensures that:
+- When a thread enters a synchronized block, all variables visible to the thread are refreshed from main memory.
+- When a thread exits a synchronized block, all variables visible to the thread are written back to main memory.
+
+This ensures consistent and synchronized visibility of variables between threads.
+
+```java
+public class ValueExchanger {
+	private int valA;
+	private int valB;
+	private int valC;
+	
+	public void set(Values v) {
+		this.valA = v.valA;
+		this.valB = v.valB;
+	
+		synchronized(this) {
+			this.valC = v.valC;
+		}
+	}
+	
+	public void get(Values v) {
+		synchronized(this) {
+			v.valC = this.valC;
+		}
+		v.valB = this.valB;
+		v.valA = this.valA;
+	}
+}
+```
+
+In the ``set()`` method, the synchronized block at the end ensures that all updated variable values are flushed to the main memory
+In the ``get()`` method, the synchronized block at the beginning guarantees that all variables are refreshed from the main memory before they are read.
+
+### Java Synchronized Happens Before Guarantee
+
+provide two happens before guarantees: One guarantee related to the beginning of a synchronized block, and another guarantee related to the end of a synchronized block.
+#### Java Synchronized Block Beginning Happens Before Guarantee
+
+The beginning of a Java synchronized block provides the visibility guarantee that when a thread enters a synchronized block all variables visible to the thread will be read in (refreshed from) main memory.
+
+```java
+public void get(Values v) {
+	synchronized(this) {
+		v.valC = this.valC;
+	}
+	v.valB = this.valB;
+	v.valA = this.valA;
+	}
+	
+	
+	public void get(Values v) {
+	v.valB = this.valB;
+	v.valA = this.valA;
+	synchronized(this) {
+		v.valC = this.valC;
+	}
+}
+```
+
+#### Java Synchronized Block End Happens Before Guarantee
+
+The end of a synchronized block provides the visibility guarantee that all changed variables will be written back to main memory when the thread exits the synchronized block. To be able to uphold that guarantee, a set of restrictions on instruction reordering are necessary
+
+```java
+public void set(Values v) {
+	this.valA = v.valA;
+	this.valB = v.valB;
+
+	synchronized(this) {
+		this.valC = v.valC;
+	}
+}
 
 
+public void set(Values v) {
+	synchronized(this) {
+		this.valC = v.valC;
+	}
+	this.valA = v.valA;
+	this.valB = v.valB;
+}
+```
 
-
-
-
-
-
-
+## Java Synchronized Blocks
 
 
 
