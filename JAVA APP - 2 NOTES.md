@@ -2110,6 +2110,1148 @@ public void set(Values v) {
 
 ## Java Synchronized Blocks
 
+A synchronized block in Java can only be executed a single thread at a time (depending on how you use it). 
+Java synchronized blocks can thus be used to avoid race conditions.
+
+### The Java synchronized Keyword
+
+Synchronized blocks in Java are marked with the synchronized keyword
+All synchronized blocks synchronized on the same object can only have one thread executing inside them at the same time. All other threads attempting to enter the synchronized block are blocked until the thread inside the synchronized block exits the block.
+
+The synchronized keyword can be used to mark four different types of blocks:
+
+- **Instance methods**
+- **Static methods**
+- **Code blocks inside instance methods**
+- **Code blocks inside static methods**
+
+### Synchronized Instance Methods
+
+```java
+public class MyCounter {
+
+  private int count = 0;
+
+  public **synchronized** void add(int value){
+      this.count += value;
+  }
+}
+```
+
+A synchronized instance method in Java is synchronized on the instance (object) owning the method. 
+Thus, each instance has its synchronized methods synchronized on a different object: the owning instance.
+One thread per instance. This is true across all synchronized instance methods for the same object (instance). 
+
+### Synchronized Static Methods
+
+```java
+public static MyStaticCounter{
+
+  private static int count = 0;
+
+  public **static synchronized** void add(int value){
+      count += value;
+  }
+}
+```
+
+Synchronized static methods are synchronized on the class object of the class the synchronized static method belongs to. Since only one class object exists in the Java VM per class, only one thread can execute inside a static synchronized method in the same class.
+In case a class contains more than one static synchronized method, only one thread can execute inside any of these methods at the same time.
+
+```java
+public static MyStaticCounter{
+
+  private static int count = 0;
+
+  public **static synchronized** void add(int value){
+    count += value;
+  }
+
+  public **static synchronized** void subtract(int value){
+    count -= value;
+  }
+}
+```
+
+If the static synchronized methods are located in different classes, then one thread can execute inside the static synchronized methods of each class. One thread per class regardless of which static synchronized method it calls.
+
+### Synchronized Blocks in Instance Methods
+
+Sometimes it is preferable to synchronize only part of a method. Java synchronized blocks inside methods makes this possible.
+```java
+public void add(int value){
+
+    synchronized(this){
+       this.count += value;   
+    }
+  }
+```
+
+This code will now execute as if it was a synchronized method.
+A synchronized instance method uses the object it belongs to as monitor object.
+Only one thread can execute inside a Java code block synchronized on the same monitor object.
+
+```java
+public class MyClass {
+  
+    public synchronized void log1(String msg1, String msg2){
+       log.writeln(msg1);
+       log.writeln(msg2);
+    }
+
+  
+    public void log2(String msg1, String msg2){
+       synchronized(this){
+          log.writeln(msg1);
+          log.writeln(msg2);
+       }
+    }
+  }
+```
+
+Thus only a single thread can execute inside either of the two synchronized blocks 
+Had the second synchronized block been synchronized on a different object than this, then one thread at a time had been able to execute inside each method.
+### Synchronized Blocks in Static Methods
+
+Synchronized blocks can also be used inside of static methods. Only one thread can execute inside any of these two methods at the same time.
+
+```java
+public class MyClass {
+
+    public static synchronized void log1(String msg1, String msg2){
+       log.writeln(msg1);
+       log.writeln(msg2);
+    }
+
+  
+    public static void log2(String msg1, String msg2){
+       synchronized(MyClass.class){
+          log.writeln(msg1);
+          log.writeln(msg2);  
+       }
+    }
+  }
+```
+
+###  Synchronized Blocks in Lambda Expressions
+
+```java
+import java.util.function.Consumer;
+
+public class SynchronizedExample {
+
+  public static void main(String[] args) {
+
+    Consumer<String> func = (String param) -> {
+
+      synchronized(SynchronizedExample.class) {
+
+        System.out.println(
+            Thread.currentThread().getName() +
+                    " step 1: " + param);
+
+        try {
+          Thread.sleep( (long) (Math.random() * 1000));
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+
+        System.out.println(
+            Thread.currentThread().getName() +
+                    " step 2: " + param);
+      }
+
+    };
 
 
+    Thread thread1 = new Thread(() -> {
+        func.accept("Parameter");
+    }, "Thread 1");
 
+    Thread thread2 = new Thread(() -> {
+        func.accept("Parameter");
+    }, "Thread 2");
+
+    thread1.start();
+    thread2.start();
+  }
+}
+```
+
+the choice of the object for synchronization is crucial to achieve the desired level of coordination between threads. Using a class object is common, but in some cases, a dedicated lock object may be more appropriate.
+
+### Synchronized and Data Visibility
+
+Without the use of the synchronized keyword (or the Java volatile keyword) there is no guarantee that when one thread changes the value of a variable shared with other threads that the other threads can see the changed value. There are no guarantees about when a variable kept in a CPU register by one thread is "committed" to main memory, and there is no guarantee about when other threads "refresh" a variable kept in a CPU register from main memory.
+
+The synchronized keyword changes that.
+- When a thread enters a synchronized block it will refresh the values of all variables visible to the thread.
+- When a thread exits a synchronized block all changes to variables visible to the thread will be committed to main memory.
+
+### Synchronized and Instruction Reordering
+
+The Java compiler and Java Virtual Machine are allowed to reorder instructions in your code to make them execute faster, typically by enabling the reordered instructions to be executed in parallel by the CPU.
+Instruction reordering could potentially cause problems in code that is executed by multiple threads at the same time.  For instance, if a write to a variable happening inside of a synchronized block was reordered to happen outside of the synchronized block.
+
+To fix this problem the Java synchronized keyword places some restrictions on reordering of instructions before, inside and after synchronized blocks.
+The end result is, that you can be sure that your code works correctly - that no instruction reordering is taking place that ends up making the code behave differently than what was to be expected from the code you wrote.
+
+### What Objects to Synchronize On
+
+When using synchronized blocks in Java, it's advisable not to synchronize on String or primitive type wrapper objects, as the compiler might optimize them, leading to unexpected behavior.
+
+To ensure consistent synchronization, it's recommended to synchronize on this or a new Object() to avoid potential issues with object reuse and caching.
+
+### Synchronized Block Limitations and Alternatives
+
+Synchronized blocks in Java have limitations; they allow only one thread at a time.
+For scenarios with shared read-only access, consider alternatives like Read/Write Lock or Semaphores (Java provides ``ReadWriteLock`` and Semaphore). For simultaneous access by multiple threads, Semaphores can help.
+
+Synchronized blocks lack order guarantees for granting access to waiting threads. To enforce order, you must implement fairness. In cases with a single writing thread and multiple reading threads, using a volatile variable for the shared data might be sufficient. Volatile ensures visibility of changes across threads without the need for additional synchronization.
+
+### Synchronized Block Performance Overhead
+
+Entering and exiting synchronized blocks in Java incurs a small performance overhead. 
+Though modern Java versions have minimized this overhead, it remains a concern when frequent synchronization occurs, especially within tight loops.
+
+To mitigate this, it's crucial to keep synchronized blocks as small as possible. 
+Synchronize only the essential operations to prevent unnecessary blocking of threads. 
+Restrict synchronization to the absolutely necessary instructions within the blocks to enhance code parallelism.
+
+### Synchronized Block Reentrance
+
+When a thread enters a synchronized block, it holds the lock for the associated object. 
+If the thread calls another method that reenters the same synchronized block, it's allowed to do so, as long as the thread itself is holding the lock.  This is to prevent blocking when a thread calls back into its own synchronized block.
+
+## Java Volatile Keyword
+
+is used to mark a Java variable as "being stored in main memory".
+More precisely that means, that every read of a volatile variable will be read from the computer's main memory, and not from the CPU registers, and that every write to a volatile variable will be written to main memory
+
+## Variable Visibility Problems
+
+In a multithreaded application where the threads operate on non-volatile variables, each thread may copy variables from main memory into a CPU registers while working on them, for performance reasons. If your computer contains more than one CPU, each thread may run on a different CPU. That means, that each thread may copy the variables into the CPU registers of different CPUs.
+
+![[Pasted image 20240209175343.png]]
+
+With non-volatile variables there are no guarantees about when the Java Virtual Machine (JVM) reads data from main memory into CPU registers, or writes data from CPU registers to main memory. Imagine a situation in which two or more threads have access to a shared object which contains a counter variable
+
+```java
+public class SharedObject {
+
+    public int counter = 0;
+
+}
+```
+
+Imagine too, that only Thread 1 increments the counter variable, but both Thread 1 and Thread 2 may read the counter variable from time to time. If the counter variable is not declared volatile there is no guarantee about when the value of the counter variable is written from the CPU registers back to main memory.
+This means, that the counter variable value in the CPU register may not be the same as in main memory
+The problem with threads not seeing the latest value of a variable because it has not yet been written back to main memory by another thread, is called a "visibility" problem. The updates of one thread are not visible to other threads.
+
+![[Pasted image 20240209175454.png]]
+
+### The Java volatile Visibility Guarantee
+
+volatile keyword is intended to address variable visibility problems.
+By declaring the counter variable volatile all writes to the counter variable will be written back to main memory immediately. Also, all reads of the counter variable will be read directly from main memory.
+
+```java
+public class SharedObject {
+
+    public **volatile** int counter = 0;
+
+}
+```
+
+Declaring a variable volatile thus guarantees the visibility for other threads of writes to that variable.
+
+#### Full volatile Visibility Guarantee
+
+The visibility guarantee is as follows:
+
+If Thread A writes to a volatile variable and Thread B subsequently reads the same volatile variable, 
+then all variables visible to Thread A before writing the volatile variable, will also be visible to Thread B after it has read the volatile variable.
+
+If Thread A reads a volatile variable, then all all variables visible to Thread A when reading the volatile variable will also be re-read from main memory.
+
+```java
+public class MyClass {
+	private int years;
+	private int months
+	private volatile int days;
+
+
+	public void update(int years, int months, int days){
+		this.years  = years;
+		this.months = months;
+		this.days   = days;
+	}
+}
+```
+
+The full volatile visibility guarantee means, that when a value is written to days, then all variables visible to the thread are also written to main memory.  That means, that when a value is written to days, the values of years and months are also written to main memory.
+
+```java
+public class MyClass {
+	private int years;
+	private int months
+	private volatile int days;
+
+	public int totalDays() {
+		int total = this.days;
+		total += months * 30;
+		total += years * 365;
+		return total;
+	}
+
+	public void update(int years, int months, int days){
+		this.years  = years;
+		this.months = months;
+		this.days   = days;
+	}
+}
+```
+
+the ``totalDays()`` method starts by reading the value of days into the total variable. When reading the value of days, the values of months and years are also read into main memory.
+Therefore you are guaranteed to see the latest values of days, months and years with the above read sequence.
+
+### Instruction Reordering Challenges
+
+The Java VM and the CPU are allowed to reorder instructions in the program for performance reasons, as long as the semantic meaning of the instructions remain the same
+
+```java
+int a = 1;
+int b = 2;
+
+a++;
+b++;
+```
+
+These instructions could be reordered to the following sequence without losing the semantic meaning of the program:
+
+```java
+int a = 1;
+a++;
+
+int b = 2;
+b++;
+```
+
+instruction reordering presents a challenge when one of the variables is a volatile variable.
+
+```java
+public class MyClass {
+	private int years;
+	private int months
+	private volatile int days;
+
+
+	public void update(int years, int months, int days){
+		this.years  = years;
+		this.months = months;
+		this.days   = days;
+	}
+}
+```
+
+Once the ``update()`` method writes a value to days, the newly written values to years and months are also written to main memory. But, what if the Java VM reordered the instructions
+
+```java
+public void update(int years, int months, int days){
+	this.days   = days;
+	this.months = months;
+	this.years  = years;
+}
+```
+
+The values of months and years are still written to main memory when the days variable is modified, but this time it happens before the new values have been written to months and years. 
+The new values are thus not properly made visible to other threads. The semantic meaning of the reordered instructions has changed.
+
+### The Java volatile Happens-Before Guarantee
+
+To address the instruction reordering challenge, the Java volatile keyword gives a "happens-before" guarantee, in addition to the visibility guarantee. The happens-before guarantee guarantees that:
+
+- Before and After Write to Volatile:
+	Operations before a write to a volatile variable are guaranteed to happen before that write.
+	Operations after a write to a volatile variable may be reordered to occur before, but not the other way around.
+
+- Before and After Read of Volatile:
+     Operations before a read of a volatile variable may be reordered to occur after, but not the other way around. Operations after a read of a volatile variable are guaranteed to happen after that read. 
+
+### Volatile is Not Always Enough
+
+using the volatile keyword ensures that reads and writes of a variable are directly performed in main memory.
+However, when multiple threads need to read the current value of a volatile variable, calculate a new value based on that, and then update the variable, a race condition can occur. In this scenario, different threads might read the same initial value, perform independent calculations, and overwrite each other's results when writing back to main memory. 
+
+This situation can lead to incorrect and unpredictable variable values, making volatile alone insufficient for scenarios where multiple threads modify a shared variable based on its current state.
+
+### When is volatile Enough?
+
+To ensure atomicity when both reading and writing to a shared variable by multiple threads, the volatile keyword alone is not sufficient. In such cases, using synchronized blocks is necessary to guarantee atomic operations, preventing potential race conditions. Unlike reading or writing a volatile variable, the synchronized keyword provides a mechanism for blocking threads during critical sections.
+
+However, if only one thread writes to a volatile variable, and other threads solely read the variable, the volatile keyword ensures that reading threads see the latest written value. This guarantee is crucial for scenarios where multiple threads read a shared variable, and making the variable volatile is essential to ensure the latest value is visible to all reading threads.
+
+### Performance Considerations of volatile
+
+The use of volatile variables in Java incurs a performance cost due to the necessity of reading or writing to main memory, which is more expensive than accessing CPU registers. it is advisable to use volatile variables only when there's a genuine need to enforce visibility of variables.
+
+In practice, CPU register values are typically written to the CPU L1 cache, which is reasonably fast—though not as fast as writing to a CPU register. The synchronization process from the L1 cache down through L2 and L3 cache, and back to main memory (RAM), involves separate chips than the CPU, relieving the CPU of this burden.
+
+Despite the optimization in modern systems, it's essential to use volatile variables judiciously, limiting their use to situations where visibility enforcement is crucial. This approach encourages a detailed understanding of how Java volatile variables operate.
+
+## CPU Cache Coherence in Java Concurrency
+
+In Java, when variables stored in CPU registers need to be synchronized, they are flushed to main memory (RAM).  This process may involve storing the variables in the CPU cache, with the CPU and motherboard employing cache coherence methods to ensure visibility across all CPU caches.
+
+The hardware might optimize this process by keeping the variables in the CPU cache until it's needed for other data, at which point it can be flushed to main memory. However, from the perspective of the executing code on the CPU, whether the data is in the CPU cache or main RAM is transparent as long as it's retrieved as needed.
+
+![[Pasted image 20240209180614.png]]
+
+**Key points:**
+
+- **Synchronization involves flushing variables from CPU registers to main memory.**
+- **CPU cache coherence methods ensure visibility across CPU caches.**
+- **Optimization may involve temporarily keeping variables in the CPU cache.**
+- **The specifics of CPU cache coherence are handled by the hardware, and from the code's perspective, data retrieval remains consistent.**
+
+## False Sharing in Java
+
+False sharing in Java occurs when two threads running on two different CPUs write to two different variables which happen to be stored within the same CPU cache line. When the first thread modifies one of the variables - the whole CPU cache line is invalidated in the CPU caches of the other CPU where the other thread is running
+This means, that the other CPUs need to reload the content of the invalidated cache line - even if they don't really need the variable that was modified within that cache line.
+
+![[Pasted image 20240209180802.png]]
+
+### Cache Lines
+
+When the CPU caches are reading data from lower level caches or main RAM they don't just read a single byte at a time. That would be inefficient. Instead they read a cache line. A cache line typically consists of 64 bytes. 
+Thus, the caches read 64 bytes at a time from lower level caches or main RAM.
+
+Because a cache line consist of multiple bytes, a single cache line will often store more than one variable.
+If the same CPU needs to access more of the variables stored within the same cache line - this is an advantage.
+If multiple CPUs need to access the variables stored within the same cache line, false sharing can occur.
+
+### Cache Line Invalidation
+
+When a CPU writes to memory address in a cache line, typically because the CPU is writing to a variable, the cache line becomes dirty. The cache line then needs to be synchronized to other CPUs that also have that cache line in their CPU caches. The same cache line stored in the other CPU caches thus becomes invalid - they need to be refreshed
+
+Cache refreshing after cache invalidation can happen either via cache coherence mechanisms, or by reloading the cache line from main RAM. The CPU is not allowed to access that cache line until it has been refreshed.
+
+### False Sharing Results in a Performance Penalty
+
+False sharing occurs when multiple CPUs write to variables within the same cache line, even if each CPU doesn't depend on the values written by the other. This leads to continuous cache line invalidation and refreshing between CPUs, causing performance degradation as each CPU waits for cache line refreshes, resulting in fewer executed instructions.
+
+To address false sharing, it's essential to restructure data so that independent variables used by CPUs are not stored within the same cache line. This prevents unnecessary cache line invalidation and refresh cycles.
+
+**Key Points**
+
+- **False sharing involves multiple CPUs writing to variables in the same cache line.**
+- **CPUs continuously invalidate and refresh the cache line, leading to performance degradation.**
+- **Restructuring data to separate independent variables can mitigate false sharing and improve performance.**
+
+```java
+public class Counter {
+
+    public volatile long count1 = 0;
+    public volatile long count2 = 0;
+
+}
+```
+
+```java
+public class FalseSharingExample {
+
+    public static void main(String[] args) {
+
+        Counter counter1 = new Counter();
+        Counter counter2 = counter1;
+
+        long iterations = 1_000_000_000;
+
+        Thread thread1 = new Thread(() -> {
+            long startTime = System.currentTimeMillis();
+            for(long i=0; i<iterations; i++) {
+                counter1.count1++;
+            }
+            long endTime = System.currentTimeMillis();
+            System.out.println("total time: " + (endTime - startTime));
+        });
+        Thread thread2 = new Thread(() -> {
+            long startTime = System.currentTimeMillis();
+            for(long i=0; i<iterations; i++) {
+                counter2.count2++;
+            }
+            long endTime = System.currentTimeMillis();
+            System.out.println("total time: " + (endTime - startTime));
+        });
+
+        thread1.start();
+        thread2.start();
+    }
+}
+```
+
+```java
+// To fix this 			
+Counter counter2 = new Counter();
+```
+
+#### Fixing False Sharing Problems
+
+The way to fix a false sharing problem is to design your code so that different variables used by different threads do not end up being stored within the same CPU cache line. storing the variables in different objects is one way to do so
+
+## Java ``ThreadLocal``
+
+enables you to create variables that can only be read and written by the same thread.  Thus, even if two threads are executing the same code, and the code has a reference to the same ThreadLocal variable, the two threads cannot see each other's ThreadLocal variables.  Thus, the Java ThreadLocal class provides a simple way to make code thread safe that would not otherwise be so.
+
+### Creating a ThreadLocal
+
+```java
+private ThreadLocal threadLocal = new ThreadLocal();
+threadLocal.set("A thread local value");
+String threadLocalValue = (String) threadLocal.get();
+
+threadLocal.remove();
+```
+
+### Generic ThreadLocal
+
+Using a generic type only objects of the generic type can be set as value on the ThreadLocal.
+Additionally, you do not have to typecast the value returned by ``get()``.
+
+```java
+private ThreadLocal<String> myThreadLocal = new ThreadLocal<String>();
+myThreadLocal.set("Hello ThreadLocal");
+String threadLocalValue = myThreadLocal.get();
+```
+
+### Initial ThreadLocal Value
+
+It is possible to set an initial value for a Java ThreadLocal which will get used the first time ``get()`` is called - before ``set()`` has been called with a new value.		
+
+- Create a ThreadLocal subclass that overrides the ``initialValue()`` method.
+- Create a ThreadLocal with a Supplier interface implementation.
+
+#### Override ``initialValue()``
+
+create a subclass of ThreadLocal which overrides its ``initialValue()`` method.
+The easiest way to create a subclass of ThreadLocal is to simply create an anonymous subclass, right where you create the ThreadLocal variable.
+
+```java
+private ThreadLocal myThreadLocal = new ThreadLocal<String>() {
+	@Override protected String initialValue() {
+		return String.valueOf(System.currentTimeMillis());
+	}
+};
+```
+
+different threads will still see different initial values.
+Each thread will create its own initial value.  Only if you return the exact same object from the ``initialValue()`` method, will all threads see the same object. However, the whole point of using a ThreadLocal in the first place is to avoid the different threads seeing the same instance.
+
+#### Provide a Supplier Implementation
+
+to use its static factory method ``withInitial(Supplier)`` passing a Supplier interface implementation as parameter. This Supplier implementation supplies the initial value for the ThreadLocal.
+
+```java
+ThreadLocal<String> threadLocal = ThreadLocal.withInitial(new Supplier<String>() {
+		@Override
+		public String get() {
+			return String.valueOf(System.currentTimeMillis());
+		}
+	});
+	
+	
+	ThreadLocal threadLocal = ThreadLocal.withInitial(
+	() -> { return String.valueOf(System.currentTimeMillis()); } );
+	
+	ThreadLocal threadLocal3 = ThreadLocal.withInitial(
+	() -> String.valueOf(System.currentTimeMillis()) );
+```
+
+### Lazy Setting of ThreadLocal Value
+
+In some situations you cannot use the standard ways of setting an initial value For instance, perhaps you need some configuration information which is not available at the time you create the ThreadLocal variable.  In that case you can set the initial value lazily.
+
+```java
+public class MyDateFormatter {
+	private ThreadLocal<SimpleDateFormat> simpleDateFormatThreadLocal = new ThreadLocal<>();
+
+	public String format(Date date) {
+		SimpleDateFormat simpleDateFormat = getThreadLocalSimpleDateFormat();
+		return simpleDateFormat.format(date);
+	}
+	
+	
+	private SimpleDateFormat getThreadLocalSimpleDateFormat() {
+		SimpleDateFormat simpleDateFormat = simpleDateFormatThreadLocal.get();
+		if(simpleDateFormat == null) {
+			simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			simpleDateFormatThreadLocal.set(simpleDateFormat);
+		}
+		return simpleDateFormat;
+	}
+}
+```
+
+### Using a ThreadLocal with a Thread Pool or ``ExecutorService``
+
+a Java ThreadLocal from inside a task passed to a Java Thread Pool or a Java ``ExecutorService``, keep in mind that you do not have any guarantees which thread will execute your task. However, if all you need is to make sure that each thread uses its own instance of some object, this is not a problem. Then you can use a Java ThreadLocal with a thread pool or ``ExecutorService`` just fine.
+### Inheritable ThreadLocal
+
+The ``InheritableThreadLocal`` class is a subclass of ThreadLocal. Instead of each thread having its own value inside a ThreadLocal, the ``InheritableThreadLocal`` grants access to values to a thread and all child threads created by that thread
+
+```java
+public class InheritableThreadLocalBasicExample {
+
+    public static void main(String[] args) {
+
+        ThreadLocal<String> threadLocal = new ThreadLocal<>();
+        InheritableThreadLocal<String> inheritableThreadLocal =
+                new InheritableThreadLocal<>();
+
+        Thread thread1 = new Thread(() -> {
+            System.out.println("===== Thread 1 =====");
+            threadLocal.set("Thread 1 - ThreadLocal");
+            inheritableThreadLocal.set("Thread 1 - InheritableThreadLocal");
+
+            System.out.println(threadLocal.get());
+            System.out.println(inheritableThreadLocal.get());
+
+            Thread childThread = new Thread( () -> {
+                System.out.println("===== ChildThread =====");
+                System.out.println(threadLocal.get());
+                System.out.println(inheritableThreadLocal.get());
+            });
+            childThread.start();
+        });
+
+        thread1.start();
+
+        Thread thread2 = new Thread(() -> {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("===== Thread2 =====");
+            System.out.println(threadLocal.get());
+            System.out.println(inheritableThreadLocal.get());
+        });
+        thread2.start();
+    }
+}
+```
+
+```java
+===== Thread 1 =====
+Thread 1 - ThreadLocal
+Thread 1 - InheritableThreadLocal
+===== ChildThread =====
+null
+Thread 1 - InheritableThreadLocal
+===== Thread2 =====
+null
+null
+```
+
+## Thread Signaling
+
+Java contains a set of features that enable thread to send signals to each other, and for threads to wait for such signals. The thread signaling features in Java are implemented via the wait(), notify() and notifyAll() methods that are part of the the Object class which all Java classes extend.
+
+### ``wait()``, ``notify()`` and ``notifyAll()``
+
+Java has a built-in wait mechanism that enable threads to become inactive while waiting for signals from other threads. A thread that calls wait() on any object becomes inactive until another thread calls notify() or notifyAll() on that object. In order to call either wait(), notify() or notifyAll(), the calling thread must first obtain the lock on that object. In other words, the calling thread must call wait() or notify() from inside a synchronized block that is synchronized on that object.
+
+```java
+public class MonitorObject{
+}
+
+public class MyWaitNotify{
+
+  MonitorObject myMonitorObject = new MonitorObject();
+
+  public void doWait(){
+    synchronized(myMonitorObject){
+      try{
+        myMonitorObject.wait();
+      } catch(InterruptedException e){...}
+    }
+  }
+
+  public void doNotify(){
+    synchronized(myMonitorObject){
+      myMonitorObject.notify();
+    }
+  }
+}
+```
+
+``doWait()`` pauses a thread until signaled by another thread using ``doNotify()``.
+Both methods synchronize on the same ``MonitorObject``. Exception handling is provided for potential interruptions during the wait.
+
+Multiple threads can call wait() on the same monitor object - and thus become blocked waiting for a notify() or ``notifyAll()`` call. Calling notify() will only awaken a single waiting thread. Calling notifyAll() will awaken all waiting threads.
+
+A thread cannot call wait(), notify() or notifyAll() without holding the synchronization lock on the object the method is called on. If it does, an ``IllegalMonitorStateException`` is thrown.
+
+![[Pasted image 20240209191802.png]]
+
+### Missed Signals
+
+The methods notify() and notifyAll() do not save the method calls to them in case no threads are waiting when they are called.  The notify signal is then just lost.
+Therefore, if a thread calls notify() before the thread to signal has called wait(), the signal will be missed by the waiting thread. in some cases this may result in the waiting thread waiting forever, never waking up, because the signal to wake up was missed.
+
+To avoid losing signals they should be stored inside the signal class.
+
+```java
+public class MyWaitNotify2{
+
+  MonitorObject myMonitorObject = new MonitorObject();
+  boolean wasSignalled = false;
+
+  public void doWait(){
+    synchronized(myMonitorObject){
+      if(!wasSignalled){
+        try{
+          myMonitorObject.wait();
+         } catch(InterruptedException e){...}
+      }
+      //clear signal and continue running.
+      wasSignalled = false;
+    }
+  }
+
+  public void doNotify(){
+    synchronized(myMonitorObject){
+      wasSignalled = true;
+      myMonitorObject.notify();
+    }
+  }
+}
+```
+
+### Spurious Wakeups
+
+For inexplicable reasons it is possible for threads to wake up even if notify() and notifyAll() has not been called.
+This is known as "spurious wakeups". Wakeups without any reason.
+
+If a spurious wakeup occurs in the MyWaitNofity2 class's ``doWait()`` method the waiting thread may continue processing without having received a proper signal to do so!  To guard against spurious wakeups the signal member variable is checked inside a while loop instead of inside an if-statement. Such a while loop is also called a spin lock. The thread awakened spins around until the condition in the spin lock (while loop) becomes false. 
+
+```java
+public class MyWaitNotify3{
+
+  MonitorObject myMonitorObject = new MonitorObject();
+  boolean wasSignalled = false;
+
+  public void doWait(){
+    synchronized(myMonitorObject){
+      while(!wasSignalled){
+        try{
+          myMonitorObject.wait();
+         } catch(InterruptedException e){...}
+      }
+      //clear signal and continue running.
+      wasSignalled = false;
+    }
+  }
+
+  public void doNotify(){
+    synchronized(myMonitorObject){
+      wasSignalled = true;
+      myMonitorObject.notify();
+    }
+  }
+}
+```
+
+### Multiple Threads Waiting for the Same Signals
+
+The while loop is also a nice solution if you have multiple threads waiting, which are all awakened using notifyAll(), but only one of them should be allowed to continue Only one thread at a time will be able to obtain the lock on the monitor object, meaning only one thread can exit the wait() call and clear the ``wasSignalled`` flag. Once this thread then exits the synchronized block in the ``doWait()`` method, the other threads can exit the wait() call and check the ``wasSignalled`` member variable inside the while loop. However, this flag was cleared by the first thread waking up, so the rest of the awakened threads go back to waiting, until the next signal arrives.
+
+### Don't call ``wait()`` on constant String's or global objects
+
+risk of spurious wakeups and missed signals when using notify() on shared objects. The recommendation is to avoid using global objects or constants as monitor objects.  Instead, each instance of the class should have its own unique monitor object to prevent unintended interference. The choice between notify() and notifyAll() should consider the trade-off between correctness and performance, as notifyAll() wakes up all waiting threads, while notify() wakes up only one.
+
+## Deadlock
+
+### Thread Deadlock
+
+A deadlock is when two or more threads are blocked waiting to obtain locks that some of the other threads in the deadlock are holding. Deadlock can occur when multiple threads need the same locks, at the same time, but obtain them in different order.
+### Deadlock Example
+
+Thread 1 holds the key to Door A and is waiting for the key to Door B.
+Thread 2 holds the key to Door B and is waiting for the key to Door A.
+
+Neither thread can proceed, and they are stuck indefinitely, each waiting for the other to release the key they need. This deadlock leaves both threads blocked, and they will remain so forever. It's like a stand-off where neither friend can enter their desired door.
+
+```java
+Thread 1  locks A, waits for B
+Thread 2  locks B, waits for A
+```
+
+```java
+public class TreeNode {
+ 
+  TreeNode parent   = null;  
+  List     children = new ArrayList();
+
+  public synchronized void addChild(TreeNode child){
+    if(!this.children.contains(child)) {
+      this.children.add(child);
+      child.setParentOnly(this);
+    }
+  }
+  
+  public synchronized void addChildOnly(TreeNode child){
+    if(!this.children.contains(child){
+      this.children.add(child);
+    }
+  }
+  
+  public synchronized void setParent(TreeNode parent){
+    this.parent = parent;
+    parent.addChildOnly(this);
+  }
+
+  public synchronized void setParentOnly(TreeNode parent){
+    this.parent = parent;
+  }
+}
+```
+
+```java
+// pseudo code
+				
+Thread 1: parent.addChild(child); //locks parent
+--> child.setParentOnly(parent);
+
+Thread 2: child.setParent(parent); //locks child
+  --> parent.addChildOnly()
+```
+
+### More Complicated Deadlocks
+
+```java
+Thread 1  locks A, waits for B
+Thread 2  locks B, waits for C
+Thread 3  locks C, waits for D
+Thread 4  locks D, waits for A
+```
+
+### Database Deadlocks
+
+A more complicated situation in which deadlocks can occur, is a database transaction.
+A database transaction may consist of many SQL update requests. If multiple transactions are running at the same time that need to update the same records, there is a risk of them ending up in a deadlock.
+
+```java
+Transaction 1, request 1, locks record 1 for update
+Transaction 2, request 1, locks record 2 for update
+Transaction 1, request 2, tries to lock record 2 for update.
+Transaction 2, request 2, tries to lock record 1 for update.
+```
+
+## Deadlock Prevention
+
+### Lock Ordering
+
+Lock ordering is a strategy to maintain consistency in the order in which locks are acquired to prevent deadlocks and ensure a reliable multithreading environment.  It involves establishing a global lock order or lock hierarchies and ensuring that all threads follow this order when acquiring multiple locks. If you make sure that all locks are always taken in the same order by any thread, deadlocks cannot occur.
+
+```java
+Thread 1:
+
+  lock A 
+  lock B
+
+
+Thread 2:
+
+   wait for A
+   lock C (when A locked)
+
+
+Thread 3:
+
+   wait for A
+   wait for B
+   wait for C
+```
+
+### Lock Timeout
+
+refers to the concept of setting a maximum time limit for acquiring a lock in a multithreading or concurrent programming environment.  When a thread attempts to acquire a lock and the lock is currently held by another thread, the thread can either wait indefinitely for the lock to be released or wait for a specified period, after which it gives up trying to acquire the lock.
+
+```java
+Lock lock = new ReentrantLock();
+boolean lockAcquired = lock.tryLock(500, TimeUnit.MILLISECONDS);
+if (lockAcquired) {
+	try {
+		// Code protected by the lock
+	} finally {
+		lock.unlock();
+	}
+} else {
+	// Handle lock acquisition timeout
+}
+```
+
+lock timeout is a mechanism to limit the amount of time a thread is willing to wait to acquire a lock, helping prevent deadlocks, improving system responsiveness, and enabling effective error handling in concurrent programming scenarios.
+
+```java
+Thread 1 locks A
+Thread 2 locks B
+
+Thread 1 attempts to lock B but is blocked
+Thread 2 attempts to lock A but is blocked
+
+Thread 1's lock attempt on B times out
+Thread 1 backs up and releases A as well
+Thread 1 waits randomly (e.g. 257 millis) before retrying.
+
+Thread 2's lock attempt on A times out
+Thread 2 backs up and releases B as well
+Thread 2 waits randomly (e.g. 43 millis) before retrying.
+```
+
+A problem with the lock timeout mechanism is that it is not possible to set a timeout for entering a synchronized block in Java You will have to create a custom lock class or use one of the Java 5 concurrency constructs in the ``java.util.concurrency`` package.
+### Deadlock Detection
+
+is a heavier deadlock prevention mechanism aimed at cases in which lock ordering isn't possible, and lock timeout isn't feasible. Every time a thread takes a lock it is noted in a data structure (map, graph etc.) of threads and locks. Additionally, whenever a thread requests a lock this is also noted in this data structure.
+
+deadlock detection involves periodically examining resource allocation graphs, specifically wait-for graphs, to identify cycles indicating potential deadlocks.  Once a deadlock is detected, corrective actions can be taken to recover from or mitigate the deadlock and restore system functionality.
+
+![[Pasted image 20240209201856.png]]
+
+what do the threads do if a deadlock is detected?
+
+One possible action is to release all locks, backup, wait a random amount of time and then retry. 
+
+- A better option is to determine or assign a priority of the threads so that only one (or a few) thread backs up. The rest of the threads continue taking the locks they need as if no deadlock had occurred.
+
+- If the priority assigned to the threads is fixed, the same threads will always be given higher priority. To avoid this you may assign the priority randomly whenever a deadlock is detected.
+
+## Starvation and Fairness
+
+If a thread is not granted CPU time because other threads grab it all, it is called "starvation". The thread is "starved to death" because other threads are allowed the CPU time instead of it.
+### Causes of Starvation in Java
+
+Threads with high priority swallow all CPU time from threads with lower priority.
+Threads are blocked indefinitely waiting to enter a synchronized block, because other threads are constantly allowed access before it.
+Threads waiting on an object (called wait() on it) remain waiting indefinitely because other threads are constantly awakened instead of it.
+
+#### Threads with high priority swallow all CPU time from threads with lower priority.
+
+You can set the thread priority of each thread individually. The higher the priority the more CPU time the thread is granted. -> **between 1 and 10**.
+
+#### Threads are blocked indefinitely waiting to enter a synchronized block
+
+synchronized code blocks can be another cause of starvation Java's synchronized code block makes no guarantee about the sequence in which threads waiting to enter the synchronized block are allowed to enter. This means that there is a theoretical risk that a thread remains blocked forever trying to enter the block, because other threads are constantly granted access before it.
+
+#### Threads waiting on an object (called ``wait()`` on it) remain waiting indefinitely
+
+The ``notify()`` method makes no guarantee about what thread is awakened if multiple thread have called wait() on the object ``notify()`` is called on. It could be any of the threads waiting. Therefore there is a risk that a thread waiting on a certain object is never awakened because other waiting threads are always awakened instead of it.
+
+### Implementing Fairness in Java
+
+it is not possible to implement 100% fairness in Java
+
+```java
+public class Synchronizer{
+
+  public synchronized void doSynchronized(){
+    //do a lot of work which takes a long time
+  }
+
+}
+```
+
+If more than one thread call the ``doSynchronized()`` method, some of them will be blocked until the first thread granted access has left the method.
+If more than one thread are blocked waiting for access there is no guarantee about which thread is granted access next.
+
+#### Using Locks Instead of Synchronized Blocks
+
+To increase the fairness of waiting threads first we will change the code block to be guarded by a lock rather than a synchronized block:
+
+```java
+public class Synchronizer{
+  Lock lock = new Lock();
+
+  public void doSynchronized() throws InterruptedException{
+    this.lock.lock();
+      //critical section, do a lot of work which takes a long time
+    this.lock.unlock();
+  }
+
+}
+```
+
+the ``doSynchronized()`` method is no longer declared synchronized. Instead the critical section is guarded by the ``lock.lock()`` and ``lock.unlock()`` calls.
+
+```java
+public class Lock{
+  private boolean isLocked      = false;
+  private Thread  lockingThread = null;
+
+  public synchronized void lock() throws InterruptedException{
+    while(isLocked){
+      wait();
+    }
+    isLocked      = true;
+    lockingThread = Thread.currentThread();
+  }
+
+  public synchronized void unlock(){
+    if(this.lockingThread != Thread.currentThread()){
+      throw new IllegalMonitorStateException(
+        "Calling thread has not locked this lock");
+    }
+    isLocked      = false;
+    lockingThread = null;
+    notify();
+  }
+}
+```
+
+the Lock class implements a locking mechanism using the wait() and notify() methods.
+When multiple threads attempt to acquire the lock simultaneously, they may end up waiting in the wait() call inside the lock() method. If the critical section within the lock takes a long time to execute, most of the waiting time is spent inside the wait() call.
+
+The current implementation doesn't guarantee fairness, similar to synchronized blocks.  However, fairness can be introduced by having each thread call wait() on a separate object. This way, the Lock class can selectively call notify() on a specific object, determining which thread to awaken. 
+### A Fair Lock
+
+```java
+public class FairLock {
+    private boolean           isLocked       = false;
+    private Thread            lockingThread  = null;
+    private List<QueueObject> waitingThreads =
+            new ArrayList<QueueObject>();
+
+  public void lock() throws InterruptedException{
+    QueueObject queueObject           = new QueueObject();
+    boolean     isLockedForThisThread = true;
+    synchronized(this){
+        waitingThreads.add(queueObject);
+    }
+
+    while(isLockedForThisThread){
+      synchronized(this){
+        isLockedForThisThread =
+            isLocked || waitingThreads.get(0) != queueObject;
+        if(!isLockedForThisThread){
+          isLocked = true;
+           waitingThreads.remove(queueObject);
+           lockingThread = Thread.currentThread();
+           return;
+         }
+      }
+      try{
+        queueObject.doWait();
+      }catch(InterruptedException e){
+        synchronized(this) { waitingThreads.remove(queueObject); }
+        throw e;
+      }
+    }
+  }
+
+  public synchronized void unlock(){
+    if(this.lockingThread != Thread.currentThread()){
+      throw new IllegalMonitorStateException(
+        "Calling thread has not locked this lock");
+    }
+    isLocked      = false;
+    lockingThread = null;
+    if(waitingThreads.size() > 0){
+      waitingThreads.get(0).doNotify();
+    }
+  }
+}
+```
+
+The FairLock class implements a fair locking mechanism using a queue of waiting threads. 
+Each thread calling lock() enqueues a ``QueueObject``. The first thread in the queue is allowed to lock the ``FairLock`` instance, while others wait until their turn.
+
+```java
+public class QueueObject {
+
+  private boolean isNotified = false;
+
+  public synchronized void doWait() throws InterruptedException {
+    while(!isNotified){
+        this.wait();
+    }
+    this.isNotified = false;
+  }
+
+  public synchronized void doNotify() {
+    this.isNotified = true;
+    this.notify();
+  }
+
+  public boolean equals(Object o) {
+    return this == o;
+  }
+}
+```
+
+## How Nested Monitor Lockout Occurs
+
+Nested Monitor Lockout occurs when a thread attempts to acquire a lock that it already holds.  when a thread holds a lock and tries to enter a synchronized block or method that requires the same lock, it will succeed in acquiring the lock without blocking itself.
+
+```java
+Thread 1 synchronizes on A
+Thread 1 synchronizes on B (while synchronized on A)
+Thread 1 decides to wait for a signal from another thread before continuing
+Thread 1 calls B.wait() thereby releasing the lock on B, but not A.
+
+Thread 2 needs to lock both A and B (in that sequence)
+        to send Thread 1 the signal.
+Thread 2 cannot lock A, since Thread 1 still holds the lock on A.
+Thread 2 remain blocked indefinately waiting for Thread1
+        to release the lock on A
+
+Thread 1 remain blocked indefinately waiting for the signal from
+        Thread 2, thereby
+        never releasing the lock on A, that must be released to make
+        it possible for Thread 2 to send the signal to Thread 1, etc.
+```
+
+```java
+//lock implementation with nested monitor lockout problem
+
+public class Lock{
+  protected MonitorObject monitorObject = new MonitorObject();
+  protected boolean isLocked = false;
+
+  public void lock() throws InterruptedException{
+      synchronized(this){
+      while(isLocked){
+        synchronized(this.monitorObject){
+            this.monitorObject.wait();
+        }
+      }
+      isLocked = true;
+    }
+  }
+
+  public void unlock(){
+    synchronized(this){
+      this.isLocked = false;
+      synchronized(this.monitorObject){
+        this.monitorObject.notify();
+      }
+    }
+  }
+}
+```
+
+### Nested Monitor Lockout vs. Deadlock
+
+The threads involved end up blocked forever waiting for each other.
+The two situations are not equal though a deadlock occurs when two threads obtain locks in different order.
+
+a nested monitor lockout occurs exactly by two threads taking the locks in "the same order".
+
+- In deadlock, two threads are waiting for each other to release locks.
+
+- In nested monitor lockout, Thread 1 is holding a lock A, and waits
+	for a signal from Thread 2. Thread 2 needs the lock A to send the
+	signal to Thread 1.
+
+##  Locks in Java
