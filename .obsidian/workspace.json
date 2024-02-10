@@ -4,16 +4,18 @@
     "type": "split",
     "children": [
       {
-        "id": "1d370276c563ee5e",
+        "id": "a3a4216579b4310a",
         "type": "tabs",
         "children": [
           {
-            "id": "cbd9052c8a78dc2e",
+            "id": "32d6dd6a07c5715f",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240209175343.png"
+                "file": "JAVA APP - 2 NOTES.md",
+                "mode": "source",
+                "source": false
               }
             }
           }
@@ -83,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240209175343.png",
+                "file": "JAVA APP - 2 NOTES.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240209175343.png",
+                "file": "JAVA APP - 2 NOTES.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -123,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240209175343.png"
+                "file": "JAVA APP - 2 NOTES.md"
               }
             }
           }
@@ -145,19 +147,19 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "32d6dd6a07c5715f",
   "lastOpenFiles": [
+    "JAVA APP Screen Shoots/Pasted image 20240210153722.png",
     "JAVA APP - 2 NOTES.md",
+    "JAVA APP Screen Shoots/Pasted image 20240210154151.png",
+    "JAVA APP Screen Shoots/Pasted image 20240210153931.png",
+    "JAVA APP Screen Shoots/Pasted image 20240210153339.png",
+    "JAVA APP Screen Shoots/Pasted image 20240210153154.png",
+    "JAVA APP Screen Shoots/Pasted image 20240209175343.png",
     "JAVA APP Screen Shoots/Pasted image 20240209201856.png",
     "JAVA APP Screen Shoots/Pasted image 20240209191802.png",
     "JAVA APP Screen Shoots/Pasted image 20240209180802.png",
     "JAVA APP Screen Shoots/Pasted image 20240209180614.png",
-    "JAVA APP Screen Shoots/Pasted image 20240209175454.png",
-    "JAVA APP Screen Shoots/Pasted image 20240209175343.png",
-    "JAVA APP Screen Shoots/Pasted image 20240209131403.png",
-    "JAVA APP Screen Shoots/Pasted image 20240209132101.png",
-    "JAVA APP Screen Shoots/Pasted image 20240209131945.png",
-    "JAVA APP Screen Shoots/Pasted image 20240209131535.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "Excalidraw/Drawing 2024-02-07 14.41.32.excalidraw.md",
     "Excalidraw",

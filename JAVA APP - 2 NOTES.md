@@ -3255,3 +3255,625 @@ a nested monitor lockout occurs exactly by two threads taking the locks in "the 
 	signal to Thread 1.
 
 ##  Locks in Java
+
+A lock is a thread synchronization mechanism like synchronized blocks except locks can be more sophisticated
+### A Simple Lock
+
+```JAVA
+public class Counter{
+
+  private int count = 0;
+
+  public int inc(){
+    synchronized(this){
+      return ++count;
+    }
+  }
+}
+```
+
+The Counter class could have been written like this instead, using a Lock instead of a synchronized block:
+
+```java
+public class Counter{
+
+  private Lock lock = new Lock();
+  private int count = 0;
+
+  public int inc(){
+    lock.lock();
+    int newCount = ++count;
+    lock.unlock();
+    return newCount;
+  }
+}
+```
+
+```java
+public class Lock{
+
+  private boolean isLocked = false;
+
+  public synchronized void lock()
+  throws InterruptedException{
+	while(isLocked){
+	  wait();
+	}
+	isLocked = true;
+  }
+
+  public synchronized void unlock(){
+	isLocked = false;
+	notify();
+  }
+}
+```
+
+When the thread is done with the code in the critical section (the code between ``lock()`` and ``unlock()``), the thread calls ``unlock()``.  Executing ``unlock()`` sets ``isLocked`` back to false, and notifies (awakens) one of the threads waiting in the ``wait()`` call in the ``lock()`` method, if any.
+
+### Lock Reentrance
+
+Synchronized blocks in Java are reentrant.
+This means, that if a Java thread enters a synchronized block of code, and thereby take the lock on the monitor object the block is synchronized on, the thread can enter other Java code blocks synchronized on the same monitor object.
+
+ >**When a Java thread enters a synchronized block of code and acquires the lock on the associated monitor object, it gains the ability to enter other synchronized code blocks that also use the same monitor object for synchronization.** 
+ >**This is because the thread already holds the lock for that monitor object, allowing it to proceed into any synchronized block that shares the same monitor.** 
+  >**In essence, the lock on the monitor object provides exclusive access to all synchronized blocks synchronized on that particular object.**
+  
+```java
+public class ReentrantExample {
+
+	public synchronized void outer() {
+		inner();
+	}
+	
+	public synchronized void inner() {
+		// do something
+	}
+}
+```
+
+both ``outer()`` and ``inner()`` methods are synchronized, and they use the same monitor object (this). If a thread calls ``outer()``, it can freely call ``inner()`` without any issues, thanks to reentrancy. However, in contrast, the Lock class shown earlier is not inherently reentrant. Here's a modified version of the Lock class to make it reentrant:
+
+```java
+public class ReentrantLock {
+	private boolean isLocked = false;
+	private Thread lockedBy = null;
+	private int lockedCount = 0;
+
+	public synchronized void lock() throws InterruptedException {
+		Thread callingThread = Thread.currentThread();
+		while (isLocked && lockedBy != callingThread) {
+			wait();
+		}
+		isLocked = true;
+		lockedCount++;
+		lockedBy = callingThread;
+	}
+
+	public synchronized void unlock() {
+		if (Thread.currentThread() == lockedBy) {
+			lockedCount--;
+
+			if (lockedCount == 0) {
+				isLocked = false;
+				notify();
+			}
+		}
+	}
+}
+```
+
+This modified Lock class checks whether the calling thread is the one that locked it, making it reentrant.
+Additionally, it keeps track of the number of times the lock has been acquired, ensuring it is properly released when the thread calls ``unlock()`` an equal number of times.
+### Lock Fairness
+
+synchronized blocks do not guarantee the order in which threads are granted access.  This lack of order can lead to a situation called "starvation," where some threads may be consistently denied access to a synchronized block, always losing to other threads competing for the same resource. Fairness in a lock ensures that threads are granted access in a more orderly manner.
+
+The Lock implementations here, which use synchronized blocks internally, do not guarantee fairness. As a result, there's a risk of potential starvation when multiple threads contend for the same lock.
+### Calling ``unlock()`` From a finally-clause
+
+When using a Lock to guard a critical section in Java, especially when the critical section may throw exceptions, it's crucial to call the ``unlock()`` method from within a finally clause.  This ensures that the Lock is always unlocked, allowing other threads to acquire it.
+
+```java
+lock.lock();
+try {
+  // Critical section code that may throw exceptions
+} finally {
+  lock.unlock();
+}
+```
+
+By employing this pattern, even if an exception occurs within the critical section, the ``unlock()`` method is guaranteed to be called, preventing the Lock from remaining locked indefinitely.  Without the finally clause, an exception could lead to the Lock staying locked, causing all subsequent threads attempting to ``lock()`` on that instance to become blocked indefinitely.
+
+## Read / Write Locks in Java
+
+In scenarios where reading a resource is more frequent than writing to it, a read/write lock provides an efficient solution. Multiple threads can simultaneously read the resource without causing conflicts, but exclusive access is ensured when a single thread wants to write to the resource.
+
+The key idea is to allow concurrent reads while ensuring exclusive access for writing, balancing efficiency and consistency.
+
+### Read / Write Lock Java Implementation
+
+- **Read Access**:   	If no threads are writing, and no threads have requested write access.
+- **Write Access**:   	If no threads are reading or writing.
+
+In a read/write lock scenario, a thread seeking to read a resource is allowed if no threads are currently writing to it or have requested write access. Giving priority to write-access requests assumes that write requests are more critical than read requests. Additionally, prioritizing writes helps prevent potential starvation issues.
+
+If read requests are continually granted without prioritizing writes, threads waiting for write access could be blocked indefinitely, leading to starvation.
+
+For a thread to be granted read access, there must be no ongoing write operations, and no threads should have requested the lock for writing. On the other hand, a thread seeking write access can be granted if no threads are currently reading or writing to the resource.  The sequence or number of threads requesting write access is generally not a concern, unless fairness between such threads is a priority.
+
+```java
+public class SharedResource {
+	private int data = 0;
+	private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+
+	public int readData() {
+		readWriteLock.readLock().lock();
+		try {
+			// Reading from the shared resource
+			return data;
+		} finally {
+			readWriteLock.readLock().unlock();
+		}
+	}
+
+	public void writeData(int newValue) {
+		readWriteLock.writeLock().lock();
+		try {
+			// Writing to the shared resource
+			data = newValue;
+		} finally {
+			readWriteLock.writeLock().unlock();
+		}
+	}
+}
+```
+
+## Reentrance Lockout
+
+Reentrance lockout is a situation similar to deadlock and nested monitor lockout. Reentrance lockout may occur if a thread reenters a Lock, ``ReadWriteLock`` or some other synchronizer that is not reentrant. Reentrant means that a thread that already holds a lock can retake it.
+
+```java
+public class ReentrantLockoutExample {
+
+	private final Object lock = new Object();
+
+	public void outer() {
+		synchronized (lock) {
+			inner();  // calling another synchronized method
+		}
+	}
+
+	public void inner() {
+		synchronized (lock) {
+			// Some critical section code
+		}
+	}
+
+	public static void main(String[] args) {
+		ReentrantLockoutExample example = new ReentrantLockoutExample();
+
+		// Create two threads calling outer method
+		Thread thread1 = new Thread(() -> example.outer());
+		Thread thread2 = new Thread(() -> example.outer());
+
+		// Start the threads
+		thread1.start();
+		thread2.start();
+	}
+}
+```
+
+## Semaphores
+
+A semaphore is a synchronization construct used in concurrent programming to control access to a shared resource. It maintains a set of permits, and threads that need access to the resource must acquire a permit before proceeding. Once the thread is done with the resource, it releases the permit, making it available for other threads.
+
+### Key concepts:
+
+- **Permits**: Semaphores have a fixed number of permits, which control the number of threads that can concurrently access the shared resource.
+
+- **Acquiring and Releasing Permits**
+	- **``Acquire()``**: A thread requests a permit from the semaphore. If a permit is available, it's granted, and the thread continues. If not, the thread may be blocked or put into a waiting state until a permit becomes available.
+	- **``Release()``**: When a thread is done using the resource, it releases the permit, making it available for other threads.
+- **Counting Semaphores**: Semaphores can be either counting semaphores or binary semaphores.
+	- **Counting Semaphore**: Permits can be any non-negative integer, allowing multiple threads to access the resource simultaneously, up to the total number of permits. 
+	- **Binary Semaphore (Mutex)**: Limited to two states (0 or 1), essentially acting as a mutual exclusion mechanism, allowing only one thread to access the resource at a time.
+- **Uses**
+	- **Resource Management**: Semaphores are often used to control access to a pool of resources.
+	- **Thread Synchronization**: Ensuring that certain sections of code are accessed by a limited number of threads simultaneously.
+
+```java
+import java.util.concurrent.Semaphore;
+public class SemaphoreExample {
+	public static void main(String[] args) {
+		// Creating a counting semaphore with 3 permits
+		Semaphore semaphore = new Semaphore(3);
+
+		// Creating and starting 5 threads
+		for (int i = 1; i <= 5; i++) {
+			Thread thread = new Thread(new Worker(semaphore, i));
+			thread.start();
+		}
+	}
+
+	static class Worker implements Runnable {
+		private final Semaphore semaphore;
+		private final int workerId;
+
+		Worker(Semaphore semaphore, int workerId) {
+			this.semaphore = semaphore;
+			this.workerId = workerId;
+		}
+
+		@Override
+		public void run() {
+			try {
+				System.out.println("Worker " + workerId + " is trying to acquire a permit.");
+				semaphore.acquire();
+				System.out.println("Worker " + workerId + " has acquired a permit.");
+				
+				// Simulating some work being done
+				Thread.sleep(2000);
+				
+				System.out.println("Worker " + workerId + " is releasing the permit.");
+				semaphore.release();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+}
+```
+
+## Blocking Queues
+
+is a queue that blocks when you try to dequeue from it and the queue is empty, or if you try to enqueue items to it and the queue is already full. A thread trying to dequeue from an empty queue is blocked until some other thread inserts an item into the queue.  A thread trying to enqueue an item in a full queue is blocked until some other thread makes space in the queue, either by dequeuing one or more items or clearing the queue completely.
+
+![[Pasted image 20240210153154.png]]
+
+```java
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+public class BlockingQueueExample {
+
+	public static void main(String[] args) {
+		// Creating a LinkedBlockingQueue with a maximum capacity of 5
+		BlockingQueue<String> blockingQueue = new LinkedBlockingQueue<>(5);
+
+		// Creating and starting producer and consumer threads
+		Thread producerThread = new Thread(new Producer(blockingQueue));
+		Thread consumerThread = new Thread(new Consumer(blockingQueue));
+
+		producerThread.start();
+		consumerThread.start();
+	}
+
+	// Producer thread that adds elements to the blocking queue
+	static class Producer implements Runnable {
+		private final BlockingQueue<String> blockingQueue;
+
+		Producer(BlockingQueue<String> blockingQueue) {
+			this.blockingQueue = blockingQueue;
+		}
+
+		@Override
+		public void run() {
+			try {
+				for (int i = 1; i <= 10; i++) {
+					String message = "Message " + i;
+					blockingQueue.put(message); // Blocking if the queue is full
+					System.out.println("Produced: " + message);
+					Thread.sleep(1000);
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	// Consumer thread that removes elements from the blocking queue
+	static class Consumer implements Runnable {
+		private final BlockingQueue<String> blockingQueue;
+
+		Consumer(BlockingQueue<String> blockingQueue) {
+			this.blockingQueue = blockingQueue;
+		}
+
+		@Override
+		public void run() {
+			try {
+				while (true) {
+					String message = blockingQueue.take(); // Blocking if the queue is empty
+					System.out.println("Consumed: " + message);
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+}
+```
+
+the Producer thread produces messages (strings) and puts them into the blocking queue. The Consumer thread consumes messages by taking them from the blocking queue. The put and take methods on the blocking queue ensure that the producer blocks when the queue is full and the consumer blocks when the queue is empty.
+
+## The Producer Consumer Pattern
+
+is a concurrency design pattern where one or more producer threads produce objects which are queued up, and then consumed by one or more consumer threads. The objects enqueued often represent some work that needs to be done. Decoupling the detection of work from the execution of work means you can control how many threads at a time that are engaged in detecting or executing the work.
+
+![[Pasted image 20240210153339.png]]
+
+### Use Cases
+
+Most common ones:
+- **Reduce foreground thread latency.**
+- **Load balance work between different threads.**
+- **Backpressure management.**
+
+#### Reduce Foreground Thread Latency
+
+In some systems you have a single foreground thread which has the communication with the outside world.
+In a server it could be the thread accepting the incoming connections from clients. In a desktop app that could be the UI thread.
+
+In order to not make the foreground thread busy with tasks - whatever tasks the foreground thread receives from the outside world are offloaded to one or more background threads.  In a server it could be processing the data that is received via the inbound connections.
+
+#### Load Balance Work Between Threads
+
+is to load balance work between a set of worker threads.  Actually, this load balancing happens pretty much automatically, as long as the worker threads take new task objects from the queue as soon as they have time to process them. This will result in load balancing the tasks between the worker threads.
+
+#### Backpressure Management
+
+If the queue between the producer and consumer threads is a Java ``BlockingQueue``, then you can use the queue for backpressure management. Backpressure means, that if the producer thread(s) produce more work than the consumer threads are able to handle - the tasks will queue up in the queue.  At some point the ``BlockingQueue`` will become full, and the producer threads will be blocked trying to insert new tasks / work objects into the queue.  This phenomenon is called "backpressure".
+
+The system presses back against the producers - towards the beginning of the "pipeline" - preventing more work from coming in. The backpressure will "spill out" of the queue, and slow down the producer thread(s).
+Thus, they too could propagate the pressure back up the work pipeline, if there are any earlier steps in the total pipeline.
+
+## Thread Pools
+
+is a pool threads that can be "reused" to execute tasks, so that each thread may execute more than one task.
+A thread pool is an alternative to creating a new thread for each task you need to execute.
+
+Creating a new thread comes with a performance overhead compared to reusing a thread that is already created.  That is why reusing an existing thread to execute a task can result in a higher total throughput than creating a new thread per task.
+
+Additionally, using a thread pool can make it easier to control how many threads are active at a time.
+Each thread consumes a certain amount of computer resources, such as memory (RAM).
+
+![[Pasted image 20240210153722.png]]
+### How a Thread Pool Works
+
+Instead of starting a new thread for every task to execute concurrently, the task can be passed to a thread pool.
+As soon as the pool has any idle threads the task is assigned to one of them and executed. Internally the tasks are inserted into a Blocking Queue which the threads in the pool are dequeuing from.
+
+When a new task is inserted into the queue one of the idle threads will dequeue it successfully and execute it.
+The rest of the idle threads in the pool will be blocked waiting to dequeue tasks.
+### Thread Pool Use Cases
+
+Thread pools are often used in multi threaded servers.
+Each connection arriving at the server via the network is wrapped as a task and passed on to a thread pool.
+The threads in the thread pool will process the requests on the connections concurrently.
+
+### Thread Pool Example
+
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class ThreadPoolExample {
+
+	public static void main(String[] args) {
+		// Create a thread pool with three worker threads
+		ExecutorService executorService = Executors.newFixedThreadPool(3);
+
+		// Submit tasks to the thread pool
+		for (int i = 1; i <= 5; i++) {
+			final int taskId = i;
+			executorService.submit(() -> {
+				// Task execution logic
+				System.out.println("Task " + taskId + " is being processed by thread: " +
+						Thread.currentThread().getName());
+			});
+		}
+
+		// Shutdown the thread pool when tasks are completed
+		executorService.shutdown();
+	}
+}
+```
+
+## Thread Congestion in Java
+
+Thread congestion can occur when two or more threads are trying to access the same, guarded data structure at the same time. By "guarded" means that the data structure is guarded using synchronized blocks or a concurrent data structure (Lock, ``BlockingQueue`` etc.) so that the data structure is thread safe.
+
+The resulting thread congestion means that the threads trying to access the shared data structure are spending a high amount of time waiting in line to access the data structure - wasting valuable execution time on waiting.
+
+![[Pasted image 20240210153931.png]]
+
+### Thread Blocking Data Structures May Cause Thread Congestion
+
+A data structure which blocks threads from accessing it - depending on what other threads are currently accessing it - may cause thread congestion. If more than one thread accesses such a data structure at the same time, one or more of the threads may be queued up waiting to access the data structure.
+
+This queuing up is not visible in your code. The queuing up happens inside the Java VM. Therefore thread congestion is not so easy to spot simply by looking at your code. may need profiling tools to detect thread congestion
+### A Blocked Thread Loses Execution Time
+
+While a thread is blocked trying to execute a blocking data structure, it cannot do anything.
+Thus, while being blocked the thread loses possible execution time. The longer the thread is blocked, the more potential execution time it loses.
+### The More Threads - The Higher Congestion
+
+The more threads that attempt to access a shared, blocking data structure, the higher the risk is of thread congestion occurring, and the higher the congestion may be
+### Alleviating Thread Congestion
+
+To alleviate thread congestion you must reduce the number of threads trying to access the blocking data structure at exactly the same time.
+
+#### Multiple Data Structures
+
+One way to alleviate thread congestion - at least around blocking queues - is to give each consuming thread its own queue, and have the producing thread distribute the objects (e.g. tasks) among these blocking queues. 
+This way, only 2 threads are ever accessing each queue: The producing thread and the consuming thread.
+
+![[Pasted image 20240210154151.png]]
+
+#### Non-blocking Concurrency Algorithms
+
+Another way is to use non-blocking concurrency algorithms where the threads accessing the data structure are never blocked.
+
+## Compare and Swap
+
+is a technique used when designing concurrent algorithms. Basically, compare and swap compares the value of a variable with an expected value, and if the values are equal then swaps the value of the variable for a new value.
+### Compare and Swap for Check Then Act Cases
+
+A commonly occurring pattern in concurrent algorithms is the check then act pattern The check then act pattern occurs when the code first checks the value of a variable and then acts based on that value.
+
+```java
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class SafeLock {
+
+	private final AtomicBoolean locked = new AtomicBoolean(false);
+
+	public void lock() {
+		while (!locked.compareAndSet(false, true)) {
+			// busy wait - until locked is false
+		}
+	}
+
+	public void unlock() {
+		locked.set(false);
+	}
+}
+```
+
+The ``lock()`` method checks if locked is false and, if true, sets it to true.
+In a multi-threaded scenario, multiple threads might simultaneously check and set the locked variable.
+This creates a race condition where multiple threads can enter the critical section concurrently, defeating the purpose of the lock.
+
+### Check Then Act - Must Be Atomic
+
+In a multithreaded application, for check-then-act operations to be thread-safe and avoid race conditions, the operations must be atomic.  Atomicity ensures that both the check and act actions are executed without interference from other threads. One way to achieve atomicity in Java is by using the synchronized keyword to create a synchronized block of code.
+
+```java
+public class ProblematicLock {
+	private volatile boolean locked = false;
+
+	public synchronized void lock() {
+		while(this.locked) {
+			// busy wait - until this.locked == false
+		}
+		this.locked = true;
+	}
+
+	public void unlock() {
+		this.locked = false;
+	}
+}
+```
+
+the ``lock()`` method is effectively atomic, ensuring that only one thread can execute it at a time on the same ``ProblematicLock`` instance.
+
+### Blocking Threads is Expensive
+
+When two threads try to enter a synchronized block in Java at the same time, one of the threads will be blocked, and the other thread will allowed to enter the synchronized block.  When the thread that entered the synchronized block exits the block again, a waiting thread will be allowed to enter the block.
+
+Entering a synchronized block is not that expensive - if the thread is allowed access. But if the thread is blocked because another thread is already executing inside the synchronized block - the blocking of the thread is expensive.
+
+Additionally, you do not have any guarantee about exactly when a blocked thread is unblocked when the synchronized block is free again.  This is typically up to the OS or execution platform to coordinate the unblocking of blocked threads.
+
+Of course it will not take seconds or minutes before a blocked thread is unblocked and allowed to enter, but some amount of time can be wasted for the blocked thread where it could have accessed the shared data structure.
+
+### Hardware Provided Atomic Compare And Swap Operations
+
+Modern CPUs offer built-in support for atomic compare-and-swap operations, providing a way to replace synchronized blocks or other blocking data structures. With compare-and-swap, the CPU ensures that only one thread can execute the operation at a time, even across CPU cores. This eliminates the need for the operating system or execution platform to handle thread blocking and unblocking.
+
+In situations where hardware-provided compare-and-swap functionality is used, the thread attempting to access a shared data structure is not fully blocked. Instead, it continuously tries to execute the compare-and-swap operation until it succeeds, minimizing the delay before accessing the shared data structure This results in shorter waiting times, less congestion, and higher throughput
+
+### Compare and Swap in Java
+
+The advantage of using the compare and swap features that comes with Java 5+ rather than implementing your own is that  the compare and swap features built into Java 5+ lets you utilize the underlying compare and swap features of the CPU your application is running on. This makes your compare and swap code faster.
+
+### Compare And Swap as Guard
+
+It is also possible to use compare and swap functionality as an optimistic locking mechanism. An optimistic locking mechanism allows more than one thread to enter a critical section at a time, but only allows one of the threads to commit its work at the end of the critical section.
+
+```java
+import java.util.concurrent.atomic.AtomicLong;
+
+public class OptimisticLockCounter {
+
+	private AtomicLong count = new AtomicLong();
+
+	public void inc() {
+		boolean incSuccessful = false;
+		while (!incSuccessful) {
+			long value = this.count.get();
+			long newValue = value + 1;
+
+			incSuccessful = this.count.compareAndSet(value, newValue);
+		}
+	}
+
+	public long getCount() {
+		return this.count.get();
+	}
+}
+```
+## Anatomy of a Synchronizer
+
+Even if many synchronizers (locks, semaphores, blocking queue etc.) are different in function, they are often not that different in their internal design. they consist of the same (or similar) basic parts internally.
+### State
+
+The state of a synchronizer is used by the access condition to determine if a thread can be granted access.
+- In a Lock the state is kept in a boolean saying whether the Lock is locked or not. 
+- In a Bounded Semaphore the internal state is kept in a counter (int) and an upper bound (int) which state the current number of "takes" and the maximum number of "takes".
+-  In a Blocking Queue the state is kept in the List of elements in the queue and the maximum queue size (int) member (if any).
+
+### Access Condition
+
+The access conditions is what determines if a thread calling a test-and-set-state method can be allowed to set the state or not.  The access condition is typically based on the state of the synchronizer. The access condition is typically checked in a while loop to guard against Spurious Wakeups. When the access condition is evaluated it is either true or false.
+
+In a Lock the access condition simply checks the value of the ``isLocked`` member variable. In a Bounded Semaphore there are actually two access conditions depending on whether you are trying to "take" or "release" the semaphore. If a thread tries to take the semaphore the signals variable is checked against the upper bound.
+If a thread tries to release the semaphore the signals variable is checked against 0.
+
+### State Changes
+
+Once a thread gains access to the critical section it has to change the state of the synchronizer to (possibly) block other threads from entering it.
+In other words, the state needs to reflect the fact that a thread is now executing inside the critical section.
+This should affect the access conditions of other threads attempting to gain access.
+
+In a Lock the state change is the code setting ``isLocked = true``. In a semaphore it is either the code signals-- or signals++
+### Notification Strategy
+
+Once a thread has changed the state of a synchronizer it may sometimes need to notify other waiting threads about the state change. Perhaps this state change might turn the access condition true for other threads.
+Notification Strategies typically fall into three categories.
+
+- Notify all waiting threads.
+-  Notify 1 random of N waiting threads.
+- Notify 1 specific of N waiting thread.
+	
+Notifying all waiting threads is pretty easy. All waiting threads call wait() on the same object. Once a thread want to notify the waiting threads it calls notifyAll() on the object the waiting threads called wait() on.
+
+Notifying a single random waiting thread is also pretty easy. Just have the notifying thread call notify() on the object the waiting threads have called wait() on. Calling notify makes no guarantee about which of the waiting threads will be notified. Hence the term "random waiting thread".
+
+Sometimes you may need to notify a specific rather than a random waiting thread. For instance if you need to guarantee that waiting threads are notified in a specific order, be it the order they called the synchronizer in, or some prioritized order. To achieve this each waiting thread must call wait() on its own, separate object. When the notifying thread wants to notify a specific waiting thread it will call notify() on the object this specific thread has called ``wait()`` on.
+### Test and Set Method
+
+Synchronizer most often have two types of methods of which test-and-set is the first type (set is the other).
+Test-and-set means that the thread calling this method tests the internal state of the synchronizer against the access condition. If the condition is met the thread sets the internal state of the synchronizer to reflect that the thread has gained access.
+
+The state transition usually results in the access condition turning false for other threads trying to gain access, but may not always do so It is imperative that the test-and-set operations are executed atomically meaning no other threads are allowed to execute in the test-and-set method in between the test and the setting of the state.
+
+The program flow of a test-and-set method is usually something along the lines of:
+
+- Set state before test if necessary
+- Test state against access condition
+- If access condition is not met, wait
+- If access condition is met, set state, and notify waiting threads if necessary
+
+### Set Method
+
+The set method is the second type of method that synchronizers often contain. The set method just sets the internal state of the synchronizer without testing it first. A typical example of a set method is the ``unlock()`` method of a Lock class. A thread holding the lock can always unlock it without having to test if the Lock is unlocked.
+The program flow of a set method is usually along the lines of:
+
+- Set internal state
+- Notify waiting threads
+
+## Non-blocking Algorithms
+
