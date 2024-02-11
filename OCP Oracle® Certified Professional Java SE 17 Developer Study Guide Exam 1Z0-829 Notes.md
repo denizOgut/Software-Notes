@@ -2062,9 +2062,22 @@ While this does work, it is hard to read. Luckily, Java has text blocks, also kn
 
 A text block starts and ends with three double quotes `(""")`, and the contents don’t need to be escaped. This is much easier to read.
 
+==**In Java text blocks, use triple quotes `(""")` on separate lines above and below your text. Only the text between these lines becomes the Java String.**==
+
 ==**Essential whitespace is the intentional indentation and formatting that directly contributes to the structure and readability of your String. Incidental whitespace, on the other hand, is extra spacing added for code readability, but it doesn't affect the actual String value.**== 
 
+```java
+String textblock = """
+                   This is a text inside a
+                   text block.
+                   You can use "quotes" in here
+                   without escaping them.
+                   """;
+```
+
 You can freely adjust incidental whitespace without impacting your String content. ==**Visualize a vertical line on the leftmost non-whitespace character in your text block – everything to the left is incidental whitespace, and everything to the right is essential whitespace.**== Adjusting the left side won't change your String; it's there solely for code aesthetics.
+
+==**the difference in the start location of the last triple quotes `(""")` and the leftmost character of the text inside the text block determines how much indentation is left inside the Java String produced by the Java text block declaration.**==
 
 ```java
 14: String pyramid = """
@@ -7038,7 +7051,7 @@ System.out.println("abcabc".replace("a", "A")); // AbcAbc
 
 #### Removing Whitespace
  
- These methods remove blank space from the beginning and/or end of a String. The`` strip()`` and ``trim()`` methods remove whitespace from the beginning and end of a String. In terms of the exam, whitespace consists of spaces along with the \t (tab) and \n (newline) characters. Other characters, such as \r (carriage return), are also included in what gets trimmed.
+ These methods remove blank space from the beginning and/or end of a String. ==**The`` strip()`` and ``trim()`` methods remove whitespace from the beginning and end of a String**==. In terms of the exam, whitespace consists of spaces along with the \t (tab) and \n (newline) characters. Other characters, such as \r (carriage return), are also included in what gets trimmed.
 The ``strip()`` method does everything that ``trim()`` does, but it supports Unicode.
 
 Additionally, the ``stripLeading()`` method removes whitespace from the beginning of the String and leaves it at the end. The ``stripTrailing()`` method does the opposite. It removes whitespace from the end of the String and leaves it at the beginning.
@@ -7087,6 +7100,23 @@ The`` indent()`` method
 - ==**First, a line break is added to the end of the string if not already there.**==
 - ==**Second, any line breaks are converted to the ``\n`` format. Regardless of whether your operating system uses**==
 
+```java
+String text = "  Line 1\n  Line 2  ";  
+String indented = text.indent(2);  // Positive: Adds 2 spaces  
+String normalized = text.indent(-3);  // Negative: No change in indentation  
+  
+System.out.println("indented:" +indented);  
+System.out.println("normalized:" +normalized);
+```
+
+```text
+indented:    Line 1
+    Line 2  
+
+normalized:Line 1
+Line 2  
+```
+
 The ``stripIndent()`` method is useful when a String was built with concatenation rather than using a text block. ==**It gets rid of all incidental whitespace.**== This means that all non-blank lines are shifted left so the same number of whitespace characters are removed from each line and the first character that remains is not blank
 
 Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`` method does not add a trailing line break if it is missing.**==
@@ -7125,7 +7155,7 @@ Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`
 #### Translating Escapes
 
 When we escape characters, we use a single backslash. For example, ``\t`` is a tab. If we don’t want this behavior, we add another backslash to escape the backslash, so ``\\t`` is the literal string ``\t``.
-The ``translateEscapes()`` method takes these literals and turns them into the equivalent escaped character.
+==**The ``translateEscapes()`` method takes these literals and turns them into the equivalent escaped character.**==
 
 ```java
 public String translateEscapes()
@@ -7137,8 +7167,8 @@ System.out.println(str); // 1\t2
 System.out.println(str.translateEscapes()); // 1 2
 ```
 
-- The first line prints the literal string \t because the backslash is escaped.
-- The second line prints an actual tab since we translated the escape.
+- ==**The first line prints the literal string \t because the backslash is escaped.**==
+- ==**The second line prints an actual tab since we translated the escape.**==
 
 This method can be used for escape sequences such as ``\t`` (tab), ``\n`` (new line), ``\s`` (space), ``\"`` (double quote), and ``\'`` (single quote.)
 
@@ -7449,6 +7479,7 @@ System.out.println(name == builder); // DOES NOT COMPILE
 Since strings are everywhere in Java, they use up a lot of memory. Java realizes that many strings repeat in the program and solves this issue by reusing common ones. ==**The string pool, also known as the intern pool, is a location in the Java Virtual Machine (JVM) that collects all these strings.**==
 
 ==**The string pool contains literal values and constants that appear in your program. For example, *"name"* is a literal and therefore goes into the string pool. The ``myObject.toString()`` method returns a string but not a literal, so it does not go into the string pool.**==
+
 
 ```java
 var x = "Hello World";
