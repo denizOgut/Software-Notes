@@ -876,7 +876,7 @@ Elements present in stack : 20 10
 - Random accessing is not possible in stack.
 
 
-# Concurrency and Multithreading
+# CONCURRENCY & MULTITHREADING
 
 ## What is Multithreading?
 
@@ -3876,4 +3876,271 @@ The program flow of a set method is usually along the lines of:
 - Notify waiting threads
 
 ## Non-blocking Algorithms
+
+in the context of concurrency are algorithms that allows threads to access shared state (or otherwise collaborate or communicate) without blocking the threads involved. In more general terms, an algorithm is said to be non-blocking if the suspension of one thread cannot lead to the suspension of other threads involved in the algorithm.
+### Blocking Concurrency Algorithms
+
+is an algorithm which either:
+
+- A: Performs the action requested by the thread - OR
+- B: Blocks the thread until the action can be performed safely
+
+Many types of algorithms and concurrent data structures are blocking.
+
+![[Pasted image 20240211103420.png]]
+
+### Non-blocking Concurrency Algorithms
+
+is an algorithm which either:
+
+- A: Performs the action requested by the thread - OR
+- B: Notifies the requesting thread that the action could not be performed
+
+![[Pasted image 20240211103533.png]]
+
+### Non-blocking vs Blocking Algorithms
+
+- Blocking algorithms block the thread until the requested action can be performed, potentially leading to indefinite blocking if conditions are not met. 
+- Non-blocking algorithms, on the other hand, notify the requesting thread that the action cannot be performed, allowing the thread to handle the situation without waiting indefinitely.
+
+### Non-blocking Concurrent Data Structures
+
+In a multithreaded system, threads communicate through various data structures, ranging from simple variables to complex structures like queues and maps. For proper concurrent access, these data structures require guarding by concurrent algorithms.  If the guarding algorithm involves thread suspension, it is considered a blocking algorithm, resulting in a blocking concurrent data structure.
+
+Conversely, if the guarding algorithm is non-blocking, it is a non-blocking algorithm, leading to a non-blocking concurrent data structure. The choice of a concurrent data structure depends on communication needs, and the following sections will explore non-blocking concurrent data structures, providing insights into their design and implementation.
+
+### Volatile Variables
+
+Java volatile variables ensure that their values are always read directly from main memory. 
+When a new value is assigned to a volatile variable, it is immediately written to main memory, guaranteeing that the latest value is visible to other threads running on different CPUs.  This eliminates the reliance on CPU caches and ensures consistent visibility across threads.
+
+Volatile variables offer non-blocking behavior, as writing a value to a volatile variable is an atomic operation, preventing interruptions.  However, a read-update-write sequence on a volatile variable is not atomic.
+
+```java
+volatile myVar = 0;
+
+...
+int temp = myVar;
+temp++;
+myVar = temp;
+```
+
+the value of the volatile variable ``myVar`` is read into a temporary variable, incremented, and then written back to main memory. If two threads execute this code concurrently, there is a risk of a race condition, where both threads read, increment, and write back the same value, potentially resulting in an incorrect final value. This scenario is analogous to the more concise expression ``myVar++``.
+#### The Single Writer Case
+
+In scenarios where only a single thread is responsible for updating a shared variable, and multiple threads are involved in reading its value, race conditions can be avoided.  In such cases, using a volatile variable is appropriate, as the visibility guarantees provided by volatile variables are sufficient to maintain consistency when there is only one writer.
+
+```java
+public class SingleWriterCounter {
+
+    private volatile long count = 0;
+
+    /**
+     * Only one thread may ever call this method,
+     * or it will lead to race conditions.
+     */
+    public void inc() {
+        this.count++;
+    }
+
+
+    /**
+     * Many reading threads may call this method
+     * @return
+     */
+    public long count() {
+        return this.count;
+    }
+}
+```
+
+Multiple threads can access the same instance of this counter, as long as only one thread calls ``inc()``. The ``count()`` method can be called by multiple threads without causing race conditions. The use of the volatile keyword ensures that the latest value of the count variable is always visible to reading threads, even if there is only one writing thread.
+
+![[Pasted image 20240211104029.png]]
+
+#### More Advanced Data Structures Based on Volatile Variables
+
+In scenarios where multiple threads need to communicate through non-blocking means, it is possible to design data structures using combinations of volatile variables. Each volatile variable is written by a single thread and read by multiple threads, providing a mechanism for threads to exchange information without blocking.
+
+```java
+public class DoubleWriterCounter {
+
+    private volatile long countA = 0;
+    private volatile long countB = 0;
+
+    /**
+     * Only one (and the same from thereon) thread may ever call this method,
+     * or it will lead to race conditions.
+     */
+    public void incA() { this.countA++;  }
+
+
+    /**
+     * Only one (and the same from thereon) thread may ever call this method,
+     * or it will lead to race conditions.
+     */
+    public void incB() { this.countB++;  }
+
+
+    /**
+     * Many reading threads may call this method
+     */
+    public long countA() { return this.countA; }
+
+
+    /**
+     * Many reading threads may call this method
+     */
+    public long countB() { return this.countB; }
+}
+```
+
+``incA()`` and ``incB()`` methods are meant to be called by a single thread each, preventing race conditions. Multiple threads are allowed to call ``countA()`` and ``countB()`` without causing race conditions. This design enables two threads to communicate by exchanging counts. It's worth noting that, in practice, using separate instances of a single writer counter class might achieve a similar effect.
+
+![[Pasted image 20240211104346.png]]
+
+### Optimistic Locking With Compare and Swap
+
+In scenarios where exclusive access to a shared variable is needed, using a volatile variable alone is insufficient. 
+Exclusive access can be achieved using synchronized blocks,
+
+```java
+public class SynchronizedCounter {
+    long count = 0;
+
+    public void inc() {
+        synchronized(this) {
+            count++;
+        }
+    }
+
+    public long count() {
+        synchronized(this) {
+            return this.count;
+        }
+    }
+}
+```
+
+In the above example, both the ``inc()`` and ``count()`` methods contain synchronized blocks. However, to avoid the use of synchronized blocks, an alternative approach is to use an atomic variable, such as ``AtomicLong``
+
+```java
+import java.util.concurrent.atomic.AtomicLong;
+
+public class AtomicCounter {
+	private AtomicLong count = new AtomicLong(0);
+
+	public void inc() {
+		boolean updated = false;
+		while (!updated) {
+			long prevCount = this.count.get();
+			updated = this.count.compareAndSet(prevCount, prevCount + 1);
+		}
+	}
+
+	public long count() {
+		return this.count.get();
+	}
+}
+```
+
+In this version, the ``inc()`` method no longer contains a synchronized block. Instead, it utilizes the ``compareAndSet()`` method provided by ``AtomicLong`` This method performs an atomic compare-and-swap operation, which avoids the need for synchronization and thread suspension The ``compareAndSet()`` method is typically supported by atomic instructions in the CPU.
+
+The ``inc()`` method checks whether the update was successful through a while loop.  If another thread modifies the ``AtomicLong`` between reading the previous count and attempting to update it, the ``compareAndSet()`` call will fail, and the loop will be repeated.  This ensures that only one thread successfully increments the counter at a time, avoiding race conditions.
+#### Why is it Called Optimistic Locking?
+
+because it operates under the optimistic assumption that conflicts or contention for shared resources will be infrequent. In this approach, threads are optimistic that they can proceed with their modifications to shared memory without the need for blocking or obtaining exclusive locks. The term "optimistic" reflects the positive outlook that conflicts will be rare.
+
+In contrast, traditional or pessimistic locking involves blocking access to shared memory using locks or synchronized blocks, even for read operations. Pessimistic locking assumes that conflicts are likely, and therefore, it takes a more conservative approach by blocking threads to prevent concurrent modifications.
+
+Optimistic locking allows multiple threads to independently make copies of shared data, modify their copies, and then attempt to update the shared data without immediate synchronization. This approach is suitable when contention is expected to be low or infrequent. However, if contention is high, and multiple threads are likely to modify the shared data simultaneously, optimistic locking may result in wasted effort as threads may need to retry updating the shared data.
+
+#### Optimistic Locking is Non-blocking
+
+In an optimistic locking approach, threads are allowed to perform operations on shared data independently without immediately acquiring locks or causing blocking for other threads. Contrastingly, in traditional locking paradigms (e.g., using synchronized blocks or locks), when a thread acquires a lock, it prevents other threads from accessing the same locked resource until the lock is released. If the thread holding the lock gets blocked or delayed for some reason, it can lead to potential contention and increased wait times for other threads attempting to access the same resource.
+
+The non-blocking nature of optimistic locking allows threads to proceed with their operations independently, minimizing contention and enabling concurrency. Even if a thread encounters a conflict during the attempt to update shared data, it can retry without causing blockages for other threads.
+
+This non-blocking characteristic is one of the advantages of optimistic locking in scenarios where contention is expected to be low, and conflicts are assumed to be infrequent. It can lead to better overall system throughput and responsiveness compared to traditional blocking approaches in certain situations.
+
+### Non-swappable Data Structures
+
+Non-swappable data structures are those where replacing the entire structure during updates is impractical.
+In these cases, non-blocking strategies are employed to enable concurrent updates without copying the entire structure.  This is achieved by using atomic operations on specific elements or references within the structure, allowing independent updates without blocking the entire data set. The key is to design these structures carefully to minimize contention and avoid unnecessary overhead during modifications.
+
+#### Completable Intended Modifications
+
+In a non-blocking algorithm using completable intended modifications, each submitted modification must contain sufficient information for another thread to complete it.  This design ensures that if the original thread doesn't complete the modification, another thread can step in and finish it.  The completion process involves one or more compare-and-swap operations, ensuring that only one thread can successfully execute these operations.
+
+The blueprint of this non-blocking algorithm involves submitting intended modifications, which can be completed by other threads through compare-and-swap operations.  This approach prevents a single modification from locking the shared data structure, allowing multiple threads to work concurrently.
+
+### The A-B-A Problem
+
+This problem occurs when a variable is changed from A to B and then back to A again, making it challenging for another thread to detect the change.  if thread A is suspended after checking for ongoing updates and copying data, thread B may perform a full update in the meantime.
+
+If thread B successfully updates the data structure and removes its intended modification, when thread A resumes, it might not detect any modification since it copied the data structure.  However, a modification did occur during the suspension of thread A. Consequently, when thread A continues its update based on the outdated copy, it unintentionally undoes the modification made by thread B
+#### A-B-A Solutions
+
+a common solution is to use a combination of a pointer and a counter.  This involves swapping a pointer to an intended modification object along with a counter using a single compare-and-swap operation. In Java, where you cannot directly merge a reference and a counter into a single variable, the ``AtomicStampedReference`` class is provided.  This class allows you to atomically swap a reference and a stamp (counter) using a compare-and-swap operation, preventing the A-B-A problem.
+### A Non-blocking Algorithm Template
+
+Non-blocking algorithms are designed to allow multiple threads to operate concurrently on shared data structures without the need for locks or other blocking mechanisms.  The key idea is to enable progress even when contention or conflicts occur among threads.
+
+#### Optimistic Concurrency Control
+
+Non-blocking algorithms often employ optimistic concurrency control, where threads perform operations assuming that there will be no interference from other threads. Threads make modifications locally and then use atomic operations, such as compare-and-swap, to apply changes to shared data structures.
+
+#### Compare-and-Swap (CAS)
+
+CAS is a fundamental atomic operation in non-blocking algorithms. It involves comparing the current value of a variable with an expected value and, if they match, updating the variable to a new value. The operation is atomic and helps avoid race conditions.
+
+#### A-B-A Problem
+
+where a variable changes from A to B and back to A, making it difficult for a thread to detect changes.
+Techniques like using version numbers or stamps in conjunction with CAS are employed to address the A-B-A problem.
+
+#### Completable Intended Modifications
+
+modifications to shared data structures are often represented as "intended modifications" that can be completed by one or more threads. This approach allows a thread to submit a modification request without blocking and enables other threads to assist in completing the modification.
+
+#### ``AtomicStampedReference``
+
+Some programming languages, like Java, provide atomic classes like ``AtomicStampedReference`` to combine a reference with a stamp (version number) in a single atomic variable, helping address the A-B-A problem.
+
+#### Testing and Validation
+
+Due to the complexity of non-blocking algorithms, thorough testing and validation are crucial to ensure correctness and identify potential race conditions or other concurrency issues.
+
+### Non-blocking Algorithms are Difficult to Implement
+
+they require managing concurrency without traditional locks.
+Ensuring correctness amid simultaneous operations by multiple threads, avoiding race conditions, and addressing A-B-A problems demand intricate designs and careful handling of atomic operations like compare-and-swap.  Testing and validation are crucial due to the complexity, making non-blocking algorithms harder to develop compared to their blocking counterparts.
+
+### The Benefit of Non-blocking Algorithms
+
+#### Choice
+
+threads are given a choice about what to do when their requested action cannot be performed.
+Instead of just being blocked, the request thread has a choice about what to do. Sometimes there is nothing a thread can do In that case it can choose to block or wait itself, thus freeing up the CPU for other tasks. But at least the requesting thread is given a choice.
+
+#### No Deadlocks
+
+the suspension of one thread cannot lead to the suspension of other threads.
+This means that deadlock cannot occur. Two threads cannot be blocked waiting for each other to release a lock they want. Since threads are not blocked when they cannot perform their requested action, they cannot be blocked waiting for each other.
+
+#### No Thread Suspension
+
+Suspending and reactivating a thread is costly. However, there is still a high price to pay for thread suspension and reactivation.
+
+Whenever a thread is blocked it is suspended, thus incurring the overhead of thread suspension and reactivation.
+Since threads are not suspended by non-blocking algorithms, this overhead does not occur. This means that the CPUs can potentially spend more time performing actual business logic instead of context switching.
+
+On a multi CPU system blocking algorithms can have more significant impact on the overall performance.
+
+#### Reduced Thread Latency
+
+Latency in this context means the time between a requested action becomes possible and the thread actually performs it. Since threads are not suspended in non-blocking algorithms they do not have to pay the expensive, slow reactivation overhead. That means that when a requested action becomes possible threads can respond faster and thus reduce their response latency.
+
+The non-blocking algorithms often obtain the lower latency by busy-waiting until the requested action becomes possible.
+
 
