@@ -4,19 +4,15 @@
     "type": "split",
     "children": [
       {
-        "id": "a3a4216579b4310a",
+        "id": "92232944647382bb",
         "type": "tabs",
         "children": [
           {
-            "id": "32d6dd6a07c5715f",
+            "id": "8635a7c50b8ba342",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-                "mode": "source",
-                "source": false
-              }
+              "type": "empty",
+              "state": {}
             }
           }
         ]
@@ -85,7 +81,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "JAVA APP Screen Shoots/Pasted image 20240212095139.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +98,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "JAVA APP Screen Shoots/Pasted image 20240212095139.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +121,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+                "file": "JAVA APP Screen Shoots/Pasted image 20240212095139.png"
               }
             }
           }
@@ -147,24 +143,24 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "32d6dd6a07c5715f",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "JAVA APP - 2 NOTES.md",
-    "JAVA APP Screen Shoots/Pasted image 20240211103420.png",
-    "JAVA APP Screen Shoots/Pasted image 20240211104346.png",
-    "JAVA APP Screen Shoots/Pasted image 20240211104029.png",
-    "JAVA APP Screen Shoots/Pasted image 20240211103533.png",
-    "JAVA APP Screen Shoots/Pasted image 20240210153722.png",
-    "JAVA APP Screen Shoots/Pasted image 20240210154151.png",
-    "JAVA APP Screen Shoots/Pasted image 20240210153931.png",
-    "JAVA APP Screen Shoots/Pasted image 20240210153339.png",
-    "JAVA APP Screen Shoots/Pasted image 20240210153154.png",
-    "JAVA APP Screen Shoots/Pasted image 20240209175343.png",
+    "JAVA APP - 1 NOTES.md",
+    "JAVA APP Screen Shoots/Pasted image 20240212123942.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212111956.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212110442.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212095139.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212110014.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212104055.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212100522.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212100436.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212095655.png",
+    "JAVA APP Screen Shoots/Pasted image 20240212095429.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "JAVA APP - 2 NOTES.md",
     "Excalidraw/Drawing 2024-02-07 14.41.32.excalidraw.md",
     "Excalidraw",
     "Golang Notes.md",
-    "JAVA APP - 1 NOTES.md",
     "100 Go Mistakes and How to Avoid Them.md",
     "JAVA APP KEY NOTES.md",
     "Algorithms_4TH Edition Summary.md",

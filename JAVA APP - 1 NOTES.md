@@ -2167,10 +2167,13 @@ Spring Boot creates an empty table but doesn't populate it. To load initial data
 
 ResultSetExtractor is designed to extract the entire ResultSet (possibly multiple rows), while RowMapper is fed with one row at a time.
 
-
 # Spring Data JPA
 
 **Core Objectives:** Spring Data JPA aims to simplify the Data Access Layer, reducing code complexity while providing a feature-rich set of functionalities.
+
+## What is ORM
+
+ORM is a technique that provides interaction with a database using OOP languages. Hereby, it provides simplicity in discrepant database operations like creating, reading, updating and deleting.
 
 ## ICrudRepository
 
@@ -2250,7 +2253,537 @@ ResultSetExtractor is designed to extract the entire ResultSet (possibly multipl
     - JPA is designed for reading and querying data rather than massive write operations.
     - Overhead costs during write operations can impact performance.
 
-# Query Method Syntax Examples
+
+## What is Hibernate
+
+Hibernate is an ORM (Object Relational Mapping) tool that provides a framework to map OOP domain models to relational database tables in the Spring Boot application.
+
+##  What is JPA and Spring Data JPA
+
+JPA is a standard that persists and retrieves information from a non-volatile storage system, mapping Java objects to tables in a database.
+
+- The entity manager API can persist, update, retrieve or remove objects from a database.
+- The entity manager API can provide ORM without requiring JDBC or SQL code.
+- JPA provides a query language that can retrieve objects without writing massive SQL queries
+
+Spring Data JPA uses JPA to store data in a relational database. Hibernate is a JPA implementation.
+
+Hibernate, Explips Link, or any other JPA provider may be used. Spring Data is not an implementation or JPA provider; it is just an abstraction to reduce the boilerplate code significantly.
+
+> JPA is not a framework. It is a standard and concept.
+
+
+##  JPA Architecture
+
+![[Pasted image 20240212095139.png]]
+
+![[Pasted image 20240212095202.png]]
+
+###  How Persistence Operation works
+
+![[Pasted image 20240212095429.png]]
+
+Hibernate is a JPA provider, while Spring Data JPA is not a JPA provider. It is just an abstraction that can be used with Hibernate, Eclipse Link, etc.  
+
+##  Repository Pattern
+
+the repository pattern manages fundamental CRUD operations in a BaseRepository class.
+
+![[Pasted image 20240212095655.png]]
+
+The repository pattern involves creating a Generic BaseRepository interface that contains basic CRUD operations for the database. Alongside this interface, there’s a concrete BaseRepositoryImpl class that implements these operations using the EntityManager.
+
+To perform these common operations for entities, we create abstract classes like UserRepository for the User entity. These abstract classes define custom operations relevant to the entity. Additionally, we have concrete classes like UserRepositoryImpl, which extend both the BaseRepositoryImpl and the respective abstract UserRepository.
+
+This approach offers several benefits.
+
+- Firstly, it encapsulates common database operations within the BaseRepository, promoting code reuse and maintainability.
+- Secondly, by extending abstract classes like UserRepository, we can define entity operations while inheriting the generic CRUD functionality from the base repository.
+
+**Generic BaseRepository**
+
+```java
+package com.beratyesbek.basicjparepositorypattern.repository.base;  
+  
+import com.beratyesbek.basicjparepositorypattern.model.BaseEntity;  
+  
+import java.util.List;  
+  
+public interface BaseRepository<E extends BaseEntity, I> {  
+void save(E entity);  
+  
+void update(E entity, I id);  
+  
+List<E> findAll();  
+  
+E findById(I id);  
+}
+```
+
+**Generic BaseRepositoryImpl**
+```java
+package com.beratyesbek.basicjparepositorypattern.repository.base;  
+  
+import com.beratyesbek.basicjparepositorypattern.model.BaseEntity;  
+import jakarta.persistence.EntityManager;  
+import jakarta.persistence.PersistenceContext;  
+import org.springframework.transaction.annotation.Transactional;  
+  
+import java.util.List;  
+  
+  
+public class BaseRepositoryImpl<E extends BaseEntity, I> implements BaseRepository<E, I> {  
+  
+@PersistenceContext  
+private EntityManager entityManager;  
+private final Class<E> entityClass;  
+  
+public BaseRepositoryImpl(Class<E> entityClass) {  
+this.entityClass = entityClass;  
+}  
+  
+@Override  
+@Transactional  
+public void save(E entity) {  
+entityManager.persist(entity);  
+}  
+  
+@Override  
+@Transactional  
+public void update(E entity, I id) {  
+E result = entityManager.find((Class<E>) entity.getClass(), id);  
+if (result != null) {  
+entityManager.merge(result);  
+}  
+  
+}  
+  
+@Override  
+@Transactional  
+public List<E> findAll() {  
+return entityManager.createQuery("SELECT e FROM " + entityClass.getSimpleName() + " e", entityClass).getResultList();  
+}  
+  
+@Override  
+@Transactional  
+public E findById(I id) {  
+return entityManager.find(entityClass, id);  
+}  
+}
+```
+
+**UserRepository for User entity**
+
+```java
+package com.beratyesbek.basicjparepositorypattern.repository;  
+  
+import com.beratyesbek.basicjparepositorypattern.model.User;  
+import com.beratyesbek.basicjparepositorypattern.repository.base.BaseRepository;  
+  
+  
+public interface UserRepository extends BaseRepository<User, Integer> {  
+}
+```
+
+**UserRepositoryImpl for User Entity**
+
+```java
+package com.beratyesbek.basicjparepositorypattern.repository;  
+  
+import com.beratyesbek.basicjparepositorypattern.model.User;  
+import com.beratyesbek.basicjparepositorypattern.repository.base.BaseRepositoryImpl;  
+import org.springframework.stereotype.Component;  
+  
+@Component  
+public class UserRepositoryImpl extends BaseRepositoryImpl<User, Integer> implements UserRepository{  
+  
+public UserRepositoryImpl() {  
+super(User.class);  
+}  
+}
+```
+
+##  JPA Repository Pattern
+
+JPA entities are mapped to database tables, and each JPA repository interfaces associates with a specific JPA entity. These repositories simplify the data access layer and are defined as Java interfaces rather than classes.
+
+```java
+// Example of a Spring Data JPA repository interface
+public interface MyJpaRepository extends JpaRepository<Entity, IdType> {}
+```
+
+With Spring Data JPA repositories, implementation details are abstracted away, as the framework generates the necessary code.
+
+### JPARepository Features
+
+- **Query DSL:** Allows the creation of queries for entities.
+- **CRUD operations:** Provides standard CRUD (Create, Read, Update, Delete) methods.
+- **Paging and sorting:** Supports methods for pagination and sorting of query results.
+- **Helpers:** Offers various helper methods for common data access tasks.
+
+![[Pasted image 20240212100436.png]]
+
+each entity has its own repositories that have been extended from the JpaRepository interface in the background. The JPA repository works with EntityManager, and It works with Hibernate, which works with JDBC.
+
+###  Hibernate Architecture
+
+![[Pasted image 20240212100522.png]]
+
+Hibernate has a layered architecture which helps the user perform operations without touching anything under the hood. Hibernate provides ORM for persistence service.
+
+### **_Configuration Object_**
+
+Usually, the Configuration Object is created once during the application lifecycle; additionally, it is the first hibernate object that is created. It represents the database and other configurations.
+
+### **_SessionFactory Object_**
+
+SessionFactory object is created using Configuration Object. The SessionFactory object is a heavyweight object. It is usually created when the application is initialized. Additionally, The SessionFactory is a thread-safe object and is used by other threads.
+
+### **_Session Object_**
+
+The session object is used to provide the database connection. It was designed as a lightweight object that is to be created each time when database interaction is required. In addition, SessionObject is not recommended to be retained for later use because it is not thread-safe.
+
+### **_Transaction Object_**
+
+The Transaction object is used whenever we want to perform operations on an entity, committing or rolling back changes according to the result.
+
+### **_Query Object_**
+
+The query object uses SQL or HQL (Hibernate Query Language) to retrieve data from the database. The query instance is obtained by calling the createQuery method that belongs to the Session object.
+
+### **_Criteria Object_**
+
+It usually uses dynamic queries that are obtained from Session objects.
+
+## Hibernate Proxy
+
+Hibernation involves two fetching-type strategies: Lazy and Eager loading. Hibernate uses Lazy loading as a default strategy, which means retrieving data until it is needed. This will enhance the performance of the application. Hibernate manages this phenomenon with Proxy Entities.
+
+A Hibernate proxy is a way to avoid retrieving massive amounts of data until it is needed.
+
+###  Lazy Fetch Type
+
+ The Lazy Fetch type will enhance the application's performance if an entity contains so many relations involving massive data.
+ 
+The lazy fetch type is managed using proxies by Hibernate. Hibernate creates a proxy for each entity. The benefit is retrieving relation data (entity) when it is called. It enhances performance. It is a valuable strategy in one-to-many, many-to-many relations if they have massive data.
+
+Advantages:
+
+- Much smaller initial load time than in the other approach
+- Less memory consumption than in the other approach
+
+Disadvantages:
+
+- Delayed initialization might impact performance during unwanted moments.
+- In some cases we need to handle lazily initialized objects with special care, or we might end up with an exception.
+
+###  Eager Fetch Type
+
+When business logic loads users from the database, JPA loads its ID, name, email, and all associated entities, such as Login History. This will come at a cost in application performance, and It consumes memory resources. Eager loading is very useful for one-to-one entity relations.
+
+The eager fetch type retrieves data directly from the database and maps the actual entity without using any additional proxy. It might kill the performance of one-to-many or many-to-many relations. On the other hand, the eager fetch type in one-to-one relations is significantly helpful. Default is Eager in one-to-one and many-to-one.
+
+Advantages:
+
+- No delayed initialization-related performance impacts
+
+Disadvantages:
+
+- Long initial loading time
+- Loading too much unnecessary data might impact performance
+
+
+![[Pasted image 20240212104055.png]]
+
+##  Hibernate Associations
+
+Associations in programming allow us to establish relationships between different pieces of data or entities, enabling us to model and represent complex relationships in our applications. This helps in organizing and structuring data in a way that mirrors real-world connections, leading to more flexible, efficient, and maintainable code.
+
+### One-To-One
+
+one-to-one relation means that an entity is associated with only one entity.
+
+![[Pasted image 20240212110014.png]]
+
+**Product Entity**
+
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class Product {  
+  
+	@Id  
+	@GeneratedValue(strategy = GenerationType.IDENTITY)  
+	private Integer id;  
+	  
+	@Column(name = "name", length = 100)  
+	private String name;  
+	  
+	@Column(name = "quantity")  
+	private Integer quantity;  
+	  
+	@OneToOne  
+	@JoinColumn(name = "product_detail_id")  
+	private ProductDetail productDetail;  
+}
+```
+
+**ProductDetail Entity**
+
+```java
+	@Data  
+	@Entity  
+	@NoArgsConstructor  
+	@AllArgsConstructor  
+	public class ProductDetail {  
+	
+	@Id  
+	@GeneratedValue(strategy = GenerationType.IDENTITY)  
+	private Integer id;  
+	
+	@Column(name = "description", length = 1000)  
+	private String description;  
+	
+	@Column(name = "warranty", columnDefinition = "boolean default true")  
+	private Boolean warranty;  
+	
+	@OneToOne(mappedBy = "productDetail")  
+	private Product product;  
+	}
+```
+
+### Many-To-One and One-To-Many
+
+many-to-one relation means that many entities are associated with one another entity.
+
+![[Pasted image 20240212110442.png]]
+
+**Product Entity**
+
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class Product {  
+  
+	@Id  
+	@GeneratedValue(strategy = GenerationType.IDENTITY)  
+	private Integer id;  
+	  
+	@Column(name = "name", length = 100)  
+	private String name;  
+	  
+	@Column(name = "quantity")  
+	private Integer quantity;  
+	  
+	@OneToOne  
+	@JoinColumn(name = "product_detail_id")  
+	private ProductDetail productDetail;  
+	  
+	 @ManyToOne
+    @JoinColumn(name = "category_id", referencedColumnName = "ID")
+    private Category category;  
+  
+}
+```
+
+**Category Entity**
+
+```java
+@Data
+@Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Category {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(name = "name", nullable = false, unique = true)
+    private String name;
+
+
+    @Column(name = "code")
+    private String code;
+
+    @OneToMany(mappedBy = "category", orphanRemoval = true, cascade = CascadeType.REMOVE)
+    List<Product> products;
+}
+```
+
+###  Many-To-Many
+
+Two entities are connected in a many-to-many relationship, meaning each entity can be associated with multiple instances of the other.
+
+![[Pasted image 20240212111956.png]]
+
+#### FIRST OPTION, Many-To-Many
+
+Create all entities that are connected to each other in the Hibernate App.
+
+**Product**
+
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class Product {  
+  
+	@Id  
+	@GeneratedValue(strategy = GenerationType.IDENTITY)  
+	private Integer id;  
+	  
+	@Column(name = "name", length = 100)  
+	private String name;  
+	  
+	@Column(name = "quantity")  
+	private Integer quantity;  
+	  
+	@OneToMany(mappedBy = "product")  
+	private List<ProductTag> productTags;  
+  
+}
+```
+
+**Tag**
+
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class Tag {  
+  
+	@Id  
+	@GeneratedValue(strategy = GenerationType.IDENTITY)  
+	private Integer id;  
+	  
+	@Column(name = "name", length = 100)  
+	private String name;  
+	  
+	@OneToMany(mappedBy = "tag")  
+	private List<ProductTag> productTags;  
+}
+```
+
+**ProductTag**
+
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class ProductTag {  
+  
+	@Id  
+	@GeneratedValue(strategy = GenerationType.IDENTITY)  
+	private Integer id;  
+	  
+	@ManyToOne  
+	@JoinColumn(name = "product_id")  
+	private Product product;  
+	  
+	@ManyToOne  
+	@JoinColumn(name = "tag_id")  
+	private Tag tag;  
+}
+```
+
+#### The Second Option with an Inverse Join Column, Many-to-Many
+
+In JPA, when we are dealing with Many-to-Many associations between entities, we often use a join table to represent the relationship. This join table typically consists of foreign keys that refer to the primary keys of the associated entities.
+
+the **_@JoinTable_** annotation. In the **_@JoinTable_** annotation, we have two properties related to foreign keys: **_joinColumns_** and **_inverseJoinColumns_**.
+
+**_joinColumns:_** This property defines the foreign key column in the join table that references the primary key of the owning entity. It specifies the columns in the join table that represent the current entity Product.
+
+**_inverseJoinColumns_**: This property defines the foreign key column in the join table that references the primary key of the target entity. It specifies the columns in the join table that represent the associated entity.
+
+
+**Product**
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class Product {  
+  
+@Id  
+@GeneratedValue(strategy = GenerationType.IDENTITY)  
+private Integer id;  
+  
+@Column(name = "name", length = 100)  
+private String name;  
+  
+@Column(name = "quantity")  
+private Integer quantity;  
+  
+@OneToOne  
+@JoinColumn(name = "product_detail_id")  
+private ProductDetail productDetail;  
+  
+@ManyToOne  
+@JoinColumn(name = "color_id")  
+private Color color;  
+  
+@ManyToMany  
+@JoinTable(  
+name = "product_tag",  
+joinColumns = @JoinColumn(name = "product_id", referencedColumnName = "id"),  
+inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName = "id")  
+)  
+private List<Tag> tags;  
+}
+```
+
+## CASCADE TYPES
+
+Cascade types are responsible for ensuring that an entity instance relies on another entity instance. An entity depends on another entity. For instance, a Product will be pointless without Product Details. Cascade Types are used when a Product is created then Product Details must be created simultaneously, or a Product is deleted, then Product Details must be deleted simultaneously.
+
+JPA allows the propagation of entity state changes from parents to child entities, known as cascading. The `cascade` configuration option accepts an array of `CascadeTypes`.
+
+### Cascade Types
+
+1. **CascadeType.PERSIST**: Save() or persist() operations cascade to related entities.
+2. **CascadeType.MERGE**: Related entities are merged when the owning entity is merged.
+3. **CascadeType.REFRESH**: Child entity also gets reloaded from the database whenever the parent entity is refreshed.
+4. **CascadeType.REMOVE**: Propagates the remove operation from parent to child entity.
+5. **CascadeType.DETACH**: Detach all child entities if a "manual detach" occurs for the parent.
+6. **CascadeType.ALL**: Shorthand for all of the above cascade operations.
+
+### CascasdeType.ALL
+
+It admits to performing all operations on related entities. For instance, when a persistent operation is performed on a Product entity, it will affect other related entities that have been established within the Product. (Delete, Update, Create, etc.)
+
+### CascasdeType.PERSIST
+
+It admits to performing a persistent operation on the related entity, such as create. When a Product entity is created, Product Details will be created before the creation of the Product. Why? Because the Product entity table involves product_detail_id, clearly without Product Detail ID, Hibernate is not able to save the product. Therefore, the Product Detail must be created before the Product entity. (persist operations)
+
+### CascasdeType.MERGE
+
+CascadeType.MERGE specifies that when a merge operation is performed on an entity, the same operation should be applied to its associated entities as well. In other words, if an entity is merged, any changes made to its state will also be propagated to its related entities that have CascadeType.MERGE specified. This ensures consistency and coherence among related entities when changes are made at the top level. (Update operations)
+
+### CascasdeType.REMOVE
+
+As the name implies, it admits to performing a remove operation on the related entity. For instance, when a Product entity is deleted, the Product Details entity will be deleted simultaneously. There is another type which is specified and provided by Hibernate, which is CascadeType.DELETE. There is no discrepancy among them.
+
+
+##  Orphan Removal
+
+It is a property in relational annotations, meaning that if the parent entity has no reference, remove the child entity.
+
+![[Pasted image 20240212123942.png]]
+
+you have a product, and this product has images. When you want to remove the product from the database, you must remove the images connected to each other with a Foreign Key. How can you provide this in Spring Boot in a simple way? You can create an Image and Product Repository. And you can call the repositories in a service. In the service, you can remove the images that are related to this product using Product ID, and then you can remove the Product. Luckily, we have an Orpan Removal property that removes child entities if references are no longer available.
+
+
+## Query Method Syntax Examples
 
 |Keyword|Sample|JPQL Snippet|
 |---|---|---|
@@ -2284,24 +2817,6 @@ ResultSetExtractor is designed to extract the entire ResultSet (possibly multipl
 JPA is not a great candidate for massive amounts of writes to your data store. This is because JPA was designed primarily for reading and querying data, rather than for writing data.
 
 When you use JPA to write data to the database, it first updates the in-memory representation of the entity, and then it synchronizes the changes with the database. This process involves a number of overhead costs, such as updating the entity's state in the persistence context, generating and executing SQL statements, and flushing the changes to the database. For applications that need to perform a large number of writes, these overhead costs can become significant, leading to slower performance.
-
-# Spring Data JPA Repositories
-
-JPA entities are mapped to database tables, and each JPA repository interfaces associates with a specific JPA entity. These repositories simplify the data access layer and are defined as Java interfaces rather than classes.
-
-```java
-// Example of a Spring Data JPA repository interface
-public interface MyJpaRepository extends JpaRepository<Entity, IdType> {}
-```
-
-With Spring Data JPA repositories, implementation details are abstracted away, as the framework generates the necessary code.
-
-## JpaRepository Features
-
-- **Query DSL:** Allows the creation of queries for entities.
-- **CRUD operations:** Provides standard CRUD (Create, Read, Update, Delete) methods.
-- **Paging and sorting:** Supports methods for pagination and sorting of query results.
-- **Helpers:** Offers various helper methods for common data access tasks.
 
 ## Annotations
 
@@ -2496,90 +3011,7 @@ JPA allows the propagation of entity state changes from parents to child entitie
 - Cascading from Child to Parent is not recommended.
 - There is no default cascade type in JPA. By default, no operation is cascaded.
 
-# Table Relationship Annotations
 
-## @OneToMany / @ManyToOne
-
-Specifies a one-to-many relationship between two entities. In a one-to-many relationship, one entity has a foreign key to the other entity, and vice versa.
-
-Example:
-
-```java
-public class Cart {
-    @OneToMany(mappedBy="cart")
-    private Set<Item> items;
-    //...
-}
-
-@Entity
-public class Troop {
-    @OneToMany(mappedBy="troop")
-    public Set<Soldier> getSoldiers() {
-        //...
-    }
-}
-
-@Entity
-public class Soldier {
-    @ManyToOne
-    @JoinColumn(name="troop_fk")
-    public Troop getTroop() {
-        //...
-    }
-}
-```
-
-## @OneToOne
-
-Specifies a one-to-one relationship between two entities. In a one-to-one relationship, one entity has a foreign key to the other entity.
-
-Example:
-
-```java
-@Entity
-@Table(name = "users")
-public class User {
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "address_id", referencedColumnName = "id")
-    private Address address;
-    //...
-}
-
-@Entity
-@Table(name = "address")
-public class Address {
-    @OneToOne(mappedBy = "address")
-    private User user;
-    //...
-}
-```
-
-## @ManyToMany
-
-Specifies a many-to-many relationship between two entities. In a many-to-many relationship, both entities have foreign keys to each other.
-
-Example:
-
-```java
-@Entity
-public class Employee {
-    @ManyToMany
-    @JoinTable(name = "employee_project",
-        joinColumns = @JoinColumn(name = "employee_id"),
-        inverseJoinColumns = @JoinColumn(name = "project_id"))
-    private Set<Project> projects;
-    //...
-}
-
-@Entity
-public class Project {
-    @ManyToMany(mappedBy = "projects")
-    private Set<Employee> employees;
-    //...
-}
-```
-
-By default, all `ToMany` relationships are LAZY, while `ToOne` relationships are EAGER.
 
 # @Query Annotation in Spring Data JPA
 
