@@ -11,8 +11,12 @@
             "id": "8635a7c50b8ba342",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {}
+              "type": "markdown",
+              "state": {
+                "file": "Golang Notes.md",
+                "mode": "source",
+                "source": false
+              }
             }
           }
         ]
@@ -44,7 +48,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "tag:#Chapter",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -61,7 +65,8 @@
               "state": {}
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -81,7 +86,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240212095139.png",
+                "file": "Golang Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -98,7 +103,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240212095139.png",
+                "file": "Golang Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -121,7 +126,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240212095139.png"
+                "file": "Golang Notes.md"
               }
             }
           }
@@ -143,7 +148,7 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "8635a7c50b8ba342",
   "lastOpenFiles": [
     "JAVA APP - 1 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240212123942.png",

@@ -9160,6 +9160,621 @@ Association tags in GORM are used to specify how associations between models are
 
 ---
 
+# GO -  Dependency Injection
+
+Dependency Injection (DI) is a software design pattern that promotes decoupling of components by passing dependencies, which are usually interfaces, to the components that need them. This pattern increases testability, maintainability, and scalability of your code.
+
+In Golang, there are several ways to implement dependency injection, from simple manual dependency injection to more complex frameworks. When choosing a framework, it's important to consider factors such as ease of use, performance, and community support.
+
+## The Basics of Dependency Injection in Golang
+
+Creating structs and interfaces is an essential part of implementing dependency injection in Golang. Structs are used to define objects, while interfaces are used to define the behavior of those objects.
+
+ it's important to consider the dependencies that each object will have and how those dependencies will be injected.
+
+To implement dependency injection, you can use constructor injection, setter injection, or method injection. Constructor injection involves passing dependencies to a struct's constructor, while setter injection involves setting dependencies using setter methods. Method injection involves passing dependencies to methods as arguments.
+
+Dependency injection frameworks in Golang can make implementing dependency injection easier and more efficient. There are several popular dependency injection frameworks available for Golang, such as Google's Wire, Facebook's Inject, and Uber's Dig.
+
+it's important to remember that while frameworks can make implementing dependency injection easier, they are not a silver bullet. It's still important to follow best practices for dependency injection and struct/interface design to ensure that your code remains flexible and maintainable over time.
+
+### Creating Structs and Interfaces
+
+it's  important to avoid using global state or package-level variables. This can make it difficult to reason about the flow of data in your code and can lead to unexpected behavior. Instead, pass dependencies explicitly to functions or use constructor injection to initialize objects with their dependencies. This practice helps to isolate the behavior of your code and makes it easier to test individual components.
+
+Using interfaces to define dependencies is another important practice. By defining dependencies using interfaces, you can swap out an implementation without having to modify all of the code that depends on it. This makes your code more flexible and easier to maintain over time.
+
+Finally, to ensure that your code is functioning as expected, it's important to write tests for your code. By using dependency injection to provide mock objects for testing, you can more easily isolate different parts of your code and ensure that each component is working correctly.
+
+#### Manual Dependency Injection - Example
+
+`Repository` has a dependency on `DB`, which is used to retrieve data. The constructor for `Repository` takes a pointer to a `Database` instance, which is used to initialize the `db` field of the struct.
+
+```go
+// db.go 
+type Database struct {
+    Host string
+    Port int
+}
+
+func (r *Database) Get(id string) (string, error) {
+    // Implements DB interface
+}
+
+// repo.go
+type DB interface {
+    Get(id string) (string, error)
+}
+
+type Repository struct {
+    db DB
+}
+
+func NewRepository(db DB) *Repository {
+    return &Repository{db: db}
+}
+
+func (r *Repository) Get(id string) (string, error) {
+    return r.db.Get(id)
+}
+
+```
+
+To use `Repository`, you would first need to create an instance of `Database`, and then pass it to the constructor of `Repository`:
+
+```go
+db := &Database{Host: "localhost", Port: 5432}
+repo := NewRepository(db)
+```
+
+Now `repo` is an instance of `Repository` with the `db` field set to `db`. This allows `Repository` to use `Database` via the interface `DB` to retrieve data as needed.
+
+You can then call the `Get` method on `repo` to retrieve data:
+
+```go
+data, err := repo.Get("123")
+```
+
+`Get` uses `r.db` to retrieve data with the given id.
+
+#### Manual Dependency Injection - Testing
+
+By using a mock implementation of `DB`, we can isolate the behavior of `Repository` and test it without relying on the actual implementation of `DB`.
+
+
+```go
+// repo_test.go
+type MockDB struct {
+    GetFunc func(id string) (string, error)
+}
+
+func (m *MockDB) Get(id string) (string, error) {
+    return m.GetFunc(id)
+}
+
+func TestRepository_Get(t *testing.T) {
+    mockDB := &MockDB{
+        GetFunc: func(id string) (string, error) {
+            if id != "123" {
+                return "", errors.New("Not found")
+            }
+            return "Data", nil
+        },
+    }
+
+    repo := NewRepository(mockDB)
+    data, err := repo.Get("123")
+    if err != nil {
+        t.Errorf("unexpected error: %v", err)
+    }
+    if data != "Data" {
+        t.Errorf("expected data to be 'Data', got '%v'", data)
+    }
+}
+
+```
+
+create a mock implementation of `DB` called `MockDB`. This mock implementation has a `GetFunc` field, which is used to simulate the behavior of `Get` in  tests. 
+
+then create an instance of `MockDB` with a `GetFunc` that returns `"Data"` when called with `"123"`. We use this mock implementation to create an instance of `Repository`, and then call `Get` on the repository with `"123"`. We check that the result is `"Data"`, as expected.
+
+By using a mock implementation of `DB` in our tests, we can more easily isolate and test the behavior of `Repository`, without relying on the actual implementation of `DB`.
+
+
+#### Summary of manual dependency injection
+
+Some upsides of manual dependency injection include:
+
+- It can be easier to reason about the flow of data in your code, as dependencies are passed explicitly to functions or constructors.
+    
+- It can be easier to manage dependencies, especially in smaller codebases.
+    
+- It can be easier to test code that relies on manual dependency injection, especially if dependencies are loosely coupled with each other.
+    
+
+On the other side, manual dependency injection also has downsides:
+
+- It can be tedious and error-prone to manually instantiate and inject dependencies throughout your codebase.
+    
+- It can be difficult to manage complex dependencies, especially as your codebase grows.
+    
+- It can be difficult to test code that relies on manual dependency injection, especially if dependencies are tightly coupled with each other.
+
+## Dependency Injection Frameworks in Golang
+
+There are several popular dependency injection frameworks available for Golang, each with its own set of advantages and disadvantages
+
+#### Google's Wire
+
+Wire is a compile-time dependency injection framework developed by Google. It uses code generation to automatically generate wire functions for your code, which can then be used to generate and wire your dependencies. Wire is known for its ease of use and is a good choice for small-to-medium-sized projects.
+
+#### Facebook's Inject
+
+Inject is a runtime dependency injection framework developed by Facebook. It uses reflection to automatically generate and wire your dependencies at runtime. Inject is known for its performance and is a good choice for larger, more complex projects
+
+#### Uber's Dig
+
+Dig is a dependency injection framework developed by Uber. It uses reflection to automatically generate and wire your dependencies, similar to Inject. Dig is known for its flexibility and is a good choice for projects that require a high degree of customization.
+
+
+### Choosing the Right Framework for Your Project
+
+#### Ease of Use
+
+The framework should be easy to use and integrate with your existing codebase. It should also have good documentation and a helpful community.
+
+#### Performance
+
+The framework should not introduce significant performance overhead or cause excessive memory usage.
+
+#### Community Support
+
+The framework should have an active community that can provide support and contributes to its development.
+
+#### Future Proofing
+
+The framework should be compatible with your existing codebase and should be able to adapt to future changes.
+
+## Google Wire
+
+### Basics
+
+Wire has two core concepts: providers and injectors.
+
+#### Defining Providers
+
+The primary mechanism in Wire is the **provider**: a function that can produce a value. These functions are ordinary Go code.
+
+```go
+package foobarbaz
+
+type Foo struct {
+    X int
+}
+
+// ProvideFoo returns a Foo.
+func ProvideFoo() Foo {
+    return Foo{X: 42}
+}
+```
+
+Provider functions must be exported in order to be used from other packages, just like ordinary functions.
+
+Providers can specify dependencies with parameters:
+
+```go
+package foobarbaz
+
+// ...
+
+type Bar struct {
+    X int
+}
+
+// ProvideBar returns a Bar: a negative Foo.
+func ProvideBar(foo Foo) Bar {
+    return Bar{X: -foo.X}
+}
+```
+
+Providers can also return errors:
+```go
+package foobarbaz
+
+import (
+    "context"
+    "errors"
+)
+
+// ...
+
+type Baz struct {
+    X int
+}
+
+// ProvideBaz returns a value if Bar is not zero.
+func ProvideBaz(ctx context.Context, bar Bar) (Baz, error) {
+    if bar.X == 0 {
+        return Baz{}, errors.New("cannot provide baz when bar is zero")
+    }
+    return Baz{X: bar.X}, nil
+}
+```
+
+Providers can be grouped into **provider sets**. This is useful if several providers will frequently be used together. To add these providers to a new set called `SuperSet`, use the `wire.NewSet` function:
+
+```go
+package foobarbaz
+
+import (
+    // ...
+    "github.com/google/wire"
+)
+
+// ...
+
+var SuperSet = wire.NewSet(ProvideFoo, ProvideBar, ProvideBaz)
+```
+
+ can also add other provider sets into a provider set.
+```go
+package foobarbaz
+
+import (
+    // ...
+    "example.com/some/other/pkg"
+)
+
+// ...
+
+var MegaSet = wire.NewSet(SuperSet, pkg.OtherSet)
+```
+
+#### Injectors
+
+An application wires up these providers with an **injector**: a function that calls providers in dependency order. With Wire, you write the injector's signature, then Wire generates the function's body.
+
+An injector is declared by writing a function declaration whose body is a call to `wire.Build`. The return values don't matter as long as they are of the correct type. The values themselves will be ignored in the generated code. Let's say that the above providers were defined in a package called `example.com/foobarbaz`. The following would declare an injector to obtain a `Baz`:
+
+```go
+// +build wireinject
+// The build tag makes sure the stub is not built in the final build.
+
+package main
+
+import (
+    "context"
+
+    "github.com/google/wire"
+    "example.com/foobarbaz"
+)
+
+func initializeBaz(ctx context.Context) (foobarbaz.Baz, error) {
+    wire.Build(foobarbaz.MegaSet)
+    return foobarbaz.Baz{}, nil
+}
+```
+
+Like providers, injectors can be parameterized on inputs (which then get sent to providers) and can return errors. Arguments to `wire.Build` are the same as `wire.NewSet`: they form a provider set. This is the provider set that gets used during code generation for that injector.
+
+### Advanced Features
+
+The following features all build on top of the concepts of providers and injectors.
+
+#### Binding Interfaces
+
+Frequently, dependency injection is used to bind a concrete implementation for an interface. Wire matches inputs to outputs via [type identity](https://golang.org/ref/spec#Type_identity), so the inclination might be to create a provider that returns an interface type. However, this would not be idiomatic, since the Go best practice is to [return concrete types](https://github.com/golang/go/wiki/CodeReviewComments#interfaces). Instead, you can declare an interface binding in a provider set:
+
+```go
+type Fooer interface {
+    Foo() string
+}
+
+type MyFooer string
+
+func (b *MyFooer) Foo() string {
+    return string(*b)
+}
+
+func provideMyFooer() *MyFooer {
+    b := new(MyFooer)
+    *b = "Hello, World!"
+    return b
+}
+
+type Bar string
+
+func provideBar(f Fooer) string {
+    // f will be a *MyFooer.
+    return f.Foo()
+}
+
+var Set = wire.NewSet(
+    provideMyFooer,
+    wire.Bind(new(Fooer), new(*MyFooer)),
+    provideBar)
+```
+
+The first argument to `wire.Bind` is a pointer to a value of the desired interface type and the second argument is a pointer to a value of the type that implements the interface. Any set that includes an interface binding must also have a provider in the same set that provides the concrete type.
+
+#### Struct Providers
+
+Structs can be constructed using provided types. Use the `wire.Struct` function to construct a struct type and tell the injector which field(s) should be injected. The injector will fill in each field using the provider for the field's type. For the resulting struct type `S`, `wire.Struct` provides both `S` and `*S`.
+
+```go
+type Foo int
+type Bar int
+
+func ProvideFoo() Foo {/* ... */}
+
+func ProvideBar() Bar {/* ... */}
+
+type FooBar struct {
+    MyFoo Foo
+    MyBar Bar
+}
+
+var Set = wire.NewSet(
+    ProvideFoo,
+    ProvideBar,
+    wire.Struct(new(FooBar), "MyFoo", "MyBar"))
+```
+
+A generated injector for `FooBar` would look like this:
+
+```go
+func injectFooBar() FooBar {
+    foo := ProvideFoo()
+    bar := ProvideBar()
+    fooBar := FooBar{
+        MyFoo: foo,
+        MyBar: bar,
+    }
+    return fooBar
+}
+```
+
+The first argument to `wire.Struct` is a pointer to the desired struct type and the subsequent arguments are the names of fields to be injected. A special string `"*"` can be used as a shortcut to tell the injector to inject all fields. So `wire.Struct(new(FooBar), "*")` produces the same result as above.
+
+#### Binding Values
+
+Occasionally, it is useful to bind a basic value (usually `nil`) to a type. Instead of having injectors depend on a throwaway provider function, you can add a value expression to a provider set.
+
+```go
+type Foo struct {
+    X int
+}
+
+func injectFoo() Foo {
+    wire.Build(wire.Value(Foo{X: 42}))
+    return Foo{}
+}
+```
+
+The generated injector would look like this:
+
+```go
+func injectFoo() Foo {
+    foo := _wireFooValue
+    return foo
+}
+
+var (
+    _wireFooValue = Foo{X: 42}
+)
+```
+
+It's important to note that the expression will be copied to the injector's package; references to variables will be evaluated during the injector package's initialization. Wire will emit an error if the expression calls any functions or receives from any channels.
+
+For interface values, use `InterfaceValue`:
+
+```go
+func injectReader() io.Reader {
+    wire.Build(wire.InterfaceValue(new(io.Reader), os.Stdin))
+    return nil
+}
+```
+
+#### Use Fields of a Struct as Providers
+
+Sometimes the providers the user wants are some fields of a struct.
+
+```go
+type Foo struct {
+    S string
+    N int
+    F float64
+}
+
+func getS(foo Foo) string {
+    // Bad! Use wire.FieldsOf instead.
+    return foo.S
+}
+
+func provideFoo() Foo {
+    return Foo{ S: "Hello, World!", N: 1, F: 3.14 }
+}
+
+func injectedMessage() string {
+    wire.Build(
+        provideFoo,
+        getS)
+    return ""
+}
+```
+
+You can instead use `wire.FieldsOf` to use those fields directly without writing `getS`:
+
+```go
+func injectedMessage() string {
+    wire.Build(
+        provideFoo,
+        wire.FieldsOf(new(Foo), "S"))
+    return ""
+}
+```
+
+The generated injector would look like this:
+
+```go
+func injectedMessage() string {
+    foo := provideFoo()
+    string2 := foo.S
+    return string2
+}
+```
+
+You can add as many field names to a `wire.FieldsOf` function as you like. For a given field type `T`, `FieldsOf` provides at least `T`; if the struct argument is a pointer to a struct, then `FieldsOf` also provides `*T`
+
+#### Cleanup functions
+
+If a provider creates a value that needs to be cleaned up (e.g. closing a file), then it can return a closure to clean up the resource. The injector will use this to either return an aggregated cleanup function to the caller or to clean up the resource if a provider called later in the injector's implementation returns an error.
+
+```go
+func provideFile(log Logger, path Path) (*os.File, func(), error) {
+    f, err := os.Open(string(path))
+    if err != nil {
+        return nil, nil, err
+    }
+    cleanup := func() {
+        if err := f.Close(); err != nil {
+            log.Log(err)
+        }
+    }
+    return f, cleanup, nil
+}
+```
+
+A cleanup function is guaranteed to be called before the cleanup function of any of the provider's inputs and must have the signature `func()`.
+
+**EXAMPLE**
+
+```go
+// wire.go
+func NewDatabase() *Database {
+    return &Database{Host: "localhost", Port: 5432}
+}
+
+func NewRepository(db DB) *Repository {
+    return &Repository{db: db}
+}
+
+func main() {
+    db, err := InitializeNewDatabase()
+    if err != nil {
+        panic(err)
+    }
+
+    repo, err := InitializeNewRepository(db)
+    if err != nil {
+        panic(err)
+    }
+
+    // Use repo
+}
+```
+
+To use Wire, we first need to define a `wire.go` file that specifies the dependencies for our code.
+
+```go
+// wire.go
+// +build wireinject
+
+package main
+
+import "github.com/google/wire"
+
+func InitializeNewDatabase() (*Database, error) {
+    wire.Build(NewDatabase)
+    return &Database{}, nil
+}
+
+func InitializeNewRepository(db DB) (*Repository, error) {
+    wire.Build(NewRepository)
+    return &Repository{}, nil
+}
+```
+
+**CSD EXAMPLE**
+
+```GO
+package main
+
+import (
+	"fmt"
+)
+
+type NameType string
+
+type SensorInfo struct {
+	Name NameType
+	//...
+}
+
+type SensorEvent struct {
+	Sensor *SensorInfo
+	//...
+}
+
+func NewName() NameType {
+	return NameType("CSD Sensor") //Bu isim herhangi bir yerden elde edilebilir
+}
+
+func NewSensorInfo(name NameType) *SensorInfo {
+	return &SensorInfo{Name: name}
+}
+
+func (si *SensorInfo) GetName() NameType {
+	return si.Name
+}
+
+func NewSensorEvent(si *SensorInfo) *SensorEvent {
+	return &SensorEvent{Sensor: si}
+}
+
+func (e *SensorEvent) PrintName() {
+	fmt.Printf("Sensor Name:%s\n", e.Sensor.GetName())
+}
+
+func main() {
+	e := InitSensorEvent()
+	e.PrintName()
+}
+```
+
+```go
+package main
+
+import (
+	"github.com/google/wire"
+)
+
+func InitSensorEvent() SensorEvent {
+	wire.Build(NewName, NewSensorInfo, NewSensorEvent)
+	return SensorEvent{}
+}
+```
+
+## Best Practices for Dependency Injection in Golang
+
+### Avoiding Common Pitfalls
+
+When using a dependency injection framework, it's important to remember that the framework should not affect the structure or behavior of our code. Instead, it should make it easier to manage dependencies and ensure that our code is testable and maintainable. Therefore, the tests we write for our code that uses dependency injection frameworks should still focus on testing the behavior of individual components, rather than the framework itself.
+The tests should verify that each component behaves as expected, given its dependencies, and that the interactions between different components are correct.
+
+#### Avoid Global State
+
+A global state can make it difficult to reason about the flow of data in your code and can lead to unexpected behavior. Instead, pass dependencies explicitly to functions or use constructor injection to initialize objects with their dependencies. This practice helps to isolate the behavior of your code and makes it easier to test individual components.
+
+#### Use Interfaces to Define Dependencies
+
+By defining dependencies using interfaces, you can swap out an implementation without having to modify all of the code that depends on it. This makes your code more flexible and easier to maintain over time. When defining interfaces, it's important to keep them simple and focused. Interfaces should define the behavior of an object, rather than its implementation details.
+
+#### Write Tests for Your Code
+
+to ensure that your code is functioning as expected, it's important to write tests for your code. By using dependency injection to provide mock objects for testing, you can more easily isolate different parts of your code and ensure that each component is working correctly. When writing tests, it's important to focus on testing the behavior of individual components, rather than the implementation details. Tests should verify that each component behaves as expected, given its dependencies, and that the interactions between different components are correct.
+
+---
 # GO - WEB PROGRAMMING
 
 ### WEB NOTES
