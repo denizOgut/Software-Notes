@@ -6184,6 +6184,355 @@ Dubai Time: 2020-01-31 22:09:41.705858 +0400 +04
 ```
 
 ---
+
+#  Goroutines
+
+Operating systems execute processes using a technique where they are logically run for a little bit from here and a little bit from there. For example, a CPU or core can only execute the machine code of a single process at any given moment. In the case of a system with, for instance, 4 CPUs or cores, how can more than 4 applications be run simultaneously? This is where the scheduling algorithms of operating systems come into play. These algorithms operate by allowing a process to run for a specified time and then preemptively switching to another process, enabling the concurrent execution of multiple applications. This concept is generally referred to as ***preemptive***.
+
+The maximum time a process will be executed on a CPU or core is referred to as ***quantum time.*** In other words, when it is the turn of a process in the execution flow, it is allowed to run for a maximum duration of the quantum time. The term used for the swapping of a running process with another one when it's their turn is called a ***context switch***.
+
+During a context switch, various pieces of information related to the current execution state are stored by the operating system, such as the position in the execution flow. The area where the operating system maintains various information about a process is referred to as the ***Process Control Block (PCB).***
+
+In this context, at the operating system level, a process can be in one of the following states at any given moment:
+- **Start state:** The initial state when a program becomes a process, i.e., when it first starts execution.
+- **Ready state:** The state where the process is waiting for its turn to run.
+- **Waiting state:** The state in which a process is blocked and waiting until a certain event occurs.
+- **Running state:** The state where the process's code is assigned to and executed on the CPU or core.
+- **End state:** The state when the process completes its execution.
+
+**Key Notes:** The concept related to the CPU or core to which a thread is assigned while in the running state is called ***affinity mask***.
+
+A stream of execution that enters the scheduling independently for a process is referred to as a ***thread***. When a process is created, a thread called the main ***thread*** is created. In this sense, at the system level, a process has at least one thread. Programmers can create various threads within the flow to generate different streams (asynchronous). In reality, scheduling is done at the thread level rather than the process level in the operating system. The specifics of how scheduling is done are system-specific, and operating systems can employ various algorithms.
+
+In Go, the flow of the main thread of a program is the `main` method. To create a thread or establish an asynchronous flow in Go, the `go` keyword is used. The streams created with Go are referred to as ***goroutines*** in Go terminology. Goroutines are managed not by the operating system but by the ***Go runtime.*** This allows goroutines to operate more efficiently compared to traditional operating system threads. The management of goroutine-related flows in Go is handled by the ***Go scheduler***.
+
+
+The general form of the `go` keyword is as follows:
+
+```go
+go <function call>
+```
+
+When the `go` keyword is used, the function called with it runs in a separate thread. The `go` keyword does not wait for the function call to complete. Therefore, a new flow has been created with the `go` keyword, and it continues asynchronously with the other flows of the process. When the `main` function finishes, the process terminates. As a result, when the process ends, all other flows of the process also come to an end.
+
+
+**Key Notes:** When a process is created, some initial operations (startup code) are performed before the `main` function is called, even before loading import packages. These initial operations are system-specific. When the `main` function finishes, some final operations are carried out, and the `os.Exit` function is invoked. This function, in turn, calls the relevant function to terminate the process.
+
+
+Typically, a separate stack area is created for each thread (including goroutines). The heap and global area are shared resources.
+
+Communication between threads can be achieved using ***channels***.
+
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func goroutineCallback1(count int) {
+	for i := 0; i < count; i++ {
+		fmt.Printf("goroutine1:%d\n", i)
+		time.Sleep(time.Second)
+	}
+}
+
+func goroutineCallback2(count int) {
+	for i := 0; i < count; i++ {
+		fmt.Printf("goroutine2:%d\n", i)
+		time.Sleep(time.Second)
+	}
+}
+
+func main() {
+	go goroutineCallback1(10)
+	go goroutineCallback2(10)
+	time.Sleep(20 * time.Second)
+}
+
+```
+
+In the demo example below, since the threads have different stack areas, the variable 'i' in the loop is created separately for each thread.
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func goroutineCallback(count int, message string) {
+	for i := 0; i < count; i++ {
+		fmt.Printf("%s:%d\n", message, i)
+		time.Sleep(time.Second)
+	}
+}
+
+func main() {
+	go goroutineCallback(10, "gr1")
+	go goroutineCallback(10, "gr2")
+	time.Sleep(20 * time.Second)
+}
+
+```
+
+## Web Notes
+
+Goroutines can be thought of as a lightweight thread that has a separate independent execution and which can execute concurrently with other goroutines. It is a function or method that is executing concurrently with other goroutines. It is entirely managed by the GO runtime.
+
+###  **Start a go routine**
+
+Golang uses a special keyword **‘go’**  for starting a goroutine. To start one just add **go** keyword before a function or method call. That function or method will now be executed in the goroutine.  Note that it is not the function or method which determines if it is a goroutine.
+
+- Normal Running a function
+
+```go
+statment1
+start()
+statement2
+```
+
+- Running a function as a goroutine
+
+```go
+statment1
+go start()
+statement2
+```
+
+In running a function as a goroutine for the above scenario
+
+1. First, statement1 will be executed
+2. Then function start() will be called as a goroutine which will execute asynchronously.
+3. **statement2** will be executed immediately. It will not wait for **start()** function to complete. The start function will be executed concurrently as a goroutine while the rest of the program continues its execution.
+
+when calling a function as a goroutine, call will return immediately the execution will continue from the next line while the goroutine will be executed concurrently in the background.
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    go start()
+    fmt.Println("Started")
+    time.Sleep(1 * time.Second)
+    fmt.Println("Finished")
+}
+
+func start() {
+    fmt.Println("In Goroutine")
+}
+```
+
+**Output**
+
+```go
+Started
+In Goroutine
+Finished
+```
+
+```go
+go start()
+```
+
+The above line will start a goroutine which will run the **start()** function. 
+
+###  **Main goroutine**
+
+The **main** function in the **main** package is the main goroutine. All  goroutines are started from the main goroutine. These goroutines can then start multiple other goroutine and so on.
+
+The main goroutine represents the main program. Once it exits then it means that the program has exited.
+
+Goroutines don’t have parents or children. When you start a goroutine it just executes alongside all other running goroutines. Each goroutine exits only when its function returns. The only exception to that is that all goroutines exit when the main goroutine (the one that runs function **main**) exits.
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    go start()
+    fmt.Println("Started")
+    time.Sleep(1 * time.Second)
+    fmt.Println("Finished")
+}
+
+func start() {
+    go start2()
+    fmt.Println("In Goroutine")
+}
+func start2() {
+    fmt.Println("In Goroutine2")
+}
+```
+
+**Output**
+
+```go
+Started
+In Goroutine
+In Goroutine2
+Finished
+```
+
+the first goroutine starts the second goroutine. The first goroutine then prints **“In Goroutine”** and then it exits. The second goroutine then starts and prints **“In Goroutine2”**. It shows that goroutines don’t have parents or children and they exist as an independent execution.
+
+###  **Creating Multiple Goroutines**
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func execute(id int) {
+    fmt.Printf("id: %d\n", id)
+}
+
+func main() {
+    fmt.Println("Started")
+    for i := 0; i < 10; i++ {
+        go execute(i)
+    }
+    time.Sleep(time.Second * 2)
+    fmt.Println("Finished")
+}
+```
+
+**Output**
+
+```go
+Started
+id: 4
+id: 9
+id: 1
+id: 0
+id: 8
+id: 2
+id: 6
+id: 3
+id: 7
+id: 5
+Finished
+```
+
+Every time you will run the program it will give different outputs since the goroutines will be run concurrently and it is not deterministic which will run first.
+
+### **Scheduling of the goroutines**
+
+Once the go program starts,  go runtime will launch OS threads equivalent to the number of number of logical CPUs usable by the current process.  There is one logical CPU per virtual core where virtual core means
+
+```go
+virtual_cores = x*number_of_physical_cores
+```
+
+where x=number of hardware threads per core
+
+The **``runtime.Numcpus``** function can be used to get the the number of logical processors available to the GO program.
+
+
+```go
+package main
+import (
+    "fmt"
+    "runtime"
+)
+func main() {
+    fmt.Println(runtime.NumCPU())
+}
+```
+
+The go program will launch OS threads equal to the number of logical CPUs available to it or the output of ``runtime.NumCPU()``. These threads will be managed by the OS and scheduling of these threads onto CPU cores is the responsibility of OS only. 
+
+The go runtime has its own scheduler that will multiplex the groutines on the OS level threads in the go runtime. So essentially each goroutine is running on an OS thread that is assigned to a logical CPU
+
+There are two queues involved for managing the goroutines and assigning it to the OS threads
+
+## **Local run queue**
+
+Within go runtime each of this OS thread will have one queue associated with it. It is called Local Run Queue. It contains all the goroutines that will be executed in the context of that thread. The go runtime will be doing the scheduling and context switching of the goroutines belonging to a particular LRQ to the corresponding OS level thread which owns this LRQ
+
+## **Global Run Queue**
+
+It contains all the goroutines that haven't been moved to any LRQ of any OS thread. The Go scheduler will assign a goroutine from this queue to the Local Run Queue of any OS thread
+
+![[Pasted image 20240219153753.png]]
+
+### **Golang scheduler is a Cooperative Scheduler**
+
+Means that is non-preemptive one.  There is no time based preemption that is happening which is the case with a preemptive scheduler.  In a cooperative scheduler threads have to explicitly yield execution. There are some specific check points where goroutine can yield its execution to other goroutine.
+
+The runtime calls the scheduler on function calls to decide weather a new goroutine needs to be scheduled . So basically when a goroutine makes any function call, in that case scheduler will be called and context switch might happen meaning a new goroutine might be scheduled . It is also possible that existing goroutine also continues execution.  The scheduler also gets the opportunity for contexts switch on below events too
+
+1. **Functions Call**
+2. **Garbage Collection**
+3. **Network Calls**
+4. **Channel operations**
+5. **On using go keyword**
+6. **Blocking on primitives such as mutex etc**
+
+It is to mention that scheduler runs during above events but it doesn't mean that context switch will happen. It is just that the scheduler gets the opportunity. It is up to the scheduler then weather to do a context switch or not.
+
+### **Advantages of goroutines over threads**
+
+- Goroutines in Go start with a small 8kb size and dynamically adjust, while OS threads are over 1 MB, making goroutines highly cost-effective to allocate.
+- The go runtime efficiently manages the resizing and scheduling of goroutines, allowing the launch of a large number simultaneously, surpassing the limitations of traditional threads.
+- Goroutines communicate through built-in channels, ensuring safe communication without explicit locking, preventing common issues like deadlocks and race conditions seen in threaded programming.
+
+### **Anonymous Goroutines**
+
+Anonymous functions in golang can also be called using goroutine.
+
+```go
+go func(){
+   //body
+}(args..)
+```
+
+There is no difference in behavior though when calling a anonymous function using goroutine or calling a normal function using goroutine
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    go func() {
+        fmt.Println("In Goroutine")
+    }()
+
+    fmt.Println("Started")
+    time.Sleep(1 * time.Second)
+    fmt.Println("Finished")
+}
+```
+
+**Output**
+
+```go
+Started
+In Goroutine
+Finished
+```
+
+
+---
 # GO-CRON 
 
 The **`cron`** command-line utility is a job scheduler "Job scheduler") on Unix-like operating systems. Users who set up and maintain software environments use cron to schedule jobs **cron jobs**, to run periodically at fixed times, dates, or intervals. It typically automates system maintenance or administration—though its general-purpose nature makes it useful for things like downloading files from the Internet and downloading email at regular intervals.
