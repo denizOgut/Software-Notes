@@ -875,6 +875,155 @@ Elements present in stack : 20 10
 - Requires extra memory due to the involvement of pointers.
 - Random accessing is not possible in stack.
 
+### Queue
+---
+
+#### **What is Queue Data Structure?***
+
+A ***Queue*** is defined as a linear data structure that is open at both ends and the operations are performed in ***First In First Out (FIFO)*** order.
+
+
+![[Pasted image 20240221222130.png]]
+
+
+define a queue to be a list in which all additions to the list are made at one end, and all deletions from the list are made at the other end.  The element which is first pushed into the order, the operation is first performed on that.
+
+#### ***FIFO Principle of Queue:***
+
+- A Queue is like a line waiting to purchase tickets, where the first person in line is the first person served. (i.e. First come first serve).
+- Position of the entry in a queue ready to be served, that is, the first entry that will be removed from the queue, is called the ****front**** of the queue(sometimes, ****head**** of the queue), similarly, the position of the last entry in the queue, that is, the one most recently added, is called the ***rear*** (or the ***tail***) of the queue.
+
+#### ***Characteristics of Queue:***
+
+- Queue can handle multiple data.
+- We can access both ends.
+- They are fast and flexible.
+
+#### Basic Operations of Queue
+
+A queue is an object (an abstract data structure - ADT) that allows the following operations:
+
+- **Enqueue**: Add an element to the end of the queue
+- **Dequeue**: Remove an element from the front of the queue
+- **IsEmpty**: Check if the queue is empty
+- **IsFull**: Check if the queue is full
+- **Peek**: Get the value of the front of the queue without removing it
+
+#### Applications of Queue
+
+- CPU scheduling, Disk Scheduling
+- When data is transferred asynchronously between two processes.The queue is used for synchronization. For example: IO Buffers, pipes, file IO, etc
+- Handling of interrupts in real-time systems.
+- Call Center phone systems use Queues to hold people calling them in order.
+
+#### Queue Representation:
+
+Like stacks, Queues can also be represented in an array: In this representation, the Queue is implemented using the array. Variables used in this case are
+
+- ***Queue:*** the name of the array storing queue elements.
+- ***Front***: the index where the first element is stored in the array representing the queue.
+- ***Rear:*** the index where the last element is stored in an array representing the queue.
+
+```java
+public class Queue {
+  int SIZE = 5;
+  int items[] = new int[SIZE];
+  int front, rear;
+
+  Queue() {
+    front = -1;
+    rear = -1;
+  }
+
+  boolean isFull() {
+    if (front == 0 && rear == SIZE - 1) {
+      return true;
+    }
+    return false;
+  }
+
+  boolean isEmpty() {
+    if (front == -1)
+      return true;
+    else
+      return false;
+  }
+
+  void enQueue(int element) {
+    if (isFull()) {
+      System.out.println("Queue is full");
+    } else {
+      if (front == -1)
+        front = 0;
+      rear++;
+      items[rear] = element;
+      System.out.println("Inserted " + element);
+    }
+  }
+
+  int deQueue() {
+    int element;
+    if (isEmpty()) {
+      System.out.println("Queue is empty");
+      return (-1);
+    } else {
+      element = items[front];
+      if (front >= rear) {
+        front = -1;
+        rear = -1;
+      } /* Q has only one element, so we reset the queue after deleting it. */
+      else {
+        front++;
+      }
+      System.out.println("Deleted -> " + element);
+      return (element);
+    }
+  }
+
+  void display() {
+    /* Function to display elements of Queue */
+    int i;
+    if (isEmpty()) {
+      System.out.println("Empty Queue");
+    } else {
+      System.out.println("\nFront index-> " + front);
+      System.out.println("Items -> ");
+      for (i = front; i <= rear; i++)
+        System.out.print(items[i] + "  ");
+
+      System.out.println("\nRear index-> " + rear);
+    }
+  }
+
+  public static void main(String[] args) {
+    Queue q = new Queue();
+
+    // deQueue is not possible on empty queue
+    q.deQueue();
+
+    // enQueue 5 elements
+    q.enQueue(1);
+    q.enQueue(2);
+    q.enQueue(3);
+    q.enQueue(4);
+    q.enQueue(5);
+
+    // 6th element can't be added to because the queue is full
+    q.enQueue(6);
+
+    q.display();
+
+    // deQueue removes element entered first i.e. 1
+    q.deQueue();
+
+    // Now we have just 4 elements
+    q.display();
+
+  }
+}
+```
+
+
 
 # CONCURRENCY & MULTITHREADING
 
