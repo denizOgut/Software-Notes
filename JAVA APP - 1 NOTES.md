@@ -2780,7 +2780,220 @@ It is a property in relational annotations, meaning that if the parent entity ha
 
 ![[Pasted image 20240212123942.png]]
 
-you have a product, and this product has images. When you want to remove the product from the database, you must remove the images connected to each other with a Foreign Key. How can you provide this in Spring Boot in a simple way? You can create an Image and Product Repository. And you can call the repositories in a service. In the service, you can remove the images that are related to this product using Product ID, and then you can remove the Product. Luckily, we have an Orpan Removal property that removes child entities if references are no longer available.
+you have a product, and this product has images. When you want to remove the product from the database, you must remove the images connected to each other with a Foreign Key. How can you provide this in Spring Boot in a simple way? You can create an Image and Product Repository. And you can call the repositories in a service. In the service, you can remove the images that are related to this product using Product ID, and then you can remove the Product. Luckily, we have an Orphan Removal property that removes child entities if references are no longer available.
+
+##  Hibernate Inheritance, Composite PK
+
+Hibernate Inheritance is a method of reflecting and creating tables into OOP classes according to Table or Column.
+
+### MappedSupperClass
+
+***This type is used to capsulate common values in one class***. It has no Entity annotation because this is not an entity. It just involves common values for each sub-class, such as ``BaseEntity``; you might have some data that contains sub-classes; you can put them together at a parent class using a **_@MappedSuperClass_** annotation.
+
+![[Pasted image 20240221123450.png]]
+
+```java
+import lombok.Data;  
+  
+import javax.persistence.*;  
+import java.time.OffsetDateTime;  
+  
+@Data  
+@MappedSuperclass  
+public abstract class BaseEntity{  
+  
+private static final Boolean DEFAULT_DELETED = false;  
+  
+@Id  
+@Column(name = "id")  
+@GeneratedValue(strategy = GenerationType.SEQUENCE)  
+protected Integer id;  
+  
+@Column(name = "created_at", nullable = false, updatable = false)  
+protected OffsetDateTime createdAt;  
+  
+@Column(name = "updated_at", nullable = false)  
+protected OffsetDateTime updatedAt;  
+  
+protected Boolean deleted = DEFAULT_DELETED;  
+  
+@Version  
+@Column(name = "version")  
+protected Long version;  
+  
+@PrePersist  
+public void prePersist() {  
+this.createdAt = OffsetDateTime.now();  
+this.updatedAt = OffsetDateTime.now();  
+}  
+  
+@PreUpdate  
+public void preUpdate() {  
+this.updatedAt = OffsetDateTime.now();  
+}  
+  
+}
+```
+
+**Product Class**
+
+```java
+@Data  
+@Entity  
+@Builder  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class Product extends BaseEntity {  
+  
+@Id  
+@GeneratedValue(strategy = GenerationType.IDENTITY)  
+private Integer id;  
+  
+private String name;  
+}
+```
+
+### SINGLE TABLE
+
+Hibernate creates one table for each entity that is signed with **_@Inheritance_** annotation and as an **_``InheritanceType.SINGLE_TABLE``_**. When the client calls the repository, hibernate maps related to the columns to the related class. This feature could be very useful in some cases. For instance, you have public and private machines, and you want to separate two machines from each other. Each machine has its own properties. In this case, the single table will be entirely useful.
+
+![[Pasted image 20240221124553.png]]
+
+```java
+@Entity  
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)  
+public abstract class Machine {  
+@Id  
+@GeneratedValue(strategy = GenerationType.IDENTITY)  
+private Long id;  
+private String name;  
+}  
+  
+@Entity  
+public class PublicMachine extends Machine {  
+// other prop  
+}  
+  
+@Entity  
+public class PrivateMachine extends Machine {  
+// other prop  
+}
+```
+
+### Discriminator Column and Value
+
+The discriminator is such a helpful feature for most cases in Hibernate. For instance, you have two **_accessor_type_** users, such as **_root_** and **_regular_**. You want to retrieve them from the database and separate different classes with different values.
+
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)  
+@DiscriminatorColumn(name = "accessor_type", discriminatorType = DiscriminatorType.STRING)  
+public class MachineAccessor {  
+@Id  
+@GeneratedValue(strategy = GenerationType.IDENTITY)  
+private Integer id;  
+private String name;  
+private String ipAddress;  
+private String macAddress;  
+}  
+  
+@Entity  
+@DiscriminatorValue("regular_machine")  
+public class RegularMachineAccessor extends MachineAccessor {  
+private String ippAddress;  
+private String macAddress;  
+private List<String> logHistory;  
+}  
+  
+@Data  
+@Entity  
+@DiscriminatorValue("root_machine")  
+public class RootMachineAccessor extends MachineAccessor {  
+private String rootPassword;  
+private String rootUsername;  
+private String rootIpAddress;  
+private String rootMacAddress;  
+}
+```
+
+#**JOINED TABLE**
+
+In this strategy, each class in the hierarchy is mapped to its own table in the database. The tables are linked together through foreign key relationships to represent the inheritance relationships between the classes. The superclass table contains common properties, while the subclass tables contain properties specific to each subclass.
+
+```java
+@Entity  
+@Inheritance(strategy = InheritanceType.JOINED)  
+public class Payment {  
+  
+@Id  
+@GeneratedValue(strategy = GenerationType.IDENTITY)  
+private Integer id;  
+private BigDecimal amount;  
+private String currency;  
+private String method;  
+}  
+  
+@Entity  
+public class BitcoinProvider extends Payment {  
+private String bitcoinAddress;  
+private String bitcoinWallet;  
+private String bitcoinProviderName;  
+}  
+  
+@Entity  
+@PrimaryKeyJoinColumn(name = "paypal_id")  
+public class PaypalProvider extends Payment {  
+private String paypalEmail;  
+private String paypalPassword;  
+private String paypalProviderName;  
+}
+```
+
+## **COMPOSITE PK (Composite Identifier)**
+
+There is another way in hibernate to define a primary key, combining two columns as a primary key. This phenomenon is called Composite PK or Composite Identifier. In hibernate, Composite PK is defined using **_@EmbeddedId_** and **_@Embeddable_** annotation. This allows us to provide some benefits, such as increasing simplicity and performance; on the other hand, it comes with complexity and maintenance problems.
+
+```sql
+create table "user" (  
+email varchar(255) not null,  
+user_type varchar(255) not null,  
+name varchar(255),  
+primary key (email, user_type)  
+)
+```
+
+**_UserID_**
+
+```java
+@Embeddable  
+@NoArgsConstructor  
+@AllArgsConstructor  
+public class UserId implements Serializable {  
+private String email;  
+private String userType;  
+}
+```
+
+**_USER_**
+
+```java
+@Data  
+@Entity  
+@NoArgsConstructor  
+@AllArgsConstructor  
+@Table(name = "users")  
+public class User {  
+  
+@EmbeddedId  
+private UserId userId;  
+  
+private String name;  
+}
+```
+
 
 
 ## Query Method Syntax Examples
