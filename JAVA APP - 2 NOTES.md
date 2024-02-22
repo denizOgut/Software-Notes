@@ -1023,6 +1023,268 @@ public class Queue {
 }
 ```
 
+### Circular Queue
+---
+
+#### What is a Circular Queue?
+
+> A Circular Queue is an extended version of a normal queue where the last element of the queue is connected to the first element of the queue forming a circle.
+
+The operations are performed based on FIFO (First In First Out) principle. It is also called **‘Ring Buffer’**.
+
+![[Pasted image 20240222212116.png]]
+
+The circular queue solves the major limitation of the normal queue. In a normal queue, after a bit of insertion and deletion, there will be non-usable empty space.
+
+#### How Circular Queue Works
+
+Circular Queue works by the process of circular increment i.e. when we try to increment the pointer and we reach the end of the queue, we start from the beginning of the queue.
+
+```java
+if REAR + 1 == 5 (overflow!), REAR = (REAR + 1)%5 = 0 (start of queue)
+```
+
+#### Operations on Circular Queue:
+
+- **Front:** Get the front item from the queue.
+- **Rear:** Get the last item from the queue.
+- **``enQueue(value)``** This function is used to insert an element into the circular queue. In a circular queue, the new element is always inserted at the rear position.   
+    - Check whether the queue is full – (i.e., the rear end is in just before the front end in a circular manner].
+    - If it is full then display Queue is full. 
+        - If the queue is not full then,  insert an element at the end of the queue.
+- **``deQueue()``** This function is used to delete an element from the circular queue. In a circular queue, the element is always deleted from the front position.   
+    - Check whether the queue is Empty.
+    - If it is empty then display Queue is empty.
+        - If the queue is not empty, then get the last element and remove it from the queue.
+
+
+##### Illustration of Circular Queue Operations
+
+![[Pasted image 20240222212605.png]]
+
+
+#### How to Implement a Circular Queue?
+A circular queue can be implemented using two data structures:
+
+- Array
+- Linked List
+
+##### Implement Circular Queue using Array:
+
+1. Initialize an array queue of size **n**, where n is the maximum number of elements that the queue can hold.
+2. Initialize two variables front and rear to -1.
+3. **Enqueue:** To enqueue an element **x** into the queue, do the following:
+    - Increment rear by 1.
+        - If **rear** is equal to n, set **rear** to 0.
+    - If **front** is -1, set **front** to 0.
+    - Set queue[rear] to x.
+4. **Dequeue:** To dequeue an element from the queue, do the following:
+    - Check if the queue is empty by checking if **front** is -1. 
+        - If it is, return an error message indicating that the queue is empty.
+    - Set **x** to queue[front].
+    - If **front** is equal to **rear**, set **front** and **rear** to -1.
+    - Otherwise, increment **front** by 1 and if **front** is equal to n, set **front** to 0.
+    - Return x.
+
+```java
+// Java program for insertion and
+// deletion in Circular Queue
+import java.util.ArrayList;
+
+class CircularQueue {
+
+    // Declaring the class variables.
+    private int size, front, rear;
+
+    // Declaring array list of integer type.
+    private ArrayList<Integer> queue = new ArrayList<Integer>();
+
+    // Constructor
+    CircularQueue(int size) {
+        this.size = size;
+        this.front = this.rear = -1;
+    }
+
+    // Method to insert a new element in the queue.
+    public void enQueue(int data) {
+
+        // Condition if queue is full.
+        if ((front == 0 && rear == size - 1) ||
+            (rear == (front - 1) % (size - 1))) {
+            System.out.print("Queue is Full");
+        }
+
+        // condition for empty queue.
+        else if (front == -1) {
+            front = 0;
+            rear = 0;
+            queue.add(rear, data);
+        }
+
+        else if (rear == size - 1 && front != 0) {
+            rear = 0;
+            queue.set(rear, data);
+        }
+
+        else {
+            rear = (rear + 1);
+
+            // Adding a new element if
+            if (front <= rear) {
+                queue.add(rear, data);
+            }
+
+            // Else updating old value
+            else {
+                queue.set(rear, data);
+            }
+        }
+    }
+
+    // Function to dequeue an element
+    // form the queue.
+    public int deQueue() {
+        int temp;
+
+        // Condition for empty queue.
+        if (front == -1) {
+            System.out.print("Queue is Empty");
+
+            // Return -1 in case of an empty queue
+            return -1;
+        }
+
+        temp = queue.get(front);
+
+        // Condition for only one element
+        if (front == rear) {
+            front = -1;
+            rear = -1;
+        }
+
+        else if (front == size - 1) {
+            front = 0;
+        } else {
+            front = front + 1;
+        }
+
+        // Returns the dequeued element
+        return temp;
+    }
+
+    // Method to display the elements of the queue
+    public void displayQueue() {
+
+        // Condition for an empty queue.
+        if (front == -1) {
+            System.out.print("Queue is Empty");
+            return;
+        }
+
+        // If rear has not crossed the max size
+        // or queue rear is still greater than
+        // front.
+        System.out.print("Elements in the " +
+                "circular queue are: ");
+
+        if (rear >= front) {
+
+            // Loop to print elements from
+            // front to rear.
+            for (int i = front; i <= rear; i++) {
+                System.out.print(queue.get(i));
+                System.out.print(" ");
+            }
+            System.out.println();
+        }
+
+        // If rear crossed the max index and
+        // indexing has started in loop
+        else {
+
+            // Loop for printing elements from
+            // front to max size or last index
+            for (int i = front; i < size; i++) {
+                System.out.print(queue.get(i));
+                System.out.print(" ");
+            }
+
+            // Loop for printing elements from
+            // 0th index till rear position
+            for (int i = 0; i <= rear; i++) {
+                System.out.print(queue.get(i));
+                System.out.print(" ");
+            }
+            System.out.println();
+        }
+    }
+
+    // Driver code
+    public static void main(String[] args) {
+
+        // Initializing a new object of
+        // CircularQueue class.
+        CircularQueue q = new CircularQueue(5);
+
+        q.enQueue(14);
+        q.enQueue(22);
+        q.enQueue(13);
+        q.enQueue(-6);
+
+        q.displayQueue();
+
+        int x = q.deQueue();
+
+        // Checking for an empty queue.
+        if (x != -1) {
+            System.out.print("Deleted value = ");
+            System.out.println(x);
+        }
+
+        x = q.deQueue();
+
+        // Checking for an empty queue.
+        if (x != -1) {
+            System.out.print("Deleted value = ");
+            System.out.println(x);
+        }
+
+        q.displayQueue();
+
+        q.enQueue(9);
+        q.enQueue(20);
+        q.enQueue(5);
+
+        q.displayQueue();
+
+        q.enQueue(20);
+    }
+}
+```
+
+**Output**
+
+```text
+Elements in Circular Queue are: 14 22 13 -6 
+Deleted value = 14
+Deleted value = 22
+Elements in Circular Queue are: 13 -6 
+Elements in Circular Queue are: 13 -6 9 20 5 
+Queue is Full
+```
+
+#### Complexity Analysis of Circular Queue Operations:
+
+- **Time Complexity:** 
+    - Enqueue: O(1) because no loop is involved for a single enqueue.
+    - Dequeue: O(1) because no loop is involved for one dequeue operation.
+- **Auxiliary Space:** O(N) as the queue is of size N.
+
+#### Applications of Circular Queue:
+
+1. **Memory Management:** The unused memory locations in the case of ordinary queues can be utilized in circular queues.
+2. **Traffic system:** In computer controlled traffic system, circular queues are used to switch on the traffic lights one by one repeatedly as per the time set.
+3. **CPU Scheduling:** Operating systems often maintain a queue of processes that are ready to execute or that are waiting for a particular event to occur.
 
 
 # CONCURRENCY & MULTITHREADING
