@@ -7075,8 +7075,96 @@ System.out.println(text.stripTrailing().length());// 4
 ```
 
 First, remember that ``\t`` is a single character. The backslash escapes the t to represent a tab.
-The second example gets rid of the leading tab, subsequent spaces, and the trailing newline. It leaves the spaces that are in the middle of the string.
-The remaining examples just print the number of characters remaining
+The second example gets rid of the leading tab, subsequent spaces, and the trailing newline. It leaves the spaces that are in the middle of the string. The remaining examples just print the number of characters remaining
+
+```java
+public class RemovingWhitespace {  
+  
+    public static void main(String[] args) {  
+  
+        stripWhiteSpace();  
+  
+        trimWhiteSpace();  
+  
+        stripTabCharacter();  
+  
+        trimTabCharacter();  
+  
+        stripSpecialCharacters();  
+  
+        trimSpecialCharacters();  
+  
+        trimUnicodeContent();  
+  
+        stripUnicodeContent();  
+    }  
+    private static void stripWhiteSpace() {  
+        System.out.println("##### stripWhiteSpace #####");  
+        System.out.println("abc".strip());  //abc  
+        System.out.println(" abc ".strip()); //abc  
+        System.out.println(" abc ".strip().length()); //3  
+    }  
+  
+    private static void trimWhiteSpace() {  
+        System.out.println("##### trimWhiteSpace #####");  
+        System.out.println("abc".trim());  //abc  
+        System.out.println(" abc ".trim()); //abc  
+        System.out.println(" abc ".trim().length()); //3  
+    }  
+  
+    private static void stripTabCharacter() {  
+        System.out.println("##### stripTabCharacter #####");  
+        String text = " abc\t ";  
+        System.out.println(text.strip()); //abc  
+        System.out.println(text.strip().length());   //3  
+        System.out.println(text.stripLeading().length()); //5  
+        System.out.println(text.stripTrailing().length()); //4  
+    }  
+  
+  
+    private static void trimTabCharacter() {  
+        System.out.println("##### trimTabCharacter #####");  
+        String text = " abc\t ";  
+        System.out.println(text.trim()); //abc  
+        System.out.println(text.trim().length());   //3  
+    }  
+  
+  
+    private static void stripSpecialCharacters() {  
+        System.out.println("##### stripSpecialCharacters #####");  
+        String contentWithTab = "\t   a b c\n \r";  
+        System.out.println(contentWithTab);  
+        System.out.println(contentWithTab.length()); //12  
+  
+        System.out.println(contentWithTab.strip());   // a b c  
+        System.out.println(contentWithTab.strip().length());   //5  
+    }  
+  
+    private static void trimSpecialCharacters() {  
+        System.out.println("##### trimSpecialCharacters #####");  
+        String contentWithTab = "\t   a b c\n \r";  
+        System.out.println(contentWithTab);  
+        System.out.println(contentWithTab.length()); //12  
+  
+        System.out.println(contentWithTab.trim());   //a b c  
+        System.out.println(contentWithTab.trim().length());   //5  
+    }  
+  
+    private static void trimUnicodeContent() {  
+        System.out.println("##### trimUnicodeContent #####");  
+        String content = "\u2000abc\u2000";  
+        System.out.println(content);  
+        System.out.println(content.trim()); // DOES NOT SUPPORT Unicode  
+    }  
+  
+    private static void stripUnicodeContent() {  
+        System.out.println("##### stripUnicodeContent #####");  
+        char ch = '\u2000';  
+        String content = "\u2000abc\u2000";  
+        System.out.println(content);  
+        System.out.println(content.strip());  
+    }}
+```
 
 #### Working with Indentation
 
@@ -7119,6 +7207,8 @@ Line 2
 
 The ``stripIndent()`` method is useful when a String was built with concatenation rather than using a text block. ==**It gets rid of all incidental whitespace.**== This means that all non-blank lines are shifted left so the same number of whitespace characters are removed from each line and the first character that remains is not blank
 
+==**If the `stripIndent()` method is used and there are no leading spaces on the first line of a multiline string, no changes will occur. `stripIndent()` only removes the common indentation level from each line, and if there are no leading spaces on the first line, the text remains unchanged.**==
+
 Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`` method does not add a trailing line break if it is missing.**==
 
 | Method               | Indent change                                    | Normalizes existing line breaks | Adds line break at end if missing |
@@ -7152,6 +7242,193 @@ Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`
 - line 21, we ask Java to remove four whitespace characters from the same three lines. Since there are not four whitespace characters, Java does its best. The single space is removed before a and c. Both spaces are removed before b. The length of six should make sense here; we removed one more character here than on line 20.
 - line 22 uses the ``stripIndent()`` method. All of the lines have at least one whitespace character. Since they do not all have two whitespace characters, the method only gets rid of one character per line. Since no new line is added by ``stripIndent()``, the length is six, which is three less than the original nine.
 
+```java
+public class WorkingWithIndentation {  
+  
+    public static void main(String[] args) {  
+  
+        indentTextBlock();  
+  
+        indentTextBlock2();  
+  
+        indentTextBlock3();  
+  
+        indentTextBlock4();  
+  
+        indentConcat();  
+  
+        indentConcat2();  
+  
+        stripIndent();  
+  
+        stripIndent2();  
+  
+    }  
+    private static void indentTextBlock() {  
+  
+        System.out.println("##### indentTextBlock #####");  
+  
+        var block = """   
+                a  
+                 b                c""";  
+  
+        for (char c : block.toCharArray()) {  
+            System.out.print(String.format("\\u%04x", (int) c) + " | ");  
+        }        System.out.println();  
+  
+        System.out.println(block);  
+        System.out.println(block.length()); // 6  
+  
+        System.out.println(block.indent(1));  
+        System.out.println(block.indent(1).length()); // 10  
+  
+        // We ask Java to add a single blank space to each of the three lines in block. 
+        // However, the output says we added 4 characters rather than 3 since the length went from 6 to 10.
+	   // This mysterious additional character is thanks to the line termination normalization.
+	   // Since the text block doesn’t have a line break at the end, indent() adds one!    
+	}  
+  
+    private static void indentTextBlock2() {  
+  
+        System.out.println("##### indentTextBlock2 #####");  
+  
+        var block = """   
+                a  
+                 b                c                """;  
+  
+        for (char c : block.toCharArray()) {  
+            System.out.print(String.format("\\u%04x", (int) c) + " | ");  
+        }        System.out.println();  
+  
+        System.out.println(block);  
+        System.out.println(block.length()); // 7  
+  
+        System.out.println(block.indent(1));  
+        System.out.println(block.indent(1).length()); // 10  
+  
+        // We have line break! The indent does not add it at the end.    }  
+  
+    private static void indentTextBlock3() {  
+  
+        System.out.println("##### indentTextBlock3 #####");  
+  
+        var block = """   
+                a\n  
+                 b\n  
+                c\n  
+                """;  
+  
+        for (char c : block.toCharArray()) {  
+            System.out.print(String.format("\\u%04x", (int) c) + " | ");  
+        }        System.out.println();  
+  
+        System.out.println(block);  
+        System.out.println(block.length()); // 10  
+  
+        System.out.println(block.indent(1));  
+        System.out.println(block.indent(1).length()); // 16  
+  
+        // We have line break! The indent does not add it at the end.    
+	}  
+  
+    private static void indentTextBlock4() {  
+  
+        System.out.println("##### indentTextBlock4 #####");  
+  
+        var block = """   
+                a  
+                   b                c""";  
+  
+        System.out.println(block);  
+        System.out.println(block.length()); // 8  
+        System.out.println(block.indent(-1));  
+        System.out.println(block.indent(-1).length()); // 8  
+  
+    }  
+  
+    private static void indentConcat() {  
+  
+        System.out.println("##### indentConcat #####");  
+  
+        var concat = " a\n"  
+                   + "  b\n"  
+                   + " c";  
+  
+        System.out.println(concat.length());    //9  
+        System.out.println(concat.indent(-1).length()); // 7  
+  
+        // We remove one whitespace character from each of the three lines of concat.
+        // This gives a length of seven. We started with nine, got rid of three characters,
+        // and added a trailing normalized new line.  
+  
+        System.out.println(concat.indent(-4));  
+        System.out.println(concat.indent(-4).length()); // 6  
+  
+        // we ask Java to remove four whitespace characters from the same three lines.
+        // Since there are not four whitespace characters, Java does its best.
+        // The single space is removed before a and c.
+        // Both spaces are removed before b. The length of six should make sense here; we removed one more character here    
+	}  
+  
+    private static void indentConcat2() {  
+  
+        System.out.println("##### indentConcat2 #####");  
+  
+        var concat = " a\n"  
+                   + "  b\n"  
+                   + " c\n";  
+  
+        System.out.println(concat.length());    //10  
+        System.out.println(concat.indent(-1).length()); // 7  
+  
+        // We remove one whitespace character from each of the three lines of concat.       
+		// This gives a length of seven. We started with nine, got rid of three characters,   
+		// and NOT added a trailing normalized new line.  
+  
+        System.out.println(concat.indent(-4).length()); // 6  
+  
+        // we ask Java to remove four whitespace characters from the same three lines.        // Since there are not four whitespace characters, Java does its best.        // The concat ends with \n !    
+	}  
+  
+  
+    private static void stripIndent() {  
+  
+        System.out.println("##### stripIndent #####");  
+  
+        var concat = " a\n"  
+                   + "  b\n"  
+                   + " c";  
+  
+        System.out.println(concat.length()); // 9  
+  
+        System.out.println(concat.stripIndent());  
+        System.out.println(concat.stripIndent().length()); // 6  
+  
+  
+        // All of the lines have at least one whitespace character.        
+        // Since they do not all have two whitespace characters,        
+        // the method only gets rid of one character per line.       
+		// Since no new line is added by stripIndent(), the length is six, which is three less than the original nine.    
+	}  
+  
+    private static void stripIndent2() {  
+  
+        System.out.println("##### stripIndent2 #####");  
+  
+        var concat = "a\n"  
+                   + "  b\n"  
+                   + " c";  
+  
+        System.out.println(concat.length()); //8  
+  
+        System.out.println(concat);  
+        System.out.println(concat.stripIndent());  
+        System.out.println(concat.stripIndent().length()); // 8  
+  
+    }  
+}
+```
+
 #### Translating Escapes
 
 When we escape characters, we use a single backslash. For example, ``\t`` is a tab. If we don’t want this behavior, we add another backslash to escape the backslash, so ``\\t`` is the literal string ``\t``.
@@ -7172,6 +7449,51 @@ System.out.println(str.translateEscapes()); // 1 2
 
 This method can be used for escape sequences such as ``\t`` (tab), ``\n`` (new line), ``\s`` (space), ``\"`` (double quote), and ``\'`` (single quote.)
 
+```java
+public class TranslatingEscapes {  
+  
+    public static void main(String[] args) {  
+  
+        System.out.println("---------");  
+  
+        System.out.println("1\t2");  
+        System.out.println("1\"2");  
+        System.out.println("1\n2");  
+        System.out.println("1\s2");  
+  
+        System.out.println("---------");  
+  
+        var str = "1\\t2";  
+        System.out.println(str); // 1\t2  
+        System.out.println(str.translateEscapes()); // 1 2  
+  
+        System.out.println("---------");  
+  
+        var str2 = "1\\n2";  
+        System.out.println("STR2" + str2); // 1\n2  
+        System.out.println(str2.translateEscapes()); // 1 new line 2  
+  
+        System.out.println("---------");  
+  
+        var str3 = "1\\s2";  
+        System.out.println(str3); // 1\s2  
+        System.out.println(str3.translateEscapes()); // 1 2  
+  
+        System.out.println("---------");  
+  
+        var str4 = "1\\\"2";  
+        System.out.println(str4); // 1\"2  
+        System.out.println(str4.translateEscapes()); // 1"2  
+  
+        System.out.println("---------");  
+  
+        var str5 = "1\\\'2";  
+        System.out.println(str5); // 1\'2  
+        System.out.println(str5.translateEscapes()); // 1'2  
+    }  
+}
+```
+
 #### Checking for Empty or Blank Strings
 
 ```java
@@ -7180,10 +7502,15 @@ public boolean isBlank()
 ```
 
 ```java
-System.out.println(" ".isEmpty()); // false
-System.out.println("".isEmpty()); // true
-System.out.println(" ".isBlank()); // true
-System.out.println("".isBlank()); // true
+public static void main(String[] args) {  
+  
+    System.out.println(" ".isEmpty()); // false  
+    System.out.println("".isEmpty()); // true  
+    System.out.println(" ".isBlank()); // true  
+    System.out.println("         ".isBlank()); // true  
+    System.out.println("         ".isEmpty()); // false  
+    System.out.println("".isBlank()); // true  
+}
 ```
 
 - The first line prints ``false`` because the ``String`` is not empty; it has a blank space in it.
@@ -7257,6 +7584,16 @@ System.out.println(result);
 
 ==**To read code that uses method chaining, start at the left and evaluate the first method. Then call the next method on the returned value of the first method. Keep going until you get to the semicolon.**==
 
+```java
+public static void main(String[] args) {  
+    String a = "abc";  
+    String b = a.toUpperCase();  
+    b = b.replace("B", "2").replace('C', '3');  
+    System.out.println("a=" + a); // a=abc  
+    System.out.println("b=" + b); // b=A23  
+}
+```
+
 ## Using the ``StringBuilder`` Class
 
 ```java
@@ -7303,8 +7640,6 @@ Line 5 adds text to the end of sb. It also returns a reference to sb, which is i
 ```
 
 both print "abcdefg". ==**There’s only one ``StringBuilder`` object here. We know that because new StringBuilder() is called only once.**==
-
-
 ### Creating a ``StringBuilder``
 
 ```java
@@ -7435,8 +7770,6 @@ String s = sb.toString();
 **Often ``StringBuilder`` is used internally for performance purposes, but the end result needs to be a String.**
 
 ---
-
-
 ## Understanding Equality
 
 ### Comparing ``equals()`` and ``==``
