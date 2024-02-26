@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Golang Notes.md",
                 "mode": "source",
                 "source": false
               }
@@ -85,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Golang Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Golang Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+                "file": "Golang Notes.md"
               }
             }
           }
@@ -147,25 +147,26 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "00ba01f7c395d1ca",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "JAVA APP - 2 NOTES.md",
+    "100 Go Mistakes and How to Avoid Them & Golang Notes ScreenShots/Pasted image 20240226153950.png",
+    "100 Go Mistakes and How to Avoid Them.md",
     "Golang Notes.md",
+    "100 Go Mistakes and How to Avoid Them & Golang Notes ScreenShots/Pasted image 20240226151741.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "JAVA APP - 2 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240222212116.png",
     "JAVA APP Screen Shoots/Pasted image 20240222212605.png",
     "JAVA APP Screen Shoots/Pasted image 20240221222130.png",
     "JAVA APP Screen Shoots/Pasted image 20240221123450.png",
     "JAVA APP - 1 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240221124553.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-    "100 Go Mistakes and How to Avoid Them ScreenShots/Pasted image 20240219153753.png",
+    "100 Go Mistakes and How to Avoid Them & Golang Notes ScreenShots/Pasted image 20240219153753.png",
     "JAVA APP Screen Shoots/Pasted image 20240212123942.png",
     "JAVA APP Screen Shoots/Pasted image 20240212111956.png",
     "JAVA APP Screen Shoots/Pasted image 20240212110442.png",
-    "JAVA APP Screen Shoots/Pasted image 20240212095139.png",
     "Excalidraw/Drawing 2024-02-07 14.41.32.excalidraw.md",
     "Excalidraw",
-    "100 Go Mistakes and How to Avoid Them.md",
     "JAVA APP KEY NOTES.md",
     "Algorithms_4TH Edition Summary.md",
     "JAVA APP Screen Shoots"
