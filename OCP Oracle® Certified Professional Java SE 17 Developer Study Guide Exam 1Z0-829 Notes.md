@@ -7795,7 +7795,7 @@ System.out.println(x.equals(z)); // true
 ==**``equals()`` to check the values inside the String rather than the string reference itself.**==
 ==**If a class doesn’t have an ``equals()`` method, Java determines whether the references point to the same object, which is exactly what ``==`` does.**==
 
-StringBuilder did not implement equals(). If you call equals() on two StringBuilder instances, it will check reference equality. You can call ``toString()`` on StringBuilder to get a String to check for equality instead.
+**==StringBuilder did not implement equals(). If you call equals() on two StringBuilder instances, it will check reference equality==**. You can call ``toString()`` on StringBuilder to get a String to check for equality instead.
 
 the exam might try to trick you with a question like this.
 
@@ -7872,6 +7872,56 @@ System.out.println(name == name2); // true
 - On line 16, we have a more complicated expression that is also a compile-time constant. Therefore, first and second share the same string pool reference. This makes lines 18 and 19 print true.
 - On line 17, we have a String constructor. This means we no longer have a compile-time constant, and third does not point to a reference in the string pool. Therefore, line 20 prints false.
 - On line 21, the intern() call looks in the string pool. Java notices that first points to the same String and prints true.
+
+```java
+public class StringPoolFinal {  
+  
+    public static void main(String[] args) {  
+  
+  
+        finalStrings();  // true
+        finalStringsV2(); // false
+        checkEquality();  // true
+    }  
+    private static void finalStrings() {  
+        String fullMsg = "hello world";  
+  
+        final String msg1 = "hello";  
+        final String msg2 = " world";  
+  
+        String msg3 = msg1 + msg2;  
+  
+        System.out.println(fullMsg == msg3);  
+    }  
+    private static void finalStringsV2() {  
+        String fullMsg = "hello world";  
+  
+        final String msg1 = helloMessage();  
+        final String msg2 = worldMessage();  
+  
+        String msg3 = msg1 + msg2;  
+  
+        System.out.println(fullMsg == msg3);  
+    }  
+    private static String helloMessage() {  
+        return "hello";  
+    }  
+    private static String worldMessage() {  
+        return " world";  
+    }  
+  
+    private static void checkEquality() {  
+  
+        String fullMsg = "hello world";  
+  
+        String msg1 = "hello";  
+        String msg2 = " world";  
+  
+        String msg3 = msg1 + msg2;  
+  
+        System.out.println(fullMsg.equals(msg3));  
+    }}
+```
 
 ## Understanding Arrays 
 
@@ -8069,6 +8119,13 @@ Java also provides a convenient way to search, ==**but only if the array is alre
 6: System.out.println(Arrays.binarySearch(numbers, 1)); // -1
 7: System.out.println(Arrays.binarySearch(numbers, 3)); // -2
 8: System.out.println(Arrays.binarySearch(numbers, 9)); // -5
+   System.out.println(Arrays.binarySearch(numbers, 30)); // -5
+	
+	int[] numbersNotSorted = new int[]{3, 2, 1};  
+	System.out.println(Arrays.binarySearch(numbersNotSorted, 2));  
+	System.out.println(Arrays.binarySearch(numbersNotSorted, 3));  
+  
+	// The array isn’t sorted. This means the output will not be defined.
 ```
 
 - line 3 is a sorted array
@@ -8117,7 +8174,31 @@ What does smaller means?
 - ==**For strings/characters, numbers are smaller than letters.**==
 - ==**For strings/characters, uppercase is smaller than lowercase.**==
 
-
+```java
+public static void main(String[] args) {  
+  
+    System.out.println(Arrays.compare(new int[]{1}, new int[]{1})); // 0  
+    System.out.println(Arrays.compare(new int[]{1}, new int[]{2})); // negative  
+    System.out.println(Arrays.compare(new int[]{1, 2}, new int[]{1})); // positive  
+    System.out.println(Arrays.compare(new int[]{1, 2}, new int[]{2})); // negative  
+    System.out.println(Arrays.compare(new int[]{1, 2, 5, 3, 20}, new int[]{3})); // negative  
+  
+    System.out.println();  
+    System.out.println(Arrays.compare(new int[]{1, 2}, new int[]{1, 2})); // zero  
+    System.out.println(Arrays.compare(new int[]{1, 2, -1}, new int[]{1, 2})); // positive  
+    System.out.println(Arrays.compare(new int[]{1, 2}, new int[]{1, 2, -1})); // negative  
+  
+    System.out.println();  
+    System.out.println(Arrays.compare(new String[]{"a"}, new String[]{"aa"})); // negative  
+    System.out.println(Arrays.compare(new String[]{"a"}, new String[]{"A"})); // positive  
+  
+    //Uppercase is smaller than lowercase    System.out.println(Arrays.compare(new String[]{"a"}, new String[]{"Z"})); // positive  
+  
+    System.out.println(Arrays.compare(new String[]{"a"}, new String[]{null})); // positive  
+  
+    // null is smaller than a letter.  
+    // System.out.println(Arrays.compare(new int[]{1}, new String[]{"a"})); // DOES NOT COMPILE}
+```
 
 | First array                | Second array               | Result           | Reason                                       |
 |----------------------------|----------------------------|------------------|----------------------------------------------|
@@ -8136,7 +8217,7 @@ new int[] {1}, new String[] {"a"})); // DOES NOT COMPILE
 
 ### Using ``mismatch()``
 
-==**If the arrays are equal, ``mismatch()`` returns -1.Otherwise, it returns the first index where they differ.**==
+==**If the arrays are equal, ``mismatch()`` returns -1. Otherwise, it returns the first index where they differ.**==
 
 ```java
 System.out.println(Arrays.mismatch(new int[] {1}, new int[] {1}));
@@ -8148,6 +8229,15 @@ System.out.println(Arrays.mismatch(new int[] {1, 2}, new int[] {1}));
 - In the first example, the arrays are the same, so the result is -1. 
 - In the second example, the entries at element 0 are not equal, so the result is 0.
 - In the third example, the entries at element 0 are equal, so we keep looking. The element at index 1 is not equal. Or, more specifically, one array has an element at index 1, and the other does not. Therefore, the result is 1.
+
+```java
+public static void main(String[] args) {  
+    System.out.println(Arrays.mismatch(new int[]{1}, new int[]{1}));  // -1  
+    System.out.println(Arrays.mismatch(new String[]{"a"}, new String[]{"A"})); //0  
+    System.out.println(Arrays.mismatch(new int[]{1, 2}, new int[]{1})); //1  
+    System.out.println(Arrays.mismatch(new int[]{1, 2, -1}, new int[]{1, 2, -1, 5})); //3  
+}
+```
 
 | Method     | When arrays contain the same data | When arrays are different        |
 |------------|------------------------------------|-----------------------------------|
