@@ -2757,6 +2757,88 @@ We can use _Daemon Threads_ in usecases like:
 - **Life Cycle:** The daemon threads’ lifecycle depends on user threads, whereas user threads have an independent lifecycle.
 - **Termination:** All the daemon threads are terminated once the last user thread has been terminated, irrespective of the daemon thread’s position at that time, whereas user threads are terminated after completing their corresponding jobs.
 
+## Atomic
+
+In Java, **atomic variables** and **operations** used in concurrency. The **multi-threading** environment leads to a problem when **concurrency** is unified. The shared entity such as objects and variables may be changed during the execution of the program. Hence, they may lead to inconsistency of the program. So, it is important to take care of the shared entity while accessing concurrently. In such cases, the **atomic variable** can be a solution to it.
+
+Java provides a ``**java.util.concurrent.atomic**`` package in which atomic classes are defined. The atomic classes provide a **lock-free** and **thread-safe** environment or programming on a single variable. It also supports atomic operations. All the atomic classes have the get() and set() methods that work on the volatile variable. The method works the same as read and writes on volatile variables.
+
+###  **Atomic Operations**
+
+**Three** key concepts are associated with atomic actions in Java are as follows:
+
+1. Atomicity deals with which actions and sets o actions have **invisible**
+2. Visibility determines when the effect of one thread can be **seen** by another.
+3. Ordering determines when actions in one thread occur out of order with respect to another thread.
+
+When multiple threads attempt to update the same value through CAS, one of them wins and updates the value. **However, unlike in the case of locks, no other thread gets suspended**; instead, they’re simply informed that they did not manage to update the value. The threads can then proceed to do further work and context switches are completely avoided.
+
+###  **Atomic Variables**
+
+The most commonly used atomic variable classes in Java are [AtomicInteger](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html), [AtomicLong](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicLong.html), [AtomicBoolean](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicBoolean.html), and [AtomicReference](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicReference.html). These classes represent an _int_, _long_, _boolean,_ and object reference respectively which can be atomically updated. The main methods exposed by these classes are:
+
+- _**``get()``**_ – gets the value from the memory, so that changes made by other threads are visible; equivalent to reading a _volatile_ variable
+- _**``incrementAndGet()``** –_ Atomically increments by one the current value
+- _**``set()``**_ – writes the value to memory, so that the change is visible to other threads; equivalent to writing a _volatile_ variable
+- _**``lazySet()``**_ – eventually writes the value to memory, maybe reordered with subsequent relevant memory operations. One use case is nullifying references, for the sake of garbage collection, which is never going to be accessed again. In this case, better performance is achieved by delaying the null _volatile_ write
+- _**``compareAndSet()``**_ –  returns true when it succeeds, else false
+- _**``weakCompareAndSet()``**_ –  it does not create happens-before orderings. This means that it may not necessarily see updates made to other variables.
+
+**CSD EXAMPLE**
+
+```java
+public class IntIncrementor {  
+    private final AtomicInteger m_value;  
+    private final int m_count;  
+  
+    private void incrementerCallback(int idx)  
+    {  
+  
+        for (var i = 0; i < m_count; ++i)  
+            m_value.getAndIncrement();  
+  
+        /*  
+            ++m_value;  
+            mov reg, m_value            add reg, 1            mov m_value, 1         */    }  
+  
+    public IntIncrementor(int count)  
+    {  
+        m_count = count;  
+        m_value = new AtomicInteger();  
+    }  
+  
+    public int getValue()  
+    {  
+        return m_value.get();  
+    }  
+  
+    public int getCount()  
+    {  
+        return m_count;  
+    }  
+  
+    public void run(int nThreads)  
+    {  
+        Thread [] threads = new Thread[nThreads];  
+  
+        for (var i = 0; i < nThreads; ++i) {  
+            var idx = i;  
+  
+            threads[i] = new Thread(() -> incrementerCallback(idx), "Thread-");  
+            threads[i].start();  
+        }  
+  
+        for (var t : threads)  
+            try {  
+                t.join();  
+            }  
+            catch (InterruptedException ignore) {  
+  
+            }  
+    }  
+}
+```
+
 ##  Synchronization
 
 Java Synchronization is used to make sure by some synchronization method that only one thread can access the resource at a given point in time.
@@ -3127,3 +3209,885 @@ public class IntIncrementor {
 
 - **Concurrency Limitations:** Java synchronization does not allow concurrent reads.
 - **Decreases Efficiency:** Java synchronized method run very slowly and can degrade the performance, so you should synchronize the method when it is absolutely necessary otherwise not and to synchronize block only for critical section of the code.
+##  Volatile
+
+The `volatile` keyword in Java is used to indicate that a variable’s value can be modified by different threads. Used with the syntax, `volatile dataType variableName = x;` It ensures that changes made to a volatile variable by one thread are immediately visible to other threads.
+
+```java
+class SharedObj
+{
+   // volatile keyword here makes sure that
+   // the changes made in one thread are 
+   // immediately reflect in other thread
+   static **volatile** int sharedVar = 6;
+}
+```
+
+The `volatile` keyword in Java is a type of variable modifier that tells the JVM (Java Virtual Machine) that a variable can be accessed and modified by multiple threads. The `volatile` keyword is used in multithreaded environments to ensure that changes made to a variable by one thread are immediately visible to other threads.
+
+```java
+public class VolatileExample {
+    private volatile int count = 0;
+
+    public void incrementCount() {
+        count++;
+    }
+
+    public void displayCount() {
+        System.out.println("Count: " + count);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        VolatileExample example = new VolatileExample();
+        example.incrementCount();
+        example.displayCount();
+    }
+}
+
+# Output:
+# Count: 1
+```
+
+The `volatile` keyword ensures that the updated value of `count` is immediately visible to all threads. If `count` was not declared as `volatile`, there could be a delay in visibility of the updated value to other threads, leading to inconsistent results.
+
+### Advantages and Pitfalls of Volatile Keyword
+
+- The primary advantage of the `volatile` keyword is its guarantee of visibility of changes across threads. It ensures that a change in a `volatile` variable in one thread is immediately reflected in all other threads.
+
+- However, the `volatile` keyword does not guarantee atomicity.  the increment operation (`count++`) in the above code is not atomic. It involves multiple steps – reading the current value of `count`, incrementing it, and then writing the updated value back to `count`. These steps are not performed as a single, indivisible operation. Therefore, in a multithreaded environment, it’s possible for another thread to modify `count` between these steps, leading to unexpected results.
+
+### Volatile and Memory Visibility
+
+ In Java, each thread has its own stack, and it can also access the heap. The heap contains objects and instance variables, but local variables are stored in the thread’s stack and are not visible to other threads.
+
+When a variable is declared `volatile`, it ensures that the value of the `volatile` variable is always read from and written to the main memory, and not from the thread’s local cache. This ensures that the most recent value of the `volatile` variable is always visible to all threads, which is crucial for maintaining data consistency in multithreading.
+
+## Difference Between Atomic, Volatile and Synchronized
+
+| Modifier      | Synchronized                                       | Volatile                                              | Atomic                                              |
+|---------------|---------------------------------------------------|-------------------------------------------------------|------------------------------------------------------|
+| 1. Applicable | Only blocks or methods                            | Variables only                                        | Variables only                                       |
+| 2. Purpose     | Lock-based concurrent algorithm                   | Non-blocking algorithm, more scalable                  | Non-blocking algorithm                               |
+| 3. Performance | Relatively low (due to lock acquisition/release) | Relatively high compared to synchronized              | Relatively high compared to both volatile and synchronized |
+| 4. Hazards     | Not immune to concurrency hazards (deadlock, livelock) | Immune to concurrency hazards (deadlock, livelock)     | Immune to concurrency hazards (deadlock, livelock)    |
+
+| Method         | Advantages                                                | Disadvantages                                             |
+| -------------- | --------------------------------------------------------- | --------------------------------------------------------- |
+| `volatile`     | Ensures visibility of changes across threads              | Does not guarantee atomicity for compound operations      |
+| `synchronized` | Ensures atomicity for compound operations                 | Can lead to thread blocking and decreased performance     |
+| Atomic classes | Ensures atomicity for specific operations without locking | Limited to specific operations provided by atomic classes |
+## Compare and Swap Example – CAS Algorithm
+
+### Optimistic and Pessimistic Locking
+
+Traditional locking mechanisms, e.g. **using _synchronized_ keyword in java, is said to be pessimistic technique** of locking or multi-threading. It asks you to first guarantee that no other thread will interfere in between certain operation (i.e. lock the object), and then only allow you access to any instance/method.
+
+> **It’s much like saying “please close the door first; otherwise some other crook will come in and rearrange your stuff”.**
+
+Though above approach is safe and it does work, but it **put a significant penalty on your application in terms of performance**. Reason is simple that waiting threads can not do anything unless they also get a chance and perform the guarded operation.
+
+There exist one more approach which is more efficient in performance, and it **optimistic** in nature. In this approach, you proceed with an update, **being hopeful that you can complete it without interference**. This approach relies on collision detection to determine if there has been interference from other parties during the update, in which case the operation fails and can be retried (or not).
+
+> **The optimistic approach is like the old saying, “It is easier to obtain forgiveness than permission”, where “easier” here means “more efficient”.**
+
+
+**Compare and Swap** is a good example of such optimistic approach
+
+### Compare and Swap Algorithm
+
+This algorithm compares the contents of a memory location to a given value and, only if they are the same, modifies the contents of that memory location to a given new value. This is done as a single atomic operation. The atomicity guarantees that the new value is calculated based on up-to-date information; if the value had been updated by another thread in the meantime, the write would fail. The result of the operation must indicate whether it performed the substitution; this can be done either with a simple Boolean response (this variant is often called compare-and-set), or by returning the value read from the memory location (not the value written to it).
+
+There are 3 parameters for a CAS operation:
+
+1. A memory location V where value has to be replaced
+2. Old value A which was read by thread last time
+3. New value B which should be written over V
+
+> **CAS says “I think V should have the value A; if it does, put B there, otherwise don’t change it but tell me I was wrong.” CAS is an optimistic technique—it proceeds with the update in the hope of success, and can detect failure if another thread has updated the variable since it was last examined.**
+
+**EXAMPLE**
+
+Assume V is a memory location where value “10” is stored. There are multiple threads who want to increment this value and use the incremented value for other operations, a very practical scenario. Let’s break the whole CAS operation in steps:
+
+**1) Thread 1 and 2 want to increment it, they both read the value and increment it to 11.**
+
+_V = 10, A = 0, B = 0_
+
+**2) Now thread 1 comes first and compare V with it’s last read value:**
+
+_V = 10, A = 10, B = 11_
+
+```java
+if     A = V
+   V = B
+ else
+   operation failed
+   return V
+```
+
+Clearly the value of V will be overwritten as 11, i.e. operation was successful.
+
+**3) Thread 2 comes and try the same operation as thread 1**
+
+_V = 11, A = 10, B = 11_
+
+```java
+if     A = V
+   V = B
+ else
+   operation failed
+   return V
+```
+
+**4) In this case, V is not equal to A, so value is not replaced and current value of V i.e. 11 is returned. Now thread 2, again retry this operation with values:**
+
+_V = 11, A = 11, B = 12_
+
+And this time, condition is met and incremented value 12 is returned to thread 2.
+
+In summary, when multiple threads attempt to update the same variable simultaneously using CAS, one wins and updates the variable’s value, and the rest lose. But the losers are not punished by suspension of thread. They are free to retry the operation or simply do nothing.
+##  ``wait()``, ``notify()`` and ``notifyAll()``
+
+The `Object` class in Java has three final methods that allow threads to communicate about the locked status of a resource.
+
+###  ``wait()``
+
+It tells the calling thread to give up the lock and go to sleep until some other thread enters the same monitor and calls `notify()`. The `wait()` method releases the lock prior to waiting and reacquires the lock prior to returning from the `wait()` method. The `wait()` method is actually tightly integrated with the synchronization lock, using a feature not available directly from the synchronization mechanism.
+
+In other words, it is not possible for us to implement the `wait()` method purely in Java. It is a **native method**.
+
+```java
+synchronized( lockObject )
+{ 
+	while( ! condition )
+	{ 
+		lockObject.wait();
+	}
+	
+	//take the action here;
+}
+```
+
+### ``notify()``
+
+It wakes up one single thread that called `wait()` on the same object. It should be noted that calling `notify()` does not actually give up a lock on a resource. It tells a waiting thread that that thread can wake up. However, the lock is not actually given up until the notifier’s synchronized block has completed.
+
+So, if a notifier calls `notify()` on a resource but the notifier still needs to perform 10 seconds of actions on the resource within its synchronized block, the thread that had been waiting will need to wait at least another additional 10 seconds for the notifier to release the lock on the object, even though `notify()` had been called.
+
+```java
+synchronized(lockObject) 
+{
+	//establish_the_condition;
+
+	lockObject.notify();
+	
+	//any additional code if needed
+}
+```
+
+### ``notifyAll()``
+
+It wakes up all the threads that called `wait()` on the same object. The highest priority thread will run first in most of the situation, though not guaranteed.
+
+```java
+synchronized(lockObject) 
+{
+	establish_the_condition;
+
+	lockObject.notifyAll();
+}
+```
+
+> **In general, a thread that uses the `wait()` method confirms that a condition does not exist (typically by checking a variable) and then calls the `wait()` method. When another thread establishes the condition (typically by setting the same variable), it calls the `notify()` method. The wait-and-notify mechanism does not specify what the specific condition/ variable value is. It is on developer’s hand to specify the condition to be checked before calling `wait()` or `notify()`**.
+
+
+**EXAMPLE**
+
+- Producer thread produce a new resource in every 1 second and put it in ‘taskQueue’.
+- Consumer thread takes 1 seconds to process consumed resource from ‘taskQueue’.
+- Max capacity of taskQueue is 5 i.e. maximum 5 resources can exist inside ‘taskQueue’ at any given time.
+- Both threads run infinitely.
+
+**Producer Thread**
+
+```java
+class Producer implements Runnable
+{
+   private final List<Integer> taskQueue;
+   private final int           MAX_CAPACITY;
+
+   public Producer(List<Integer> sharedQueue, int size)
+   {
+      this.taskQueue = sharedQueue;
+      this.MAX_CAPACITY = size;
+   }
+
+   @Override
+   public void run()
+   {
+      int counter = 0;
+      while (true)
+      {
+         try
+         {
+            produce(counter++);
+         } 
+		 catch (InterruptedException ex)
+         {
+            ex.printStackTrace();
+         }
+      }
+   }
+
+   private void produce(int i) throws InterruptedException
+   {
+      synchronized (taskQueue)
+      {
+         while (taskQueue.size() == MAX_CAPACITY)
+         {
+            System.out.println("Queue is full " + Thread.currentThread().getName() + " is waiting , size: " + taskQueue.size());
+            taskQueue.wait();
+         }
+		  
+         Thread.sleep(1000);
+         taskQueue.add(i);
+         System.out.println("Produced: " + i);
+         taskQueue.notifyAll();
+      }
+   }
+}
+```
+
+- Here “`produce(counter++)`” code has been written inside infinite loop so that producer keeps producing elements at regular interval.
+- We have written the `produce()` method code following the general guideline to write `wait()` method as mentioned in first section.
+- Once the `wait()` is over, producer add an element in taskQueue and called `notifyAll()` method. Because the last-time `wait()` method was called by consumer thread (that’s why producer is out of waiting state), consumer gets the notification.
+- Consumer thread after getting notification, if ready to consume the element as per written logic.
+- Note that both threads use `sleep()` methods as well for simulating time delays in creating and consuming elements.
+
+**Consumer Thread**
+
+```java
+class Consumer implements Runnable
+{
+   private final List<Integer> taskQueue;
+
+   public Consumer(List<Integer> sharedQueue)
+   {
+      this.taskQueue = sharedQueue;
+   }
+
+   @Override
+   public void run()
+   {
+      while (true)
+      {
+         try
+         {
+            consume();
+         } catch (InterruptedException ex)
+         {
+            ex.printStackTrace();
+         }
+      }
+   }
+
+   private void consume() throws InterruptedException
+   {
+      synchronized (taskQueue)
+      {
+         while (taskQueue.isEmpty())
+         {
+            System.out.println("Queue is empty " + Thread.currentThread().getName() + " is waiting , size: " + taskQueue.size());
+            taskQueue.wait();
+         }
+         Thread.sleep(1000);
+         int i = (Integer) taskQueue.remove(0);
+         System.out.println("Consumed: " + i);
+         taskQueue.notifyAll();
+      }
+   }
+}
+```
+
+
+- Here “`consume()`” code has been written inside infinite loop so that consumer keeps consuming elements whenever it finds something in taskQueue.
+- Once the `wait()` is over, consumer removes an element in taskQueue and called `notifyAll()` method. Because the last-time wait() method was called by producer thread (that’s why producer is in waiting state), producer gets the notification.
+- Producer thread after getting notification, if ready to produce the element as per written logic.
+
+**Test**
+
+```java
+public class ProducerConsumerExampleWithWaitAndNotify
+{
+   public static void main(String[] args)
+   {
+      List<Integer> taskQueue = new ArrayList<Integer>();
+      int MAX_CAPACITY = 5;
+      Thread tProducer = new Thread(new Producer(taskQueue, MAX_CAPACITY), "Producer");
+      Thread tConsumer = new Thread(new Consumer(taskQueue), "Consumer");
+      tProducer.start();
+      tConsumer.start();
+   }
+}
+```
+
+```shell
+Produced: 0
+Consumed: 0
+Queue is empty Consumer is waiting , size: 0
+Produced: 1
+Produced: 2
+Consumed: 1
+Consumed: 2
+Queue is empty Consumer is waiting , size: 0
+Produced: 3
+Produced: 4
+Consumed: 3
+Produced: 5
+Consumed: 4
+Produced: 6
+Consumed: 5
+Consumed: 6
+Queue is empty Consumer is waiting , size: 0
+Produced: 7
+Consumed: 7
+Queue is empty Consumer is waiting , size: 0
+```
+
+###  Difference between ``sleep()`` and ``wait()``
+
+#### Method called on
+
+- `wait()` – Call on an object; current thread must synchronize on the lock object.
+- `sleep()` – Call on a Thread; always currently executing thread.
+
+####  Synchronized
+
+- `wait()` – when synchronized multiple threads access same Object one by one.
+- `sleep()` – when synchronized multiple threads wait for sleep over of sleeping thread.
+
+####  Lock Duration
+
+- `wait()` – release the lock for other objects to have chance to execute.
+- `sleep()` – keep lock for at least t times if timeout specified or somebody interrupt.
+
+#### Wake up condition
+
+- `wait()` – until call notify(), notifyAll() from object
+- `sleep()` – until at least time expire or call interrupt().
+
+#### Usage
+
+- `sleep()` – for time-synchronization
+- `wait()` – for multi-thread-synchronization.
+
+## ThreadLocal Variables
+
+one of the most critical aspects of a concurrent application is shared data. When you create thread that implements the `Runnable` interface and then start various `Thread` objects using the same `Runnable` object, all the threads share the same attributes that are defined inside the runnable object. This essentially means that if you change any attribute in a thread, all the threads will be affected by this change and will see the modified value by first thread. Sometimes it is desired behavior e.g. multiple threads increasing / decreasing the same counter variable; but sometimes you want to ensure that every thread MUST work on it’s own copy of thread instance and does not affect others data.
+
+###  When to use ThreadLocal?
+
+1. **Thread Isolation is Required**: If you have data that needs to be isolated on a per-thread basis and you don't want different threads to interfere with each other's data.
+    
+2. **Avoid Passing Context Explicitly**: Instead of passing context data explicitly through method parameters or through other means, `ThreadLocal` allows you to access the data directly within the thread's execution context.
+    
+3. **Concurrency without Shared State**: When you want to achieve concurrency without the need for shared state management or synchronization mechanisms between threads.
+
+### ThreadLocal Class
+
+```java
+public class ThreadLocal<T> extends Object {...}
+```
+
+`ThreadLocal` instances are typically **_private static_** fields in classes that wish to associate state with a thread (e.g., a user ID or Transaction ID).
+
+This class has following methods:
+
+1. **``get()``** : Returns the value in the current thread’s copy of this thread-local variable.
+2. **``initialValue()``** : Returns the current thread’s “initial value” for this thread-local variable.
+3. **``remove()``** : Removes the current thread’s value for this thread-local variable.
+4. **``set(T value)``** : Sets the current thread’s copy of this thread-local variable to the specified value.
+
+**EXAMPLE**
+
+```java
+class DemoTask implements Runnable
+{
+   // Atomic integer containing the next thread ID to be assigned
+   private static final AtomicInteger        nextId   = new AtomicInteger(0);
+    
+   // Thread local variable containing each thread's ID
+   private static final ThreadLocal<Integer> threadId = new ThreadLocal<Integer>()
+                                                         {
+                                                            @Override
+                                                            protected Integer initialValue()
+                                                            {
+                                                               return nextId.getAndIncrement();
+                                                            }
+                                                         };
+ 
+   // Returns the current thread's unique ID, assigning it if necessary
+   public int getThreadId()
+   {
+      return threadId.get();
+   }
+   // Returns the current thread's starting timestamp
+   private static final ThreadLocal<Date> startDate = new ThreadLocal<Date>()
+                                                 {
+                                                    protected Date initialValue()
+                                                    {
+                                                       return new Date();
+                                                    }
+                                                 };
+ 
+   
+ 
+   @Override
+   public void run()
+   {
+      System.out.printf("Starting Thread: %s : %s\n", getThreadId(), startDate.get());
+      try
+      {
+         TimeUnit.SECONDS.sleep((int) Math.rint(Math.random() * 10));
+      } catch (InterruptedException e)
+      {
+         e.printStackTrace();
+      }
+      System.out.printf("Thread Finished: %s : %s\n", getThreadId(), startDate.get());
+   }
+}
+```
+
+```shell
+Starting Thread: 0 : Wed Dec 24 15:04:40 IST 2014
+Thread Finished: 0 : Wed Dec 24 15:04:40 IST 2014
+ 
+Starting Thread: 1 : Wed Dec 24 15:04:42 IST 2014
+Thread Finished: 1 : Wed Dec 24 15:04:42 IST 2014
+ 
+Starting Thread: 2 : Wed Dec 24 15:04:44 IST 2014
+Thread Finished: 2 : Wed Dec 24 15:04:44 IST 2014
+```
+
+> **Most common use of thread local is when you have some object that is not thread-safe, but you want to avoid synchronizing access to that object using synchronized keyword/block. Instead, give each thread its own instance of the object to work with.**  
+>**A good alternative to synchronization or threadlocal is to make the variable a local variable. Local variables are always thread safe. The only thing which may prevent you to do this is your application design constraints.**
+
+##  Executor Framework
+
+The Executor Framework is a powerful and flexible tool for managing and executing tasks in Java applications. **_It provides a way to separate the task execution logic from the application code, allowing developers to focus on business logic rather than thread management._**
+
+![[Pasted image 20240229132328.png]]
+
+The framework includes several key components, including the `Executor`, `ExecutorService`, `ScheduledExecutorService`, and `ThreadPoolExecutor`.
+
+==**_The Executor Framework is particularly useful for managing concurrent tasks in applications with a large number of threads or high levels of concurrency._**== It is widely used in applications such as web servers, where multiple requests must be processed simultaneously.
+
+==**_By providing a simple and efficient way to manage task execution,_**== ==**_the Executor Framework can help developers improve the_**== ==**performance** and  **_scalability_** of their applications while minimizing the risk of threading errors and other concurrency issues._**==
+
+### Benefits of Executor Framework
+
+- The framework mainly separates task creation and execution. Task creation is mainly boilerplate code and is easily replaceable.
+- With an executor, we have to create tasks that implement either Runnable or Callable interface and send them to the executor.
+- Executor internally maintains a (configurable) thread pool to improve application performance by avoiding the continuous spawning of threads.
+- Executor is responsible for executing the tasks, and running them with the necessary threads from the pool.
+
+### `Executor`:
+
+This interface provides a way to execute submitted `Runnable` tasks.
+
+> ==An Executor is normally used instead of explicitly creating threads.==
+
+rather than invoking `new Thread(new RunnableTask()).start()` for each task of a set of tasks
+
+```java
+Executor executor = new ThreadPoolExecutor(1, 10,  0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());  
+executor.execute(runnableTask);
+```
+
+`execute()`: This execute() method executes the given `Runnable` task at some time in the future. The command(task) may execute in a new thread, from the pooled thread, or in the calling thread, at the discretion of the `Executor` implementation (e.g. `ThreadPoolExecutor`).
+
+#### Types of executor
+
+- **Single thread Executor**
+
+	The ``SingleThreadExecutor`` is a special type of executor that has only a single thread. It is used when we need to execute tasks in sequential order.
+
+	`ExecutorService executor = Executors.newSingleThreadExecutor()`
+
+- **Fixed thread pool**
+
+	FixedThreadPool is another special type of executor that is a thread pool having a fixed number of threads. By this executor, the submitted task is executed by the n thread.  
+	The tasks are then stored in **LinkedBlockingQueue** until previous tasks are not completed.
+	
+	`ExecutorService executor = Executors.newFixedThreadPool(4);`
+
+**CSD EXAMPLE**
+
+```java
+public class StringGenerator {  
+    private final List<String> m_list;  
+    private final int m_count;  
+    private final int m_nThreads;  
+    private final RandomGenerator m_randomGenerator;  
+    private final ExecutorService m_threadPool;  
+  
+    private void generateCallback()  
+    {  
+        var self = Thread.currentThread();  
+  
+        for (var i = 0; i < m_count; ++i)  
+            synchronized (this) {  
+                m_list.add(String.format("%s:%s", self.getName(), StringUtil.getRandomTextEN(m_randomGenerator, m_randomGenerator.nextInt(5, 15))));  
+                m_list.add(String.format("%s:%s", self.getName(), StringUtil.getRandomTextEN(m_randomGenerator, m_randomGenerator.nextInt(1, 15))));  
+            }  
+    }  
+  
+    public StringGenerator(List<String> list, int count, int nThreads, RandomGenerator randomGenerator)  
+    {  
+        m_list = list;  
+        m_count = count;  
+        m_randomGenerator = randomGenerator;  
+        m_nThreads = nThreads;  
+        m_threadPool = Executors.newFixedThreadPool(m_nThreads);  
+    }  
+  
+    public int size()  
+    {  
+        return m_list.size();  
+    }  
+  
+    public void run()  
+    {  
+        Future<?> [] futures = new Future[m_nThreads];  
+  
+        for (var i = 0; i < m_nThreads; ++i)  
+            futures[i] = m_threadPool.submit(this::generateCallback);  
+  
+        for (var future : futures)  
+            try {  
+                future.get();  
+            }  
+            catch (ExecutionException | InterruptedException ignore) {  
+  
+            }  
+  
+        for (var str : m_list)  
+            Console.writeLine(str);  
+  
+        m_threadPool.shutdown();  
+    }  
+}
+```
+
+- **Cached thread pool**
+
+	The ``CachedThreadPool`` is a special type of thread pool that is used to execute short-lived parallel tasks. The cached thread pool doesn't have a fixed number of threads. When a new task comes at a time and all the threads are busy executing some other tasks, a new thread is created by the pool and added to the executor.
+	
+	`ExecutorService executor = Executors.newCachedThreadPool();`
+
+**CSD EXAMPLE**
+
+```java
+public class StringGenerator {  
+    private final List<String> m_list;  
+  
+    private final int m_min;  
+    private final int m_bound;  
+    private final int m_count;  
+  
+    private final RandomGenerator m_randomGenerator;  
+    private final ExecutorService m_threadPool;  
+  
+    private void generateCallback()  
+    {  
+        var self = Thread.currentThread();  
+  
+        for (var i = 0; i < m_count; ++i)  
+            synchronized (this) {  
+                m_list.add(String.format("%s:%s", self.getName(), StringUtil.getRandomTextEN(m_randomGenerator, m_randomGenerator.nextInt(5, 15))));  
+                m_list.add(String.format("%s:%s", self.getName(), StringUtil.getRandomTextEN(m_randomGenerator, m_randomGenerator.nextInt(1, 15))));  
+            }  
+    }  
+  
+    public StringGenerator(List<String> list, int min, int bound, int count, RandomGenerator randomGenerator)  
+    {  
+        m_list = list;  
+        m_min = min;  
+        m_bound = bound;  
+        m_count = count;  
+        m_randomGenerator = randomGenerator;  
+        m_threadPool = Executors.newCachedThreadPool();  
+    }  
+  
+    public int size()  
+    {  
+        return m_list.size();  
+    }  
+  
+    public void run()  
+    {  
+        Future<?> [] futures = new Future[m_randomGenerator.nextInt(m_min, m_bound)];  
+  
+        Console.writeLine("Number of threads needed:%s", futures.length);  
+  
+        for (var i = 0; i < futures.length; ++i)  
+            futures[i] = m_threadPool.submit(this::generateCallback);  
+  
+        m_threadPool.shutdown();  
+  
+        for (var future : futures)  
+            try {  
+                future.get();  
+            }  
+            catch (ExecutionException | InterruptedException ignore) {  
+  
+            }  
+  
+        for (var str : m_list)  
+            Console.writeLine(str);  
+    }  
+}
+```
+
+- **Scheduled executor service**
+
+	The ``ScheduledExecutorService`` interface runs tasks after some predefined delay and/or periodically.
+	
+	`ScheduledExecutorService scheduledExecService = Executors.newScheduledThreadPool(1);   `  
+	The **``scheduleAtFixedRate``** and **``scheduleWithFixedDelay``** are the two methods that are used to schedule the task in ``ScheduledExecutor``.  
+	The **``scheduleAtFixedRate``** method executes the task with a fixed interval when the previous task ended.  
+	The **``scheduleWithFixedDelay``** method starts the delay count after the current task is complete.  
+	The main difference between these two methods is their interpretation of the delay between successive executions of a scheduled job.
+	
+```java
+	scheduledExecService.scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit)   `
+	
+	scheduledExecService.scheduleWithFixedDelay(Runnable command, long initialDelay, long period, TimeUnit unit)
+```
+
+**CSD EXAMPLE**
+
+```java
+public class DigitalClock {  
+    private final DateTimeFormatter m_formatter;  
+    private final ScheduledExecutorService m_scheduledExecutorService;  
+    private final int m_timeoutValue;  
+    private final TimeUnit m_timeUnit;  
+  
+    public DigitalClock(int timeoutValue, TimeUnit timeUnit)  
+    {  
+        m_formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH.mm.ss");  
+        m_scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();  
+        m_timeoutValue = timeoutValue;  
+        m_timeUnit = timeUnit;  
+    }  
+  
+    public void run()  
+    {  
+        Console.writeLine("%s", m_formatter.format(LocalDateTime.now()));  
+        var future = m_scheduledExecutorService.schedule(() -> Console.writeLine("%s", m_formatter.format(LocalDateTime.now())), m_timeoutValue, m_timeUnit);  
+  
+        try {  
+            future.get();  
+        }  
+        catch (ExecutionException | InterruptedException ignore){  
+  
+        }  
+  
+        m_scheduledExecutorService.shutdown();  
+    }
+```
+
+### ``ExecutorService``:
+
+An `ExecutorService` provides methods to manage termination and methods that can produce a `Future` for tracking the progress of one or more asynchronous tasks.  
+An ``ExecutorService`` can be shut down, which will cause it to reject new tasks.
+
+> ==**`ExecutorService`**== ==**_is an extended version of_**== ==**_Executor_**== ==**_with more methods and features._**==
+
+1. _When an_ `ExecutorService` _is terminated then it has no tasks actively executing, no tasks waiting for execution, and no new tasks can be submitted._
+2. _Hence an unused_ `ExecutorService` _should be shut down to allow the reclamation of its resources._
+
+#### ``ExecutorService`` Methods
+
+1. **``submit()``**: this method accepts a ==**runnable**== or ==**callable**== ==task== and returns a **`Future`**_that can be used to wait for completion and/or to cancel execution._
+
+2. **``invokeAny()``**: this method accepts a collection of callable tasks and returns a result if any tasks are successful.
+
+3. **``invokeAll()``**: this method accepts a collection of callable tasks and returns a List of Future, which will hold the result returned by each task when the asynchronous tasks are completed.
+
+4. `shutdown()` and `shutdownNow()`:
+
+	The `shutdown()` method of `ExecutorService` will allow previously submitted tasks to execute before terminating the ExecutorService and performing memory clean-up, whereas the `shutdownNow()` method prevents waiting for tasks from starting and attempts to stop currently executing tasks.
+	
+	This `shutdownNow()` returns a list of tasks that are waiting to be processed. It is up to the developer to decide what to do with these tasks.
+
+
+
+```java
+//Create executorService using ThreadPoolExecutor implementation of  
+//ExecutorService.  
+  
+ExecutorService executorService = new ThreadPoolExecutor(1, 5, 0L,  
+TimeUnit.MILLISECONDS,  
+new LinkedBlockingQueue<Runnable>());  
+//Create callable tasks using lambda implementation of call method of  
+//Callable Interface  
+  
+Callable<String> callableTask = () -> {  
+System.out.println("Call method called.");  
+TimeUnit.MILLISECONDS.sleep(2000);  
+return "Task execution in call method";  
+};  
+  
+//submit single callable task to executorService, that is returning a Future  
+Future<String> future = executorService.submit(callableTask);  
+System.out.println(future.get());  
+  
+//Create list of callable tasks  
+List<Callable<String>> callableTasks = new ArrayList<>();  
+callableTasks.add(callableTask);  
+callableTasks.add(callableTask);  
+callableTasks.add(callableTask);  
+  
+//submit the list of callable tasks to invokeAny method that returns a result.  
+String result = executorService.invokeAny(callableTasks);  
+System.out.println(result);  
+  
+//submit the list of callable tasks to invokeAll method that returns a list  
+// of futures representing results of asynchronous tasks.  
+List<Future<String>> futures = executorService.invokeAll(callableTasks);  
+  
+//shutdown the executorService after completing all tasks to reclaim memory.  
+executorService.shutdown();
+```
+
+##### What is ``ThreadPoolExecutor``?`
+
+The **``ThreadPoolExecutor``** is an implementation of **``ExecutorService``** and provides a pool of threads that execute the **_runnable_** _or_ **_callable tasks_**.
+
+```java
+ExecutorService executorService = new ThreadPoolExecutor(1, 5, 0L,  
+TimeUnit.MILLISECONDS,  
+new LinkedBlockingQueue<Runnable>());
+```
+`corePoolSize` — the number of threads to keep in the pool, even if they are idle unless allowCoreThreadTimeOut is set.
+
+`maximumPoolSize` — the maximum number of threads to allow in the pool.
+
+`keepAliveTime` — when the number of threads is greater than the core, this is the maximum time that excess idle threads will wait for new tasks before terminating.
+
+`unit` — the time unit for the keepAliveTime argument.
+
+`workQueue` — the queue to use for holding tasks before they are executed. This queue will hold only the Runnable tasks submitted by the execute.
+
+**the above code can be replaced by a factory method of the Executors class:**
+
+```java
+ExecutorService executorService = Executors.newFixedThreadPool(10);
+```
+
+The advantages of using Thread pools are that it addresses two different problems:
+
+- They usually provide improved performance when executing large numbers of asynchronous tasks, due to reduced per-task invocation overhead.
+- The `ThreadPoolExecutor` provides an efficient way of managing threads and resources associated with it while executing a huge number of async tasks.
+
+## The Future Interface
+
+The `Future` interface is an interface that represents a result that will eventually be returned in the future. We can check if a `Future` has been fed the result, if it's awaiting a result or if it has failed before we try to access it
+
+```java
+public interface Future<V> {
+    V get() throws InterruptedException, ExecutionException;
+    V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException;
+    boolean isCancelled();
+    boolean isDone();
+    boolean cancel(boolean mayInterruptIfRunning)
+}
+```
+
+The `get()` method retrieves the result. If the result has not yet been returned into a `Future` instance, the `get()` method _will wait_ for the result to be returned. It's _crucial_ to note that `get()` will block your application if you call it before the result has been returned.
+
+also specify a `timeout` after which the `get()` method will throw an exception if the result hasn't yet been returned, preventing huge bottlenecks.
+
+The `cancel()` method attempts to cancel the execution of the current task. The attempt will fail if the task has already completed, has been canceled, or could not be canceled because of some other reasons.
+
+The `isDone()` and `isCancelled()` methods are dedicated to finding out the current status of an associated `Callable` task.
+
+**CSD EXAMPLE**
+
+```java
+class Application {  
+    private static void doCalculate(int nThreads, int count, int min, int bound)  
+    {  
+            var threadPool = Executors.newFixedThreadPool(nThreads);  
+            var futures = new ArrayList<Future<Long>>(nThreads);  
+            var threadParams = new ThreadParam[nThreads];  
+  
+            for (var i = 0; i < nThreads; ++i) {  
+                int idx = i;  
+  
+                threadParams[idx] = new ThreadParam(count, min, bound);  
+                futures.add(threadPool.submit(() -> generateAndFindTotalThreadCallback(threadParams[idx])));  
+            }  
+  
+            try {  
+                for (var future : futures)  
+                    Console.writeLine("Result:%d", future.get());  
+            }  
+            catch (ExecutionException ex) {  
+                Console.Error.writeLine("Error Message:%s", ex.getMessage());  
+            }  
+            catch (InterruptedException ignore) {  
+  
+            }  
+  
+            threadPool.shutdown();  
+    }  
+  
+    private static long generateAndFindTotalThreadCallback(ThreadParam param)  
+    {  
+        var random = new Random();  
+        var count = param.getCount();  
+        var min = param.getMin();  
+        var bound = param.getBound();  
+        var total = 0L;  
+  
+        for (var i = 0; i < count; ++i) {  
+            var val = random.nextInt(min, bound);  
+  
+            //Console.writeLine("%s:%d", self.getName(), val);  
+            total += val;  
+        }  
+  
+        return total;  
+    }  
+  
+    public static void run(String[] args)  
+    {  
+        if (args.length != 4) {  
+            Console.Error.writeLine("Wrong number of arguments!...");  
+            System.exit(1);  
+        }  
+  
+        try {  
+            doCalculate(parseInt(args[0]), parseInt(args[1]), parseInt(args[2]), parseInt(args[3]));  
+        }  
+        catch (NumberFormatException ignore) {  
+            Console.writeLine("Invalid arguments!...");  
+        }  
+    }  
+}
+```
+
+### Limitations of the Future
+
+- `Future`s can not be explicitly completed (setting its value and status).
+- It doesn't have a mechanism to create stages of processing that are chained together.
+- There is no mechanism to run `Future`s in parallel and after to combine their results together.
+- The `Future` does not have any exception handling constructs.
+
+ Java provides concrete Future implementations that provide these features (`CompletableFuture`, `CountedCompleter`, `ForkJoinTask, FutureTask`).
+
