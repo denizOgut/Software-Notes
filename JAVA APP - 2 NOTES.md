@@ -1293,7 +1293,7 @@ Queue is Full
 
 The backbone of **java concurrency** is threading. A thread is a lightweight process that has its own call stack but can access shared data of other threads in the same process. A Java application runs by default in one process.
 
-##  Thread Safety
+## Thread Safety
 
 Thread safety is the concept of correctness. 
 
@@ -4090,4 +4090,42 @@ class Application {
 - The `Future` does not have any exception handling constructs.
 
  Java provides concrete Future implementations that provide these features (`CompletableFuture`, `CountedCompleter`, `ForkJoinTask, FutureTask`).
+
+
+
+# SOCKET PROGRAMMING
+
+## Interprocess Communication
+
+In modern systems, direct communication between processes is not inherently possible. In this sense, processes operate in an isolated manner from each other. One process cannot directly access the memory area of another process. However, in certain situations, communication between processes may be necessary. This type of communication between processes is referred to as ***Inter-Process Communication (IPC)*** in operating system terminology.
+
+IPC generally can be divided into two main categories:
+
+- Communication Between Processes of the Same Machine
+- Communication Between Processes of Different Machines
+
+### Communication Between Processes of the Same Machine
+
+The communication techniques between processes on the same machine vary in operating systems. For example, in Unix/Linux and MacOS X systems, pipes (pipe and fifo), message queues, and shared memory areas (shared memory) are typical communication techniques. In addition to these, there are other communication techniques.
+
+Although Android systems are developed on the embedded Linux kernel, applications developed with the Android SDK (Software Development Kit) cannot directly use these techniques. To utilize these techniques in Android applications, development must be done using the NDK (Native Development Kit). So, how will two Android applications (processes) communicate with each other? For this purpose, there are some techniques provided by the Android SDK. For example, Messenger and AIDL (Android Interface Definition Language) services are used in this context. These are briefly referred to as ***Binder*** and ***Remote Services.*** In addition to these, there are also some methods that can be indirectly used for communication.
+
+### Communication Between Processes of Different Machines
+
+Different machines may be connected to each other within a network. We may want a program running on one machine to send and receive information to and from a process on another machine connected to the network. In such communication, various actors beyond the operating system would come into play. For instance, hardware components up to the hub used in the cabling system would be involved. Moreover, in such communications, even the operating systems can be different from each other. In heterogeneous environments like these, predefined rules are necessary for the healthy execution of communication.
+
+For example, what are the cable standards and connectors? What will be the characteristics of the network card? How will information be segmented into packets and transmitted? How will machines distinguish themselves from each other, and so on? All of these specifications are referred to as ***protocol***.
+
+Just like functions become capable of performing higher-level tasks by calling each other, protocols are also constructed by stacking layers on top of each other. Each upper protocol defines only its own requirements with the assumption that the lower layers are already in place. There are many benefits to such a layered design. For example, higher-level protocols do not contain details, and they are less affected by changes in lower-level protocols. This is how many protocol families are created for communication between different machines. Examples include AppleTalk, NETBIOS, and so on.
+
+The IEEE has published a document named ***OSI (Open System Interconnection)*** outlining how protocol layers should be created for computer communication under the network category. This document is known as the OSI model. The OSI model is not a protocol family but serves as a guide for creating protocol families. OSI consists of a total of 7 layers:
+
+![[Pasted image 20240229143026.png]]
+
+At the lowest layer of OSI is the ***Physical Layer***, where the communication medium is defined. This includes specifications for cables, connectors, voltage levels, etc. Above this is the **Data Link Layer**, which includes determinations related to network cards, physical addressing, and so on. For example, the Ethernet Protocol, which is a protocol for Ethernet cards, is a Data Link Layer Protocol. The '***Network Layer***' is one of the most important layers where logical addressing is defined, and the segmentation and transmission of information into packets are defined. For example, the IP Protocol of the IP protocol family is associated with the Network layer according to OSI. In the Network layer, there are also routing determinations for internetworking. Above the Network layer is the ***Transport Layer***, where specifications include packet numbering, defining logical port addresses, and provisions for compensating for errors. For instance, the TCP and UDP protocols in the IP protocol family are protocols associated with the Transport Layer. The ***Session Layer*** is not present in many families. Here, there are determinations for establishing the necessary sessions for communication, such as permissions and authentication. Above this is the ***Presentation Layer***, where specifications for compressing, decompressing, encrypting, etc., the information sent and received are found. The IP protocol family does not have a Presentation Layer. Finally, at the top is the ***Application Layer***, which contains specifications that software created to achieve a specific purpose will use. For example, POP3 used for email and FTP used for file transfer are Application Layer Protocols.
+
+
+The name ***Internet*** is derived from the word ***internetworking***. Internetworking is formed by connecting local networks to each other through devices called routers. Internetworking is a fundamental term, and the name of the IP protocol family comes from this concept. Today, when we say ***Internet***, the massive network that has evolved from ARPANET comes to mind. (When writing '***Internet***' with an uppercase 'I' or ***The Internet***, this network is understood.) Undoubtedly, with the existing protocols, anyone can establish their own internet. For example, we can create a separate Internet world with a few friends. In fact, some countries have their own unique internets in this way.
+
+## IP Protocol Family
 
