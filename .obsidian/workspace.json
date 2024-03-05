@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "253a2a1afbcf9bca",
+        "id": "d3cd7511d5d407eb",
         "type": "tabs",
         "children": [
           {
-            "id": "00ba01f7c395d1ca",
+            "id": "9c63162abc7024fe",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -147,20 +147,20 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "00ba01f7c395d1ca",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
+    "JAVA APP Screen Shoots/Pasted image 20240305084207.png",
+    "JAVA APP Screen Shoots/Pasted image 20240305080611.png",
+    "JAVA APP - 2 NOTES.md",
+    "JAVA APP Screen Shoots/Pasted image 20240305081458.png",
+    "JAVA APP Screen Shoots/Pasted image 20240305073900.png",
     "JAVA APP Screen Shoots/Pasted image 20240229143026.png",
     "JAVA APP Screen Shoots/Pasted image 20240229132328.png",
     "JAVA APP Screen Shoots/Pasted image 20240227142333.png",
     "Pasted image 20240227142218.png",
-    "JAVA APP - 2 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240227125528.png",
     "JAVA APP Screen Shoots/Pasted image 20240227125046.png",
     "JAVA APP Screen Shoots/Pasted image 20240227095944.png",
-    "JAVA APP Screen Shoots/Pasted image 20240222212605.png",
-    "JAVA APP Screen Shoots/Pasted image 20240222212116.png",
-    "JAVA APP Screen Shoots/Pasted image 20240221222130.png",
-    "JAVA APP Screen Shoots/Pasted image 20240221124553.png",
     "Golang Notes.md",
     "100 Go Mistakes and How to Avoid Them.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",

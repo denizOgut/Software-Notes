@@ -4129,3 +4129,74 @@ The name ***Internet*** is derived from the word ***internetworking***. Internet
 
 ## IP Protocol Family
 
+IP is an open protocol family. Here, 'open' means it is managed by an independent consortium where no company owns it. Additionally, documents are shared openly, and anyone interested can make suggestions.
+
+The IP protocol was designed by Vint Cerf and Bob Kahn in 1974, initially as TCP and later in the form of IP. Subsequently, other members joined the family. The first significant implementation was done on ***BSD*** systems. Its popularity greatly increased in 1983 when ARPANET transitioned to the IP family.
+
+The fundamental protocols of the IP protocol family consist of four layers.
+
+![[Pasted image 20240305073900.png]]
+
+The most crucial base protocol of the family is the ***IP (Internetworking Protocol)***. In fact, it is this protocol that gives the family its name. The IP protocol is a ***packet-switching protocol***, meaning information is segmented into packets for transmission and reception. In the IP protocol, addressing is logical rather than physical. In the IP protocol family, each unit connected to the network is called a 'host.' In the IP protocol, each host has a logical address called an '***IP address***' associated with its name.
+
+A logical address implies that it is assigned not in terms of hardware but through software, meaning it is not determined by hardware but by the software. However, for example, the ***MAC*** address used by the Ethernet protocol is a physical address. A physical address is one that is hardware-based, either physically embedded on the card or detected and processed by the hardware itself. Therefore, logical addresses are dynamic, while physical addresses are static. Logical addresses are assigned to us when we join a network. Of course, we can also insist on being assigned a specific address.
+
+The IP protocol also has versions. Currently, the predominantly used version is IPV4. However, IPV6 has slowly become more widespread. In IPV4, IP addresses are 4 bytes long. In contrast, in IPV6, IP addresses are 16 bytes long. The 4-byte IP addresses are now inadequate for current needs.
+
+Today, in our computers, ***Ethernet and Wireless Protocols*** are used as the physical and data link layers. The Ethernet protocol requires an Ethernet card. This card is used to physically send and receive information from our computer. The Ethernet protocol is also a packet-switching protocol, meaning information is sent and received in packets. Packet switching enables efficient use of the communication line. We can create a local area network (LAN) by connecting Ethernet cards with a hub. The networks in our homes today are local networks. Devices called '***routers***' are used to connect local networks to each other. An Ethernet card (i.e., network card) is used for packet communication between computers on the same network. However, a router is used for packet communication between different networks. Today, modems like ADSL in our homes also serve as routers. 
+
+![[Pasted image 20240305080611.png]]
+
+
+In our home, the local network connects to the massive network called the Internet through a router, acting like a single host. Therefore, we have only one IP address that will be used externally for the Internet (assuming we have a single router and connection). Our local network in our home is a separate IP network, essentially a separate world. If we wish, we can run all Internet applications (i.e., IP protocol applications) on our local network without accessing the Internet at all. This is commonly referred to as an '***Intranet***.' In this case, a computer in our home has a local IP address, and our router has a public IP address seen from the Internet. The router distributes incoming packets from the outside world to the appropriate computer in the local network. It also sends local network packets to the outside world if they are destined for external addresses. When we send information from one host to another in our local network, the router is not involved.
+
+In the IP protocol, a sent packet has an 'IP header' at the beginning, which contains metadata information about the packet. For example, details such as which IP address the packet is sent to, checksum information, which IP version is used, etc. In practice (although not mandatory), since the information is ultimately sent and received with an Ethernet card, the IP packet is encoded in the data section of the Ethernet protocol's ethernet packet. The Ethernet protocol also has a separate header section.
+
+![[Pasted image 20240305081458.png]]
+
+Can information consisting of multiple packets be sent with the IP protocol? Yes, but for this, we need to create a sort of separate protocol by assigning numbers to the packets. In fact, the TCP protocol is a similar protocol to achieve this
+
+- ***TCP (Transmission Control Protocol)*** is a reliable protocol, meaning it compensates for the breakdown of communication on the way and ensures the proper transfer of packets. This is because TCP includes ***flow control***, allowing the sender and receiver to mutually address and compensate for any misbehaving packets. TCP is a ***stream-oriented*** protocol, meaning it can resume reading byte by byte from where it left off. With TCP, larger pieces of information can be sent and received. In this case, TCP divides the information into IP packets, assigns numbers to them, and ensures their secure delivery to the other side. The receiving end can then retrieve the information byte by byte, as if reading from a pipe.
+
+- ***UDP (User Datagram Protocol)*** provides unreliable ***packet-based communication***. In UDP, information is sent and received in independent packets, similar to IP. In UDP, a packet is either received or not, and reading byte by byte is not possible. There is no feedback regarding whether the packet has been received. Of course, due to this feature, UDP is faster. UDP is especially preferred for periodic data transmissions, television broadcasting, and similar processes.
+
+- TCP is a ***connection-oriented protocol***, while UDP is ***connectionless***. A connection-oriented protocol means that the two parties must establish a connection before communicating and get to know each other for mutual conversation. TCP typically implies a ***client-server*** style of operation. In client-server communication, one side becomes the client, and the other side becomes the server. The client side connects to the server side, and communication takes place afterward.
+
+| Protocol | Connection Type | Data Type         | Reliability  | Speed     |
+|----------|------------------|-------------------|--------------|-----------|
+| TCP      | Connection-oriented | Stream-based    | Reliable     | Slow      |
+| UDP      | Connectionless     | Datagram-based  | Unreliable   | Fast      |
+
+In TCP and UDP, the concept of a **port number** is also involved. Port numbers are designed to differentiate applications on the same host, analogous to internal phone numbers within a company. In TCP and UDP protocols, knowing only the IP address of the host is not sufficient to send information. It is also necessary to know which port the application on that host is associated with. Typically, the representation includes the IP address and port number separated by a ':' character, like "ip:port".
+
+In IPV4, there are a total of 65536 port numbers (meaning two bytes are allocated for the port number). In IPV6, port numbers are 4 bytes long. The first 1024 port numbers in IPV4 are reserved for Internet's own application protocols, known as **"well-known"** ports. For example, FTP uses port 21, SSH uses port 22, Telnet uses port 23, and HTTP uses port 80. If you are assigning a port number for your own applications, it is recommended not to use the first 1024 ports.
+
+## **Client-Server Model**
+
+As mentioned above, the TCP type operates as a client-server model. In the Client-Server model, there are two separate programs called client and server. The main task is performed by the server program. The client only makes requests. The server does the work and sends the results to the client. Depending on how it is written, a server can serve multiple clients 'simultaneously.
+
+>**Key Notes**: If a server, while serving one client, cannot serve another client simultaneously, such servers are called "***single-client***" or "***iterative***" servers. On the contrary, if a client can receive services while another client's service is ongoing, such servers are called "**multi-client**" or "**concurrent**" servers.
+
+![[Pasted image 20240305084207.png]]
+
+In the Client-Server model, the client initially connects to the server. This concept is generally referred to as "handshaking." Communication begins afterward. Although Client-Server applications often evoke TCP, it is essentially a communication architecture. In other words, the use of the IP family is not necessary for client-server operation. This interaction, for example, can be achieved between processes on the same machine using pipes or message queues.
+
+**Advantages of the Client-Server model include:**
+
+1. The machine on which the server program runs can be powerful. We may want to leverage its capabilities. For example, performing a time-consuming task on a mobile device might be more convenient by using the mobile device as a client and having the server perform the main task.
+    
+2. The server program can facilitate resource sharing. For instance, a printer is connected to a single computer. Print programs on other computers act as clients, sending requests to the server machine where the printer is connected. The server performs the print operation for the client. Similarly, a server might be connected to a database, and clients can request data from it. For example, in bank ATMs, the database is not inside the ATM machine. The ATM program inside behaves like a client program.
+    
+3. The server program can facilitate collaboration among clients. It can mediate communication between them. For instance, in a chat program, clients don't need to know each other. Each client connects to the server, and the server facilitates communication between clients.
+    
+4. Client-Server operation can be encountered in distributed applications. This means we might want to perform specific parts of a task on different computers and then combine the results.
+
+### Socket Concept
+
+The communication between processes on different machines requires the support of protocols by the operating system. Nowadays, operating systems commonly support various protocols. Operating systems like Windows, Mac OS X, and Linux have long been supporting the IP protocol family. To enable the development of application programs using a specific protocol family on operating systems, there needs to be a library. This library is referred to as the '***socket library***.'
+
+Systems such as Windows, Mac OS X, and Linux support the socket library in a very similar manner. Originally designed for use with the C programming language, the socket library has served as the basis for creating similar libraries in many environments. In higher-level environments like Java, there are classes that facilitate writing code for socket operations independently of the underlying operating system.
+
+The socket library is not designed exclusively for the IP protocol family. Socket functions are common interfaces for many protocol families. It serves as a general interface that encompasses various protocols. Therefore, the parametric structures of functions tend to be a bit more complex
+
+The socket library was first implemented in 1983 on BSD systems. It was later applied to other systems. Microsoft's socket interface is derived from BSD sockets, and it is called the ***Winsock*** library. In Windows, there are two groups of socket APIs. The first one is entirely BSD-compatible APIs (where function names are the same as in BSD). The second group is Windows-specific socket APIs that start with WSA. If we use BSD-compatible socket functions on Windows, we can ensure compatibility with UNIX/Linux as well.
