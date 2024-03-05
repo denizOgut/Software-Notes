@@ -1,5 +1,7 @@
 # DATA STRUCTURES & ALGORITHMS
 
+## ALGORITHMS #CSD_NOTES
+
 A sequence of steps leading to the solution of a problem is referred to as an ***algorithm***. However, for some problems, finding an exact solution can be time-consuming. In such cases, settling for a good solution in a short amount of time may be sufficient. The set of steps that do not guarantee an exact solution but offer a promising approach is known as ***heuristic methods*** or simply ***heuristics.***
 
 Algorithm comparison involves two crucial criteria: 
@@ -96,8 +98,6 @@ Donald Knuth has classified algorithms in "The Art of Computer Programming" book
 - **Optimization Algorithms:** Algorithms attempting to find the mathematical best values.
     
 - **Numerical Algorithms:** Algorithms that focus on numerical operations such as finding roots, solving equations, derivatives, integrals, etc.
-
-## ALGORITHMS
 
 ### Recursion
 ---
@@ -4093,9 +4093,9 @@ class Application {
 
 
 
-# SOCKET PROGRAMMING
+# NETWORK PROGRAMMING
 
-## Interprocess Communication
+## Interprocess Communication #CSD_NOTES
 
 In modern systems, direct communication between processes is not inherently possible. In this sense, processes operate in an isolated manner from each other. One process cannot directly access the memory area of another process. However, in certain situations, communication between processes may be necessary. This type of communication between processes is referred to as ***Inter-Process Communication (IPC)*** in operating system terminology.
 
@@ -4200,3 +4200,220 @@ Systems such as Windows, Mac OS X, and Linux support the socket library in a ver
 The socket library is not designed exclusively for the IP protocol family. Socket functions are common interfaces for many protocol families. It serves as a general interface that encompasses various protocols. Therefore, the parametric structures of functions tend to be a bit more complex
 
 The socket library was first implemented in 1983 on BSD systems. It was later applied to other systems. Microsoft's socket interface is derived from BSD sockets, and it is called the ***Winsock*** library. In Windows, there are two groups of socket APIs. The first one is entirely BSD-compatible APIs (where function names are the same as in BSD). The second group is Windows-specific socket APIs that start with WSA. If we use BSD-compatible socket functions on Windows, we can ensure compatibility with UNIX/Linux as well.
+
+---
+
+## Java Networking
+
+All the Java program communications over the network are done at the application layer. The **java.net** package of the J2SE APIs comprises various classes and interfaces that execute the low-level communication features, enabling the user to formulate programs that focus on resolving the problem.
+
+### Common Network Protocols
+
+The **java.net** package of the Java programming language includes various classes and interfaces that provide an easy-to-use means to access network resources. Other than classes and interfaces, the **java.net** package also provides support for the two well-known network protocols.
+
+1. **Transmission Control Protocol (TCP) –** TCP or Transmission Control Protocol allows secure communication between different applications. TCP is a connection-oriented protocol which means that once a connection is established, data can be transmitted in two directions. This protocol is typically used over the Internet Protocol. Therefore, TCP is also referred to as TCP/IP. 
+
+
+
+2. **User Datagram Protocol (UDP) –** UDP or User Datagram Protocol is a connection-less protocol that allows data packets to be transmitted between different applications. UDP is a simpler Internet protocol in which error-checking and recovery services are not required. In UDP, there is no overhead for opening a connection, maintaining a connection, or terminating a connection. In UDP, the data is continuously sent to the recipient, whether they receive it or not.
+
+
+#### ***TCP (Transmission Control Protocol)***
+
+Transmission Control Protocol is a connection-oriented protocol for communications that helps in the exchange of messages between different devices over a network. The Internet Protocol (IP), which establishes the technique for sending data packets between computers, works with TCP.
+
+The position of TCP is at the transport layer of the OSI model. TCP also helps in ensuring that information is transmitted accurately by establishing a virtual connection between the sender and receiver.
+
+##### Internet Protocol (IP)?
+
+Internet Protocol is a method that is useful for sending data from one device to another from all over the internet. Every device contains a unique IP Address that helps it communicate and exchange data across other devices present on the internet.
+#####  Working of Transmission Control Protocol (TCP)
+
+To make sure that each message reaches its target location intact, the TCP/IP model breaks down the data into small bundles and afterward reassembles the bundles into the original message on the opposite end. Sending the information in little bundles of information makes it simpler to maintain efficiency as opposed to sending everything in one go.
+
+After a particular message is broken down into bundles, these bundles may travel along multiple routes if one route is jammed but the destination remains the same.
+
+![[Pasted image 20240305111127.png]]
+
+ the TCP breaks the data into small packets and forwards it toward the Internet Protocol (IP) layer. The packets are then sent to the destination through different routes.
+
+The TCP layer in the user’s system waits for the transmission to get finished and acknowledges once all packets have been received.
+
+##### Features of TCP
+
+- TCP keeps track of the segments being transmitted or received by assigning numbers to every single one of them.
+- Flow control limits the rate at which a sender transfers data. This is done to ensure reliable delivery.
+- TCP implements an error control mechanism for reliable data transfer.
+- TCP takes into account the level of congestion in the network.
+
+##### Advantages of TCP
+
+- It is reliable for maintaining a connection between Sender and Receiver.
+- It is responsible for sending data in a particular sequence.
+- Its operations are not dependent on OS.
+- It allows and supports many routing protocols.
+- It can reduce the speed of data based on the speed of the receiver.
+
+##### Disadvantages of TCP
+
+- It is slower than UDP and it takes more bandwidth.
+- Slower upon starting of transfer of a file.
+- Not suitable for LAN and PAN Networks.
+- It does not have a multicast or broadcast category.
+- It does not load the whole page if a single data of the page is missing.
+
+#### User Datagram Protocol (UDP)
+
+ it is an ***unreliable and connectionless protocol.*** So, there is no need to establish a connection before data transfer. The UDP helps to establish low-latency and loss-tolerating connections over the network. The UDP enables process-to-process communication.
+
+ For real-time services like computer gaming, voice or video communication, and live conferences; we need UDP. Since high performance is needed, UDP permits packets to be dropped instead of processing delayed packets. There is no error checking in UDP, so it also saves bandwidth.
+
+![[Pasted image 20240305112544.png]]
+
+##### ***UDP Header***
+
+UDP header is an ***8-byte*** fixed and simple header, while for TCP it may vary from 20 bytes to 60 bytes. The first 8 Bytes contain all necessary header information and the remaining part consists of data. UDP port number fields are each 16 bits long, therefore the range for port numbers is defined from 0 to 65535; port number 0 is reserved. Port numbers help to distinguish different user requests or processes.
+
+![[Pasted image 20240305113049.png]]
+
+1. ***Source Port:*** Source Port is a 2 Byte long field used to identify the port number of the source.
+2. ***Destination Port:*** It is a 2 Byte long field, used to identify the port of the destined packet.
+3. ***Length:*** Length is the length of UDP including the header and the data. It is a 16-bits field.
+4. ***Checksum:*** Checksum is 2 Bytes long field. It is the 16-bit one’s complement of the one’s complement sum of the UDP header, the pseudo-header of information from the IP header, and the data, padded with zero octets at the end (if necessary) to make a multiple of two octets.
+
+#### Features of UDP
+
+- Used for simple request-response communication when the size of data is less and hence there is lesser concern about flow and error control.
+- It is a suitable protocol for multicasting as UDP supports packet switching.
+- UDP is used for some routing update protocols like [RIP(Routing Information Protocol)](https://www.geeksforgeeks.org/routing-information-protocol-rip/).
+- Normally used for real-time applications which can not tolerate uneven delays between sections of a received message.
+
+#### Advantages of UDP
+
+- It does not require any connection for sending or receiving data.
+- Broadcast and Multicast are available in UDP.
+- UDP can operate on a large range of networks.
+- UDP has live and real-time data.
+- UDP can deliver data if all the components of the data are not complete.
+
+#### Disadvantages of UDP
+
+- We can not have any way to acknowledge the successful transfer of data.
+- UDP cannot have the mechanism to track the sequence of data.
+- UDP is connectionless, and due to this, it is unreliable to transfer data.
+- In case of a Collision, UDP packets are dropped by Routers in comparison to TCP.
+- UDP can drop packets in case of detection of errors.
+
+#### Differences between TCP and UDP
+
+|Where TCP is Used|Where UDP is Used|
+|---|---|
+|Sending Emails|Gaming|
+|Transferring Files|Video Streaming|
+|Web Browsing|Online Video Chats|
+
+|Basis|Transmission Control Protocol (TCP)|User Datagram Protocol (UDP)|
+|---|---|---|
+|Type of Service|[TCP](https://www.geeksforgeeks.org/what-is-transmission-control-protocol-tcp/) is a connection-oriented protocol. Connection <br><br>orientation means that the communicating devices should establish a connection before transmitting data and should close the connection after transmitting the data.|[UDP](https://www.geeksforgeeks.org/user-datagram-protocol-udp/) is the Datagram-oriented protocol. This is because <br><br>there is no overhead for opening a connection, maintaining a connection, or terminating a connection. UDP is efficient for broadcast and multicast types of network transmission.|
+|Reliability|TCP is reliable as it guarantees the delivery of data to the destination router.|The delivery of data to the destination cannot be guaranteed in UDP.|
+|Error checking mechanism|TCP provides extensive error-checking mechanisms. <br><br>It is because it provides flow control and acknowledgment of data.|UDP has only the basic error-checking mechanism using checksums.|
+|Acknowledgment|An acknowledgment segment is present.|No acknowledgment segment.|
+|Sequence|Sequencing of data is a feature of Transmission Control <br><br>Protocol (TCP). this means that packets arrive in order at the receiver.|There is no sequencing of data in UDP. If the order is required, it has to be managed by the application layer.|
+|Speed|TCP is comparatively slower than UDP.|UDP is faster, simpler, and more efficient than TCP.|
+|Retransmission|Retransmission of lost packets is possible in TCP, but not in UDP.|There is no retransmission of lost packets in the User Datagram Protocol (UDP).|
+|Header Length|TCP has a (20-60) bytes variable length header.|UDP has an 8 bytes fixed-length header.|
+|Weight|TCP is heavy-weight.|UDP is lightweight.|
+|Handshaking Techniques|Uses handshakes such as SYN, ACK, SYN-ACK|It’s a connectionless protocol i.e. No handshake|
+|Broadcasting|TCP doesn’t support Broadcasting.|UDP supports Broadcasting.|
+|Protocols|TCP is used by [HTTP, HTTPs](https://www.geeksforgeeks.org/difference-between-http-and-https-2/), [FTP](https://www.geeksforgeeks.org/file-transfer-protocol-ftp/), [SMTP](https://www.geeksforgeeks.org/simple-mail-transfer-protocol-smtp/) and [Telnet](https://www.geeksforgeeks.org/introduction-to-telnet/).|UDP is used by [DNS](https://www.geeksforgeeks.org/details-on-dns/), [DHCP](https://www.geeksforgeeks.org/dynamic-host-configuration-protocol-dhcp/), TFTP, [SNMP](https://www.geeksforgeeks.org/simple-network-management-protocol-snmp/), [RIP](https://www.geeksforgeeks.org/routing-information-protocol-rip/), and [VoIP](https://www.geeksforgeeks.org/voice-over-internet-protocol-voip/).|
+|Stream Type|The TCP connection is a byte stream.|UDP connection is a message stream.|
+|Overhead|Low but higher than UDP.|Very low.|
+|Applications|This protocol is primarily utilized in situations when a safe and trustworthy communication procedure is necessary, such as in email, on the web surfing, and in military services.|This protocol is used in situations where quick communication is necessary but where dependability is not a concern, such as VoIP, game streaming, video, and music streaming, etc.|
+
+###  Java Networking Terminology
+
+- **IP Address –** An IP address is a unique address that distinguishes a device on the internet or a local network. IP stands for “Internet Protocol.” It comprises a set of rules governing the format of data sent via the internet or local network. IP Address is referred to as a logical address that can be modified. It is composed of octets. The range of each octet varies from 0 to 255.
+
+	- Range of the IP Address – 0.0.0.0  to  255.255.255.255
+	- For Example – 192.168.0.1
+
+- **Port Number –** A port number is a method to recognize a particular process connecting internet or other network information when it reaches a server. The port number is used to identify different applications uniquely. The port number behaves as a communication endpoint among applications. The port number is correlated with the IP address for transmission and communication among two applications. There are 65,535 port numbers, but not all are used every day.
+
+- **Protocol –** A network protocol is an organized set of commands that define how data is transmitted between different devices in the same network. Network protocols are the reason through which a user can easily communicate with people all over the world and thus play a critical role in modern digital communications. For Example – TCP, FTP, POP, etc.
+
+- **MAC Address –** MAC address stands for Media Access Control address. It is a bizarre identifier that is allocated to a NIC (Network Interface Controller/ Card). It contains a 48 bit or 64-bit address, which is combined with the network adapter. MAC address can be in hexadecimal composition. In simple words, a MAC address is a unique number that is used to track a device in a network.
+
+- **Socket –** A socket is one endpoint of a two-way communication connection between the two applications running on the network. The socket mechanism presents a method of inter-process communication (IPC) by setting named contact points between which the communication occurs. A socket is tied to a port number so that the TCP layer can recognize the application to which the data is intended to be sent.
+
+ - **Connection-oriented and connection-less protocol –** In a connection-oriented service, the user must establish a connection before starting the communication. When the connection is established, the user can send the message or the information, and after this, they can release the connection. However, In connectionless protocol, the data is transported in one route from source to destination without verifying that the destination is still there or not or if it is ready to receive the message. Authentication is not needed in the connectionless protocol.
+	- Example of Connection-oriented Protocol – Transmission Control Protocol (TCP)
+	- Example of Connectionless Protocol – User Datagram Protocol (UDP)
+
+### Java Networking classes
+
+The **java.net** package of the Java programming language includes various classes that provide an easy-to-use means to access network resources. The classes covered in the **java.net** package
+
+[**CacheRequest –**](https://www.geeksforgeeks.org/java-net-cacherequest-class-in-java/) The ``CacheRequest`` class is used in java whenever there is a need to store resources in ``ResponseCache``. The objects of this class provide an edge for the ``OutputStream`` object to store resource data into the cache.
+
+ > **Represents channels for storing resources in the ``ResponseCache``. Instances of such a class provide an ``OutputStream`` object which is called by protocol handlers to store the resource data into the cache, and also an ``abort()`` method which allows a cache store operation to be interrupted and abandoned.**
+ 
+[**CookieHandler**](https://www.geeksforgeeks.org/java-net-cookiehandler-class-in-java/) **–** The ``CookieHandler`` class is used in Java to implement a callback mechanism for securing up an HTTP state management policy implementation inside the HTTP protocol handler. The HTTP state management mechanism specifies the mechanism of how to make HTTP requests and responses.
+
+> **A CookieHandler object provides a callback mechanism to hook up a HTTP state management policy implementation into the HTTP protocol handler. The HTTP state management mechanism specifies a way to create a stateful session with HTTP requests and responses.**
+
+[**CookieManager**](https://www.geeksforgeeks.org/java-net-cookiemanager-class-in-java/) **–**  The ``CookieManager`` class is used to provide a precise implementation of ``CookieHandler``. This class separates the storage of cookies from the policy surrounding accepting and rejecting cookies. A ``CookieManager`` comprises a ``CookieStore`` and a ``CookiePolicy``.
+
+```
+CookieHandler <------- HttpURLConnection
+       ^
+       | impl
+       |         use
+ CookieManager -------> CookiePolicy
+             |   use
+             |--------> HttpCookie
+             |              ^
+             |              | use
+             |   use        |
+             |--------> CookieStore
+                            ^
+                            | impl
+                            |
+                  Internal in-memory implementation
+```
+
+- ``CookieHandler`` is at the core of cookie management. User can call ``CookieHandler.setDefault`` to set a concrete ``CookieHandler`` implementation to be used.
+- ``CookiePolicy.shouldAccept`` will be called by ``CookieManager.put`` to see whether or not one cookie should be accepted and put into cookie store. User can use any of three pre-defined ``CookiePolicy``, namely ``ACCEPT_ALL``, ``ACCEPT_NONE`` and ``ACCEPT_ORIGINAL_SERVER``, or user can define his own ``CookiePolicy`` implementation and tell ``CookieManager`` to use it.
+- ``CookieStore`` is the place where any accepted HTTP cookie is stored in. If not specified when created, a ``CookieManager`` instance will use an internal in-memory implementation. Or user can implements one and tell ``CookieManager`` to use it.
+- Currently, only`` CookieStore.add(URI, HttpCookie)`` and ``CookieStore.get(URI)`` are used by ``CookieManager``. Others are for completeness and might be needed by a more sophisticated ``CookieStore`` implementation, e.g. a ``NetscapeCookieSotre``.
+
+[**DatagramPacket**](https://www.geeksforgeeks.org/java-net-datagrampacket-class-java/) **–** The ``DatagramPacket`` class is used to provide a facility for the connectionless transfer of messages from one system to another. This class provides tools for the production of datagram packets for connectionless transmission by applying the datagram socket class.
+
+[**InetAddress**](https://www.geeksforgeeks.org/java-net-inetaddress-class-in-java/) **–** The ``InetAddress`` class is used to provide methods to get the IP address of any hostname. An IP address is expressed by a 32-bit or 128-bit unsigned number. ``InetAddress`` can handle both IPv4 and IPv6 addresses.
+
+[**Server Socket**](https://www.geeksforgeeks.org/java-net-serversocket-class-in-java/) **–** The ``ServerSocket`` class is used for implementing system-independent implementation of the server-side of a client/server Socket Connection. The constructor for ``ServerSocket`` class throws an exception if it can’t listen on the specified port.
+
+[**Socket**](https://www.geeksforgeeks.org/java-net-socket-class-in-java/) **–** The Socket class is used to create socket objects that help the users in implementing all fundamental socket operations. The users can implement various networking actions such as sending, reading data, and closing connections. Each Socket object built using **``java.net.Socket``** class has been connected exactly with 1 remote host; for connecting to another host, a user must create a new socket object.
+
+[**DatagramSocket**](https://www.geeksforgeeks.org/java-net-datagramsocket-class-java/) **–** The ``DatagramSocket`` class is a network socket that provides a connection-less point for sending and receiving packets. Every packet sent from a datagram socket is individually routed and delivered. It can further be practiced for transmitting and accepting broadcast information. Datagram Sockets is Java’s mechanism for providing network communication via UDP instead of TCP
+
+[**Proxy**](https://www.geeksforgeeks.org/java-net-proxy-class-in-java/) **–** A proxy is a changeless object and a kind of tool or method or program or system, which serves to preserve the data of its users and computers. It behaves like a wall between computers and internet users. A Proxy Object represents the Proxy settings to be applied with a connection.
+
+[**URL**](https://www.geeksforgeeks.org/url-class-java-examples/) **–** The URL class in Java is the entry point to any available sources on the internet. A Class URL describes a Uniform Resource Locator, which is a signal to a “resource” on the World Wide Web. A source can denote a simple file or directory, or it can indicate a more difficult object, such as a query to a database or a search engine.
+
+[**URLConnection**](https://www.geeksforgeeks.org/java-net-urlconnection-class-in-java/) **–** The ``URLConnection`` class in Java is an abstract class describing a connection of a resource as defined by a similar URL. The ``URLConnection`` class is used for assisting two distinct yet interrelated purposes. Firstly it provides control on interaction with a server(especially an HTTP server) than a URL class. Furthermore, with a ``URLConnection``, a user can verify the header transferred by the server and can react consequently.
+
+### Java Networking Interfaces
+
+1. **CookiePolicy –** The ``CookiePolicy`` interface in the **java.net** package provides the classes for implementing various networking applications. It decides which cookies should be accepted and which should be rejected. In ``CookiePolicy``, there are three pre-defined policy implementations, namely ``ACCEPT_ALL``, ``ACCEPT_NONE``, and ``ACCEPT_ORIGINAL_SERVER``.  
+     
+2. **CookieStore –** A ``CookieStore`` is an interface that describes a storage space for cookies. ``CookieManager`` combines the cookies to the ``CookieStore`` for each HTTP response and recovers cookies from the ``CookieStore`` for each HTTP request.  
+     
+3. **FileNameMap –** The ``FileNameMap`` interface is an uncomplicated interface that implements a tool to outline a file name and a MIME type string. ``FileNameMap`` charges a filename map ( known as a mimetable) from a data file.  
+     
+4. **SocketOption –** The ``SocketOption`` interface helps the users to control the behavior of sockets. Often, it is essential to develop necessary features in Sockets. ``SocketOptions`` allows the user to set various standard options.  
+     
+5. **SocketImplFactory –** The ``SocketImplFactory`` interface defines a factory for ``SocketImpl`` instances. It is used by the socket class to create socket implementations that implement various policies.  
+     
+6. **ProtocolFamily –** This interface represents a family of communication protocols. The ``ProtocolFamily`` interface contains a method known as ``name()``, which returns the name of the protocol family.
+
+
