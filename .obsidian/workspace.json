@@ -11,11 +11,9 @@
             "id": "1ab05725ce26f296",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
-                "mode": "source",
-                "source": false
+                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png"
               }
             }
           }
@@ -85,7 +83,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
+                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +100,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
+                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +123,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md"
+                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png"
               }
             }
           }
@@ -147,24 +145,23 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "1ab05725ce26f296",
   "lastOpenFiles": [
+    "JAVA APP - 1 NOTES.md",
+    "JAVA APP Screen Shoots/Pasted image 20240306121256.png",
+    "JAVA APP Screen Shoots/Pasted image 20240306120253.png",
+    "JAVA APP Screen Shoots/Pasted image 20240306115843.png",
+    "JAVA APP Screen Shoots/Pasted image 20240306115657.png",
+    "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
+    "JAVA APP - 2 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240305113049.png",
     "JAVA APP Screen Shoots/Pasted image 20240305112544.png",
     "JAVA APP Screen Shoots/Pasted image 20240305111127.png",
     "Pasted image 20240305110531.png",
-    "JAVA APP - 2 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240305084207.png",
-    "JAVA APP Screen Shoots/Pasted image 20240305080611.png",
-    "JAVA APP Screen Shoots/Pasted image 20240305081458.png",
-    "JAVA APP Screen Shoots/Pasted image 20240305073900.png",
-    "JAVA APP Screen Shoots/Pasted image 20240229143026.png",
-    "JAVA APP Screen Shoots/Pasted image 20240229132328.png",
-    "JAVA APP Screen Shoots/Pasted image 20240227142333.png",
     "Golang Notes.md",
     "100 Go Mistakes and How to Avoid Them.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-    "JAVA APP - 1 NOTES.md",
     "Excalidraw/Drawing 2024-02-07 14.41.32.excalidraw.md",
     "Excalidraw",
     "JAVA APP KEY NOTES.md",

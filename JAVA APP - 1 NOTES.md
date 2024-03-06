@@ -2483,11 +2483,11 @@ When business logic loads users from the database, JPA loads its ID, name, email
 
 The eager fetch type retrieves data directly from the database and maps the actual entity without using any additional proxy. It might kill the performance of one-to-many or many-to-many relations. On the other hand, the eager fetch type in one-to-one relations is significantly helpful. Default is Eager in one-to-one and many-to-one.
 
-Advantages:
+**Advantages**:
 
 - No delayed initialization-related performance impacts
 
-Disadvantages:
+**Disadvantages**:
 
 - Long initial loading time
 - Loading too much unnecessary data might impact performance
@@ -2773,7 +2773,6 @@ CascadeType.MERGE specifies that when a merge operation is performed on an entit
 
 As the name implies, it admits to performing a remove operation on the related entity. For instance, when a Product entity is deleted, the Product Details entity will be deleted simultaneously. There is another type which is specified and provided by Hibernate, which is CascadeType.DELETE. There is no discrepancy among them.
 
-
 ##  Orphan Removal
 
 It is a property in relational annotations, meaning that if the parent entity has no reference, remove the child entity.
@@ -2919,7 +2918,7 @@ private String rootMacAddress;
 }
 ```
 
-#**JOINED TABLE**
+### **JOINED TABLE**
 
 In this strategy, each class in the hierarchy is mapped to its own table in the database. The tables are linked together through foreign key relationships to represent the inheritance relationships between the classes. The superclass table contains common properties, while the subclass tables contain properties specific to each subclass.
 
@@ -2994,36 +2993,184 @@ private String name;
 }
 ```
 
+## Hibernate Cache
 
+Hibernate access to the database for each request. This comes at a time-consuming cost. Hibernate’s developers built a two-level caching mechanism to prevent this time-consuming process for each request. Additionally, this two-level cache mechanism steadily upturns response time performance.
+
+### **Architecture**
+
+![[Pasted image 20240306115520.png]]
+
+### Hibernate Cache Level - 1
+
+The first-level cache is automatically enabled and operates within the scope of a Session object. When an entity is fetched from the database, it is cached in the Session (Persistence Context). If the same entity is requested again within the same Session, Hibernate retrieves it from the cache instead of the database. However, once the Session is closed (typically at the end of a transaction), attempting to access an entity will result in an exception, as the Session is no longer available to retrieve the entity from the cache. Hibernate manages the first-level cache automatically, so there is no need for explicit configuration.
+
+![[Pasted image 20240306115657.png]]
+
+### Hibernate Cache Level - 2
+
+In concurrent processes, it’s crucial to manage how objects are shared between sessions. Hibernate’s first-level cache, specific to each session, helps maintain data integrity by ensuring that objects are not shared inappropriately between different sessions.
+
+The second-level cache, on the other hand, is an optional feature in Hibernate that stores the state of persistent entities, making it available across sessions. When a client requests an entity, Hibernate first checks the first-level cache within the current session. If the entity is not found there, Hibernate then checks the second-level cache. If the entity is not found in either cache, Hibernate loads it from the database, caches it in both levels and returns it to the client.
+
+while the first-level cache is essential for session-specific object management, the second-level cache provides a shared cache mechanism for entities, improving performance by reducing the need for repeated database queries in concurrent environments.
+
+![[Pasted image 20240306115843.png]]
+
+**implement dependencies**
+
+```gradle
+implementation 'org.hibernate.orm:hibernate-jcache:6.2.7.Final'  
+implementation('org.ehcache:ehcache:3.10.8') {  
+capabilities {  
+requireCapability('org.ehcache:ehcache-jakarta')  
+}  
+}  
+implementation 'org.hibernate:hibernate-core:6.2.5.Final'
+```
+
+**Configure** **``application.properties``**
+
+```application.properties
+spring.jpa.properties.javax.cache.provider=org.ehcache.jsr107.EhcacheCachingProvider  
+spring.jpa.properties.javax.cache.uri=classpath:ehcache.xml  
+spring.jpa.properties.hibernate.cache.use_query_cache=true  
+spring.jpa.properties.hibernate.cache.use_second_level_cache=true  
+spring.jpa.properties.hibernate.cache.region.factory_class=jcache
+```
+
+create a file “**_ecache.xml_**” under the “**_src/main/resources/_**” folder
+
+```xml
+<config xmlns='http://www.ehcache.org/v3'>  
+<cache alias="default-query-results-region">  
+<expiry>  
+<ttl unit="minutes">30</ttl>  
+</expiry>  
+<heap>1000</heap>  
+</cache>  
+  
+<cache alias="default-update-timestamps-region">  
+<expiry>  
+<none/>  
+</expiry>  
+<heap>1000</heap>  
+</cache>  
+<cache alias="com.beratyesbek.youtubehibernate.entity.Category">  
+<expiry>  
+<ttl unit="minutes">100</ttl>  
+</expiry>  
+<heap>1000</heap>  
+</cache>  
+</config>
+```
+
+```java
+import jakarta.persistence.*;  
+import lombok.AllArgsConstructor;  
+import lombok.Builder;  
+import lombok.Data;  
+import lombok.NoArgsConstructor;  
+import org.hibernate.annotations.Cache;  
+import org.hibernate.annotations.CacheConcurrencyStrategy;  
+  
+  
+@Data  
+@Entity  
+@Builder  
+@NoArgsConstructor  
+@AllArgsConstructor  
+@Cacheable  
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)  
+public class Category {  
+  
+@Id  
+@GeneratedValue(strategy = GenerationType.IDENTITY)  
+private Integer id;  
+  
+@Column(name = "name", nullable = false, unique = true)  
+private String name;  
+  
+@Column(name = "code")  
+private String code;  
+  
+}
+```
+
+### Hibernate Cache Level - 3 (Query Hint)
+
+The concept of the Query cache is straightforward: Hibernate checks if a query’s result is already cached. If the result is found in the cache, Hibernate retrieves it. If the result is not cached, Hibernate executes the query, caches the result for future use, and then returns it.
+
+Additionally, the Query cache ensures that if the underlying data changes, any previously cached data for that query is invalidated. This ensures that clients always see the most up-to-date version of the data.
+
+![[Pasted image 20240306120253.png]]
+
+```java
+import com.beratyesbek.youtubehibernate.entity.Category;  
+import jakarta.persistence.QueryHint;  
+import org.springframework.data.jpa.repository.JpaRepository;  
+import org.springframework.data.jpa.repository.QueryHints;  
+  
+import java.util.List;  
+  
+public interface CategoryRepository extends JpaRepository<Category, Integer> {  
+  
+@QueryHints({@QueryHint(name = "org.hibernate.cacheable", value = "true")})  
+List<Category> findAllByCode(String code);  
+}
+```
+
+The **_QueryHints_** annotation allows this method to cache results using the Hibernate query cache. This can improve performance because results can be retrieved from the cache when the same query is called again.
+
+The **_@QueryHints_** line ensures that the results of the method’s query are cached. Cache usage is enabled by setting the value of the property named ``org.hibernate.cacheable`` to true.
+
+### Advantages of Caching
+
+**Improved Performance:** Caching reduces the need to fetch data from the database, which is repeatedly slower. Instead, accesses from local memory or faster data.
+
+**Reduced Latency:** Caching reduces the latency by fetching the data from faster sources. (Memory, Redis, etc..)
+
+**Scalability:** Caching can help improve application scalability by reducing time-response and handling more requests without overloading.
+
+### **Disadvantages of Caching**
+
+**Security Concerns:** Caching sensitive data can pose security risks if it is not properly managed.
+
+**Stale Data:** Previous versions of data, when a data is updated, cache should be updated. hard to manage (ORM has their own mechanism)
+
+### FIRST-LEVEL CACHE vs SECOND-LEVEL CACHE
+
+
+![[Pasted image 20240306121256.png]]
 
 ## Query Method Syntax Examples
 
-|Keyword|Sample|JPQL Snippet|
-|---|---|---|
-|And|findByLastnameAndFirstname|...where x.lastname = ?1 and x.firstname = ?2|
-|Or|findByLastnameOrFirstname|...where x.lastname = ?1 or x.firstname = ?2|
-|Is, Equals|findByFirstnameEquals|...where x.firstname = ?1|
-|Between|findByStartDateBetween|...where x.startDate between ?1 and ?2|
-|LessThan|findByAgeLessThan|...where x.age < ?1|
-|LessThanEqual|findByAgeLessThanEqual|...where x.age <= ?1|
-|GreaterThan|findByAgeGreaterThan|...where x.age > ?1|
-|GreaterThanEqual|findByAgeGreaterThanEqual|...where x.age >= ?1|
-|After|findByStartDateAfter|...where x.startDate > ?1|
-|Before|findByStartDateBefore|...where x.startDate < ?1|
-|IsNull|findByAgeIsNull|...where x.age is null|
-|IsNotNull, NotNull|findByAge(Is)NotNull|...where x.age not null|
-|Like|findByFirstnameLike|...where x.firstname like ?1|
-|NotLike|findByFirstnameNotLike|...where x.firstname not like ?1|
-|StartingWith|findByFirstnameStartingWith|...where x.firstname like ?1 (parameter bound with appended %)|
-|EndingWith|findByFirstnameEndingWith|...where x.firstname like ?1 (parameter bound with prepended %)|
-|Containing|findByFirstnameContaining|...where x.firstname like ?1 (parameter bound wrapped in %)|
-|OrderBy|findByAgeOrderByLastnameDesc|...where x.age = ?1 order by x.lastname desc|
-|Not|findByLastnameNot|...where x.lastname <> ?1|
-|In|findByAgeIn(Collection ages)|...where x.age in ?1|
-|NotIn|findByAgeNotIn(Collection ages)|...where x.age not in ?1|
-|True|findByActiveTrue()|...where x.active = true|
-|False|findByActiveFalse()|...where x.active = false|
-|IgnoreCase|findByFirstnameIgnoreCase|...where UPPER(x.firstame) = UPPER(?1)|
+| Keyword            | Sample                          | JPQL Snippet                                                    |
+| ------------------ | ------------------------------- | --------------------------------------------------------------- |
+| And                | findByLastnameAndFirstname      | ...where x.lastname = ?1 and x.firstname = ?2                   |
+| Or                 | findByLastnameOrFirstname       | ...where x.lastname = ?1 or x.firstname = ?2                    |
+| Is, Equals         | findByFirstnameEquals           | ...where x.firstname = ?1                                       |
+| Between            | findByStartDateBetween          | ...where x.startDate between ?1 and ?2                          |
+| LessThan           | findByAgeLessThan               | ...where x.age < ?1                                             |
+| LessThanEqual      | findByAgeLessThanEqual          | ...where x.age <= ?1                                            |
+| GreaterThan        | findByAgeGreaterThan            | ...where x.age > ?1                                             |
+| GreaterThanEqual   | findByAgeGreaterThanEqual       | ...where x.age >= ?1                                            |
+| After              | findByStartDateAfter            | ...where x.startDate > ?1                                       |
+| Before             | findByStartDateBefore           | ...where x.startDate < ?1                                       |
+| IsNull             | findByAgeIsNull                 | ...where x.age is null                                          |
+| IsNotNull, NotNull | findByAge(Is)NotNull            | ...where x.age not null                                         |
+| Like               | findByFirstnameLike             | ...where x.firstname like ?1                                    |
+| NotLike            | findByFirstnameNotLike          | ...where x.firstname not like ?1                                |
+| StartingWith       | findByFirstnameStartingWith     | ...where x.firstname like ?1 (parameter bound with appended %)  |
+| EndingWith         | findByFirstnameEndingWith       | ...where x.firstname like ?1 (parameter bound with prepended %) |
+| Containing         | findByFirstnameContaining       | ...where x.firstname like ?1 (parameter bound wrapped in %)     |
+| OrderBy            | findByAgeOrderByLastnameDesc    | ...where x.age = ?1 order by x.lastname desc                    |
+| Not                | findByLastnameNot               | ...where x.lastname <> ?1                                       |
+| In                 | findByAgeIn(Collection ages)    | ...where x.age in ?1                                            |
+| NotIn              | findByAgeNotIn(Collection ages) | ...where x.age not in ?1                                        |
+| True               | findByActiveTrue()              | ...where x.active = true                                        |
+| False              | findByActiveFalse()             | ...where x.active = false                                       |
+| IgnoreCase         | findByFirstnameIgnoreCase       | ...where UPPER(x.firstame) = UPPER(?1)                          |
 
 # Performance Considerations
 
