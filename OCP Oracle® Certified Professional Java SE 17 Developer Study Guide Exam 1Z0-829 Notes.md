@@ -8441,7 +8441,7 @@ public static LocalDate of(int year, Month month, int dayOfMonth)
 
 ---
 
-Java counts starting with 0. Well, months are an exception. For months in the new date and time methods, Java counts starting from 1, just as we humans do.
+**Java counts starting with 0. Well, months are an exception. For months in the new date and time methods, Java counts starting from 1, just as we humans do.**
 
 ---
 
@@ -8577,6 +8577,30 @@ date = date.plusMinutes(1); // DOES NOT COMPILE
 
 **==``LocalDate`` does not contain time. This means that you cannot add minutes to it==**. This can be tricky in a chained sequence of addition/subtraction operations
 
+```java
+public static void main(String[] args) {  
+  
+    var date = LocalDate.of(2022, Month.JANUARY, 20);  
+    System.out.println(date); //2022-01-20  
+  
+    date = date.plusDays(2); // 2022-01-22  
+    System.out.println(date);  
+  
+    date = date.plusWeeks(1); //2022-01-29  
+    System.out.println(date);  
+  
+    date = date.plusMonths(1); //2022-02-28  
+    System.out.println(date);  
+  
+    // Java is smart enough to realize that February 29, 2022 does not exist, and it gives us February 28, 2022, instead.  
+  
+    date = date.plusYears(5); // 2027-02-28  
+    System.out.println(date);  
+  
+    // date = date.plusMinutes(1); // DOES NOT COMPILE  
+}
+```
+
 | Method            | Can call on LocalDate? | Can call on LocalTime? | Can call on LocalDateTime or ZonedDateTime? |
 |-------------------|------------------------|------------------------|----------------------------------------------|
 | plusYears()       | Yes                    | No                     | Yes                                          |
@@ -8677,6 +8701,28 @@ Java omits any measures that are zero. The last thing to know about Period is wh
 Line 9 attempts to add a month to an object that has only a time. This won’t work. Java throws an ``UnsupportedTemporalTypeException`` and complains that we attempted to use an ``Unsupported unit: Months``
 
 ==**You have to pay attention to the type of date and time objects every place you see them.**==
+
+```java
+var annually = Period.ofYears(1); // every 1 year  
+var quarterly = Period.ofMonths(3); // every 3 months  
+var everyThreeWeeks = Period.ofWeeks(3); // every 3 weeks  
+var everyOtherDay = Period.ofDays(2); // every 2 days  
+var everyYearAndAWeek = Period.of(1, 0, 7); // every year and 7 days  
+  
+System.out.println(annually); // P1Y  
+System.out.println(quarterly);  // P3M  
+System.out.println(everyThreeWeeks); // P21D  
+System.out.println(everyOtherDay);  // P2D  
+System.out.println(everyYearAndAWeek); // P1Y7D  
+  
+// There’s one catch. You cannot chain methods when creating a Period.  
+var wrong = Period.ofYears(1).ofWeeks(1); // every week  
+System.out.println(wrong); // P7D  
+  
+// This tricky code is really like writing the following:  
+// var wrong = Period.ofYears(1);  
+// wrong = Period.ofWeeks(1);
+```
 
 ### Working with Durations
 
@@ -8781,7 +8827,6 @@ Since we are working with a ``LocalDate``, we are required to use ``Period``. ``
 | LocalDateTime | Yes                  | Yes                    |
 | LocalTime     | No                   | Yes                    |
 | ZonedDateTime | Yes                  | Yes                    |
-
 ### Working with Instants
 
 The ``Instant`` class represents a specific moment in time in the GMT time zone.
@@ -8807,6 +8852,29 @@ System.out.println(instant); // 202–05–25T15:55:00Z
 ```
 
 The last two lines represent the same moment in time. The ``ZonedDateTime`` includes a time zone. The ``Instant`` gets rid of the time zone and turns it into an Instant of time in GMT.
+
+```java
+public static void main(String[] args) throws InterruptedException {  
+  
+    var date = LocalDate.of(2022, 5, 25);  
+    var time = LocalTime.of(11, 55, 00);  
+    var zone = ZoneId.of("US/Eastern");  
+    var zonedDateTime = ZonedDateTime.of(date, time, zone);  
+    var instant = zonedDateTime.toInstant(); // 2022–05–25T15:55:00Z  
+    System.out.println("zonedDateTime : " + zonedDateTime); // 2022–05–25T11:55–04:00[US/Eastern]  
+    System.out.println("instant : " + instant); // 202–05–25T15:55:00Z  
+  
+  
+    ZonedDateTime istanbulZonedDateTime = ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.of("Europe/Istanbul"));  
+  
+    System.out.println("istanbulZonedDateTime : " + istanbulZonedDateTime);  
+    System.out.println("instant : " + istanbulZonedDateTime.toInstant());  
+    System.out.println("truncatedTo : " + (instant.truncatedTo(ChronoUnit.HOURS)));  
+  
+    Instant parsed = Instant.parse("2000-06-01T10:15:20.00Z");  
+    System.out.println("parsed: " + parsed);  
+}
+```
 
 ### Accounting for Daylight Saving Time
 
@@ -8856,6 +8924,105 @@ System.out.println(dateTime); // 2022–03–13T03:30–04:00[US/Eastern]
 
 Java is smart enough to know that there is no 2:30 a.m. that night and switches over to the appropriate GMT offset.
 
+```java
+public static void main(String[] args) {  
+  
+    /*  
+    Similarly, in November, an hour after the initial 1:30 a.m. is also 1:30 a.m. because at 2:00 a.m.    we repeat the hour. This time, try to calculate the GMT time yourself for all three times to confirm that    we really do move only one hour at a time.     */  
+    var date = LocalDate.of(2022, Month.NOVEMBER, 6);  
+    var time = LocalTime.of(1, 30);  
+    var zone = ZoneId.of("US/Eastern");  
+    var dateTime = ZonedDateTime.of(date, time, zone);  
+    System.out.println(dateTime); // 2022-11-06T01:30-04:00[US/Eastern]  
+  
+    dateTime = dateTime.plusHours(1);  
+    System.out.println(dateTime); // 2022-11-06T01:30-05:00[US/Eastern]  
+    dateTime = dateTime.plusHours(1);  
+    System.out.println(dateTime); // 2022-11-06T02:30-05:00[US/Eastern]  
+}
+```
+
+```java
+public class DayLightSpringExample {  
+  
+    public static void main(String[] args) {  
+  
+        /*  
+        For example, on March 13, 2022, we move our clocks forward an hour and jump from 2:00 a.m. to 3:00 a.m.        This means that there is no 2:30 a.m. that day.         If we wanted to know the time an hour later than 1:30, it would be 3:30.         */  
+        System.out.println("---------- US/Eastern 2022 ----------");  
+  
+        var date1 = LocalDate.of(2022, Month.MARCH, 10);  
+        var date2 = LocalDate.of(2022, Month.MARCH, 13);  
+        var date3 = LocalDate.of(2022, Month.MARCH, 20);  
+  
+        printDaylightSavingTime(date1, ZoneId.of("US/Eastern"));  
+        printDaylightSavingTime(date2, ZoneId.of("US/Eastern"));  
+        printDaylightSavingTime(date3, ZoneId.of("US/Eastern"));  
+  
+        // Notice that two things change in this example. The time jumps from 1:30 to 3:30. The UTC offset also changes.  
+  
+        System.out.println("---------- US/Eastern 2023 ----------");  
+  
+        var date4 = LocalDate.of(2023, Month.MARCH, 10);  
+        var date5 = LocalDate.of(2023, Month.MARCH, 12);  
+        var date6 = LocalDate.of(2023, Month.MARCH, 20);  
+  
+        printDaylightSavingTime(date4, ZoneId.of("US/Eastern"));  
+        printDaylightSavingTime(date5, ZoneId.of("US/Eastern"));  
+        printDaylightSavingTime(date6, ZoneId.of("US/Eastern"));  
+  
+        System.out.println("---------- Europe/Berlin 2023 ----------");  
+  
+        var date7 = LocalDate.of(2023, Month.MARCH, 12);  
+        var date8 = LocalDate.of(2023, Month.MARCH, 26);  
+        var date9 = LocalDate.of(2023, Month.MARCH, 28);  
+  
+        printDaylightSavingTime(date7, ZoneId.of("Europe/Berlin"));  
+        printDaylightSavingTime(date8, ZoneId.of("Europe/Berlin"));  
+        printDaylightSavingTime(date9, ZoneId.of("Europe/Berlin"));  
+  
+        System.out.println("---------- Europe/London 2023 ----------");  
+  
+        var date10 = LocalDate.of(2023, Month.MARCH, 12);  
+        var date11 = LocalDate.of(2023, Month.MARCH, 26);  
+        var date12 = LocalDate.of(2023, Month.MARCH, 28);  
+  
+        // UK change time 1.00AM  
+        // US and Europe/Berlin 2.00AM        printDaylightSavingTimeForUK(date10, ZoneId.of("Europe/London"));  
+        printDaylightSavingTimeForUK(date11, ZoneId.of("Europe/London"));  
+        printDaylightSavingTimeForUK(date12, ZoneId.of("Europe/London"));  
+  
+    }  
+  
+    private static void printDaylightSavingTime(LocalDate date, ZoneId zone) {  
+  
+        System.out.println("##############");  
+  
+        var time = LocalTime.of(1, 30);  
+        var dateTime = ZonedDateTime.of(date, time, zone);  
+        System.out.println("dateTime : " + dateTime);  
+        System.out.println("hour : " + dateTime.getHour() + " , offset : " + dateTime.getOffset());  
+  
+        dateTime = dateTime.plusHours(1);  
+        System.out.println("dateTime : " + dateTime);  
+        System.out.println("hour : " + dateTime.getHour() + " , offset : " + dateTime.getOffset());  
+    }  
+  
+    private static void printDaylightSavingTimeForUK(LocalDate date, ZoneId zone) {  
+  
+        System.out.println("##############");  
+  
+        var time = LocalTime.of(00, 30);  
+        var dateTime = ZonedDateTime.of(date, time, zone);  
+        System.out.println("dateTime : " + dateTime);  
+        System.out.println("hour : " + dateTime.getHour() + " , offset : " + dateTime.getOffset());  
+  
+        dateTime = dateTime.plusHours(1);  
+        System.out.println("dateTime : " + dateTime);  
+        System.out.println("hour : " + dateTime.getHour() + " , offset : " + dateTime.getOffset());  
+    }  
+}
+```
 ## Summary #OCP_Summary 
 
 - ==**a ``String`` is an immutable sequence of characters. Calling the constructor explicitly is optional. The concatenation operator ``(+)`` creates a new ``String`` with the content of the first ``String`` followed by the content of the second ``String``. If either operand involved in the + expression is a ``String``, concatenation is used; otherwise, addition is used. String literals are stored in the string pool. The ``String`` class has many methods. By contrast, a ``StringBuilder`` is a mutable sequence of characters. Most of the methods return a reference to the current object to allow method chaining. The ``StringBuilder`` class has many methods.**==

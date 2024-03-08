@@ -4304,6 +4304,23 @@ UDP header is an ***8-byte*** fixed and simple header, while for TCP it may va
 - In case of a Collision, UDP packets are dropped by Routers in comparison to TCP.
 - UDP can drop packets in case of detection of errors.
 
+#### ***User Interface***
+
+A user interface should allow the creation of new receive ports, receive operations on the receive ports that returns the data octets and an indication of source port and source address, and an operation that allows a datagram to be sent, specifying the data, source and destination ports and address to be sent.
+
+#### ***IP Interface***
+
+- The UDP module must be able to determine the source and destination internet address and the protocol field from internet header 
+- One possible UDP/IP interface would return the whole internet datagram including the entire internet header in response to a receive operation
+- Such an interface would also allow the UDP to pass a full internet datagram complete with header to the IP to send. the IP would verify certain fields for consistency and compute the internet header checksum.
+- The IP interface allows the UDP module to interact with the network layer of the protocol stack, which is responsible for routing and delivering data across the network.
+- The IP interface provides a mechanism for the UDP module to communicate with other hosts on the network by providing access to the underlying IP protocol.
+- The IP interface can be used by the UDP module to send and receive data packets over the network, with the help of IP routing and addressing mechanisms.
+- The IP interface provides a level of abstraction that allows the UDP module to interact with the network layer without having to deal with the complexities of IP routing and addressing directly.
+- The IP interface also handles fragmentation and reassembly of IP packets, which is important for large data transmissions that may exceed the maximum packet size allowed by the network.
+- The IP interface may also provide additional services, such as support for Quality of Service (QoS) parameters and security mechanisms such as IPsec.
+- The IP interface is a critical component of the Internet Protocol Suite, as it enables communication between hosts on the internet and allows for the seamless transmission of data packets across the network.
+
 #### Differences between TCP and UDP
 
 |Where TCP is Used|Where UDP is Used|
@@ -4416,4 +4433,1120 @@ CookieHandler <------- HttpURLConnection
      
 6. **ProtocolFamily –** This interface represents a family of communication protocols. The ``ProtocolFamily`` interface contains a method known as ``name()``, which returns the name of the protocol family.
 
+###  Socket Programming
 
+Java Socket programming is practiced for communication between the applications working on different JRE. Sockets implement the communication tool between two computers using TCP. Java Socket programming can either be connection-oriented or connection-less. In Socket Programming, Socket and ``ServerSocket`` classes are managed for connection-oriented socket programming. However, ``DatagramSocket`` and ``DatagramPacket`` classes are utilized for connection-less socket programming.
+
+A client application generates a socket on its end of the communication and strives to combine that socket with a server. When the connection is established, the server generates an object of socket class on its communication end. The client and the server can now communicate by writing to and reading from the socket.
+
+The **``java.net.Socket``** class describes a socket, and the **``java.net.ServerSocket``** class implements a tool for the server program to host clients and build connections with them.
+
+**Steps to establishing a TCP connection between two computing devices using Socket Programming**
+
+**Step 1 –** The server instantiates a ``ServerSocket`` object, indicating at which port number communication will occur.
+
+**Step 2 –** After instantiating the ``ServerSocket`` object, the server requests the ``accept()`` method of the ``ServerSocket`` class. This program pauses until a client connects to the server on the given port.
+
+**Step 3 –** After the server is idling, a client instantiates an object of Socket class, defining the server name and the port number to connect to.
+
+**Step 4 –** After the above step, the constructor of the Socket class strives to connect the client to the designated server and the port number. If communication is authenticated, the client forthwith has a Socket object proficient in interacting with the server.
+
+**Step 5 –** On the server-side, the ``accept()`` method returns a reference to a new socket on the server connected to the client’s socket.
+
+After the connections are stabilized, communication can happen using I/O streams. Each object of a socket class has both an ``OutputStream`` and an ``InputStream``. The client’s ``OutputStream`` is correlated to the server’s ``InputStream``, and the client’s ``InputStream`` is combined with the server’s ``OutputStream``. Transmission Control Protocol (TCP) is a two-way communication protocol. Hence information can be transmitted over both streams at the corresponding time.
+
+**Client-Side Java Implementation:**
+
+```java
+// A Java program for a ClientSide
+
+import java.io.*;
+import java.net.*;
+
+public class clientSide {
+
+	// initialize socket and input output streams
+	private Socket socket = null;
+	private DataInputStream input = null;
+	private DataOutputStream out = null;
+
+	// constructor to put ip address and port
+	public clientSide(String address, int port)
+	{
+
+		// establish a connection
+		try {
+
+			socket = new Socket(address, port);
+
+			System.out.println("Connected");
+
+			// takes input from terminal
+			input = new DataInputStream(System.in);
+
+			// sends output to the socket
+			out = new DataOutputStream(
+				socket.getOutputStream());
+		}
+
+		catch (UnknownHostException u) {
+
+			System.out.println(u);
+		}
+
+		catch (IOException i) {
+
+			System.out.println(i);
+		}
+
+		// string to read message from input
+		String line = "";
+
+		// keep reading until "End" is input
+		while (!line.equals("End")) {
+
+			try {
+
+				line = input.readLine();
+
+				out.writeUTF(line);
+			}
+
+			catch (IOException i) {
+
+				System.out.println(i);
+			}
+		}
+
+		// close the connection
+		try {
+
+			input.close();
+
+			out.close();
+
+			socket.close();
+		}
+
+		catch (IOException i) {
+
+			System.out.println(i);
+		}
+	}
+
+	public static void main(String[] args)
+	{
+
+		clientSide client
+			= new clientSide("127.0.0.1", 5000);
+	}
+}
+```
+
+**Server Side Java Implementation:**
+
+```java
+// A Java program for a serverSide
+import java.io.*;
+import java.net.*;
+
+public class serverSide {
+
+	// initialize socket and input stream
+	private Socket socket = null;
+	private ServerSocket server = null;
+	private DataInputStream in = null;
+
+	// constructor with port
+	public serverSide(int port)
+	{
+
+		// starts server and waits for a connection
+		try {
+			server = new ServerSocket(port);
+
+			System.out.println("Server started");
+
+			System.out.println("Waiting for a client ...");
+
+			socket = server.accept();
+
+			System.out.println("Client accepted");
+
+			// takes input from the client socket
+			in = new DataInputStream(
+				new BufferedInputStream(
+					socket.getInputStream()));
+
+			String line = "";
+
+			// reads message from client until "End" is sent
+			while (!line.equals("End")) {
+
+				try {
+
+					line = in.readUTF();
+
+					System.out.println(line);
+				}
+
+				catch (IOException i) {
+
+					System.out.println(i);
+				}
+			}
+
+			System.out.println("Closing connection");
+
+			// close connection
+			socket.close();
+
+			in.close();
+		}
+
+		catch (IOException i) {
+
+			System.out.println(i);
+		}
+	}
+
+	public static void main(String[] args)
+	{
+
+		serverSide server = new serverSide(5000);
+	}
+}
+```
+
+**CSD TCP EXAMPLE**
+
+**TcpUtil**
+```java
+public final class TcpUtil {  
+    private static int receive(DataInputStream dis, byte [] data, int offset, int length) throws IOException  
+    {  
+        int result;  
+        int left = length, index = 0;  
+  
+        while (left > 0) {  
+            if ((result = dis.read(data, offset, left)) == -1)  
+                return -1;  
+              
+            if (result == 0)  
+                break;  
+              
+            index += result;  
+            left -= result;  
+        }  
+  
+        return index;  
+    }  
+  
+    private static int receive(DataInputStream dis, byte [] data) throws IOException  
+    {  
+        return receive(dis, data, 0, data.length);  
+    }  
+  
+    private static int send(DataOutputStream dos, byte [] data, int offset, int length) throws IOException  
+    {                   
+       int curOffset = offset;         
+       int left = length;  
+       int total = 0;  
+       int written;  
+       int initWritten = dos.size();  
+         
+       while (curOffset < length) {  
+          dos.write(data, curOffset, left);  
+          dos.flush();  
+          written = dos.size() - initWritten;  
+          total += written;          
+          left -= written;  
+          curOffset += written;  
+       }    
+         
+       return total;  
+    }  
+      
+    private static int send(DataOutputStream dos, byte [] data) throws IOException  
+    {  
+        return send(dos, data, 0, data.length);  
+    }  
+  
+    private TcpUtil() {}  
+  
+    public static Optional<ServerSocket> getFirstAvailableSocket(int backlog, int minPort, int maxPort)  
+    {  
+       Optional<ServerSocket> result = Optional.empty();  
+  
+       for (int port = minPort; port <= maxPort; ++port)  
+          try {  
+             result = Optional.of(new ServerSocket(backlog, port));  
+          }  
+          catch (IOException ignore) {  
+          }  
+  
+       return result;  
+    }  
+  
+    public static Optional<ServerSocket> getFirstAvailablePort(int minPort, int maxPort)  
+    {  
+       Optional<ServerSocket> result = Optional.empty();  
+  
+       for (int port = minPort; port <= maxPort; ++port)  
+          try {  
+             result = Optional.of(new ServerSocket(port));  
+          }  
+          catch (IOException ignore) {  
+          }  
+  
+       return result;  
+    }  
+  
+    public static Optional<ServerSocket> getFirstAvailableSocket(int backlog, int...ports)  
+    {  
+       Optional<ServerSocket> result = Optional.empty();  
+  
+       for (var port : ports)  
+          try {  
+             result = Optional.of(new ServerSocket(backlog, port));  
+          }  
+          catch (IOException ignore) {  
+          }  
+  
+       return result;  
+    }  
+  
+    public static Optional<ServerSocket> getFirstAvailableSocket(int...ports)  
+    {  
+       Optional<ServerSocket> result = Optional.empty();  
+  
+       for (var port : ports)  
+          try {  
+             result = Optional.of(new ServerSocket(port));  
+          }  
+          catch (IOException ignore) {  
+          }  
+  
+       return result;  
+    }  
+  
+  
+    public static int receive(Socket socket, byte [] data, int offset, int length)  
+    {  
+       try {  
+          return receive(new DataInputStream(socket.getInputStream()), data, offset, length);  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receive", ex);  
+       }  
+    }  
+  
+    public static int receive(Socket socket, byte [] data)  
+    {  
+       try {  
+          return receive(socket, data, 0, data.length);  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receive", ex.getCause());  
+       }  
+    }  
+  
+    public static int send(Socket socket, byte [] data, int offset, int length)  
+    {  
+       try {  
+          return send(new DataOutputStream(socket.getOutputStream()), data, offset, length);  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.send", ex);  
+       }  
+    }  
+  
+    public static int send(Socket socket, byte [] data)  
+    {  
+       try {  
+          return send(socket, data, 0, data.length);  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.send", ex.getCause());  
+       }  
+    }  
+  
+    public static byte receiveByte(Socket socket)  
+    {  
+       try {  
+          byte [] data = new byte[1];  
+  
+          receive(socket, data);  
+  
+          return data[0];  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveByte", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveByte", ex);  
+       }  
+    }  
+  
+    public static short receiveShort(Socket socket)  
+    {  
+       try {  
+          byte[] data = new byte[2];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toShort(data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveShort", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveShort", ex);  
+       }  
+    }  
+  
+    public static int receiveInt(Socket socket)  
+    {  
+       try {  
+          byte[] data = new byte[4];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toInt(data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveInt", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveInt", ex);  
+       }  
+    }  
+  
+    public static long receiveLong(Socket socket)  
+    {  
+       try {  
+          byte[] data = new byte[8];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toLong(data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveLong", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveLong", ex);  
+       }  
+    }  
+  
+    public static float receiveFloat(Socket socket)  
+    {  
+       try {  
+          byte[] data = new byte[4];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toFloat(data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveFloat", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveFloat", ex);  
+       }  
+    }  
+  
+    public static double receiveDouble(Socket socket)  
+    {  
+       try {  
+          byte[] data = new byte[8];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toDouble(data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveDouble", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveDouble", ex);  
+       }  
+    }  
+  
+    public static char receiveChar(Socket socket)  
+    {  
+       try {  
+          byte[] data = new byte[2];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toChar(data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveChar", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveChar", ex);  
+       }  
+    }  
+  
+    public static boolean receiveBoolean(Socket socket)  
+    {  
+       try {  
+          return new DataInputStream(socket.getInputStream()).readByte() != 0;  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveBoolean", ex);  
+       }  
+    }  
+  
+    public static String receiveStringViaLength(Socket socket)  
+    {  
+       return receiveStringViaLength(socket, StandardCharsets.UTF_8);  
+    }  
+  
+    public static String receiveStringViaLength(Socket socket, Charset charset)  
+    {  
+       try {  
+          byte[] dataLen = new byte[4];  
+          receive(socket, dataLen);  
+  
+          byte[] data = new byte[BitConverter.toInt(dataLen)];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toString(data, charset);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveStringViaLength", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveStringViaLength", ex);  
+       }  
+    }  
+  
+    public static String receiveString(Socket socket, int length)  
+    {  
+       return receiveString(socket, length, StandardCharsets.UTF_8);  
+    }  
+  
+    public static String receiveString(Socket socket, int length, Charset charset)  
+    {  
+       try {  
+          byte[] data = new byte[length];  
+  
+          receive(socket, data);  
+  
+          return BitConverter.toString(data, charset);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveString", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveString", ex);  
+       }  
+    }  
+  
+    public static void receiveFile(Socket socket, File file)  
+    {  
+       receiveFile(socket, file.getAbsolutePath());  
+    }  
+  
+    public static void receiveFile(Socket socket, String path)  
+    {  
+       try (FileOutputStream fos = new FileOutputStream(path)) {  
+          int result;  
+  
+          for (;;) {  
+             var size = receiveInt(socket);  
+  
+             if (size <= 0)  
+                break;  
+  
+             var data = new byte[size];  
+  
+             result = receive(socket, data);  
+             fos.write(data, 0, result);  
+          }  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.receiveFile", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.receiveFile", ex);  
+       }  
+    }  
+  
+    public static void sendByte(Socket socket, byte val)  
+    {  
+       try {  
+          send(socket, BitConverter.getBytes(val));  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendByte", ex);  
+       }  
+    }  
+  
+    public static void sendShort(Socket socket, short val)  
+    {  
+       try {  
+          send(socket, BitConverter.getBytes(val));  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendShort", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendShort", ex);  
+       }  
+    }  
+  
+    public static void sendInt(Socket socket, int val)  
+    {  
+       try {  
+          send(socket, BitConverter.getBytes(val));  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendInt", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendInt", ex);  
+       }  
+    }  
+  
+    public static void sendLong(Socket socket, long val)  
+    {  
+       try {  
+          send(socket, BitConverter.getBytes(val));  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendLong", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendLong", ex);  
+       }  
+    }  
+  
+    public static void sendFloat(Socket socket, float val)  
+    {  
+       try {  
+          send(socket, BitConverter.getBytes(val));  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendFloat", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendFloat", ex);  
+       }  
+    }  
+  
+    public static void sendDouble(Socket socket, double val)  
+    {  
+       try {  
+          send(socket, BitConverter.getBytes(val));  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendDouble", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendDouble", ex);  
+       }  
+    }  
+  
+    public static void sendChar(Socket socket, char val)  
+    {  
+       try {  
+          send(socket, BitConverter.getBytes(val));  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendChar", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendChar", ex);  
+       }  
+    }  
+  
+    public static void sendBoolean(Socket socket, boolean val)  
+    {  
+       try {  
+          DataOutputStream dos = new DataOutputStream(socket.getOutputStream());  
+  
+          dos.writeByte(val ? 1 : 0);  
+          dos.flush();  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendBoolean", ex);  
+       }  
+    }  
+  
+    public static void sendStringViaLength(Socket socket, String str)  
+    {  
+       sendStringViaLength(socket, str, StandardCharsets.UTF_8);  
+    }  
+  
+    public static void sendStringViaLength(Socket socket, String str, Charset charset)  
+    {  
+       try {  
+          byte[] data = BitConverter.getBytes(str, charset);  
+          byte[] dataLen = BitConverter.getBytes(data.length);  
+  
+          send(socket, dataLen);  
+          send(socket, data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendStringViaLength", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendStringViaLength", ex);  
+       }  
+    }  
+  
+    public static void sendString(Socket socket, String str)  
+    {  
+       sendString(socket, str, StandardCharsets.UTF_8);  
+    }  
+  
+    public static void sendString(Socket socket, String str, Charset charset)  
+    {  
+       try {  
+          byte[] data = BitConverter.getBytes(str, charset);  
+  
+          send(socket, data);  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendString", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendString", ex);  
+       }  
+    }  
+  
+    public static void sendFile(Socket socket, File file, int blockSize)  
+    {  
+       sendFile(socket, file.getAbsolutePath(), blockSize);  
+    }  
+  
+    public static void sendFile(Socket socket, String path, int blockSize)  
+    {  
+       byte [] data = new byte[blockSize];  
+  
+       try (FileInputStream fis = new FileInputStream(path)) {  
+          int result;  
+  
+          for (;;) {  
+             result = fis.read(data);  
+             sendInt(socket, result);  
+             if (result <= 0)  
+                break;  
+             send(socket, data, 0, result);  
+          }  
+       }  
+       catch (NetworkException ex) {  
+          throw new NetworkException("TcpUtil.sendFile", ex.getCause());  
+       }  
+       catch (Throwable ex) {  
+          throw new NetworkException("TcpUtil.sendFile", ex);  
+       }  
+    }  
+}
+```
+
+**CImage**
+
+```java
+public enum CImageFormat {  
+    BMP, GIF, JPEG, PNG, TIFF, WBMP  
+}
+
+public class CImage {  
+    private final File m_path;  
+    private BufferedImage  m_bufferedImage;  
+  
+    public CImage(String path) throws IOException  
+    {  
+        this(new File(path));  
+    }  
+  
+    public CImage(File path) throws IOException  
+    {  
+        if (!path.exists())  
+            throw new IOException("image not found");  
+  
+        m_path = path;  
+        m_bufferedImage = ImageIO.read(m_path);  
+    }  
+  
+    public int getWidth()  
+    {  
+        return m_bufferedImage.getWidth();  
+    }  
+  
+    public int getHeight()  
+    {  
+        return m_bufferedImage.getHeight();  
+    }  
+  
+    public BufferedImage getBufferedImage()  
+    {  
+        return m_bufferedImage;  
+    }  
+  
+    public void grayScale()  
+    {  
+        int width = m_bufferedImage.getWidth();  
+        int height = m_bufferedImage.getHeight();  
+  
+        for (int i = 0; i < width; ++i)  
+            for (int k = 0; k < height; ++k) {  
+                Color c = new Color(m_bufferedImage.getRGB(i, k));  
+                int avg = (int)Math.floor((c.getRed() + c.getGreen() + c.getBlue()) / 3.);  
+  
+                m_bufferedImage.setRGB(i, k, new Color(avg, avg, avg).getRGB());  
+            }  
+    }  
+  
+    public void binary(int threshold)  
+    {  
+        int width = m_bufferedImage.getWidth();  
+        int height = m_bufferedImage.getHeight();  
+  
+        for (int i = 0; i < width; ++i)  
+            for (int k = 0; k < height; ++k) {  
+                Color c = new Color(m_bufferedImage.getRGB(i, k));  
+  
+                int value = c.getRed() > threshold ? 255 : 0;  
+  
+                m_bufferedImage.setRGB(i, k, new Color(value, value, value).getRGB());  
+            }  
+    }  
+  
+    public void save(String output, CImageFormat format) throws IOException  
+    {  
+        save(new File(output), format);  
+    }  
+  
+    public void save(File output, CImageFormat format) throws IOException  
+    {  
+        ImageIO.write(m_bufferedImage, format.toString().toLowerCase(), output);  
+    }  
+  
+    public void reset() throws IOException  
+    {  
+        m_bufferedImage = ImageIO.read(m_path);  
+    }  
+  
+    //...  
+}
+```
+
+**BinaryImageServer**
+```java
+public class BinaryImageServer {  
+    private static final int SOCKET_TIMEOUT = 10000;  
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyy_HH-mm-ss-n");  
+    private static final File IMAGE_PATH = new File("binary_images");  
+  
+    private final ConcurrentServer m_server;  
+  
+    private void saveFile(Socket socket, String path) throws IOException  
+    {  
+        try {  
+            var file = new File(IMAGE_PATH, String.format("%s.png", new File(path).getName()));  
+  
+            TcpUtil.receiveFile(socket, file);  
+            var threshold = TcpUtil.receiveInt(socket);  
+            file = doBinaryImage(file, threshold);  
+  
+            TcpUtil.sendInt(socket, 1);  
+            TcpUtil.sendFile(socket, file, 1024);  
+        }  
+        catch (NetworkException ex) {  
+            Console.Error.writeLine("Network problem:%s", ex.getMessage());  
+        }  
+  
+        TcpUtil.sendInt(socket, 0);  
+    }  
+  
+    private File doBinaryImage(File file, int threshold) throws IOException  
+    {  
+        var image = new CImage(file);  
+  
+        var path = file.getAbsolutePath();  
+        file = new File(path.substring(0, path.lastIndexOf('.') + 1) +  "-bin.png");  
+  
+        image.binary(threshold);  
+        image.save(file, CImageFormat.PNG);  
+  
+        return file;  
+    }  
+  
+    private void handleClient(Socket socket)  
+    {  
+        try (socket) {  
+            socket.setSoTimeout(SOCKET_TIMEOUT);  
+            var hostAddress = socket.getInetAddress().getHostAddress();  
+            var port = socket.getPort();  
+            Console.writeLine("Client connected to Binary image server via %s:%d", hostAddress, port);  
+            var path = String.format("%s_%d_%s", hostAddress, port, FORMATTER.format(LocalDateTime.now()));  
+  
+            saveFile(socket, path);  
+        }  
+        catch (IOException ex) {  
+            Console.Error.writeLine("BinaryImageServer:IO Exception Occurred:%s", ex.getMessage());  
+        }  
+        catch (Throwable ex) {  
+            Console.Error.writeLine("BinaryImageServer:Exception Occurred:%s", ex.getMessage());  
+        }  
+    }  
+  
+    public BinaryImageServer(int port, int backlog) throws IOException  
+    {  
+        m_server = ConcurrentServer.builder()  
+                .setPort(port)  
+                .setBacklog(backlog)  
+                .setInitRunnable(IMAGE_PATH::mkdirs)  
+                .setBeforeAcceptRunnable(() -> Console.writeLine("Binary image server is waiting for a client on port:%d", port))  
+                .setClientSocketConsumer(this::handleClient)  
+                .setServerExceptionConsumer(ex -> Console.Error.writeLine("Exception Occurred:%s", ex.getMessage()))  
+                .build();  
+    }  
+  
+    public void run()  
+    {  
+        m_server.start();  
+    }  
+  
+    public void close()  
+    {  
+        m_server.stop();  
+    }  
+  
+}
+```
+
+**GrayscaleImageServer**
+
+```java
+public class GrayscaleImageServer implements Closeable {  
+    private static final int SOCKET_TIMEOUT = 10000;  
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyy_HH-mm-ss-n");  
+    private static final File IMAGE_PATH = new File("grayscale_images");  
+  
+    private final ConcurrentServer m_server;  
+  
+    private void saveFile(Socket socket, String path) throws IOException  
+    {  
+        try {  
+            var file = new File(IMAGE_PATH, String.format("%s.png", new File(path).getName()));  
+  
+            TcpUtil.receiveFile(socket, file);  
+            file = doGrayscale(file);  
+            TcpUtil.sendInt(socket, 1);  
+            TcpUtil.sendFile(socket, file, 1024);  
+        }  
+        catch (NetworkException ex) {  
+            Console.Error.writeLine("Network problem:%s", ex.getMessage());  
+        }  
+  
+        TcpUtil.sendInt(socket, 0);  
+    }  
+  
+    private File doGrayscale(File file) throws IOException  
+    {  
+        var image = new CImage(file);  
+  
+        var path = file.getAbsolutePath();  
+        file = new File(path.substring(0, path.lastIndexOf('.') + 1) +  "-gs.png");  
+  
+        image.grayScale();  
+        image.save(file, CImageFormat.PNG);  
+  
+        return file;  
+    }  
+  
+    private void handleClient(Socket socket)  
+    {  
+        try (socket) {  
+            socket.setSoTimeout(SOCKET_TIMEOUT);  
+            var hostAddress = socket.getInetAddress().getHostAddress();  
+            var port = socket.getPort();  
+            Console.writeLine("Client connected to grayscale image server via %s:%d", hostAddress, port);  
+            var path = String.format("%s_%d_%s", hostAddress, port, FORMATTER.format(LocalDateTime.now()));  
+  
+            saveFile(socket, path);  
+        }  
+        catch (IOException ex) {  
+            Console.Error.writeLine("GrayScaleImageServer:IO Exception Occurred:%s", ex.getMessage());  
+        }  
+        catch (Throwable ex) {  
+            Console.Error.writeLine("GrayScaleImageServer:Exception Occurred:%s", ex.getMessage());  
+        }  
+    }  
+  
+  
+    public GrayscaleImageServer(int port, int backlog) throws IOException  
+    {  
+        m_server = ConcurrentServer.builder()  
+                .setPort(port)  
+                .setBacklog(backlog)  
+                .setInitRunnable(IMAGE_PATH::mkdirs)  
+                .setBeforeAcceptRunnable(() -> Console.writeLine("Grayscale image server is waiting for a client on port:%d", port))  
+                .setClientSocketConsumer(this::handleClient)  
+                .setServerExceptionConsumer(ex -> Console.Error.writeLine("Exception Occurred:%s", ex.getMessage()))  
+                .build();  
+    }  
+  
+    public void run()  
+    {  
+        m_server.start();  
+    }  
+  
+    public void close()  
+    {  
+        m_server.stop();  
+    }  
+}
+```
+
+**Application**
+
+```java
+class Application {  
+    public static void run(String[] args)  
+    {  
+        try {  
+            checkLengthEquals(args.length, 2, "wrong number of arguments!..");  
+  
+            var port = Integer.parseInt(args[0]);  
+            var backlog = Integer.parseInt(args[1]);  
+            var grayscaleServer = new GrayscaleImageServer(port, backlog);  
+            var binaryServer = new BinaryImageServer(port + 1, backlog);  
+  
+            new CommandPrompt.Builder()  
+                    .setPrompt("server")  
+                    .register(new ManageServerCommands(grayscaleServer, binaryServer, Executors.newCachedThreadPool()))  
+                    .build().run();  
+  
+        }  
+        catch (NumberFormatException ignore) {  
+            Console.Error.writeLine("Invalid arguments");  
+        }  
+        catch (IOException ex) {  
+            Console.Error.writeLine("IO Exception occurred:%s", ex.getMessage());  
+        }  
+    }  
+}
+```
+
+
+### Internet Protocol version 4 (IPv4)
+
+**IP** stands for **Internet Protocol** and **v4** stands for **Version Four** (IPv4). IPv4 was the primary version brought into action for production within the ARPANET in 1983.   
+IP version four addresses are 32-bit integers which will be expressed in decimal notation.   
+Example- 192.0.2.126 could be an IPv4 address. 
+
+![[Pasted image 20240308123012.png]]
+#### Parts of IPv4
+
+- **Network part:**   
+    The network part indicates the distinctive variety that’s appointed to the network. The network part conjointly identifies the category of the network that’s assigned.
+- **Host Part:**   
+    The host part uniquely identifies the machine on your network. This part of the IPv4 address is assigned to every host.   
+    For each host on the network, the network part is the same, however, the host half must vary.
+- **Subnet number:**   
+    This is the nonobligatory part of IPv4. Local networks that have massive numbers of hosts are divided into subnets and subnet numbers are appointed to that.
+
+#### Characteristics of IPv4
+
+- IPv4 could be a 32-Bit IP Address.
+- IPv4 could be a numeric address, and its bits are separated by a dot.
+- The number of header fields is twelve and the length of the header field is twenty.
+- It has Unicast, broadcast, and multicast style of addresses.
+- IPv4 supports VLSM (Virtual Length Subnet Mask).
+- IPv4 uses the Post Address Resolution Protocol to map to the MAC address.
+- RIP may be a routing protocol supported by the routed daemon.
+- Networks ought to be designed either manually or with DHCP.
+- Packet fragmentation permits from routers and causing host.
+
+#### Advantages of IPv4
+
+- IPv4 security permits encryption to keep up privacy and security.
+- IPV4 network allocation is significant and presently has quite 85000 practical routers.
+- It becomes easy to attach multiple devices across an outsized network while not NAT.
+- This is a model of communication so provides quality service also as economical knowledge transfer.
+- IPV4 addresses are redefined and permit flawless encoding.
+- Routing is a lot of scalable and economical as a result of addressing is collective more effectively.
+- Data communication across the network becomes a lot of specific in multicast organizations.
+    - Limits net growth for existing users and hinders the use of the net for brand new users.
+    - Internet Routing is inefficient in IPv4.
+    - IPv4 has high System Management prices and it’s labor-intensive, complex, slow & frequent to errors.
+    - Security features are nonobligatory.
+    - Difficult to feature support for future desires as a result of adding it on is extremely high overhead since it hinders the flexibility to attach everything over IP.
+
+#### **Limitations of IPv4**
+
+- IP relies on network layer addresses to identify end-points on network, and each network has a unique IP address.
+- The world’s supply of unique IP addresses is dwindling, and they might eventually run out theoretically.
+- If there are multiple host, we need IP addresses of next class.
+- Complex host and routing configuration, non-hierarchical addressing, difficult to re-numbering addresses, large routing tables, non-trivial implementations in providing security, QoS (Quality of Service), mobility and multi-homing, multicasting etc. are the big limitation of IPv4 so that’s why IPv6 came into the picture.
+
+### Internet Protocol version 6 (IPv6)
+
+IPv6 was developed by Internet Engineering Task Force (IETF) to deal with the problem of IPv4 exhaustion. IPv6 is a 128-bits address having an address space of 2128, which is way bigger than IPv4. IPv6 use Hexa-Decimal format separated by colon (:) .
+#### Components in Address format :   
+
+1. There are 8 groups and each group represents 2 Bytes (16-bits). 
+2. Each Hex-Digit is of 4 bits (1 nibble)
+3. Delimiter used – colon (:)
+
+![[Pasted image 20240308123408.png]]
+
+#### Benefits of IPv6
+
+The recent Version of IP IPv6 has a greater advantage over IPv4. Here are some of the mentioned benefits:
+
+- ***Larger Address Space:*** IPv6 has a greater address space than IPv4, which is required for expanding the IP Connected Devices. IPv6 has 128 bit IP Address rather and IPv4 has a 32-bit Address.
+- ***Improved Security:*** IPv6 has some improved security which is built in with it. IPv6 offers security like Data Authentication, Data Encryption, etc. Here, an Internet Connection is more Secure.
+- ***Simplified Header Format:*** As compared to IPv4, IPv6 has a simpler and more effective header Structure, which is more cost-effective and also increases the speed of Internet Connection.
+- ***Prioritize:*** IPv6 contains stronger and more reliable support for QoS features, which helps in increasing traffic over websites and increases audio and video quality on pages.
+- ***Improved Support for Mobile Devices:*** IPv6 has increased and better support for Mobile Devices. It helps in making quick connections over other Mobile Devices and in a safer way than IPv4.
+
+#### ***Difference Between IPv4 and IPv6***
+
+|****IPv4****|****IPv6****|
+|---|---|
+|IPv4 has a 32-bit address length|IPv6 has a 128-bit address length|
+|It Supports Manual and DHCP address configuration|It supports Auto and renumbering address configuration|
+|In IPv4 end to end, connection integrity is Unachievable|In IPv6 end-to-end, connection integrity is Achievable|
+|It can generate 4.29×109 address space|The address space of IPv6 is quite large it can produce 3.4×1038 address space|
+|The Security feature is dependent on the application|IPSEC is an inbuilt security feature in the IPv6 protocol|
+|Address representation of IPv4 is in decimal|Address Representation of IPv6 is in hexadecimal|
+|Fragmentation performed by Sender and forwarding routers|In IPv6 fragmentation is performed only by the sender|
+|In IPv4 Packet flow identification is not available|In IPv6 packet flow identification are Available and uses the flow label field in the header|
+|In IPv4 checksum field is available|In IPv6 checksum field is not available|
+|It has a broadcast Message Transmission Scheme|In IPv6 multicast and anycast message transmission scheme is available|
+|In IPv4 Encryption and Authentication facility not provided|In IPv6 Encryption and Authentication are provided|
+|IPv4 has a header of 20-60 bytes.|IPv6 has a header of 40 bytes fixed|
+|IPv4 can be converted to IPv6|Not all IPv6 can be converted to IPv4|
+|IPv4 consists of 4 fields which are separated by addresses dot (.)|IPv6 consists of 8 fields, which are separated by a colon (:)|
+|IPv4’s  IP addresses are divided into five different classes. Class A , Class B, Class C, Class D , Class E.|IPv6 does not have any classes of the IP address.|
+|IPv4 supports VLSM(Variable Length subnet mask).|IPv6 does not support VLSM.|
+|Example of IPv4:  66.94.29.13|Example of IPv6: 2001:0000:3238:DFE1:0063:0000:0000:FEFB|
+
+###  Difference between Connection-oriented and Connection-less Services
+
+**Connection-oriented service** is related to the telephone system. It includes connection establishment and connection termination. In a connection-oriented service, the Handshake method is used to establish the connection between sender and receiver.
+
+**Connection-less service** is related to the postal system. It does not include any connection establishment and connection termination. Connection-less Service does not give a guarantee of reliability. In this, Packets do not follow the same path to reach their destination.
+
+|S.NO|Connection-oriented Service|Connection-less Service|
+|---|---|---|
+|1.|[Connection-oriented](https://www.geeksforgeeks.org/connection-oriented-service/) service is related to the telephone system.|[Connection-less](https://www.geeksforgeeks.org/connection-less-service/) service is related to the postal system.|
+|2.|Connection-oriented service is preferred by long and steady communication.|Connection-less Service is preferred by bursty communication.|
+|3.|Connection-oriented Service is necessary.|Connection-less Service is not compulsory.|
+|4.|Connection-oriented Service is feasible.|Connection-less Service is not feasible.|
+|5.|In connection-oriented Service, Congestion is not possible.|In connection-less Service, Congestion is possible.|
+|6.|Connection-oriented Service gives the guarantee of reliability.|Connection-less Service does not give a guarantee of reliability.|
+|7.|In connection-oriented Service, Packets follow the same route.|In connection-less Service, Packets do not follow the same route.|
+|8.|Connection-oriented services require a bandwidth of a high range.|Connection-less Service requires a bandwidth of low range.|
+|9.|Ex: [TCP (Transmission Control Protocol)](https://www.geeksforgeeks.org/what-is-transmission-control-protocol-tcp/)|Ex: [UDP (User Datagram Protocol)](https://www.geeksforgeeks.org/user-datagram-protocol-udp/)|
+|10.|Connection-oriented requires authentication.|Connection-less Service does not require authentication.|

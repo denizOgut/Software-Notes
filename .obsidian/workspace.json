@@ -11,9 +11,11 @@
             "id": "1ab05725ce26f296",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png"
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "mode": "source",
+                "source": false
               }
             }
           }
@@ -83,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -123,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "JAVA APP Screen Shoots/Pasted image 20240306115520.png"
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
               }
             }
           }
@@ -147,18 +149,18 @@
   },
   "active": "1ab05725ce26f296",
   "lastOpenFiles": [
+    "JAVA APP - 2 NOTES.md",
+    "JAVA APP Screen Shoots/Pasted image 20240308123408.png",
+    "JAVA APP Screen Shoots/Pasted image 20240308123012.png",
+    "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
     "JAVA APP - 1 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240306121256.png",
     "JAVA APP Screen Shoots/Pasted image 20240306120253.png",
     "JAVA APP Screen Shoots/Pasted image 20240306115843.png",
     "JAVA APP Screen Shoots/Pasted image 20240306115657.png",
-    "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
-    "JAVA APP - 2 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240305113049.png",
     "JAVA APP Screen Shoots/Pasted image 20240305112544.png",
     "JAVA APP Screen Shoots/Pasted image 20240305111127.png",
-    "Pasted image 20240305110531.png",
-    "JAVA APP Screen Shoots/Pasted image 20240305084207.png",
     "Golang Notes.md",
     "100 Go Mistakes and How to Avoid Them.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
