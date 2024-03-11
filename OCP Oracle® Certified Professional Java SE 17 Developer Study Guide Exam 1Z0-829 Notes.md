@@ -6822,7 +6822,7 @@ A string is basically a sequence of characters;
 String name = "Fluffy";
 ```
 
-this is an example of a reference type. reference types are created using the *new* keyword. In Java, these two
+this is an example of a reference type. reference types are created using the ***new*** keyword. In Java, these two
 snippets both create a ``String``:
 
 ```JAVA
@@ -6838,11 +6838,9 @@ Fluffy""";
 ```
 
 Since a ``String`` is a sequence of characters, it implements the interface ``CharSequence``. This interface is a general way of representing several classes, including ``String`` and ``StringBuilder`` . 
-
 ### Concatenating
 
-Java combines the two String objects. Placing one String before the other String and combining them is called string *concatenation.* 
-The exam creators like string concatenation because the ``+`` operator can be used in two ways within the same line of code.
+Java combines the two String objects. Placing one String before the other String and combining them is called string *concatenation.* The exam creators like string concatenation because the ``+`` operator can be used in two ways within the same line of code.
 
 1. ==**If both operands are numeric, ``+`` means numeric addition.**==
 2. ==**If either operand is a String, ``+`` means concatenation.**==
@@ -6863,7 +6861,7 @@ System.out.println("c" + null); // cnull
 	figures out what "a" + "b" evaluates to. Then Java looks at the remaining expression of "ab" + 3. The second rule tells us to concatenate since one of the operands is a ``String``.
 - In the fourth example, start with the third rule, which tells us to consider 1 + 2. Both operands are numeric, so the first rule tells us the answer is 3. Then we have 3 + "c", which uses the second rule to give us "3c". 
 - The fifth example shows the importance of the third rule. First we have "c" + 1, which uses the second rule to give us "c1". Then we have "c1" + 2, which uses the second rule again to give us "c12".
-- Finally, the last example shows how ``null`` is represented as a string when concatenated or printed, giving us ``"cnull"``.
+- Finally, the last example shows how **==``null`` is represented as a string when concatenated or printed==**, giving us ``"cnull"``.
 
 ```java
 int three = 3;
@@ -6882,13 +6880,9 @@ There is one more thing to know about concatenation, s += "2" means the same thi
 ```
 
 ==**use numeric addition if two numbers are involved, use concatenation otherwise, and evaluate from left to right.**==
-
 ### Important String Methods
 
-For all these methods, you need to remember that a string is a sequence of characters and ==**Java counts from 0 when indexed.**==
-
-also need to know that a ==**String is immutable, or unchangeable. This means calling a method on a String will return a different String object rather than changing the value of the reference.**==
-
+For all these methods, you need to remember that a string is a sequence of characters and ==**Java counts from 0 when indexed.**== also need to know that a ==**String is immutable, or unchangeable. This means calling a method on a String will return a different String object rather than changing the value of the reference.**==
 #### Determining the Length
 
 The method ``length()`` returns the number of characters in the String.
@@ -6901,9 +6895,8 @@ var name = "animals";
 System.out.println(name.length()); // 7
 ```
 
-Java counts from 0? The difference is that zero counting happens only when you’re using indexes or positions 
-within a list. When determining the total size or length, Java uses normal counting again.
-
+Java counts from 0? The difference is that **==zero counting happens only when you’re using indexes or positions**== 
+==**within a list==**. When determining the total size or length, Java uses normal counting again.
 #### Getting a Single Character
 
 The method ``charAt()`` lets you query the string to find out what character is at a specific index.
@@ -6917,7 +6910,6 @@ System.out.println(name.charAt(0)); // a
 System.out.println(name.charAt(6)); // s
 System.out.println(name.charAt(7)); // exception
 ```
-
 #### Finding an Index
 
 The method ``indexOf()`` looks at the characters in the string and finds the first index that matches the desired value. The ``indexOf`` method can work with an individual character or a whole String as input. It can also start from a requested position. char can be passed to an int parameter type.
@@ -6938,7 +6930,6 @@ System.out.println(name.indexOf("al", 5)); // -1
 ```
 
 ==**Unlike ``charAt()``, the ``indexOf()`` method doesn’t throw an exception if it can’t find a match, instead returning –1.**== Because indexes start with 0, the caller knows that –1 couldn’t be a valid index.
-
 #### Getting a Substring
 
 The method ``substring()`` also looks for characters in a string. It returns parts of the string. The first parameter is the index to start with for the returned string. As usual, this is a zero-based index. There is an optional second parameter, which is the end index you want to stop at.
@@ -6971,7 +6962,6 @@ System.out.println(name.substring(3, 8)); // exception
 The first example in this set prints an empty string. The request is for the characters starting with index 3 until we get to index 3. ==**Since we start and end with the same index, there are no characters in between.**==
 
 ==**The method returns the string starting from the requested index. If an end index is requested, it stops right before that index. Otherwise, it goes to the end of the string.**==
-
 #### Adjusting Case
 
 ```java
@@ -6986,7 +6976,6 @@ System.out.println("Abc123".toLowerCase()); // abc123
 ```
 
 ==**These methods leave alone any characters other than letters. Also, remember that strings are immutable, so the original string stays the same.**==
-
 #### Checking for Equality
 
 - ==**The ``equals()`` method checks whether two String objects contain exactly the same characters in the same order.**== 
@@ -7013,7 +7002,6 @@ System.out.println("abc".equalsIgnoreCase("ABC")); // true
 - **``hashCode()``: Any time you override ``equals(Object)``, you must override ``hashCode()`` to be consistent. This means that for any two objects, ``if a.equals(b)`` is true, then ``a.hashCode() == b.hashCode()`` must also be true. If they are not consistent, this could lead to invalid data and side effects in hash-based collections such as ``HashMap`` and ``HashSet``.**
 
 ---
-
 #### Searching for Substrings
 
 The ``startsWith()`` and ``endsWith()`` methods look at whether the provided value matches part of the String. The ``contains()`` method isn’t as particular; it looks for matches anywhere in the String.
@@ -7034,7 +7022,6 @@ System.out.println("abc".endsWith("a")); // false
 System.out.println("abc".contains("b")); // true
 System.out.println("abc".contains("B")); // false
 ```
-
 #### Replacing Values
 
 The ``replace()`` method does a simple search and replace on the string. There’s a version that takes char parameters as well as a version that takes ``CharSequence`` parameters.
@@ -7048,11 +7035,9 @@ public String replace(CharSequence target, CharSequence replacement)
 System.out.println("abcabc".replace('a', 'A')); // AbcAbc
 System.out.println("abcabc".replace("a", "A")); // AbcAbc
 ```
-
 #### Removing Whitespace
  
- These methods remove blank space from the beginning and/or end of a String. ==**The`` strip()`` and ``trim()`` methods remove whitespace from the beginning and end of a String**==. In terms of the exam, whitespace consists of spaces along with the \t (tab) and \n (newline) characters. Other characters, such as \r (carriage return), are also included in what gets trimmed.
-The ``strip()`` method does everything that ``trim()`` does, but it supports Unicode.
+ These methods remove blank space from the beginning and/or end of a String. ==**The`` strip()`` and ``trim()`` methods remove whitespace from the beginning and end of a String**==. In terms of the exam, whitespace consists of spaces along with the ``\t (tab)`` and ``\n (newline)`` characters. Other characters, such as ``\r (carriage return)``, are also included in what gets trimmed. **==The ``strip()`` method does everything that ``trim()`` does, but it supports Unicode.==**
 
 Additionally, the ``stripLeading()`` method removes whitespace from the beginning of the String and leaves it at the end. The ``stripTrailing()`` method does the opposite. It removes whitespace from the end of the String and leaves it at the beginning.
 
@@ -7068,6 +7053,7 @@ System.out.println("abc".strip()); // abc
 System.out.println("\t a b c\n".strip()); // a b c
 
 String text = " abc\t ";
+System.out.println(text.length()); // 6
 System.out.println(text.trim().length()); // 3
 System.out.println(text.strip().length()); // 3
 System.out.println(text.stripLeading().length()); // 5
@@ -7116,7 +7102,7 @@ public class RemovingWhitespace {
         System.out.println("##### stripTabCharacter #####");  
         String text = " abc\t ";  
         System.out.println(text.strip()); //abc  
-        System.out.println(text.strip().length());   //3  
+        System.out.println(text.strip().length()); //3  
         System.out.println(text.stripLeading().length()); //5  
         System.out.println(text.stripTrailing().length()); //4  
     }  
@@ -7126,7 +7112,7 @@ public class RemovingWhitespace {
         System.out.println("##### trimTabCharacter #####");  
         String text = " abc\t ";  
         System.out.println(text.trim()); //abc  
-        System.out.println(text.trim().length());   //3  
+        System.out.println(text.trim().length()); //3  
     }  
   
   
@@ -7136,7 +7122,7 @@ public class RemovingWhitespace {
         System.out.println(contentWithTab);  
         System.out.println(contentWithTab.length()); //12  
   
-        System.out.println(contentWithTab.strip());   // a b c  
+        System.out.println(contentWithTab.strip()); // a b c  
         System.out.println(contentWithTab.strip().length());   //5  
     }  
   
@@ -7146,7 +7132,7 @@ public class RemovingWhitespace {
         System.out.println(contentWithTab);  
         System.out.println(contentWithTab.length()); //12  
   
-        System.out.println(contentWithTab.trim());   //a b c  
+        System.out.println(contentWithTab.trim()); //a b c  
         System.out.println(contentWithTab.trim().length());   //5  
     }  
   
@@ -7177,13 +7163,11 @@ The`` indent()`` method
 - ==**Positive: Adds the same number of blank spaces to the beginning of each line.**==
 - ==**Negative: Tries to remove the specified number of whitespace characters from the beginning of the line.**==
 - ==**Zero: The indentation remains unchanged.**==
-
 ---
 
 **If you call ``indent()`` with a negative number and try to remove more whitespace characters than are present at the beginning of the line, Java will remove all that it can find.**
 
 ---
-
 ``indent()`` also normalizes whitespace characters. What does normalizing whitespace mean, you ask?
 - ==**First, a line break is added to the end of the string if not already there.**==
 - ==**Second, any line breaks are converted to the ``\n`` format. Regardless of whether your operating system uses**==
@@ -7196,6 +7180,7 @@ String normalized = text.indent(-3);  // Negative: No change in indentation
 System.out.println("indented:" +indented);  
 System.out.println("normalized:" +normalized);
 ```
+**Because of ``\n`` at the end of Line 1, ``indent()`` method also applies to Line 2 and gives the output below**
 
 ```text
 indented:    Line 1
@@ -7207,7 +7192,35 @@ Line 2
 
 The ``stripIndent()`` method is useful when a String was built with concatenation rather than using a text block. ==**It gets rid of all incidental whitespace.**== This means that all non-blank lines are shifted left so the same number of whitespace characters are removed from each line and the first character that remains is not blank
 
+```java
+public static void main(String args[]) {
+	String example = """
+		This is an example
+		demonstrating the usage
+		of stripIndent().
+		""";
+	System.out.println(example.stripIndent());
+}
+```
+
+```text
+This is an example
+demonstrating the usage
+of stripIndent().
+```
+
 ==**If the `stripIndent()` method is used and there are no leading spaces on the first line of a multiline string, no changes will occur. `stripIndent()` only removes the common indentation level from each line, and if there are no leading spaces on the first line, the text remains unchanged.**==
+
+```java
+String text = "No leading spaces.\n  Indented line.\n  Another indented line.";
+System.out.println(text.stripIndent());
+```
+
+```text
+No leading spaces.
+  Indented line.
+  Another indented line.
+```
 
 Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`` method does not add a trailing line break if it is missing.**==
 
@@ -7224,7 +7237,7 @@ Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`
 12: b
 13: c""";
 14: var concat = " a\n"
-15: + " b\n"
+15: + "  b\n"
 16: + " c";
 17: System.out.println(block.length()); // 6
 18: System.out.println(concat.length()); // 9
@@ -7428,7 +7441,6 @@ public class WorkingWithIndentation {
     }  
 }
 ```
-
 #### Translating Escapes
 
 When we escape characters, we use a single backslash. For example, ``\t`` is a tab. If we don’t want this behavior, we add another backslash to escape the backslash, so ``\\t`` is the literal string ``\t``.
@@ -7470,7 +7482,7 @@ public class TranslatingEscapes {
         System.out.println("---------");  
   
         var str2 = "1\\n2";  
-        System.out.println("STR2" + str2); // 1\n2  
+        System.out.println(str2); // 1\n2  
         System.out.println(str2.translateEscapes()); // 1 new line 2  
   
         System.out.println("---------");  
@@ -7516,7 +7528,6 @@ public static void main(String[] args) {
 - The first line prints ``false`` because the ``String`` is not empty; it has a blank space in it.
 - The second line prints ``true`` because this time, there are no characters in the ``String``.
 - The final two lines print true because there are no characters other than whitespace present.
-
 #### Formatting Values
 
 Two of the methods take the format string as a parameter, and the other uses an instance for that value. One method takes a ``Locale``
@@ -7562,7 +7573,6 @@ Score: 90.250000 out of 100
 ```
 
 ==**Mixing data types may cause exceptions at runtime.**== 
-
 ### Method Chaining
 
 It is common to call multiple methods as shown here:
@@ -7593,7 +7603,6 @@ public static void main(String[] args) {
     System.out.println("b=" + b); // b=A23  
 }
 ```
-
 ## Using the ``StringBuilder`` Class
 
 ```java
@@ -7617,7 +7626,6 @@ The ``StringBuilder`` class creates a ``String`` without storing all those inter
 ```
 
 This code reuses the same `StringBuilder` without creating an interim String each time.
-
 ### Mutability and Chaining
 
 The exam will likely try to trick you with respect to String and StringBuilder being mutable.
@@ -7649,7 +7657,6 @@ StringBuilder sb3 = new StringBuilder(10);
 ```
 
 The final example tells Java that we have some idea of how big the eventual value will be and would like the ``StringBuilder`` to reserve a certain capacity, or number of slots, for characters.
-
 ### Important ``StringBuilder`` Methods
 
 #### Using Common Methods
@@ -7665,7 +7672,6 @@ System.out.println(sub + " " + len + " " + ch);
 ```
 
 **Notice that substring() returns a String rather than a StringBuilder. That is why sb is not changed.**
-
 #### Appending Values
 
 The ``append()`` method is by far the most frequently used method in StringBuilder. it adds the parameter to the StringBuilder and returns a reference to the current StringBuilder.
@@ -7682,7 +7688,6 @@ System.out.println(sb); // 1c-true
 ```
 
 can just call ``append()`` without having to convert your parameter to a String first.`
-
 #### Inserting Data
 
 The ``insert()`` method adds characters to the StringBuilder at the requested index and returns a reference to the current ``StringBuilder``
@@ -7693,13 +7698,11 @@ public StringBuilder insert(int offset, String str)
 
 ```java
 3: var sb = new StringBuilder("animals");
-4: sb.insert(7, "-");
-// sb = animals-5:
-sb.insert(0, "-"); // sb = -animals-
-6:sb.insert(4, "-"); // sb = -ani-mals-
-7:System.out.println(sb);
+4: sb.insert(7, "-"); // sb = animals-
+5: sb.insert(0, "-"); // sb = -animals-
+6: sb.insert(4, "-"); // sb = -ani-mals-
+7: System.out.println(sb);
 ```
-
 #### Deleting Contents
 
 The ``delete()`` method is the opposite of the ``insert()`` method.  It removes characters from the sequence and returns a reference to the current StringBuilder. The ``deleteCharAt(``) method is convenient when you want to delete only one character.
@@ -7716,10 +7719,9 @@ sb.deleteCharAt(5); // exception
 ```
 
 The ``delete()`` method is more flexible than some others when it comes to array indexes. If you specify a second parameter that is past the end of the StringBuilder, Java will just assume you meant the end.
-
 #### Replacing Portions
 
-The ``replace()`` method works differently for StringBuilder than it did for String
+**==The ``replace()`` method works differently for StringBuilder than it did for String==**
 
 ```java
 public StringBuilder replace(int startIndex, int endIndex, String newString)
@@ -7739,8 +7741,7 @@ builder.replace(3, 100, "");
 System.out.println(builder);
 ```
 
-the method is first doing a logical delete. The replace() method allows specifying a second parameter that is past the end of the StringBuilder. That means only the first three characters remain.
-
+the method is first doing a logical delete. The ``replace()`` method allows specifying a second parameter that is past the end of the StringBuilder. That means only the first three characters remain.
 #### Reversing
 
 The ``reverse()`` method does just what it sounds like: it reverses the characters in the sequences and returns a reference to the current ``StringBuilder``.
@@ -7806,7 +7807,6 @@ System.out.println(name == builder); // DOES NOT COMPILE
 ```
 
 ``==`` is checking for object reference equality. The compiler is smart enough to know that two references can’t possibly point to the same object when they are completely different types.
-
 ### The String Pool
 
 Since strings are everywhere in Java, they use up a lot of memory. Java realizes that many strings repeat in the program and solves this issue by reusing common ones. ==**The string pool, also known as the intern pool, is a location in the Java Virtual Machine (JVM) that collects all these strings.**==
@@ -7826,6 +7826,7 @@ Remember that ==**a String is immutable and literals are pooled. The JVM created
 var x = "Hello World";
 var z = " Hello World".trim();
 System.out.println(x == z); // false
+System.out.println(x.equals(z)); // true
 ```
 
 we don’t have two of the same String literal. ==**Although x and z happen to evaluate to the same string, one is computed at runtime. Since it isn’t the same at compile-time, a new String object is created**==
@@ -7935,7 +7936,6 @@ char[] letters;
 ==**Keep in mind that letters is a reference variable and not a primitive. The char type is a primitive. But char is what goes into the array and not the type of the array itself. The array itself is of type char[].**==
 
 An array is an ordered list. It can contain duplicates.
-
 ### Creating an Array of Primitives
 
 The most common way to create an array
@@ -7985,7 +7985,6 @@ int ids[], types;
 **This time we get one variable of type int[] and one variable of type int. Java sees this line of code and thinks something like this: “They want two variables of type int. The first one is called ids[]. This one is an int[] called ids. The second one is just called types. No brackets, so it is a regular integer.”**
 
 ---
-
 ### Creating an Array with Reference Variables
 
 You can choose any Java type to be the type of the array. This includes classes you create yourself.
@@ -8026,7 +8025,6 @@ Each of those two slots currently is null but has the potential to point to a St
 ```
  
  Line 7 is where this gets interesting. From the point of view of the compiler, this is just fine. A ``StringBuilder`` object can clearly go in an ``Object[]``. The problem is that we don’t actually have an ``Object[]``. We have a ``String[]`` referred to from an ``Object[]`` variable. At runtime, the code throws an ``ArrayStoreException``.
-
 ### Using an Array
 
 ```java
@@ -8071,7 +8069,6 @@ numbers[i] = i + 5;
 - The first one is trying to see whether you know that indexes start with 0. Since we have 10 elements in our array, this means only numbers[0] through numbers[9] are valid.
 - The second example assumes you are clever enough to know that 10 is invalid and disguises it by using the length field. However, the length is always one more than the maximum valid index.
 - Finally, the for loop incorrectly uses <= instead of <, which is also a way of referring to that tenth element.
-
 ### Sorting
 
 Java makes it easy to sort an array by providing a sort method—or rather, a bunch of sort methods.
@@ -8099,7 +8096,6 @@ System.out.print(s + " "); // 10 100 9
 ```
 
 ==**The problem is that String sorts in alphabetic order, and 1 sorts before 9. (Numbers sort before letters, and uppercase sorts before lowercase.)**==
-
 ### Searching
 Java also provides a convenient way to search, ==**but only if the array is already sorted.**==
 
@@ -8142,11 +8138,9 @@ Java also provides a convenient way to search, ==**but only if the array is alre
 ```
 
 Note that on line 5, the array isn’t sorted. This means the output will not be defined. ==**As soon as you see the array isn’t sorted, look for an answer choice about unpredictable output.**==
-
 ### Comparing
 
 Java also provides methods to compare two arrays to determine which is ***“smaller.”***
-
 #### Using ``compare()``
 There are a bunch of rules you need to know before calling ``compare()``.
 
@@ -8173,6 +8167,8 @@ What does smaller means?
 - ==**For strings, one is smaller if it is a prefix of another.**==
 - ==**For strings/characters, numbers are smaller than letters.**==
 - ==**For strings/characters, uppercase is smaller than lowercase.**==
+
+==**For strings/characters: null -> numbers -> uppercase -> lowercase**==
 
 ```java
 public static void main(String[] args) {  
@@ -8207,7 +8203,6 @@ public static void main(String[] args) {
 | `new String[] {"a"}`        | `new String[] {"aa"}`      | Negative number  | The first element is a substring of the second.                |
 | `new String[] {"a"}`        | `new String[] {"A"}`       | Positive number  | Uppercase is smaller than lowercase.                        |
 | `new String[] {"a"}`        | `new String[] {null}`      | Positive number  | null is smaller than a letter.                              |
-
 ==**When comparing two arrays, they must be the same array type.**== 
 
 ```java
@@ -8220,10 +8215,9 @@ new int[] {1}, new String[] {"a"})); // DOES NOT COMPILE
 ==**If the arrays are equal, ``mismatch()`` returns -1. Otherwise, it returns the first index where they differ.**==
 
 ```java
-System.out.println(Arrays.mismatch(new int[] {1}, new int[] {1}));
-System.out.println(Arrays.mismatch(new String[] {"a"},
-new String[] {"A"}));
-System.out.println(Arrays.mismatch(new int[] {1, 2}, new int[] {1}));
+System.out.println(Arrays.mismatch(new int[] {1}, new int[] {1})); // -1
+System.out.println(Arrays.mismatch(new String[] {"a"}, new String[] {"A"})); // 0
+System.out.println(Arrays.mismatch(new int[] {1, 2}, new int[] {1})); // 1
 ```
 
 - In the first example, the arrays are the same, so the result is -1. 
@@ -8253,7 +8247,6 @@ public static void main(String... args) // varargs
 ```
 
 you can use a variable defined using ``varargs`` as if it were a normal array.
-
 ### Working with Multidimensional Arrays
 
 #### Creating a Multidimensional Array
@@ -8297,7 +8290,6 @@ args[1] = new int[3];
 ```
 
 This technique reveals what you really get with Java: arrays of arrays that, properly managed, offer a multidimensional effect.
-
 #### Using a Multidimensional Array
 
 The most common operation on a multidimensional array is to loop through it.
@@ -8324,7 +8316,6 @@ System.out.println();
 ## Calculating with Math APIs
 
 Pay special attention to return types in math questions. They are an excellent opportunity for trickery!
-
 ### Finding the Minimum and Maximum
 
 The ``min()`` and ``max()`` methods compare two values and return one of them. 
@@ -8340,7 +8331,6 @@ public static long min(long a, long b)
 int first = Math.max(3, 7); // 7
 int second = Math.min(7, -9); // -9
 ```
-
 ### Rounding Numbers
 
 The ``round()`` method gets rid of the decimal portion of the value, choosing the next higher
@@ -8518,7 +8508,6 @@ var d = new LocalDate(); // DOES NOT COMPILE
 var d = LocalDate.of(2022, Month.JANUARY, 32) // DateTimeException
 java.time.DateTimeException: Invalid value for DayOfMonth (valid values 1-28/ 31): 32
 ```
-
 ### Manipulating Dates and Times
 
 ==**The date and time classes are immutable**==. Remember to assign the results of these methods to a reference variable so they are not lost.
@@ -8806,7 +8795,6 @@ Using a ``Duration`` works the same way as using a Period.
 13: System.out.println(
 14: date.plus(duration)); // UnsupportedTemporalTypeException
 ```
-
 ### Period vs. Duration
 
 Remember that ``Period`` and ``Duration`` are not equivalent.
