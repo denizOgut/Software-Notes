@@ -9039,3 +9039,533 @@ public class DayLightSpringExample {
 - **Recognize invalid uses of dates and times.**: ``LocalDate`` does not contain time fields, and ``LocalTime`` does not contain date fields. Watch for operations being performed on the wrong time. Also watch for adding or subtracting time and ignoring the result. Be comfortable with date math, including time zones and daylight saving time.
 
 ## Review Questions
+
+1. What is output by the following code? (Choose all that apply.)
+
+```java
+1: public class Fish {
+2: public static void main(String[] args) {
+3: int numFish = 4;
+4: String fishType = "tuna";
+5: String anotherFish = numFish + 1;
+6: System.out.println(anotherFish + " " + fishType);
+7: System.out.println(numFish + " " + 1);
+8: } }
+```
+
+A. 4 1
+B. 5
+C. 5 tuna
+D. 5tuna
+E. 51tuna
+F. The code does not compile.
+
+**My Answer: F
+Correct Answer: F**
+
+**``numFish`` is an int, and 1 is an int. Therefore, we use numeric addition and get 5. The problem is that we can’t store an int in a String variable.**
+
+---
+
+2. Which of these array declarations are not legal? (Choose all that apply.)
+
+A. ``int[][] scores = new int[5][];``
+B. ``Object[][][] cubbies = new Object[3][0][5];``
+C. ``String beans[] = new beans[6];``
+D. ``java.util.Date[] dates[] = new java.util.Date[2][];``
+E. ``int[][] types = new int[];``
+F. ``int[][] java = new int[][];``
+
+**My Answer: C,E,F**
+**Correct Answer: C,E,F**
+
+**Option C uses the variable name as if it were a type, which is clearly illegal. Options E and F don’t specify any size. Although it is legal to leave out the size for later dimensions of a multidimensional array, the first one is required**
+
+---
+
+3. Note that March 13, 2022 is the weekend when we spring forward, and November 6, 2022 is when we fall back for daylight saving time. Which of the following can fill in the blank without the code throwing an exception? (Choose all that apply.)
+
+```java
+var zone = ZoneId.of("US/Eastern");
+var date = ;
+var time = LocalTime.of(2, 15);
+var z = ZonedDateTime.of(date, time, zone);
+```
+
+`A. LocalDate.of(2022, 3, 13)`
+`B. LocalDate.of(2022, 3, 40)`
+`C. LocalDate.of(2022, 11, 6)`
+`D. LocalDate.of(2022, 11, 7)`
+`E. LocalDate.of(2023, 2, 29)`
+`F. LocalDate.of(2022, MonthEnum.MARCH, 13);`
+
+**My Answer: A,C,F**
+**Correct Answer: A,C,D**
+
+**Option B throws an exception because there is no March 40.** 
+**Option E also throws an exception because 2023 isn’t a leap year and therefore has no February 29.** 
+**Option F doesn’t compile because the enum should be named Month, rather than MonthEnum.**
+
+---
+
+4. Which of the following are output by this code? (Choose all that apply.)
+
+```java
+3: var s = "Hello";
+4: var t = new String(s);
+5: if ("Hello".equals(s)) System.out.println("one");
+6: if (t == s) System.out.println("two");
+7: if (t.intern() == s) System.out.println("three");
+8: if ("Hello" == s) System.out.println("four");
+9: if ("Hello".intern() == t) System.out.println("five");
+```
+
+A. one
+B. two
+C. three
+D. four
+E. five
+F. The code does not compile.
+G. None of the above
+
+**My Answer: A,C,D**
+**Correct Answer: A,C,D**
+
+
+---
+
+5. What is the result of the following code?
+
+```java
+7: var sb = new StringBuilder();
+8: sb.append("aaa").insert(1, "bb").insert(4, "ccc");
+9: System.out.println(sb);
+```
+
+A. abbaaccc
+B. abbaccca
+C. bbaaaccc
+D. bbaaccca
+E. An empty line
+F. The code does not compile.
+
+**My Answer: B**
+**Correct Answer: B**
+
+**After the call to ``append()``, sb contains "aaa". That result is passed to the first ``insert()`` call, which inserts at index 1. At this point, sb contains abbaa. That result is passed to the final insert(), which inserts at index 4, resulting in abbaccca.**
+
+---
+
+6. How many of these lines contain a compiler error? (Choose all that apply.)
+
+```java
+23: double one = Math.pow(1, 2);
+24: int two = Math.round(1.0);
+25: float three = Math.random();
+26: var doubles = new double[] {one, two, three};
+```
+
+A. 0
+B. 1
+C. 2
+D. 3
+E. 4
+
+**My Answer: B**
+**Correct Answer: C**
+
+**Remember to watch return types on math operations. ==One of the tricks is line 24. The ``round()`` method returns an int when called with a float. However, we are calling it with a double, so it returns a long. The other trick is line 25. The ``random()`` method returns a double.**==
+
+---
+
+7.  Which of these statements is true of the two values? (Choose all that apply.)
+	2022–08–28T05:00 GMT-04:00
+	2022–08–28T09:00 GMT-06:00
+A. The first date/time is earlier.
+B. The second date/time is earlier.
+C. Both date/times are the same.
+D. The date/times are two hours apart.
+E. The date/times are six hours apart.
+F. The date/times are 10 hours apart.
+
+**My Answer: A,E**
+**Correct Answer: A,E**
+
+**When dealing with time zones, it is best to convert to GMT first by subtracting the time zone. Remember that subtracting a negative is like adding. The first date/time is 9:00 GMT, and the second is 15:00 GMT. Therefore, the first one is earlier by six hours.**
+
+---
+
+8. Which of the following return 5 when run independently? (Choose all that apply.)
+```java
+var string = "12345";
+var builder = new StringBuilder("12345");
+```
+
+`A. builder.charAt(4)`
+`B. builder.replace(2, 4, "6").charAt(3)`
+`C. builder.replace(2, 5, "6").charAt(2)`
+`D. string.charAt(5)`
+`E. string.length`
+`F. string.replace("123", "1").charAt(2)`
+G. None of the above
+
+**My Answer: A,D,E**
+**Correct Answer: A,B,F**
+
+**Remember that indexes are zero-based, which means index 4 corresponds to 5, and option A is correct.**
+**For option B, the replace() method starts the replacement at index 2 and ends before index 4. This means two characters are replaced, and ``charAt(3)`` is called on the intermediate value of 1265. The character at index 3 is 5, making option B correct. Option C is similar, making the intermediate value 126 and returning 6.**
+
+---
+
+9. Which of the following are true about arrays? (Choose all that apply.)
+A. The first element is index 0.
+B. The first element is index 1.
+C. Arrays are fixed size.
+D. Arrays are immutable.
+E. Calling ``equals()`` on two different arrays containing the same primitive values always
+returns true.
+F. Calling ``equals()`` on two different arrays containing the same primitive values always
+returns false.
+G. Calling ``equals()`` on two different arrays containing the same primitive values can return
+true or false.
+
+**My Answer: A,C,G**
+**Correct Answer: A,C,F**
+
+**An array does not override equals(), so it uses object equality. Since two different objects are not equal, option F is correct, and options E and G are incorrect.**
+
+---
+
+10. How many of these lines contain a compiler error? (Choose all that apply.)
+```JAVA
+23: int one = Math.min(5, 3);
+24: long two = Math.round(5.5);
+25: double three = Math.floor(6.6);
+26: var doubles = new double[] {one, two, three};
+```
+
+A. 0
+B. 1
+C. 2
+D. 3
+E. 4
+
+**My Answer: B**
+**Correct Answer: A**
+
+**All of these lines compile. The ``min()`` and ``floor()`` methods return the same type passed in: int and double, respectively. The ``round()`` method returns a long when called with a double. Option A is correct since the code compiles.**
+
+---
+
+11. What is the output of the following code?
+
+```java
+var date = LocalDate.of(2022, 4, 3);
+date.plusDays(2);
+date.plusHours(3);
+System.out.println(date.getYear() + " " + date.getMonth()
++ " " + date.getDayOfMonth());
+```
+
+A. 2022 MARCH 4
+B. 2022 MARCH 6
+C. 2022 APRIL 3
+D. 2022 APRIL 5
+E. The code does not compile.
+F. A runtime exception is thrown.
+
+**My Answer: E**
+**Correct Answer: E**
+
+**A ``LocalDate`` does not have a time element. Therefore, there is no method to add hours**
+
+---
+
+12. What is output by the following code? (Choose all that apply.)
+```java
+var numbers = "012345678".indent(1);
+numbers = numbers.stripLeading();
+System.out.println(numbers.substring(1, 3));
+System.out.println(numbers.substring(7, 7));
+System.out.print(numbers.substring(7));
+```
+
+A. 12
+B. 123
+C. 7
+D. 78
+E. A blank line
+F. The code does not compile.
+G. An exception is thrown.
+
+**My Answer: A**
+**Correct Answer: A,D,E**
+
+**First, notice that the ``indent()`` call adds a blank space to the beginning of numbers, and ``stripLeading()`` immediately removes it. Therefore, these methods cancel each other out and have no effect. The ``substring()`` method has two forms. The first takes the index to start with and the index to stop immediately before. The second takes just the index to start with and goes to the end of the String.**
+
+
+---
+
+13. What is the result of the following code?
+
+```java
+public class Lion {
+public void roar(String roar1, StringBuilder roar2) {
+roar1.concat("!!!");
+roar2.append("!!!");
+}
+public static void main(String[] args) {
+var roar1 = "roar";
+var roar2 = new StringBuilder("roar");
+new Lion().roar(roar1, roar2);
+System.out.println(roar1 + " " + roar2);
+} }
+```
+
+A. roar roar
+B. roar roar!!!
+C. roar!!! roar
+D. roar!!! roar!!!
+E. An exception is thrown.
+F. The code does not compile.
+
+**My Answer: B**
+**Correct Answer: B**
+
+**A String is immutable. Calling ``concat()`` returns a new String but does not change the original. A StringBuilder is mutable. Calling ``append()`` adds characters to the existing character sequence along with returning a reference to the same object**
+
+---
+
+14. Given the following, which can correctly fill in the blank? (Choose all that apply.)
+```java
+var date = LocalDate.now();
+var time = LocalTime.now();
+var dateTime = LocalDateTime.now();
+var zoneId = ZoneId.systemDefault();
+var zonedDateTime = ZonedDateTime.of(dateTime, zoneId);
+Instant instant = ;
+```
+
+`A. Instant.now()`
+`B. new Instant()`
+`C. date.toInstant()`
+`D. dateTime.toInstant()`
+`E. time.toInstant()`
+`F. zonedDateTime.toInstant()`
+
+**My Answer: A,C,F**
+**Correct Answer: A,F**
+
+**Options C, D, and E are incorrect because the source object does not represent a point in time. Without a time zone, Java doesn’t know what moment in time to use for the Instant.**
+
+---
+
+15. What is the output of the following? (Choose all that apply.)
+
+```java
+var arr = new String[] { "PIG", "pig", "123"};
+Arrays.sort(arr);
+System.out.println(Arrays.toString(arr));
+System.out.println(Arrays.binarySearch(arr, "Pippa"));
+```
+
+A. [pig, PIG, 123]
+B. [PIG, pig, 123]
+C. [123, PIG, pig]
+D. [123, pig, PIG]
+E. -3
+F. -2
+G. The results of ``binarySearch()`` are undefined in this example.
+
+**My Answer: C,F**
+**Correct Answer: C,E**
+
+**The ``binarySearch()`` method looks at where a value would be inserted, which is before the second element for Pippa.**
+
+---
+
+16. What is included in the output of the following code? (Choose all that apply.)
+
+```JAVA
+var base = "ewe\nsheep\\t";
+int length = base.length();
+int indent = base.indent(2).length();
+int translate = base.translateEscapes().length();
+
+var formatted = "%s %s %s".formatted(length, indent, translate);
+System.out.format(formatted);
+```
+
+A. 10
+B. 11
+C. 12
+D. 13
+E. 14
+F. 15
+G. 16
+
+**My Answer: B,D**
+**Correct Answer: A,B,G**
+
+**There are 11 characters in base because there are two escape characters. The \n counts as one character representing a new line, and the \\ counts as one character representing a backslash. This makes option B one of the answers. The ``indent()`` method adds two characters to the beginning of each of the two lines of base. This gives us four additional characters. However, the method also normalizes by adding a new line to the end if**
+**it is missing. The extra character means we add five characters to the existing 11, which is option G. Finally, the ``translateEscapes()`` method turns any text escape characters into actual escape characters, making \\t into \t. This gets rid of one character, leaving us with 10 characters matching option A.**
+
+---
+
+17. Which of these statements are true? (Choose all that apply.)
+
+```JAVA
+var letters = new StringBuilder("abcdefg");
+```
+
+A. ``letters.substring(1, 2)`` returns a single-character String.
+B. ``letters.substring(2, 2)`` returns a single-character String.
+C. ``letters.substring(6, 5)`` returns a single-character String.
+D. ``letters.substring(6, 6)`` returns a single-character String.
+E. ``letters.substring(1, 2)`` throws an exception.
+F. ``letters.substring(2, 2)`` throws an exception.
+G. ``letters.substring(6, 5)`` throws an exception.
+H. ``letters.substring(6, 6)`` throws an exception.
+
+**My Answer: A,G**
+**Correct Answer: A,G**
+
+---
+
+18. What is the result of the following code? (Choose all that apply.)
+
+```JAVA
+13: String s1 = """
+14: purr""";
+15: String s2 = "";
+16:
+17: s1.toUpperCase();
+18: s1.trim();
+19: s1.substring(1, 3);
+20: s1 += "two";
+21:
+22: s2 += 2;
+23: s2 += 'c';
+24: s2 += false;
+25:
+26: if ( s2 == "2cfalse") System.out.println("==");
+27: if ( s2.equals("2cfalse")) System.out.println("equals");
+28: System.out.println(s1.length());
+```
+
+A. 2
+B. 4
+C. 7
+D. 10
+E. ==
+F. equals
+G. An exception is thrown.
+H. The code does not compile.
+
+**My Answer: C,F**
+**Correct Answer: C,F**
+
+the text block on lines 13 and 14 is equivalent to a regular String. Since there is no line break at
+the end, this is four characters. Then, you have to know that String objects are immutable, which means the results of lines 17–19 are ignored. Finally, on line 20, something happens. We concatenate three new characters to s1 and now have a String of length 7, making option C correct. The if statement on line 26 returns false because the two String objects are not the same in memory. One comes directly from the string pool, and the other comes from building using String operations.
+
+---
+
+19. Which of the following fill in the blank to print a positive integer? (Choose all that apply.)
+
+```java
+String[] s1 = { "Camel", "Peacock", "Llama"};
+String[] s2 = { "Camel", "Llama", "Peacock"};
+String[] s3 = { "Camel"};
+String[] s4 = { "Camel", null};
+System.out.println(Arrays. );
+```
+
+`A. compare(s1, s2)`
+`B. mismatch(s1, s2)`
+`C. compare(s3, s4)`
+`D. mismatch (s3, s4)`
+`E. compare(s4, s4)`
+`F. mismatch (s4, s4)`
+
+**My Answer: A,B,D**
+**Correct Answer: A,B,D**
+
+---
+
+20. Note that March 13, 2022 is the weekend that clocks spring ahead for daylight saving time.
+What is the output of the following? (Choose all that apply.)
+
+```java
+var date = LocalDate.of(2022, Month.MARCH, 13);
+var time = LocalTime.of(1, 30);
+var zone = ZoneId.of("US/Eastern");
+var dateTime1 = ZonedDateTime.of(date, time, zone);
+var dateTime2 = dateTime1.plus(1, ChronoUnit.HOURS);
+long diff = ChronoUnit.HOURS.between(dateTime1, dateTime2);
+int hour = dateTime2.getHour();
+boolean offset = dateTime1.getOffset() == dateTime2.getOffset();
+System.out.println("diff = " + diff);
+System.out.println("hour = " + hour);
+System.out.println("offset = " + offset);
+```
+
+A. diff = 1
+B. diff = 2
+C. hour = 2
+D. hour = 3
+E. offset = true
+F. The code does not compile.
+G. A runtime exception is thrown.
+
+**My Answer: E**
+**Correct Answer: A,D**
+
+The dateTime1 object has a time of 1:30 per initialization. The dateTime2 object is an hour later. However, there is no 2:30 when springing ahead, setting the time to 3:30. Option A is correct because it is an hour later. Option D is also correct because the hour of the new time is 3. Option E is not correct because we have changed the time zone offset due to daylight saving time.
+
+---
+
+21. Which of the following can fill in the blank to print avaJ? (Choose all that apply.)
+
+```JAVA
+3: var puzzle = new StringBuilder("Java");
+4: puzzle. ;
+5: System.out.println(puzzle);
+```
+
+`A. reverse()`
+`B. append("vaJ$").substring(0, 4)`
+`C. append("vaJ$").delete(0, 3).deleteCharAt(puzzle.length() -1)`
+`D. append("vaJ$").delete(0, 3).deleteCharAt(puzzle.length())`
+E. None of the above
+
+**My Answer: A,C**
+**Correct Answer: A,C**
+
+---
+
+22. What is the output of the following code?
+
+```java
+var date = LocalDate.of(2022, Month.APRIL, 30);
+date.plusDays(2);
+date.plusYears(3);
+System.out.println(date.getYear() + " " + date.getMonth() + " " + date.getDayOfMonth());
+```
+
+A. 2022 APRIL 30
+B. 2022 MAY 2
+C. 2025 APRIL 2
+D. 2025 APRIL 30
+E. 2025 MAY 2
+F. The code does not compile.
+G. A runtime exception is thrown.
+
+**My Answer: A**
+**Correct Answer: A**
+
+**A. The date starts out as April 30, 2022. Since dates are immutable and the plus methods’ return values are ignored, the result is unchanged**
+
+---
+
+
+# Chapter 5 - Methods #Chapter
