@@ -4618,825 +4618,109 @@ public class serverSide {
 }
 ```
 
-**CSD TCP EXAMPLE**
+---
 
-**TcpUtil**
+ **Socket Server**
+
 ```java
-public final class TcpUtil {  
-    private static int receive(DataInputStream dis, byte [] data, int offset, int length) throws IOException  
-    {  
-        int result;  
-        int left = length, index = 0;  
-  
-        while (left > 0) {  
-            if ((result = dis.read(data, offset, left)) == -1)  
-                return -1;  
-              
-            if (result == 0)  
-                break;  
-              
-            index += result;  
-            left -= result;  
-        }  
-  
-        return index;  
-    }  
-  
-    private static int receive(DataInputStream dis, byte [] data) throws IOException  
-    {  
-        return receive(dis, data, 0, data.length);  
-    }  
-  
-    private static int send(DataOutputStream dos, byte [] data, int offset, int length) throws IOException  
-    {                   
-       int curOffset = offset;         
-       int left = length;  
-       int total = 0;  
-       int written;  
-       int initWritten = dos.size();  
-         
-       while (curOffset < length) {  
-          dos.write(data, curOffset, left);  
-          dos.flush();  
-          written = dos.size() - initWritten;  
-          total += written;          
-          left -= written;  
-          curOffset += written;  
-       }    
-         
-       return total;  
-    }  
-      
-    private static int send(DataOutputStream dos, byte [] data) throws IOException  
-    {  
-        return send(dos, data, 0, data.length);  
-    }  
-  
-    private TcpUtil() {}  
-  
-    public static Optional<ServerSocket> getFirstAvailableSocket(int backlog, int minPort, int maxPort)  
-    {  
-       Optional<ServerSocket> result = Optional.empty();  
-  
-       for (int port = minPort; port <= maxPort; ++port)  
-          try {  
-             result = Optional.of(new ServerSocket(backlog, port));  
-          }  
-          catch (IOException ignore) {  
-          }  
-  
-       return result;  
-    }  
-  
-    public static Optional<ServerSocket> getFirstAvailablePort(int minPort, int maxPort)  
-    {  
-       Optional<ServerSocket> result = Optional.empty();  
-  
-       for (int port = minPort; port <= maxPort; ++port)  
-          try {  
-             result = Optional.of(new ServerSocket(port));  
-          }  
-          catch (IOException ignore) {  
-          }  
-  
-       return result;  
-    }  
-  
-    public static Optional<ServerSocket> getFirstAvailableSocket(int backlog, int...ports)  
-    {  
-       Optional<ServerSocket> result = Optional.empty();  
-  
-       for (var port : ports)  
-          try {  
-             result = Optional.of(new ServerSocket(backlog, port));  
-          }  
-          catch (IOException ignore) {  
-          }  
-  
-       return result;  
-    }  
-  
-    public static Optional<ServerSocket> getFirstAvailableSocket(int...ports)  
-    {  
-       Optional<ServerSocket> result = Optional.empty();  
-  
-       for (var port : ports)  
-          try {  
-             result = Optional.of(new ServerSocket(port));  
-          }  
-          catch (IOException ignore) {  
-          }  
-  
-       return result;  
-    }  
-  
-  
-    public static int receive(Socket socket, byte [] data, int offset, int length)  
-    {  
-       try {  
-          return receive(new DataInputStream(socket.getInputStream()), data, offset, length);  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receive", ex);  
-       }  
-    }  
-  
-    public static int receive(Socket socket, byte [] data)  
-    {  
-       try {  
-          return receive(socket, data, 0, data.length);  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receive", ex.getCause());  
-       }  
-    }  
-  
-    public static int send(Socket socket, byte [] data, int offset, int length)  
-    {  
-       try {  
-          return send(new DataOutputStream(socket.getOutputStream()), data, offset, length);  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.send", ex);  
-       }  
-    }  
-  
-    public static int send(Socket socket, byte [] data)  
-    {  
-       try {  
-          return send(socket, data, 0, data.length);  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.send", ex.getCause());  
-       }  
-    }  
-  
-    public static byte receiveByte(Socket socket)  
-    {  
-       try {  
-          byte [] data = new byte[1];  
-  
-          receive(socket, data);  
-  
-          return data[0];  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveByte", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveByte", ex);  
-       }  
-    }  
-  
-    public static short receiveShort(Socket socket)  
-    {  
-       try {  
-          byte[] data = new byte[2];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toShort(data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveShort", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveShort", ex);  
-       }  
-    }  
-  
-    public static int receiveInt(Socket socket)  
-    {  
-       try {  
-          byte[] data = new byte[4];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toInt(data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveInt", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveInt", ex);  
-       }  
-    }  
-  
-    public static long receiveLong(Socket socket)  
-    {  
-       try {  
-          byte[] data = new byte[8];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toLong(data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveLong", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveLong", ex);  
-       }  
-    }  
-  
-    public static float receiveFloat(Socket socket)  
-    {  
-       try {  
-          byte[] data = new byte[4];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toFloat(data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveFloat", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveFloat", ex);  
-       }  
-    }  
-  
-    public static double receiveDouble(Socket socket)  
-    {  
-       try {  
-          byte[] data = new byte[8];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toDouble(data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveDouble", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveDouble", ex);  
-       }  
-    }  
-  
-    public static char receiveChar(Socket socket)  
-    {  
-       try {  
-          byte[] data = new byte[2];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toChar(data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveChar", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveChar", ex);  
-       }  
-    }  
-  
-    public static boolean receiveBoolean(Socket socket)  
-    {  
-       try {  
-          return new DataInputStream(socket.getInputStream()).readByte() != 0;  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveBoolean", ex);  
-       }  
-    }  
-  
-    public static String receiveStringViaLength(Socket socket)  
-    {  
-       return receiveStringViaLength(socket, StandardCharsets.UTF_8);  
-    }  
-  
-    public static String receiveStringViaLength(Socket socket, Charset charset)  
-    {  
-       try {  
-          byte[] dataLen = new byte[4];  
-          receive(socket, dataLen);  
-  
-          byte[] data = new byte[BitConverter.toInt(dataLen)];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toString(data, charset);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveStringViaLength", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveStringViaLength", ex);  
-       }  
-    }  
-  
-    public static String receiveString(Socket socket, int length)  
-    {  
-       return receiveString(socket, length, StandardCharsets.UTF_8);  
-    }  
-  
-    public static String receiveString(Socket socket, int length, Charset charset)  
-    {  
-       try {  
-          byte[] data = new byte[length];  
-  
-          receive(socket, data);  
-  
-          return BitConverter.toString(data, charset);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveString", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveString", ex);  
-       }  
-    }  
-  
-    public static void receiveFile(Socket socket, File file)  
-    {  
-       receiveFile(socket, file.getAbsolutePath());  
-    }  
-  
-    public static void receiveFile(Socket socket, String path)  
-    {  
-       try (FileOutputStream fos = new FileOutputStream(path)) {  
-          int result;  
-  
-          for (;;) {  
-             var size = receiveInt(socket);  
-  
-             if (size <= 0)  
-                break;  
-  
-             var data = new byte[size];  
-  
-             result = receive(socket, data);  
-             fos.write(data, 0, result);  
-          }  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.receiveFile", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.receiveFile", ex);  
-       }  
-    }  
-  
-    public static void sendByte(Socket socket, byte val)  
-    {  
-       try {  
-          send(socket, BitConverter.getBytes(val));  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendByte", ex);  
-       }  
-    }  
-  
-    public static void sendShort(Socket socket, short val)  
-    {  
-       try {  
-          send(socket, BitConverter.getBytes(val));  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendShort", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendShort", ex);  
-       }  
-    }  
-  
-    public static void sendInt(Socket socket, int val)  
-    {  
-       try {  
-          send(socket, BitConverter.getBytes(val));  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendInt", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendInt", ex);  
-       }  
-    }  
-  
-    public static void sendLong(Socket socket, long val)  
-    {  
-       try {  
-          send(socket, BitConverter.getBytes(val));  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendLong", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendLong", ex);  
-       }  
-    }  
-  
-    public static void sendFloat(Socket socket, float val)  
-    {  
-       try {  
-          send(socket, BitConverter.getBytes(val));  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendFloat", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendFloat", ex);  
-       }  
-    }  
-  
-    public static void sendDouble(Socket socket, double val)  
-    {  
-       try {  
-          send(socket, BitConverter.getBytes(val));  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendDouble", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendDouble", ex);  
-       }  
-    }  
-  
-    public static void sendChar(Socket socket, char val)  
-    {  
-       try {  
-          send(socket, BitConverter.getBytes(val));  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendChar", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendChar", ex);  
-       }  
-    }  
-  
-    public static void sendBoolean(Socket socket, boolean val)  
-    {  
-       try {  
-          DataOutputStream dos = new DataOutputStream(socket.getOutputStream());  
-  
-          dos.writeByte(val ? 1 : 0);  
-          dos.flush();  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendBoolean", ex);  
-       }  
-    }  
-  
-    public static void sendStringViaLength(Socket socket, String str)  
-    {  
-       sendStringViaLength(socket, str, StandardCharsets.UTF_8);  
-    }  
-  
-    public static void sendStringViaLength(Socket socket, String str, Charset charset)  
-    {  
-       try {  
-          byte[] data = BitConverter.getBytes(str, charset);  
-          byte[] dataLen = BitConverter.getBytes(data.length);  
-  
-          send(socket, dataLen);  
-          send(socket, data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendStringViaLength", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendStringViaLength", ex);  
-       }  
-    }  
-  
-    public static void sendString(Socket socket, String str)  
-    {  
-       sendString(socket, str, StandardCharsets.UTF_8);  
-    }  
-  
-    public static void sendString(Socket socket, String str, Charset charset)  
-    {  
-       try {  
-          byte[] data = BitConverter.getBytes(str, charset);  
-  
-          send(socket, data);  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendString", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendString", ex);  
-       }  
-    }  
-  
-    public static void sendFile(Socket socket, File file, int blockSize)  
-    {  
-       sendFile(socket, file.getAbsolutePath(), blockSize);  
-    }  
-  
-    public static void sendFile(Socket socket, String path, int blockSize)  
-    {  
-       byte [] data = new byte[blockSize];  
-  
-       try (FileInputStream fis = new FileInputStream(path)) {  
-          int result;  
-  
-          for (;;) {  
-             result = fis.read(data);  
-             sendInt(socket, result);  
-             if (result <= 0)  
-                break;  
-             send(socket, data, 0, result);  
-          }  
-       }  
-       catch (NetworkException ex) {  
-          throw new NetworkException("TcpUtil.sendFile", ex.getCause());  
-       }  
-       catch (Throwable ex) {  
-          throw new NetworkException("TcpUtil.sendFile", ex);  
-       }  
-    }  
+package com.journaldev.socket;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.ClassNotFoundException;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+/**
+ * This class implements java Socket server
+ * @author pankaj
+ *
+ */
+public class SocketServerExample {
+    
+    //static ServerSocket variable
+    private static ServerSocket server;
+    //socket server port on which it will listen
+    private static int port = 9876;
+    
+    public static void main(String args[]) throws IOException, ClassNotFoundException{
+        //create the socket server object
+        server = new ServerSocket(port);
+        //keep listens indefinitely until receives 'exit' call or program terminates
+        while(true){
+            System.out.println("Waiting for the client request");
+            //creating socket and waiting for client connection
+            Socket socket = server.accept();
+            //read from socket to ObjectInputStream object
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+            //convert ObjectInputStream object to String
+            String message = (String) ois.readObject();
+            System.out.println("Message Received: " + message);
+            //create ObjectOutputStream object
+            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            //write object to Socket
+            oos.writeObject("Hi Client "+message);
+            //close resources
+            ois.close();
+            oos.close();
+            socket.close();
+            //terminate the server if client sends exit request
+            if(message.equalsIgnoreCase("exit")) break;
+        }
+        System.out.println("Shutting down Socket server!!");
+        //close the ServerSocket object
+        server.close();
+    }
+    
 }
 ```
 
-**CImage**
+**Socket Client**
 
 ```java
-public enum CImageFormat {  
-    BMP, GIF, JPEG, PNG, TIFF, WBMP  
-}
+package com.journaldev.socket;
 
-public class CImage {  
-    private final File m_path;  
-    private BufferedImage  m_bufferedImage;  
-  
-    public CImage(String path) throws IOException  
-    {  
-        this(new File(path));  
-    }  
-  
-    public CImage(File path) throws IOException  
-    {  
-        if (!path.exists())  
-            throw new IOException("image not found");  
-  
-        m_path = path;  
-        m_bufferedImage = ImageIO.read(m_path);  
-    }  
-  
-    public int getWidth()  
-    {  
-        return m_bufferedImage.getWidth();  
-    }  
-  
-    public int getHeight()  
-    {  
-        return m_bufferedImage.getHeight();  
-    }  
-  
-    public BufferedImage getBufferedImage()  
-    {  
-        return m_bufferedImage;  
-    }  
-  
-    public void grayScale()  
-    {  
-        int width = m_bufferedImage.getWidth();  
-        int height = m_bufferedImage.getHeight();  
-  
-        for (int i = 0; i < width; ++i)  
-            for (int k = 0; k < height; ++k) {  
-                Color c = new Color(m_bufferedImage.getRGB(i, k));  
-                int avg = (int)Math.floor((c.getRed() + c.getGreen() + c.getBlue()) / 3.);  
-  
-                m_bufferedImage.setRGB(i, k, new Color(avg, avg, avg).getRGB());  
-            }  
-    }  
-  
-    public void binary(int threshold)  
-    {  
-        int width = m_bufferedImage.getWidth();  
-        int height = m_bufferedImage.getHeight();  
-  
-        for (int i = 0; i < width; ++i)  
-            for (int k = 0; k < height; ++k) {  
-                Color c = new Color(m_bufferedImage.getRGB(i, k));  
-  
-                int value = c.getRed() > threshold ? 255 : 0;  
-  
-                m_bufferedImage.setRGB(i, k, new Color(value, value, value).getRGB());  
-            }  
-    }  
-  
-    public void save(String output, CImageFormat format) throws IOException  
-    {  
-        save(new File(output), format);  
-    }  
-  
-    public void save(File output, CImageFormat format) throws IOException  
-    {  
-        ImageIO.write(m_bufferedImage, format.toString().toLowerCase(), output);  
-    }  
-  
-    public void reset() throws IOException  
-    {  
-        m_bufferedImage = ImageIO.read(m_path);  
-    }  
-  
-    //...  
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+/**
+ * This class implements java socket client
+ * @author pankaj
+ *
+ */
+public class SocketClientExample {
+
+    public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException{
+        //get the localhost IP address, if server is running on some other IP, you need to use that
+        InetAddress host = InetAddress.getLocalHost();
+        Socket socket = null;
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
+        for(int i=0; i<5;i++){
+            //establish socket connection to server
+            socket = new Socket(host.getHostName(), 9876);
+            //write to socket using ObjectOutputStream
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            System.out.println("Sending request to Socket Server");
+            if(i==4)oos.writeObject("exit");
+            else oos.writeObject(""+i);
+            //read the server response message
+            ois = new ObjectInputStream(socket.getInputStream());
+            String message = (String) ois.readObject();
+            System.out.println("Message: " + message);
+            //close resources
+            ois.close();
+            oos.close();
+            Thread.sleep(100);
+        }
+    }
 }
 ```
-
-**BinaryImageServer**
-```java
-public class BinaryImageServer {  
-    private static final int SOCKET_TIMEOUT = 10000;  
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyy_HH-mm-ss-n");  
-    private static final File IMAGE_PATH = new File("binary_images");  
-  
-    private final ConcurrentServer m_server;  
-  
-    private void saveFile(Socket socket, String path) throws IOException  
-    {  
-        try {  
-            var file = new File(IMAGE_PATH, String.format("%s.png", new File(path).getName()));  
-  
-            TcpUtil.receiveFile(socket, file);  
-            var threshold = TcpUtil.receiveInt(socket);  
-            file = doBinaryImage(file, threshold);  
-  
-            TcpUtil.sendInt(socket, 1);  
-            TcpUtil.sendFile(socket, file, 1024);  
-        }  
-        catch (NetworkException ex) {  
-            Console.Error.writeLine("Network problem:%s", ex.getMessage());  
-        }  
-  
-        TcpUtil.sendInt(socket, 0);  
-    }  
-  
-    private File doBinaryImage(File file, int threshold) throws IOException  
-    {  
-        var image = new CImage(file);  
-  
-        var path = file.getAbsolutePath();  
-        file = new File(path.substring(0, path.lastIndexOf('.') + 1) +  "-bin.png");  
-  
-        image.binary(threshold);  
-        image.save(file, CImageFormat.PNG);  
-  
-        return file;  
-    }  
-  
-    private void handleClient(Socket socket)  
-    {  
-        try (socket) {  
-            socket.setSoTimeout(SOCKET_TIMEOUT);  
-            var hostAddress = socket.getInetAddress().getHostAddress();  
-            var port = socket.getPort();  
-            Console.writeLine("Client connected to Binary image server via %s:%d", hostAddress, port);  
-            var path = String.format("%s_%d_%s", hostAddress, port, FORMATTER.format(LocalDateTime.now()));  
-  
-            saveFile(socket, path);  
-        }  
-        catch (IOException ex) {  
-            Console.Error.writeLine("BinaryImageServer:IO Exception Occurred:%s", ex.getMessage());  
-        }  
-        catch (Throwable ex) {  
-            Console.Error.writeLine("BinaryImageServer:Exception Occurred:%s", ex.getMessage());  
-        }  
-    }  
-  
-    public BinaryImageServer(int port, int backlog) throws IOException  
-    {  
-        m_server = ConcurrentServer.builder()  
-                .setPort(port)  
-                .setBacklog(backlog)  
-                .setInitRunnable(IMAGE_PATH::mkdirs)  
-                .setBeforeAcceptRunnable(() -> Console.writeLine("Binary image server is waiting for a client on port:%d", port))  
-                .setClientSocketConsumer(this::handleClient)  
-                .setServerExceptionConsumer(ex -> Console.Error.writeLine("Exception Occurred:%s", ex.getMessage()))  
-                .build();  
-    }  
-  
-    public void run()  
-    {  
-        m_server.start();  
-    }  
-  
-    public void close()  
-    {  
-        m_server.stop();  
-    }  
-  
-}
-```
-
-**GrayscaleImageServer**
-
-```java
-public class GrayscaleImageServer implements Closeable {  
-    private static final int SOCKET_TIMEOUT = 10000;  
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyy_HH-mm-ss-n");  
-    private static final File IMAGE_PATH = new File("grayscale_images");  
-  
-    private final ConcurrentServer m_server;  
-  
-    private void saveFile(Socket socket, String path) throws IOException  
-    {  
-        try {  
-            var file = new File(IMAGE_PATH, String.format("%s.png", new File(path).getName()));  
-  
-            TcpUtil.receiveFile(socket, file);  
-            file = doGrayscale(file);  
-            TcpUtil.sendInt(socket, 1);  
-            TcpUtil.sendFile(socket, file, 1024);  
-        }  
-        catch (NetworkException ex) {  
-            Console.Error.writeLine("Network problem:%s", ex.getMessage());  
-        }  
-  
-        TcpUtil.sendInt(socket, 0);  
-    }  
-  
-    private File doGrayscale(File file) throws IOException  
-    {  
-        var image = new CImage(file);  
-  
-        var path = file.getAbsolutePath();  
-        file = new File(path.substring(0, path.lastIndexOf('.') + 1) +  "-gs.png");  
-  
-        image.grayScale();  
-        image.save(file, CImageFormat.PNG);  
-  
-        return file;  
-    }  
-  
-    private void handleClient(Socket socket)  
-    {  
-        try (socket) {  
-            socket.setSoTimeout(SOCKET_TIMEOUT);  
-            var hostAddress = socket.getInetAddress().getHostAddress();  
-            var port = socket.getPort();  
-            Console.writeLine("Client connected to grayscale image server via %s:%d", hostAddress, port);  
-            var path = String.format("%s_%d_%s", hostAddress, port, FORMATTER.format(LocalDateTime.now()));  
-  
-            saveFile(socket, path);  
-        }  
-        catch (IOException ex) {  
-            Console.Error.writeLine("GrayScaleImageServer:IO Exception Occurred:%s", ex.getMessage());  
-        }  
-        catch (Throwable ex) {  
-            Console.Error.writeLine("GrayScaleImageServer:Exception Occurred:%s", ex.getMessage());  
-        }  
-    }  
-  
-  
-    public GrayscaleImageServer(int port, int backlog) throws IOException  
-    {  
-        m_server = ConcurrentServer.builder()  
-                .setPort(port)  
-                .setBacklog(backlog)  
-                .setInitRunnable(IMAGE_PATH::mkdirs)  
-                .setBeforeAcceptRunnable(() -> Console.writeLine("Grayscale image server is waiting for a client on port:%d", port))  
-                .setClientSocketConsumer(this::handleClient)  
-                .setServerExceptionConsumer(ex -> Console.Error.writeLine("Exception Occurred:%s", ex.getMessage()))  
-                .build();  
-    }  
-  
-    public void run()  
-    {  
-        m_server.start();  
-    }  
-  
-    public void close()  
-    {  
-        m_server.stop();  
-    }  
-}
-```
-
-**Application**
-
-```java
-class Application {  
-    public static void run(String[] args)  
-    {  
-        try {  
-            checkLengthEquals(args.length, 2, "wrong number of arguments!..");  
-  
-            var port = Integer.parseInt(args[0]);  
-            var backlog = Integer.parseInt(args[1]);  
-            var grayscaleServer = new GrayscaleImageServer(port, backlog);  
-            var binaryServer = new BinaryImageServer(port + 1, backlog);  
-  
-            new CommandPrompt.Builder()  
-                    .setPrompt("server")  
-                    .register(new ManageServerCommands(grayscaleServer, binaryServer, Executors.newCachedThreadPool()))  
-                    .build().run();  
-  
-        }  
-        catch (NumberFormatException ignore) {  
-            Console.Error.writeLine("Invalid arguments");  
-        }  
-        catch (IOException ex) {  
-            Console.Error.writeLine("IO Exception occurred:%s", ex.getMessage());  
-        }  
-    }  
-}
-```
-
 
 ### Internet Protocol version 4 (IPv4)
 
