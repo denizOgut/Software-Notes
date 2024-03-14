@@ -4722,6 +4722,143 @@ public class SocketClientExample {
 }
 ```
 
+---
+
+**TCP CHAT ROOM EXAMPLE**
+
+```java
+public class Server {
+    private ServerSocket serverSocket;
+
+    public Server(ServerSocket serverSocket) {
+        this.serverSocket = serverSocket;
+    }
+
+    public void startServer() throws IOException {
+        while (!serverSocket.isClosed()) {
+            Socket socket = serverSocket.accept();
+            System.out.println("New Client Has Connected!");
+            ClientHandler clientHandler = new ClientHandler(socket);
+
+            Thread thread = new Thread(clientHandler);
+            thread.start();
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        ServerSocket serverSocket = new ServerSocket(8080);
+        Server server = new Server(serverSocket);
+        server.startServer();
+
+    }
+}
+```
+
+```java
+public class Client {
+
+    private Socket socket;
+    private BufferedWriter bufferedWriter;
+    private BufferedReader bufferedReader;
+    private String userName;
+
+    public Client(Socket socket, String userName) throws IOException {
+        this.socket = socket;
+        this.userName = userName;
+        this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+        this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+    }
+
+    public void  sendMessage() throws IOException {
+        this.bufferedWriter.write(userName);
+        this.bufferedWriter.newLine();
+        this.bufferedWriter.flush();
+
+        Scanner scanner = new Scanner(System.in);
+        while (socket.isConnected())
+        {
+            String messageToSend = scanner.nextLine();
+            this.bufferedWriter.write(this.userName + ": " + messageToSend);
+            this.bufferedWriter.newLine();
+            this.bufferedWriter.flush();
+        }
+    }
+    public void listenForMessage()
+    {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String messageFromGroupChat;
+                while(socket.isConnected())
+                {
+                    try {
+                        messageFromGroupChat = bufferedReader.readLine();
+                        System.out.println(messageFromGroupChat);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+
+    public static void main(String[] args) throws IOException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter your username for the group chat: ");
+        String userName = scanner.nextLine();
+        Socket socket = new Socket("localhost",8080);
+        Client client = new Client(socket,userName);
+        client.listenForMessage();
+        client.sendMessage();
+    }
+}
+```
+
+```java
+public class ClientHandler implements Runnable {
+    public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
+    private Socket socket;
+    private BufferedReader bufferedReader;
+    private BufferedWriter bufferedWriter;
+    private String clientUserName;
+
+    public ClientHandler(Socket socket) throws IOException {
+        this.socket = socket;
+        this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+        this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        this.clientUserName = bufferedReader.readLine();
+        clientHandlers.add(this);
+        broadCastMessage("SERVER: " + this.clientUserName + " has entered the chat!");
+    }
+
+    @Override
+    public void run() {
+        String messageFromClient;
+        while (this.socket.isConnected()) {
+            try {
+                messageFromClient = this.bufferedReader.readLine();
+                broadCastMessage(messageFromClient);
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
+            }
+        }
+    }
+
+    public void broadCastMessage(String messageToSend) throws IOException {
+        for (ClientHandler clientHandler : clientHandlers) {
+            if (!clientHandler.clientUserName.equals(this.clientUserName)) {
+                clientHandler.bufferedWriter.write(messageToSend);
+                clientHandler.bufferedWriter.newLine();
+                clientHandler.bufferedWriter.flush();
+            }
+        }
+    }
+}
+```
 ### Internet Protocol version 4 (IPv4)
 
 **IP** stands for **Internet Protocol** and **v4** stands for **Version Four** (IPv4). IPv4 was the primary version brought into action for production within the ARPANET in 1983.   
