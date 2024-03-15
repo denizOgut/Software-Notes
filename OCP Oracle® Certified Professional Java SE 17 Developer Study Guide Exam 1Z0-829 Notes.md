@@ -9569,3 +9569,711 @@ G. A runtime exception is thrown.
 
 
 # Chapter 5 - Methods #Chapter
+
+## Designing Methods
+
+![[Pasted image 20240315184800.png]]
+
+This is called a ***method declaration***, which specifies all the information needed to call the method.
+**==Two of the parts—the method name and parameter list—are called the method signature==**. The method signature provides instructions for how callers can reference this method. The method signature does not include
+
+|Element|Value|Required?|
+|---|---|---|
+|Access modifier|public|No|
+|Optional specifier|final|No|
+|Return type|void|Yes|
+|Method name|nap|Yes|
+|Parameter list|(int minutes)|Yes, but can be empty|
+|Parentheses|Yes|Yes|
+|Method signature|nap(int minutes)|Yes|
+|Exception list|throws InterruptedException|No|
+|Method body|{<br>// take a nap<br>}|Yes, except for abstract methods|
+```java
+nap(10);
+```
+
+### Access Modifiers
+
+An access modifier determines what classes a method can be accessed from. Think of it like a security guard. Java offers four choices of access modifier:
+
+- ==**private** The ``private`` modifier means the method can be called only from within the same class.==
+
+- ==**Package Access** With package access, the method can be called only from a class in the same package.==
+
+- ==**protected** The ``protected`` modifier means the method can be called only from a class in the same package or a subclass.==
+
+- ==**public** The ``public`` modifier means the method can be called from anywhere.==
+
+The exam creators like to trick you by putting method elements in the wrong order or using incorrect values.
+
+```java
+public class ParkTrip {
+	public void skip1() {}
+	default void skip2() {} // DOES NOT COMPILE
+	void public skip3() {} // DOES NOT COMPILE
+	void skip4() {}
+}
+```
+
+### Optional Specifiers
+
+Unlike with access modifiers, you can have multiple specifiers in the same method. When this happens, you can specify them in any order. And since these specifiers are optional, you are allowed to not have any of them at all. This means you can have zero or more specifiers in a method declaration.
+
+|Modifier|Description|Chapter covered|
+|---|---|---|
+|static|Indicates the method is a member of the shared class object|Chapter 5|
+|abstract|Used in an abstract class or interface when the method body is excluded|Chapter 6|
+|final|Specifies that the method may not be overridden in a subclass|Chapter 6|
+|default|Used in an interface to provide a default implementation of a method for classes that implement the interface|Chapter 7|
+|synchronized|Used with multithreaded code|Chapter 13|
+|native|Used when interacting with code written in another language, such as C++|Out of scope|
+|strictfp|Used for making floating-point calculations portable|Out of scope|
+
+While access modifiers and optional specifiers can appear in any order, **==they must all appear before the return type.==**
+
+---
+
+**==Access modifiers and optional specifiers can be listed in any order, but once the return type is specified, the rest of the parts of the method are written in a specific order: name, parameter list, exception list, body.==** #TIP 
+
+---
+
+```JAVA
+public class Exercise {
+	public void bike1() {}
+	public final void bike2() {}
+	public static final void bike3() {}
+	public final static void bike4() {}
+	public modifier void bike5() {} // DOES NOT COMPILE
+	public void final bike6() {} // DOES NOT COMPILE
+	final public void bike7() {}
+}
+```
+
+- The ``bike5()`` method doesn’t compile because modifier is not a valid optional specifier.
+- The ``bike6()`` method doesn’t compile because the optional specifier is after the return type.
+- The ``bike7()`` method does compile. Java allows the optional specifiers to appear before the access modifier.
+### Return Type
+
+The next item in a method declaration is the return type. It must appear after any access modifiers or optional specifiers and before the method name. The return type might be an actual Java type such as ``String`` or int. If there is no return type, the ``void`` keyword is used.
+
+---
+
+**a method must have a return type. If no value is returned, the ``void`` keyword must be used. You cannot omit the return type.**
+
+---
+
+When checking return types, you also have to look inside the method body. Methods with a return type other than ``void`` are required to have a return statement inside the method body. This return statement must include the primitive or object to be returned.
+
+```java
+public void swim(int distance) {
+	if(distance <= 0) {
+	// Exit early, nothing to do!
+	return;
+}
+	System.out.print("Fish is swimming " + distance + " meters");
+}
+```
+
+```java
+public class Hike {
+	public void hike1() {}
+	public void hike2() { return; }
+	public String hike3() { return ""; }
+	public String hike4() {} // DOES NOT COMPILE
+	public hike5() {} // DOES NOT COMPILE
+	public String int hike6() { } // DOES NOT COMPILE
+	String hike7(int a) { // DOES NOT COMPILE
+	if (1 < 2) return "orange";
+	}
+}
+```
+
+- The ``hike4()`` method doesn’t compile because the return statement is missing
+- The ``hike5()`` method doesn’t compile because the return type is missing.
+- The ``hike6()`` method doesn’t compile because it attempts to use two return types.
+- The ``hike7()`` method is a little tricky. There is a return statement, but it doesn’t always get run.
+
+```java
+String hike8(int a) {
+	if (1 < 2) return "orange";
+		return "apple"; // COMPILER WARNING
+}
+```
+
+The code compiles, although the compiler will produce a warning about *unreachable code (or dead code)*. This means the compiler was smart enough to realize you wrote code that cannot possibly be reached. 
+
+**==When returning a value, it needs to be assignable to the return type.==**
+
+```java
+public class Measurement {
+	int getHeight1() {
+		int temp = 9;
+		return temp;
+	}
+	int getHeight2() {
+		int temp = 9L; // DOES NOT COMPILE
+		return temp;
+	}
+	int getHeight3() {
+		long temp = 9L;
+		return temp; // DOES NOT COMPILE
+	}
+}
+```
+
+- The ``getHeight2()`` method doesn’t compile because you can’t assign a long to an int.
+- The method ``getHeight3()`` method doesn’t compile because you can’t return a long value as an int.
+### Method Name
+
+an identifier may only contain letters, numbers, currency symbols, or _ . Also, the first character is not allowed to be a number, and reserved words are not allowed. Finally, the single underscore character is not allowed.
+
+```java
+public class BeachTrip {
+	public void jog1() {}
+	public void 2jog() {} // DOES NOT COMPILE
+	public jog3 void() {} // DOES NOT COMPILE
+	public void Jog_$() {}
+	public _() {} // DOES NOT COMPILE
+	public void() {} // DOES NOT COMPILE
+}
+```
+
+- The ``2jog()`` method doesn’t compile because identifiers are not allowed to begin with numbers.
+- The ``jog3()`` method doesn’t compile because the method name is before the return type.
+- The ``_`` method is not allowed since it consists of a single underscore
+- The final line of code doesn’t compile because the method name is missing.
+### Parameter List
+
+Although the parameter list is required, it doesn’t have to contain any parameters. This means you can just have an empty pair of parentheses after the method name
+
+```java
+public class Sleep {
+	void nap() {}
+}
+```
+
+```java
+public class PhysicalEducation {
+	public void run1() {}
+	public void run2 {} // DOES NOT COMPILE
+	public void run3(int a) {}
+	public void run4(int a; int b) {} // DOES NOT COMPILE
+	public void run5(int a, int b) {}
+}
+```
+
+- The ``run2()`` method doesn’t compile because it is missing the parentheses around the parameter list.
+-  The ``run4()`` method doesn’t compile because the parameters are separated by a semicolon rather than a comma.
+### Method Signature
+
+**==A method signature, composed of the method name and parameter list==** . It’s important to note that the names of the parameters in the method signature are not used as part of a method signature. It’s important to note that the names of the parameters in the method signature are not used as part of a method signature. **==The parameter list is about the types of parameters and their order==.**
+
+```java
+public class Trip {
+	public void visitZoo(String name, int waitTime) {}
+	public void visitZoo(String attraction, int rainFall) {} // DOES NOT COMPILE
+}
+```
+
+Despite having different parameter names, these two methods have the same signature and cannot be declared within the same class. Changing the order of parameter types does allow the method to compile
+
+```java
+public class Trip {
+	public void visitZoo(String name, int waitTime) {}
+	public void visitZoo(int rainFall, String attraction) {}
+}
+```
+
+### Exception List
+
+In Java, code can indicate that something went wrong by throwing an exception. it is optional and where in the method declaration it goes if present.
+
+```java
+public class ZooMonorail {
+	public void zeroExceptions() {}
+	public void oneException() throws IllegalArgumentException {}
+	public void twoExceptions() throws IllegalArgumentException, InterruptedException {}
+}
+```
+
+### Method Body
+
+A method body is simply a code block. It has braces that contain zero or more Java statements.
+
+```JAVA
+public class Bird {
+	public void fly1() {}
+	public void fly2() // DOES NOT COMPILE
+	public void fly3(int a) { int name = 5; }
+}
+```
+
+- The ``fly2()`` method doesn’t compile because it is missing the braces around the empty method body.
+**==Methods are required to have a body unless they are declared ``abstract``.==**
+## Declaring Local and Instance Variables
+
+local variables are those defined with a method or block, while instance variables are those that are defined as a member of a class.
+
+```java
+public class Lion {
+	int hunger = 4;
+	public int feedZooAnimals() {
+		int snack = 10; // Local variable
+		if(snack > 4) {
+			long dinnerTime = snack++;
+			hunger--;
+		}
+		return snack;
+	}
+}
+```
+
+In the ``Lion`` class, ``snack`` and ``dinnertime`` are local variables only accessible within their respective code blocks, while ``hunger`` is an instance variable and created in every object of the Lion class.
+all local variable references are destroyed after the block is executed, but the objects they point to may still be accessible.
+
+### Local Variable Modifiers
+
+**==There’s only one modifier that can be applied to a local variable: ``final``==**.
+
+```java
+public void zooAnimalCheckup(boolean isWeekend) {
+	final int rest;
+	if(isWeekend) rest = 5; else rest = 20;
+	System.out.print(rest);
+	final var giraffe = new Animal();
+	final int[] friends = new int[5];
+	rest = 10; // DOES NOT COMPILE
+	giraffe = new Animal(); // DOES NOT COMPILE
+	friends = null; // DOES NOT COMPILE
+}
+```
+
+when a ``final`` variable is declared. The rule is only that it must be assigned a value before it can be used.
+
+```java
+public void zooAnimalCheckup(boolean isWeekend) {
+	final int rest;
+	if(isWeekend) rest = 5;
+		System.out.print(rest); // DOES NOT COMPILE
+}
+```
+
+Since the compiler does not allow the use of local variables that may not have been assigned a value, the code does not compile. The ``final`` attribute only refers to the variable reference; the contents can be freely modified (assuming the object isn’t immutable).
+
+```java
+public void zooAnimalCheckup() {
+	final int rest = 5;
+	final Animal giraffe = new Animal();
+	final int[] friends = new int[5];
+	giraffe.setName("George");
+	friends[2] = 2;
+}
+```
+
+The ``rest`` variable is a primitive, so it’s just a value that can’t be modified. On the other hand, the contents of the ``giraffe`` and ``friends`` variables can be freely modified, provided the variables aren’t reassigned. 
+
+---
+
+**marking a local variable ``final`` is often a good practice. For example, you may have a complex method in which a variable is referenced dozens of times. It would be really bad if someone came in and reassigned the variable in the middle of the method. Using the ``final`` attribute is like sending a message to other developers to leave the variable alone!**
+
+---
+
+### Effectively Final Variables
+
+An *effectively final* local variable is one that is not modified after it is assigned. This means that the value of a variable doesn’t change after it is set, regardless of whether it is explicitly marked as ``final``. If you aren’t sure whether a local variable is effectively final, just add the final keyword. If the code still compiles, the variable is effectively final.
+
+---
+The Effectively Final variable is a local variable that follows the following properties:
+- ==**Not defined as final**==
+- ==**Assigned to ONLY once.**==
+---
+
+```java
+11: public String zooFriends() {
+12: String name = "Harry the Hippo";
+13: var size = 10;
+14: boolean wet;
+15: if(size > 100) size++;
+16: name.substring(0);
+17: wet = true;
+18: return name;
+19: }
+```
+
+a quick test of effectively final is to just add final to the variable declaration and see if it still compiles.
+In this example, name and wet are effectively final and can be updated with the final modifier, but not size. The name variable is assigned a value on line 12 and not reassigned. Line 16 creates a value that is never used. The size variable is not effectively final because it could be incremented on line 15.
+### Instance Variable Modifiers
+
+Like methods, instance variables can use access modifiers, such as ``private``, ``package``, ``protected``, and ``public``.
+Instance variables can also use optional specifiers
+
+|Modifier|Description|Chapter Covered|
+|---|---|---|
+|final|Specifies that the instance variable must be initialized with each instance of the class exactly once|Chapter 5|
+|volatile|Instructs the JVM that the value in this variable may be modified by other threads|Chapter 13|
+|transient|Used to indicate that an instance variable should not be serialized with the class|Out of scope|
+If an instance variable is marked ``final``, then it must be assigned a value when it is declared or when the object is instantiated. Like a local final variable, it cannot be assigned a value more than once
+
+```java
+public class PolarBear {
+	final int age = 10;
+	final int fishEaten;
+	final String name;
+	{ fishEaten = 10; }
+	public PolarBear() {
+		name = "Robert";
+	}
+}
+```
+
+The ``age`` variable is given a value when it is declared, while the ``fishEaten`` variable is assigned a value in an instance initializer. The name variable is given a value in the no-argument constructor.
+
+---
+
+**The compiler does not apply a default value to ``final`` variables, though. A ``final`` instance or ``final static`` variable must receive a value when it is declared or as part of initialization.**
+
+---
+## Working with Varargs
+
+### Creating Methods with Varargs
+
+**Rules for Creating a Method with a Varargs Parameter**
+
+1. ==**A method can have at most one varargs parameter.**==
+2. ==**If a method contains a varargs parameter, it must be the last parameter in the list.**==
+
+```java
+public class VisitAttractions {
+	public void walk1(int... steps) {}
+	public void walk2(int start, int... steps) {}
+	public void walk3(int... steps, int start) {} // DOES NOT COMPILE
+	public void walk4(int... start, int... steps) {} // DOES NOT COMPILE
+}
+```
+
+### Calling Methods with Varargs
+
+When calling a method with a varargs parameter, you have a choice. You can pass in an array, or you can list the elements of the array and let Java create it for you.
+
+```java
+// Pass an array
+int[] data = new int[] {1, 2, 3};
+walk1(data);
+// Pass a list of values
+walk1(1,2,3);
+```
+
+Regardless of which one you use to call the method, the method will receive an array containing the elements.
+
+```java
+public void walk1(int... steps) {
+	int[] step2 = steps; // Not necessary, but shows steps is of type int[]
+	System.out.print(step2.length);
+}
+```
+
+can even omit the varargs values in the method call, and Java will create an array of length zero for you.
+
+```java
+walk1();
+```
+###  Accessing Elements of a Vararg
+
+Accessing a varargs parameter is just like accessing an array. It uses array indexing.
+
+```java
+16: public static void run(int... steps) {
+17: System.out.print(steps[1]);
+18: }
+19: public static void main(String[] args) {
+20: run(11, 77); // 77
+21: }
+```
+### Using Varargs with Other Method Parameters
+
+```java
+1: public class DogWalker {
+2: public static void walkDog(int start, int... steps) {
+3: System.out.println(steps.length);
+4: }
+5: public static void main(String[] args) {
+6: walkDog(1); // 0
+7: walkDog(1, 2); // 1
+8: walkDog(1, 2, 3); // 2
+9: walkDog(1, new int[] {4, 5}); // 2
+10: } }
+```
+
+Java will create an empty array if no parameters are passed for a vararg. However, it is still possible to pass ``null`` explicitly
+
+```java
+walkDog(1, null); // Triggers NullPointerException in walkDog()
+```
+
+Since ``null`` isn’t an int, Java treats it as an array reference that happens to be ``null``. It just passes on the ``null`` array object to ``walkDog()``. Then the ``walkDog()`` method throws an exception because it tries to determine the length of ``null``.
+## Applying Access Modifiers
+
+- ==**``private``: Only accessible within the same class.**==
+- ==**Package access: ``private`` plus other members of the same package. Sometimes referred to as package-private or default access.**==
+- ==**``protected``: Package access plus access within subclasses.**==
+- ==**``public``: ``protected`` plus classes in the other packages.==**
+### Private Access
+
+Only code in the same class can call ``private`` methods or access ``private`` fields.
+
+```java
+1: package pond.duck;
+2: public class FatherDuck {
+3: private String noise = "quack";
+4: private void quack() {
+5: System.out.print(noise); // private access is ok
+6: }
+7: }
+```
+
+``FatherDuck`` declares a ``private`` method ``quack()`` and uses ``private`` instance variable ``noise`` on line 5.
+
+```java
+1: package pond.duck;
+2: public class BadDuckling {
+3: public void makeNoise() {
+4: var duck = new FatherDuck();
+5: duck.quack(); // DOES NOT COMPILE
+6: System.out.print(duck.noise); // DOES NOT COMPILE
+7: }
+8: }
+```
+
+``BadDuckling`` is trying to access an instance variable and a method it has no business touching. accessing ``private`` members of other classes is not allowed, and you need to use a different type of access.
+
+---
+
+**In the previous example, ``FatherDuck`` and ``BadDuckling`` are in separate files, but what if they were declared in the same file? Even then, the code would still not compile as Java prevents access outside the class.**
+
+---
+### Package Access
+
+When there is no access modifier, Java assumes package access.
+
+```java
+package pond.duck;
+public class MotherDuck {
+	String noise = "quack";
+	void quack() {
+		System.out.print(noise); // package access is ok
+	}
+}
+```
+
+The big difference is that ``MotherDuck`` lets other classes in the same package access members, whereas ``FatherDuck`` doesn’t (due to being private). 
+
+```java
+package pond.duck;
+public class GoodDuckling {
+	public void makeNoise() {
+		var duck = new MotherDuck();
+		duck.quack(); // package access is ok
+		System.out.print(duck.noise); // package access is ok
+	}
+}
+```
+
+all the classes covered so far are in the same package, ``pond.duck``. This allows package access to work.
+
+```java
+package pond.swan;
+import pond.duck.MotherDuck; // import another package
+public class BadCygnet {
+	public void makeNoise() {
+		var duck = new MotherDuck();
+		duck.quack(); // DOES NOT COMPILE
+		System.out.print(duck.noise); // DOES NOT COMPILE
+	}
+}
+```
+
+``MotherDuck`` only allows lessons to other ducks by restricting access to the ``pond.duck`` package. ``BadCygnet`` is in the ``pond.swan`` package, and the code doesn’t compile.
+### Protected Access
+
+Protected access allows everything that package access does, and more. The ``protected`` access modifier adds the ability to access members of a parent class. 
+
+```java
+public class Fish {}
+public class ClownFish extends Fish {}
+```
+
+the “child” ``ClownFish`` class is a subclass of the “parent” ``Fish`` class, using the ``extends`` keyword to connect them
+
+**==By extending a class, the subclass gains access to all ``protected`` and ``public`` members of the parent class, as if they were declared in the subclass. If the two classes are in the same package, then the subclass also gains access to all package members.==**
+
+```java
+package pond.shore;
+public class Bird {
+	protected String text = "floating";
+	protected void floatInWater() {
+		System.out.print(text); // protected access is ok
+	}
+}
+```
+
+```java
+package pond.goose; // Different package than Bird
+import pond.shore.Bird;
+public class Gosling extends Bird { // Gosling is a subclass of Bird
+	public void swim() {
+		floatInWater(); // protected access is ok
+	System.out.print(text); // protected access is ok
+	}
+	public static void main(String[] args) {
+		new Gosling().swim();
+	}
+}
+```
+
+This is a simple subclass. It extends the ``Bird`` class. Extending means creating a subclass that has access to any protected or public members of the parent class
+
+Remember that protected also gives us access to everything that package access does. This means a class in the same package as ``Bird`` can access its protected members.
+
+```java
+package pond.shore; // Same package as Bird
+public class BirdWatcher {
+	public void watchBird() {
+		Bird bird = new Bird();
+		bird.floatInWater(); // protected access is ok
+		System.out.print(bird.text); // protected access is ok
+	}
+}
+```
+
+Since ``Bird`` and ``BirdWatcher`` are in the same package, ``BirdWatcher`` can access package members of the bird variable. **==The definition of protected allows access to subclasses and classes in the same package.==**
+
+```java
+package pond.inland; // Different package than Bird
+import pond.shore.Bird;
+public class BirdWatcherFromAfar { // Not a subclass of Bird
+	public void watchBird() {
+		Bird bird = new Bird();
+		bird.floatInWater(); // DOES NOT COMPILE
+		System.out.print(bird.text); // DOES NOT COMPILE
+	}
+}
+```
+
+``BirdWatcherFromAfar`` is not in the same package as ``Bird``, and it doesn’t inherit from ``Bird``. This means it is not allowed to access protected members of ``Bird``. Subclasses and classes in the same package are the only ones allowed to access protected members.
+
+```java
+1: package pond.swan; // Different package than Bird
+2: import pond.shore.Bird;
+3: public class Swan extends Bird { // Swan is a subclass of Bird
+	4: public void swim() {
+		5: floatInWater(); // protected access is ok
+		6: System.out.print(text); // protected access is ok
+	7: }
+	8: public void helpOtherSwanSwim() {
+		9: Swan other = new Swan();
+		10: other.floatInWater(); // subclass access to superclass
+		11: System.out.print(other.text); // subclass access to superclass
+	12: }
+	13: public void helpOtherBirdSwim() {
+		14: Bird other = new Bird();
+		15: other.floatInWater(); // DOES NOT COMPILE
+		16: System.out.print(other.text); // DOES NOT COMPILE
+	17: }
+18: }
+```
+
+``Swan`` is not in the same package as ``Bird`` but does extend it—which implies it has access to the protected members of Bird since it is a subclass. And it does. Lines 5 and 6 refer to protected members via inheriting them.
+
+Lines 10 and 11 also successfully use protected members of ``Bird``. This is allowed because these lines refer to a ``Swan`` object. ``Swan`` inherits from ``Bird``, so this is okay. It is sort of a two-phase check. The ``Swan`` class is allowed to use protected members of ``Bird``, and we are referring to a ``Swan`` object. Granted, it is a ``Swan`` object created on line 9 rather than an inherited one, but it is still a ``Swan`` object.
+
+Lines 15 and 16 do not compile a ``Bird`` reference is used rather than inheritance. It is created on line 14. ``Bird`` is in a different package, and this code isn’t inheriting from ``Bird``, so it doesn’t get to use protected members. the variable reference isn’t a ``Swan``. The code just happens to be in the ``Swan`` class.
+
+Looking at it a different way, the protected rules apply under two scenarios:
+
+- ==**A member is used without referring to a variable. This is the case on lines 5 and 6. In this case, we are taking advantage of inheritance, and protected access is allowed.**==
+
+- ==**A member is used through a variable. This is the case on lines 10, 11, 15, and 16. In this case, the rules for the reference type of the variable are what matter. If it is a subclass, protected access is allowed. This works for references to the same class or a subclass.==**
+
+---
+
+**==In Java, when a class extends another class, it inherits access to its protected members, allowing it to use them directly. When accessing these members through an object of the subclass, it's considered accessing them via inheritance, which is permitted. However, if you try to access protected members through a reference to the superclass, it won't compile because it's not considered inheritance and thus doesn't have access to those members.==** #TIP 
+
+---
+
+```JAVA
+package pond.goose;
+import pond.shore.Bird;
+public class Goose extends Bird {
+	public void helpGooseSwim() {
+		Goose other = new Goose();
+		other.floatInWater();
+		System.out.print(other.text);
+	}
+	public void helpOtherGooseSwim() {
+		Bird other = new Goose();
+		other.floatInWater(); // DOES NOT COMPILE
+		System.out.print(other.text); // DOES NOT COMPILE
+	}
+}
+```
+
+The second method is a problem. Although the object happens to be a ``Goose``, it is stored in a ``Bird`` reference. We are not allowed to refer to members of the ``Bird`` class since we are not in the same package and the reference type of other is not a subclass of ``Goose``.
+
+```java
+package pond.duck;
+import pond.goose.Goose;
+public class GooseWatcher {
+	public void watch() {
+		Goose goose = new Goose();
+		goose.floatInWater(); // DOES NOT COMPILE
+	}
+}
+```
+
+This code doesn’t compile because we are not in the goose object. The ``floatInWater()`` method is declared in ``Bird``. ``GooseWatcher`` is not in the same package as ``Bird``, nor does it extend ``Bird``. ``Goose`` extends ``Bird``. That only lets ``Goose`` refer to ``floatInWater()``, not callers of ``Goose``.
+
+---
+
+**==the `GooseWatcher` class attempts to call the `floatInWater()` method on a `Goose` object, but it doesn't compile because `GooseWatcher` doesn't inherit from `Bird` nor is it in the same package as `Bird`. While `Goose` extends `Bird`, this only allows instances of `Goose` to access `floatInWater()`, not instances of `GooseWatcher`. Essentially, access to `floatInWater()` is restricted to instances of `Goose` or its subclasses due to the protected access level, and `GooseWatcher` isn't in that inheritance hierarchy.==**
+
+---
+### Public Access
+
+``public`` means anyone can access the member from anywhere.
+
+```java
+package pond.duck;
+public class DuckTeacher {
+	public String name = "helpful";
+	public void swim() {
+		System.out.print(name); // public access is ok
+	}
+}
+```
+
+```java
+package pond.goose;
+import pond.duck.DuckTeacher;
+public class LostDuckling {
+	public void swim() {
+		var teacher = new DuckTeacher();
+		teacher.swim(); // allowed
+		System.out.print("Thanks" + teacher.name); // allowed
+	}
+}
+```
+
+### Reviewing Access Modifiers
+
+A method in `` ______`` can access a ``______`` member.
+
+|                       | private | package | protected | public |
+| --------------------- | ------- | ------- | --------- | ------ |
+| the same class        | Yes     | Yes     | Yes       | Yes    |
+| another class in the  |         |         |           |        |
+| same package          | No      | Yes     | Yes       | Yes    |
+| a subclass in a       |         |         |           |        |
+| different package     | No      | No      | Yes       | Yes    |
+| an unrelated class in |         |         |           |        |
+| a different package   | No      | No      | No        | Yes    |
+## Accessing static Data
