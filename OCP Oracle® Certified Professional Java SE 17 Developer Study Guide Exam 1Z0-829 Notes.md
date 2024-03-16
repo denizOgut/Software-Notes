@@ -10276,4 +10276,713 @@ A method in `` ______`` can access a ``______`` member.
 | different package     | No      | No      | Yes       | Yes    |
 | an unrelated class in |         |         |           |        |
 | a different package   | No      | No      | No        | Yes    |
-## Accessing static Data
+## Accessing ``static`` Data
+
+When the ``static`` keyword is applied to a variable, method, or class, it belongs to the class rather than a specific instance of the class.
+### Designing ``static`` Methods and Variables
+
+Methods and variables declared static don’t require an instance of the class. They are shared among all users of the class.
+
+```java
+public class Penguin {
+	String name;
+	static String nameOfTallestPenguin;
+}
+```
+
+**==think of a ``static`` variable as being a member of the single class object that exists independently of any instances of that class.==**
+
+```java
+public static void main(String[] unused) {
+	var p1 = new Penguin();
+	p1.name = "Lilly";
+	p1.nameOfTallestPenguin = "Lilly";
+	var p2 = new Penguin();
+	p2.name = "Willy";
+	p2.nameOfTallestPenguin = "Willy";
+	
+	System.out.println(p1.name); // Lilly
+	System.out.println(p1.nameOfTallestPenguin); // Willy
+	System.out.println(p2.name); // Willy
+	System.out.println(p2.nameOfTallestPenguin); // Willy
+}
+```
+
+
+```java
+public class Koala {
+	public static int count = 0; // static variable
+	public static void main(String[] args) { // static method
+		System.out.print(count);
+	}
+}
+```
+
+``static`` methods have two main purposes:
+
+- For utility or helper methods that don’t require any object state. Since there is no need to access instance variables, having static methods eliminates the need for the caller to instantiate an object just to call the method.
+
+-  For state that is shared by all instances of a class, like a counter. All instances must share the same state. Methods that merely use that state should be static as well.
+
+### Accessing a ``static`` Variable or Method
+
+```java
+public class Snake {
+	public static long hiss = 2;
+}
+```
+
+just put the class name before the method or variable, and you are done.
+
+```java
+System.out.println(Snake.hiss);
+```
+
+**==There is one rule that is trickier. You can use an instance of the object to call a ``static`` method. The compiler checks for the type of the reference and uses that instead of the object==**
+
+```java
+5: Snake s = new Snake();
+6: System.out.println(s.hiss); // s is a Snake
+7: s = null;
+8: System.out.println(s.hiss); // s is still a Snake
+```
+
+Java doesn’t care that ``s`` happens to be ``null``. Since we are looking for a ``static`` variable, it doesn’t matter.
+
+---
+
+**Remember to look at the reference type for a variable when you see a ``static`` method or variable. The exam creators will try to trick you into thinking a ``NullPointerException`` is thrown because the variable happens to be ``null``. Don’t be fooled!** #TIP 
+
+---
+
+```java
+Snake.hiss = 4;
+Snake snake1 = new Snake();
+Snake snake2 = new Snake();
+snake1.hiss = 6;
+snake2.hiss = 5;
+System.out.println(Snake.hiss); // 5 
+```
+### Class vs. Instance Membership
+
+**==A ``static`` member cannot call an instance member without referencing an instance of the class.==**
+
+```java
+public class MantaRay {
+	private String name = "Sammy";
+	public static void first() { }
+	public static void second() { }
+	public void third() { System.out.print(name); }
+	public static void main(String args[]) {
+		first();
+		second();
+		third(); // DOES NOT COMPILE
+	}
+}
+```
+
+The compiler will give you an error about making a ``static`` reference to an instance method. If we fix this by adding ``static`` to ``third()``, we create a new problem.
+
+```java
+public static void third() { System.out.print(name); } // DOES NOT COMPILE
+```
+
+All this does is move the problem. Now, ``third()`` is referring to an instance variable name. There are two ways we could fix this. 
+
+1. Add static to the name variable as well
+
+```java
+public class MantaRay {
+	private static String name = "Sammy";
+	...
+	public static void third() { System.out.print(name); }
+	...
+}
+```
+
+2. call ``third()`` as an instance method and not use ``static`` for the method or the variable. 
+
+```java
+public class MantaRay {
+	private String name = "Sammy";
+	...
+	public void third() { System.out.print(name); }
+	public static void main(String args[]) {
+		...
+		var ray = new MantaRay();
+		ray.third();
+	}
+}
+```
+
+**==A ``static`` method or instance method can call a ``static`` method because ``static`` methods don’t require an object to use.==** **==Only an instance method can call another instance method on the same class without using a reference variable==**, because instance methods do require an object. Similar logic applies for instance and ``static`` variables.
+
+```java
+public class Giraffe {
+	public void eat(Giraffe g) {}
+	public void drink() {};
+	public static void allGiraffeGoHome(Giraffe g) {}
+	public static void allGiraffeComeOut() {}
+}
+```
+
+| Method                 | Calling                 | Legal |
+| ---------------------- | ----------------------- | ----- |
+| ``allGiraffeGoHome()`` | ``allGiraffeComeOut()`` | Yes   |
+| ``allGiraffeGoHome()`` | ``drink()``             | No    |
+| ``allGiraffeGoHome()`` | ``g.eat()``             | Yes   |
+| ``eat()``              | ``allGiraffeComeOut()`` | Yes   |
+| ``eat()``              | ``drink()``             | Yes   |
+| ``eat()``              | ``g.eat()``             | Yes   |
+
+```java
+1: public class Gorilla {
+	2: public static int count;
+	3: public static void addGorilla() { count++; }
+	4: public void babyGorilla() { count++; }
+	5: public void announceBabies() {
+		6: addGorilla();
+		7: babyGorilla();
+	8: }
+	9: public static void announceBabiesToEveryone() {
+		10: addGorilla();
+		11: babyGorilla(); // DOES NOT COMPILE
+	12: }
+	13: public int total;
+	14: public static double average
+	15: = total / count; // DOES NOT COMPILE
+16: }
+```
+
+- Lines 3 and 4 are fine because both ``static`` and instance methods can refer to a ``static`` variable.
+- Lines 5–8 are fine because an instance method can call a ``static`` method.
+- **==Line 11 doesn’t compile because a ``static`` method cannot call an instance method==**.
+- **==Line 15 doesn’t compile because a ``static`` variable is trying to use an instance variable==**.
+### ``static`` Variable Modifiers
+
+``static`` variables can be declared with the same modifiers as instance variables, such as ``final``, ``transient``, and ``volatile``. While some ``static`` variables are meant to change as the program runs, like our count example, others are meant to never change. This type of ``static`` variable is known as a constant. It uses the ``final`` modifier to ensure the variable never changes.
+
+Constants use the modifier ``static final`` and a different naming convention than other variables. They use all uppercase letters with underscores between “words.”
+
+```java
+public class ZooPen {
+	private static final int NUM_BUCKETS = 45;
+	public static void main(String[] args) {
+		NUM_BUCKETS = 5; // DOES NOT COMPILE
+	}
+}
+```
+
+The compiler will make sure that you do not accidentally try to update a ``final`` variable.
+
+```java
+import java.util.*;
+public class ZooInventoryManager {
+	private static final String[] treats = new String[10];
+	public static void main(String[] args) {
+		treats[0] = "popcorn";
+	}
+}
+```
+
+It actually does compile since ``treats`` is a reference variable. **==We are allowed to modify the referenced object or array’s contents==**. All the compiler can do is check that we don’t try to reassign ``treats`` to point to a different object.
+
+**==The rules for ``static final`` variables are similar to instance ``final`` variables, except they do not use ``static`` constructors (there is no such thing!) and use ``static`` initializers instead of instance initializers.==**
+
+```java
+public class Panda {
+	final static String name = "Ronda";
+	static final int bamboo;
+	static final double height; // DOES NOT COMPILE
+	static { bamboo = 5;}
+}
+```
+
+- The ``name`` variable is assigned a value when it is declared
+- The ``bamboo`` variable is assigned a value in a static initializer.
+- The ``height`` variable is not assigned a value anywhere in the class definition, so that line does not compile.
+
+### ``static`` Initializers
+
+Static initializers add the ``static`` keyword to specify that they should be run when the class is first loaded.
+
+```java
+static {
+	NUM_SECONDS_PER_MINUTE = 60;
+	NUM_MINUTES_PER_HOUR = 60;
+}
+static {
+	NUM_SECONDS_PER_HOUR = NUM_SECONDS_PER_MINUTE * NUM_MINUTES_PER_HOUR;
+}
+```
+
+**==All ``static`` initializers run when the class is first used, in the order they are defined==**. The statements in them run and assign any ``static`` variables as needed. The final variables aren’t allowed to be reassigned(Assumed). **==The key here is that the ``static`` initializer is the first assignment. And since it occurs up front, it is okay==**.
+
+```java
+14: private static int one;
+15: private static final int two;
+16: private static final int three = 3;
+17: private static final int four; // DOES NOT COMPILE
+18: static {
+19: one = 1;
+20: two = 2;
+21: three = 3; // DOES NOT COMPILE
+22: two = 4; // DOES NOT COMPILE
+23: }
+```
+
+- Line 14 declares a ``static`` variable that is not ``final``. It can be assigned as many times as we like
+- Line 15 declares a ``final`` variable without initializing it. This means we can initialize it exactly once in a static block.
+- Line 22 doesn’t compile because this is the second attempt.
+- Line 16 declares a ``final`` variable and initializes it at the same time. We are not allowed to assign it again, so line 21 doesn’t compile.
+- Line 17 declares **==a ``static final`` variable that never gets initialized==**. The compiler gives a compiler error because it knows that **==the ``static`` blocks are the only place the variable could possibly be initialized==**.
+
+### ``static`` Imports
+
+```java
+import java.util.ArrayList;
+import java.util.*;
+```
+
+```java
+import java.util.List;
+import java.util.Arrays;
+public class Imports {
+	public static void main(String[] args) {
+		List<String> list = Arrays.asList("one", "two");
+	}
+}
+```
+
+**==Regular imports are for importing classes, while ``static`` imports are for importing static members of classes like variables and methods.==** Just like regular imports, you can use a wildcard or import a specific member.
+
+```java
+import java.util.List;
+import static java.util.Arrays.asList; // static import
+public class ZooParking {
+	public static void main(String[] args) {
+		List<String> list = asList("one", "two"); // No Arrays. prefix
+	}
+}
+```
+
+**==An interesting case is what would happen if we created an ``asList`` method in our ``ZooParking`` class. Java would give it preference over the imported one, and the method we coded would be used.==**
+
+```java
+1: import static java.util.Arrays; // DOES NOT COMPILE
+2: import static java.util.Arrays.asList;
+3: static import java.util.Arrays.*; // DOES NOT COMPILE
+4: public class BadZooParking {
+	5: public static void main(String[] args) {
+		6: Arrays.asList("one"); // DOES NOT COMPILE
+	7: }
+8: }
+```
+
+- Line 1 tries to use a ``static`` import to import a class.
+- Line 3 tries to see whether you are paying attention to the order of keywords.
+- Line 6 is sneaky. The ``asList`` method is imported on line 2. However, the ``Arrays`` class is not imported anywhere. This makes it okay to write ``asList("one")`` but not ``Arrays.asList("one")``.
+
+**==The compiler will complain if you try to explicitly do a ``static`` import of two methods with the same name or two ``static`` variables with the same name.==**
+
+```java
+import static zoo.A.TYPE;
+import static zoo.B.TYPE; // DOES NOT COMPILE
+```
+
+## Passing Data among Methods
+
+**==Java is a *pass-by-value* language. This means that a copy of the variable is made and the method receives that copy. Assignments made in the method do not affect the caller==**
+
+```java
+2: public static void main(String[] args) {
+	3: int num = 4;
+	4: newNumber(num);
+	5: System.out.print(num); // 4
+6: }
+7: public static void newNumber(int num) {
+	8: num = 8;
+9: }
+```
+
+The name could be anything. The exam will often use the same name to try to confuse you. The variable on line 3 never changes because no assignments are made to it.
+### Passing Objects
+
+```java
+public class Dog {
+	public static void main(String[] args) {
+		String name = "Webby";
+		speak(name);
+		System.out.print(name); // Webby
+	}
+	public static void speak(String name) {
+		name = "Georgette";
+	}
+}
+```
+
+Just as in the primitive example, the variable assignment is only to the method parameter and doesn’t affect the caller.
+
+```java
+public class Dog {
+	public static void main(String[] args) {
+		var name = new StringBuilder("Webby");
+		speak(name);
+		System.out.print(name); // WebbyGeorgette
+	}
+	public static void speak(StringBuilder s) {
+		s.append("Georgette");
+	}
+}
+```
+
+In this case, ``speak()`` calls a method on the parameter. It doesn’t reassign s to a different object. The variable ``s`` is a copy of the variable name. Both point to the same ``StringBuilder``, which means that changes made to the ``StringBuilder`` are available to both references.
+
+![[Pasted image 20240316191549.png]]
+
+---
+
+**Pass-by-Value vs. Pass-by-Reference**
+**the ``swap()`` method does not change the original values. It only changes a and b within the method.**
+
+```java
+public static void main(String[] args) {
+	int original1 = 1;
+	int original2 = 2;
+	swap(original1, original2);
+	System.out.println(original1); // 1
+	System.out.println(original2); // 2
+}
+public static void swap(int a, int b) {
+	int temp = a;
+	a = b;
+	b = temp;
+}
+```
+
+---
+
+### Returning Objects
+
+A copy is made of the primitive or reference and returned from the method. Most of the time, this returned value is used.
+
+```java
+1: public class ZooTickets {
+	2: public static void main(String[] args) {
+		3: int tickets = 2; // tickets = 2
+		4: String guests = "abc"; // guests = abc
+		5: addTickets(tickets); // tickets = 2
+		6: guests = addGuests(guests); // guests = abcd
+		7: System.out.println(tickets + guests); // 2abcd
+	8: }
+	9: public static int addTickets(int tickets) {
+		10: tickets++;
+		11: return tickets;
+	12: }
+	13: public static String addGuests(String guests) {
+		14: guests += "d";
+		15: return guests;
+	16: }
+17: }
+```
+
+When you see such questions on the exam, write down the values of each variable.
+
+- Lines 3 and 4 are straightforward assignments. 
+- Line 5 calls a method.
+- Line 10 increments the method parameter to 3 but leaves the ``tickets`` variable in the ``main()`` method as 2
+- line 11 returns the value, the caller ignores it.
+- The method call on line 6 doesn’t ignore the result, so ``guests`` becomes "abcd"
+### Autoboxing and Unboxing Variables
+
+Java supports some helpful features around passing primitive and wrapper data types, such as ``int`` and ``Integer``.
+
+```java
+5: int quack = 5;
+6: Integer quackquack = Integer.valueOf(quack); // Convert int to Integer
+7: int quackquackquack = quackquack.intValue(); // Convert Integer to int
+```
+
+Useful, but a bit verbose. Luckily, Java has handlers built into the Java language that automatically convert between primitives and wrapper classes and back again. 
+- ==**Autoboxing is the process of converting a primitive into its equivalent wrapper class,**==  
+- ==**Unboxing is the process of converting a wrapper class into its equivalent primitive==**
+
+```java
+5: int quack = 5;
+6: Integer quackquack = Integer.valueOf(quack); // Convert int to Integer
+7: int quackquackquack = quackquack.intValue(); // Convert Integer to int
+```
+
+Autoboxing applies to all primitives and their associated wrapper types, such as the following:
+
+```java
+Short tail = 8; // Autoboxing
+Character p = Character.valueOf('p');
+char paw = p; // Unboxing
+Boolean nose = true; // Autoboxing
+Integer e = Integer.valueOf(9);
+long ears = e; // Unboxing, then implicit casting
+```
+
+In the last line, ``e`` is unboxed to an ``int`` value. Since an ``int`` value can be stored in a ``long`` variable via implicit casting, the compiler allows the assignment.
+
+---
+**==Limits of Autoboxing and Numeric Promotion==**
+
+**==While Java will implicitly cast a smaller primitive to a larger type, as well as autobox, it will not do both at the same time.==**
+
+```java
+Long badGorilla = 8; // DOES NOT COMPILE
+```
+
+**==Java will automatically cast or autobox the ``int`` value to ``long`` or ``Integer``, respectively. Neither of these types can be assigned to a ``Long`` reference variable, though, so the code does not compile==**
+
+---
+
+What do you think happens if you try to unbox a ``null``?
+
+```java
+10: Character elephant = null;
+11: char badElephant = elephant; // NullPointerException
+```
+
+Since calling any method on ``null`` gives a ``NullPointerException``, that is just what we get. Be careful when you see ``null`` in relation to autoboxing and unboxing.
+
+```java
+public class Chimpanzee {
+	public void climb(long t) {}
+	public void swing(Integer u) {}
+	public void jump(int v) {}
+	public static void main(String[] args) {
+		var c = new Chimpanzee();
+		c.climb(123);
+		c.swing(123);
+		c.jump(123L); // DOES NOT COMPILE
+	}
+}
+```
+
+- ``climb()`` compiles because the ``int`` value can be implicitly cast to a ``long``.
+- ``swing()`` also is permitted, because the int value is autoboxed to an ``Integer``.
+- ``jump()`` results in a compiler error because a ``long`` must be explicitly cast to an ``int``. In other words, Java will not automatically convert to a narrower type.
+
+```java
+public class Gorilla {
+	public void rest(Long x) {
+		System.out.print("long");
+	}
+	public static void main(String[] args) {
+		var g = new Gorilla();
+		g.rest(8); // DOES NOT COMPILE
+	}
+}
+```
+
+Java will cast or autobox the value automatically, but not both at the same time.
+
+## Overloading Methods
+
+==***Method overloading* occurs when methods in the same class have the same name but different method signatures, which means they use different parameter lists.**== Overloading also allows different numbers of parameters. **==Everything other than the method name can vary for overloading methods==**. This means
+there can be different access modifiers, optional specifiers (like static), return types, and exception lists.
+
+```java
+public class Falcon {
+	public void fly(int numMiles) {}
+	public void fly(short numFeet) {}
+	public boolean fly() { return false; }
+	void fly(int numMiles, short numFeet) {}
+	public void fly(short numFeet, int numMiles) throws Exception {}
+}
+```
+
+**==the return type, access modifier, and exception list are irrelevant to overloading. Only the method name and parameter list matter.==**
+
+```java
+public class Eagle {
+	public void fly(int numMiles) {}
+	public int fly(int numMiles) { return 1; } // DOES NOT COMPILE
+}
+```
+
+This method doesn’t compile because it differs from the original only by return type. The method signatures are the same, so they are duplicate methods as far as Java is concerned.
+
+```java
+public class Hawk {
+	public void fly(int numMiles) {}
+	public static void fly(int numMiles) {} // DOES NOT COMPILE
+	public void fly(int numKilometers) {} // DOES NOT COMPILE
+}
+```
+
+Calling overloaded methods is easy. You just write code, and Java calls the right one.
+
+```java
+public class Dove {
+	public void fly(int numMiles) {
+		System.out.println("int");
+	}
+	public void fly(short numFeet) {
+		System.out.println("short");
+	}
+}
+```
+
+The call ``fly((short) 1)`` prints ``short``. It looks for matching types and calls the appropriate method.
+
+### Reference Types
+
+**==the rule about Java picking the most specific version of a method that it can==**
+
+```java
+public class Pelican {
+	public void fly(String s) {
+		System.out.print("string");
+	}
+	public void fly(Object o) {
+		System.out.print("object");
+	}
+	public static void main(String[] args) {
+		var p = new Pelican();
+		p.fly("test"); // String
+		System.out.print("-");
+		p.fly(56); // Object
+	}
+}
+```
+
+- The first call passes a String and finds a direct match.
+- The second call looks for an int parameter list. When it doesn’t find one, it autoboxes to ``Integer``. Since it still doesn’t find a match, it goes to the ``Object`` one.
+
+```java
+import java.time.*;
+import java.util.*;
+public class Parrot {
+	public static void print(List<Integer> i) {
+		System.out.print("I");
+	}
+	public static void print(CharSequence c) {
+		System.out.print("C");
+	}
+	public static void print(Object o) {
+		System.out.print("O");
+	}
+	public static void main(String[] args){
+		print("abc"); // C
+		print(Arrays.asList(3)); // I
+		print(LocalDate.of(2019, Month.JULY, 4)); // O
+	}
+}
+```
+
+The code is due for a promotion!
+
+- The first call to ``print()`` passes a ``String``.
+- ``Arrays.asList()`` can be used to create ``asList<Integer>`` object
+- The final call to print() passes a ``LocalDate``. That means the ``Object`` method signature is used.
+
+### Primitives
+
+Primitives work in a way that’s similar to reference variables. Java tries to find the most specific matching overloaded method.
+
+```java
+public class Ostrich {
+	public void fly(int i) {
+		System.out.print("int");
+	}
+	public void fly(long l) {
+		System.out.print("long");
+	}
+	public static void main(String[] args) {
+		var p = new Ostrich();
+		p.fly(123); // int
+		System.out.print("-");
+		p.fly(123L); // long
+	}
+}
+```
+
+- The first call passes an int and sees an exact match.
+- The second call passes a long and also sees an exact match
+Java has no problem calling a larger primitive. However, it will not do so unless a better match is not found.
+### Autoboxing
+
+```java
+public class Kiwi {
+	public void fly(int numMiles) {}
+	public void fly(Integer numMiles) {}
+}
+```
+
+These method overloads are valid. Java tries to use the most specific parameter list it can find. This is true for autoboxing as well as other matching types we talk about in this section. This means calling ``fly(3)`` will call the first method. **==When the primitive ``int`` version isn’t present, Java will autobox. However, when the primitive ``int`` version is provided, there is no reason for Java to do the extra work of autoboxing.==**
+
+### Arrays
+
+```java
+public static void walk(int[] ints) {}
+public static void walk(Integer[] integers) {}
+```
+
+this code does not autobox:
+
+### Varargs
+
+Which method do you think is called if we pass an ``int[]``?
+
+```java
+public class Toucan {
+	public void fly(int[] lengths) {}
+	public void fly(int... lengths) {} // DOES NOT COMPILE
+}
+```
+
+Java treats ``varargs`` as if they were an array. This means the method signature is the same for both methods. Since we are not allowed to overload methods with the same parameter list, this code doesn’t compile. Even though the code doesn’t look the same, it compiles to the same parameter list
+
+```java
+fly(new int[] { 1, 2, 3 }); // Allowed to call either fly() method
+```
+
+you can only call the ``varargs`` version with stand-alone parameters:
+
+```java
+fly(1, 2, 3); // Allowed to call only the fly() method using varargs
+```
+
+### Putting It All Together
+
+**==Java calls the most specific method it can. When some of the types interact, the Java rules focus on backward compatibility. A long time ago, autoboxing and varargs didn’t exist. Since old code still needs to work, this means autoboxing and varargs come last when Java looks at overloaded methods.==**
+
+The order that Java uses to choose the right overloaded method
+
+| Rule                  | Method Signature                     |
+| --------------------- | ------------------------------------ |
+| Exact match by type   | `String glide(int i, int j)`         |
+| Larger primitive type | `String glide(long i, long j)`       |
+| Autoboxed type        | `String glide(Integer i, Integer j)` |
+| Varargs               | `String glide(int... nums)`          |
+```java
+public class Glider {
+	public static String glide(String s) {
+		return "1";
+	}
+	public static String glide(String... s) {
+		return "2";
+	}
+	public static String glide(Object o) {
+		return "3";
+	}
+	public static String glide(String s, String t) {
+		return "4";
+	}
+	public static void main(String[] args) {
+		System.out.print(glide("a")); // 1
+		System.out.print(glide("a", "b")); // 4
+		System.out.print(glide("a", "b", "c")); // 2
+	}
+}
+```
+
+- The first call matches the signature taking a single ``String`` because that is the most specific match.
+- The second call matches the signature taking two ``String`` parameters since that is an exact match.
+
+## Summary #OCP_Summary 
+
