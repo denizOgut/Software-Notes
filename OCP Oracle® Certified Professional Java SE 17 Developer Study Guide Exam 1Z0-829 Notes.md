@@ -6015,15 +6015,15 @@ One thing to remember is that it does not matter if the loop or decision structu
 
 ## Summary #OCP_Summary 
 
-This chapter presented how to make intelligent decisions in Java.
+**==This chapter presented how to make intelligent decisions in Java.**==
 
-We covered basic decision-making constructs such as if, else, and switch statements and showed how to use them to change the path of the process at runtime. We also presented newer features in the Java language, including pattern matching and switch expressions, both designed to reduce boilerplate code.
+==**We covered basic decision-making constructs such as if, else, and switch statements and showed how to use them to change the path of the process at runtime. We also presented newer features in the Java language, including pattern matching and switch expressions, both designed to reduce boilerplate code.**==
 
-We then moved our discussion to repetition control structures, starting with while and do/while loops.
+==**We then moved our discussion to repetition control structures, starting with while and do/while loops.**==
 
-Next, we covered the extremely convenient repetition control structures: the for and for-each loops. While their syntax is more complex than the traditional while or do/while loops, they are extremely useful in everyday coding and allow you to create complex expressions in a single line of code.
+==**Next, we covered the extremely convenient repetition control structures: the for and for-each loops. While their syntax is more complex than the traditional while or do/while loops, they are extremely useful in everyday coding and allow you to create complex expressions in a single line of code.**==
 
-We concluded this chapter by discussing advanced control options and how flow can be enhanced through nested loops coupled with break, continue, and return statements.
+==**We concluded this chapter by discussing advanced control options and how flow can be enhanced through nested loops coupled with break, continue, and return statements.==**
 
 ## Exam Essentials #Essential 
 
@@ -10986,3 +10986,32 @@ public class Glider {
 
 ## Summary #OCP_Summary 
 
+**==The access modifiers are ``private``, package (omitted), ``protected``, and ``public``. The optional specifier for methods  ``static``. For this chapter.**==
+
+==**the method return type, which is ``void`` if there is no return value. The method name and parameter list are provided next, which compose the unique method signature. The method name uses standard Java identifier rules, while the parameter list is composed of zero or more types with names. An optional list of exceptions may also be added following the parameter list. Finally, a block defines the method body (which is omitted for ``abstract`` methods).**==
+
+==**Using the ``private`` keyword means the code is only available from within the same class. Package access means the code is available only from within the same package. Using the ``protected`` keyword means the code is available from the same package or subclasses. Using the ``public`` keyword means the code is available from anywhere.**==
+
+==**Both ``static`` methods and ``static`` variables are shared by all instances of the class. When referenced from outside the class, they are called using the class name—for example, ``Pigeon.fly()``. Instance members are allowed to call ``static`` members, but ``static`` members are not allowed to call instance members. In addition, ``static`` imports are used to import ``static`` members.**==
+
+==**the ``final`` modifier and showed how it can be applied to local, instance, and ``static`` variables. Remember, a local variable is effectively final if it is not modified after it is assigned. One quick test for this is to add the ``final`` modifier and see if the code still compiles.**==
+
+==**Java uses pass-by- value, which means that calls to methods create a copy of the parameters. Assigning new values to those parameters in the method doesn’t affect the caller’s variables. Calling methods on objects that are method parameters changes the state of those objects and is reflected in the caller. Java supports autoboxing and unboxing of primitives and wrappers automatically within a method and through method calls.**==
+
+==**Overloaded methods are methods with the same name but a different parameter list. Java calls the most specific method it can find. Exact matches are preferred, followed by wider primitives. After that comes autoboxing and finally ``varargs``.==**
+
+## Exam Essentials #Essential 
+
+**Be able to identify correct and incorrect method declarations.** Be able to view a method signature and know if it is correct, contains invalid or conflicting elements, or contains elements in the wrong order.
+
+**Identify when a method or field is accessible**. Recognize when a method or field is accessible when the access modifier is: ``private``, package (omitted), ``protected``, or ``public``.
+
+**Understand how to declare and use final variables**. Local, instance, and ``static`` variables may be declared final. Be able to understand how to declare them and how they can (or cannot) be used.
+
+**Recognize valid and invalid uses of static imports**  ``Static`` imports import ``static`` members. They are written as import static, not static import. Make sure they are importing ``static`` methods or variables rather than class names.
+
+**Apply autoboxing and unboxing**. The process of automatically converting from a primitive value to a wrapper class is called autoboxing, while the reciprocal process is called unboxing. Watch for a ``NullPointerException`` when performing unboxing.
+
+**State the output of code involving methods**. Identify when to call ``static`` rather than instance methods based on whether the class name or object comes before the method. **==Recognize that instance methods can call ``static`` methods and that static methods need an instance of the object in order to call an instance method==**.
+
+**Recognize the correct overloaded method**. Exact matches are used first, followed by wider primitives, followed by autoboxing, followed by varargs. Assigning new values to method parameters does not change the caller, but calling methods on them does.
