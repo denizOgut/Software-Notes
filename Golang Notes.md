@@ -6578,8 +6578,770 @@ func main() {
 
 The `io` package contains two interfaces for reading and writing operations: `io.Reader` and `io.Writer`. These interfaces have `Read` and `Write` functions, respectively. The `Read` function typically takes a byte array or slice and copies bytes up to the length of the array or slice at that address. The length of the slice represents the maximum amount of data that can be read. However, the reading operation may terminate before the desired length is reached. For example, when attempting to read 1024 bytes from a file, if the end of the file (EOF) is reached, the reading operation terminates. Therefore, this function returns the amount of data read. Additionally, it returns an error in case of a possible error situation.
 
----
+### WEB NOTES
 
+#### Reading `.txt` files in Go
+
+The `os` package provides a `ReadFile` function that makes reading files straightforward in Go.
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    filepath := "data.txt"
+    data, err := os.ReadFile(filepath)
+    if err != nil {
+        fmt.Println("File reading error", err)
+        return
+    }
+    fmt.Println(string(data))
+}
+```
+
+#### Reading a `log` file line-by-line in Go
+
+```go
+package main
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+)
+
+func printLastNLines(lines []string, num int) []string {
+    var printLastNLines []string
+    for i := len(lines) - num; i < len(lines); i++ {
+        printLastNLines = append(printLastNLines, lines[i])
+    }
+    return printLastNLines
+}
+
+func main() {
+    filepath := "log.txt"
+    file, err := os.Open(filepath)
+    if err != nil {
+        fmt.Println("Error opening file:", err)
+    }
+    defer file.Close()
+
+    var lines []string
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        lines = append(lines, scanner.Text())
+
+    }
+    if err := scanner.Err(); err != nil {
+        fmt.Println("Error reading file:", err)
+    }
+
+    // print the last 10 lines of the file
+    printLastNLines := printLastNLines(lines, 3)
+    for _, line := range printLastNLines {
+        fmt.Println(line)
+        fmt.Println("________")
+    }
+}
+```
+
+``` text
+2023-07-11 10:00:00 - Successful: operation completed.
+2023-07-11 10:05:12 - Error: Failed to connect to the database.
+2023-07-11 10:10:32 - Successful: data retrieval from API.
+2023-07-11 10:15:45 - Error: Invalid input received.
+2023-07-11 10:20:58 - Successful: file upload.
+2023-07-11 10:25:01 - Error: Authorization failed.
+2023-07-11 10:30:22 - Successful: record update.
+2023-07-11 10:35:37 - Error: Internal server error.
+2023-07-11 12:45:59 - Error: Server overloaded.
+2023-07-11 12:50:06 - Successful: session created.
+2023-07-11 12:55:17 - Error: Invalid input parameters.
+2023-07-11 13:00:30 - Successful: software update installed.
+2023-07-11 13:05:46 - Error: Access denied.
+2023-07-11 13:10:53 - Successful: report generated.
+2023-07-11 13:16:01 - Error: Unexpected exception occurred.
+2023-07-11 13:20:13 - Successful: user registration.
+2023-07-11 13:25:28 - Error: Disk read/write failure.
+```
+
+The code above uses the `os`' package `Open` function to open the file, defers its `Close` function with the `defer` keyword, defines an empty `lines` slice, and uses the `bufio`'s `NewScanner` function to read the file line-by-line while appending each line to the `lines` array in a text format using the `Text` function. Finally, it uses the `printLastNLines` function to get the last `N` lines of the `lines` array. `N` is any number of the user's choosing. In this case, it is 3, and the code uses a `for` loop to print each line with an horizontal line between each one.
+
+#### Reading `.json` files in Go
+
+```json
+{
+
+      "database_host": "localhost",
+      "database_port": 5432,
+      "database_username": "myuser",
+      "database_password": "mypassword",
+      "server_port": 8080,
+      "server_debug": true,
+      "server_timeout": 30
+
+  }
+```
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "os"
+)
+
+type Config struct {
+    DBHost        string `json:"database_host"`
+    DBPort        int    `json:"database_port"`
+    DBUsername    string `json:"database_username"`
+    DBPassword    string `json:"database_password"`
+    ServerPort    int    `json:"server_port"`
+    ServerDebug   bool   `json:"server_debug"`
+    ServerTimeout int    `json:"server_timeout"`
+}
+
+func main() {
+    filepath := "config.json"
+    var config Config
+
+    file, err := os.Open(filepath)
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer file.Close()
+
+    decoder := json.NewDecoder(file)
+    err = decoder.Decode(&config)
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println(config)
+}
+```
+
+#### Reading `.csv` files in Go
+
+```
+Name,Email,Phone,Address
+John Doe,johndoe@example.com,555-1234,123 Main St
+Jane Smith,janesmith@example.com,555-5678,456 Elm St
+Bob Johnson,bobjohnson@example.com,555-9876,789 Oak St
+```
+
+Go provides an `encoding/csv` package that can be used to read `.csv` files:
+
+```go
+package main
+
+import (
+    "encoding/csv"
+    "fmt"
+    "os"
+)
+
+func main() {
+    filepath := "data.csv"
+
+    file, err := os.Open(filepath)
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer file.Close()
+
+    reader := csv.NewReader(file)
+    records, err := reader.ReadAll()
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    fmt.Println(records)
+}
+```
+
+#### Reading bytes from files in Go
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    filepath := "data.txt"
+
+    file, err := os.Open(filepath)
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer file.Close()
+
+    data := make([]byte, 10)
+    _, err = file.Read(data)
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println(data)
+    fmt.Println(string(data))
+}
+```
+
+#### Creating a file in Go
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.Create("log.txt")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+    fmt.Print("File created successfully")
+}
+```
+
+#### File-opening flags in Go
+
+file-opening flags represented by constants defined in the `os` package. These flags determine the behavior of file operations
+
+1. `os.O_RDONLY`: Opens the file as read-only. The file must exist.
+    
+2. `os.O_WRONLY`: Opens the file as write-only. If the file exists, its contents are truncated. If it doesn't exist, a new file is created.
+    
+3. `os.O_RDWR`: Opens the file for reading and writing. If the file exists, its contents are truncated. If it doesn't exist, a new file is created.
+    
+4. `os.O_APPEND`: Appends data to the file when writing. Writes occur at the end of the file.
+    
+5. `os.O_CREATE`: Creates a new file if it doesn't exist.
+    
+6. `os.O_EXCL`: Used with `O_CREATE`, it ensures that the file is created exclusively, preventing creation if it already exists.
+    
+7. `os.O_SYNC`: Open the file for synchronous I/O operations. Write operations are completed before the call returns.
+    
+8. `os.O_TRUNC`: If the file exists and is successfully opened, its contents are truncated to zero length.
+    
+9. `os.O_NONBLOCK`: Opens the file in non-blocking mode. Operations like read or write may return immediately with an error if no data is available or the operation would block.
+
+These flags can be combined using the bitwise OR (`|`) operator. For example, `os.O_WRONLY|os.O_CREATE` would open the file for writing, creating it if it doesn't exist.
+
+#### Writing text to files in Go
+
+The `os` package also provides a `WriteString` function that helps you write strings to files.
+
+```go
+package main
+
+import (
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.OpenFile("log.txt", os.O_WRONLY|os.O_CREATE, 0644)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    data := "2023-07-11 10:05:12 - Error: Failed to connect to the database. _________________"
+    _, err = file.WriteString(data)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+}
+```
+
+#### Appending to a file in Go
+You can open a file in append mode like this:
+
+```go
+package main
+
+import (
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.OpenFile("log.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    data := "\n 2023-07-11 10:05:12 - Error: Failed to connect to the database.\n __________________ \n"
+    _, err = file.WriteString(data)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+}
+```
+
+the `os.O_APPEND` to open the file in append mode and will retain all the existing data before adding new data to the `log.txt` file.
+
+#### Writing bytes to files in Go
+
+```go
+package main
+
+import (
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.OpenFile("data.bin", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    data := []byte{0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x2C, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x21, 0x0A}
+    _, err = file.Write(data)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+}
+```
+
+#### Writing formatted data to a file in Go
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    username, orderNumber := "Adams_adebayo", "ORD6543234"
+    file, err := os.Create(username + orderNumber + ".pdf")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+    item1, item2, item3 := "shoe", "bag", "shirt"
+    price1, price2, price3 := 1000, 2000, 3000
+
+    _, err = fmt.Fprintf(file, "Username: %s\nOrder Number: %s\nItem 1: %s\nPrice 1: %d\nItem 2: %s\nPrice 2: %d\nItem 3: %s\nPrice 3: %d\n", username, orderNumber, item1, price1, item2, price2, item3, price3)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+}
+```
+
+The code above then creates an `Adams_adebayoORD6543234.pdf` file with the following contents:
+
+```
+Username: Adams_adebayo
+Order Number: ORD6543234
+Item 1: shoe
+Price 1: 1000
+Item 2: bag
+Price 2: 2000
+Item 3: shirt
+Price 3: 3000
+```
+
+#### Writing to `.csv` files in Go
+
+With the help of the `encoding/csv` package, you can write data to `.csv` files easily with Go.
+
+```go
+package main
+
+import (
+    "encoding/csv"
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.OpenFile("users.csv", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    writer := csv.NewWriter(file)
+    defer writer.Flush()
+    data := []string{"Adams Adebayo", "30", "Lagos"}
+    err = writer.Write(data)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+}
+```
+
+#### Writing JSON data to a file in Go
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.OpenFile("users.json", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    data := map[string]interface{}{
+        "username": "olodocoder",
+        "twitter":  "@olodocoder",
+        "email":    "hello@olodocoder.com",
+        "website":  "https://dev.to/olodocoder",
+        "location": "Lagos, Nigeria",
+    }
+
+    encoder := json.NewEncoder(file)
+    err = encoder.Encode(data)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+}
+```
+
+#### Writing XML data to files in Go
+
+You can also write XML data to files in Go using the `encoding/xml` package:
+
+```go
+package main
+
+import (
+    "encoding/xml"
+    "log"
+    "os"
+)
+
+func main() {
+    type Person struct {
+        Name string `xml:"name"`
+        Age  int    `xml:"age"`
+        City string `xml:"city"`
+    }
+
+    file, err := os.OpenFile("users.xml", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    data := Person{
+        Name: "John Doe",
+        Age:  30,
+        City: "New York",
+    }
+
+    encoder := xml.NewEncoder(file)
+    err = encoder.Encode(data)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+}
+```
+
+#### Writing compressed data to a file in Go
+
+```go
+package main
+
+import (
+    "compress/gzip"
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.OpenFile("data.txt.gz", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    gzipWriter := gzip.NewWriter(file)
+    defer gzipWriter.Close()
+
+    data := "Data to compress"
+    _, err = gzipWriter.Write([]byte(data))
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("File compressed successfully")
+}
+```
+
+#### Writing encrypted data to a file in Go
+
+When building applications that require secure files, you can create an encrypted file with Go's `crypto/aes` and `crypto/cipher` packages:
+
+```go
+package main
+
+import (
+    "crypto/aes"
+    "crypto/cipher"
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    // file, err := os.OpenFile("encrypted.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+    file, err := os.Create("encrypted.txt")
+    if err != nil {
+        log.Fatal(err)
+        fmt.Println("Error")
+    }
+    defer file.Close()
+
+    key := []byte("cacf2ebb8cf3402964356547f20cced5")
+    plaintext := []byte("This is a secret! Don't tell anyone!🤫")
+
+    block, err := aes.NewCipher(key)
+    if err != nil {
+        log.Fatal(err)
+        fmt.Println("Error")
+    }
+
+    ciphertext := make([]byte, len(plaintext))
+    stream := cipher.NewCTR(block, make([]byte, aes.BlockSize))
+    stream.XORKeyStream(ciphertext, plaintext)
+
+    _, err = file.Write(ciphertext)
+    if err != nil {
+        log.Fatal(err)
+        fmt.Println("Error")
+    }
+    fmt.Println("Encrypted file created successfully")
+}
+```
+
+#### Copying a file to another directory in Go
+
+```go
+package main
+
+import (
+    "fmt"
+    "io"
+    "os"
+)
+
+func main() {
+    srcFile, err := os.Open("data/json.go")
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer srcFile.Close()
+
+    destFile, err := os.Create("./json.go")
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer destFile.Close()
+
+    _, err = io.Copy(destFile, srcFile)
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println("Copy done!")
+}
+```
+
+#### Deleting files in Go
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    err := os.Remove("data.bin")
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println("File deleted")
+}
+```
+
+#### Creating a directory
+
+Go provides a `Mkdir` function that you can use to create an empty directory:
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    err := os.Mkdir("users", 0755)
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println("Directory Created Successfully")
+}
+```
+
+#### Creating multiple directories in Go
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    err := os.MkdirAll("data/json_data", 0755)
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println("Directory Created Successfully")
+}
+```
+
+#### Checking if a directory exists in Go
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    if _, err := os.Stat("data/csv_data"); os.IsNotExist(err) {
+        fmt.Println("Directory does not exist")
+    } else {
+        fmt.Println("Directory exists")
+    }
+
+}
+```
+
+#### Deleting a directory with all its content in Go
+
+Go provides a `RemoveAll` function that allows you to remove all the directories and everything inside them, including files and folders:
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    err := os.RemoveAll("users")
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println("users directory and all it's content has been removed")
+}
+```
+
+#### Get a list of files and directories in a directory in Go
+
+You can retrieve a list of all the files and directories in a directory using the `ReadDir` function:
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    dirEntries, err := os.ReadDir("data")
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    for _, entry := range dirEntries {
+        fmt.Println(entry.Name())
+    }
+}
+```
+
+#### Get file properties in Go
+
+Go allows you to get the properties of a file with the `Stat` function:
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    fileInfo, err := os.Stat("config.json")
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    fmt.Println("File name:", fileInfo.Name())
+    fmt.Println("Size in bytes:", fileInfo.Size())
+    fmt.Println("Permissions:", fileInfo.Mode())
+    fmt.Println("Last modified:", fileInfo.ModTime())
+
+    fmt.Println("File properties retrieved successfully")
+}
+```
+
+The code above returns the name, size, permissions, and last modified date of the `config.json` file:
+
+```
+File name: config.json
+Size in bytes: 237
+Permissions: -rw-r--r--
+Last modified: 2023-07-11 22:46:59.705875417 +0100 WAT
+File properties retrieved successfully
+```
+
+
+---
 #  Goroutines
 
 Operating systems execute processes using a technique where they are logically run for a little bit from here and a little bit from there. For example, a CPU or core can only execute the machine code of a single process at any given moment. In the case of a system with, for instance, 4 CPUs or cores, how can more than 4 applications be run simultaneously? This is where the scheduling algorithms of operating systems come into play. These algorithms operate by allowing a process to run for a specified time and then preemptively switching to another process, enabling the concurrent execution of multiple applications. This concept is generally referred to as ***preemptive***.
