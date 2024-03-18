@@ -6184,6 +6184,401 @@ Dubai Time: 2020-01-31 22:09:41.705858 +0400 +04
 ```
 
 ---
+# File Operations
+
+Files organized in secondary memory are called files. Files have names and properties. File operations are actually performed by the operating system. The part of the operating system that consists of file operations is called the file system. In Go, functions related to file operations indirectly call the system functions or API (Application Programming Interface) functions of the operating system.
+
+A textual expression that specifies the location of a file is called a ***path expression***. For path expressions, directory transitions are indicated by the ``\`` character in Windows systems, and by the ``/`` character in Unix/Linux and Mac OS X systems. Additionally, Windows systems have the concept of "drives," whereas Unix/Linux and Mac OS X systems do not. In Windows systems, each drive has its own root and directory tree. The root directory of a drive is the outermost directory. Unix/Linux and MacOS X systems have only one root directory, and other directories are within this root directory tree.
+
+  
+Path expressions can be divided into two types based on their syntax: absolute and relative. If a path expression begins with ``/``,``\`` , or a drive name (e.g., C:), it is an absolute path. If none of these is present, it is called a relative path expression.
+
+```text
+"C:\x\y\z\t.dat" -> Mutlak yol ifadesi
+"\x\y\z\t.dat" -> Mutlak yol ifadesi
+"/x/y/z/t.dat" -> Mutlak yol ifadesi
+"C:/x/y/z/t.dat" -> Mutlak yol ifadesi
+"/x/y/z/t.dat" -> Mutlak yol ifadesi
+"x/y/z/t.dat"  -> Göreli yol ifadesi
+"x\y\z\t.dat"  -> Göreli yol ifadesi
+```
+
+  
+Every process has a current working directory (``cwd``). The ``cwd`` of a process specifies the origin for resolving relative path expressions. For example, if the ``cwd`` of a process is "C:\temp" and a path expression given to the process is in the format "x/y/z.dat," then the complete path expression for the process would be "C:\temp\x\y\z.dat". In other words, relative path expressions are actually combined with the ``cwd`` to determine the location of the file in question. The ``cwd`` is generally the directory from which the program is executed for a process.
+
+  
+Absolute path expressions are resolved starting from the root directory. If a drive name is not provided in the absolute path expression for Windows, it is resolved with the drive of the current working directory (``cwd``).
+
+**Key Note: In nearly all operating systems, directories are treated as files themselves. In other words, a directory is essentially a file that can contain directory entries.**
+
+  
+In Windows systems, file and directory names are **case-insensitive**, meaning there is no distinction between uppercase and lowercase letters. However, in Unix/Linux and Mac OS X systems, file and directory names are **case-sensitive**. Even though file and directory names in Windows systems are case-insensitive, they are stored in the form provided.
+
+In path expressions, there are two special directory names we can use: '.' (current directory) and '..' (parent directory). For example, the following path expression is valid: 'x\y\z..\t.dat'. This path expression is equivalent to the expression: 'x\y\t.dat'.
+
+  
+The working directory of a process can be obtained using the ``Getcwd`` function found in the ``os package``.
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	cwd, err := os.Getwd()
+	if err == nil {
+		fmt.Printf("Current Working Directory:%s\n", cwd)
+	} else {
+		fmt.Println("Problem occurred!...")
+	}
+}
+```
+
+##   Text and Binary Files.
+
+In the computer world, files are divided into two groups based on their contents: text and binary. This distinction is purely logical. Regardless of their content, files are collections of bytes. File extensions are designed to provide clues about what is inside. Files containing only text are called ***text*** files, while files containing text along with other information are called ***binary*** files. For example, files created with a simple text editor program are typically "text" files. After building a Go program, the resulting "executable file" is typically a "binary" file. For instance, files with ".doc" and ".docx" extensions are actually binary files. Although these files contain text, they also contain other metadata information.
+
+To be able to use a file, we need to open it first. In fact, the concept of opening a file is purely logical here. The process of opening a file involves performing certain operations at the operating system level. In many high-level programming environments, files can be opened in text or binary mode. There are differences between Windows and Unix/Linux (including Mac OS) systems for files opened in text and binary modes. If a file is opened in text mode and the operating system is Windows, when any function performing a write operation writes a *line feed* character, it writes the *carriage return (CR)* and *line feed (LF)* pair to the file. Similarly, if a function reading from a text file encounters CRLF characters on a Windows system, it only reads them as LF. Such a situation does not occur in Unix/Linux and Mac OS systems.
+
+  
+In programming, functions that operate on files can generally be divided into two groups:
+
+1. Functions and structures/interfaces that operate on the entire file. For example, functions that rename a file, delete a file, etc.
+    
+2. Functions and structures/interfaces that operate on the data within the file. For example, functions that write to a file, read from a file, etc.
+
+Functions that operate on the entire file are generally found in the `os` and `fs` packages. Other standard and non-standard packages may also be used in this context.
+
+  The `Remove` function can be used to delete a file. Various reasons may prevent the file from being deleted. For example, the file may not exist at the specified path, or the user may not have permission to delete the file. Therefore, the `Remove` function returns an error. Unless there's a specific scenario in which errors can be ignored, it's advisable to perform error checking when using the `Remove` function.
+  
+**Key Notes: The operating system does not allow direct deletion of a directory that is not empty. To delete a directory, it is necessary to traverse the directory tree, recursively delete all files outward, and finally delete the directory itself.**
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	if len(os.Args) != 2 {
+		_, _ = fmt.Fprintf(os.Stderr, "Wrong number of arguments!...\n")
+		os.Exit(1)
+	}
+
+	err := os.Remove(os.Args[1])
+
+	if err == nil {
+		fmt.Printf("File removed successfully\n")
+	} else {
+		fmt.Printf("Remove problem:%s\n", err.Error())
+	}
+}
+```
+
+The `IsDirectoryPath` function in the `modfile` package can be used to test whether a path expression specifies a directory or not.
+
+```go
+package main
+
+import (
+	"fmt"
+	"golang.org/x/mod/modfile"
+	"os"
+)
+
+func main() {
+	if len(os.Args) != 2 {
+		_, _ = fmt.Fprintf(os.Stderr, "Wrong number of arguments!...\n")
+		os.Exit(1)
+	}
+
+	if !modfile.IsDirectoryPath(os.Args[1]) {
+		err := os.Remove(os.Args[1])
+		if err == nil {
+			fmt.Printf("File removed successfully\n")
+		} else {
+			fmt.Printf("Remove problem:%s\n", err.Error())
+		}
+	} else {
+		fmt.Println("Is a directory")
+	}
+}
+```
+
+  
+The `ReadDir` function in the `os` package can be used to obtain the contents of a directory. This function returns a slice object of type `[]DirEntry` and an error. `os.DirEntry` is generally an alias of the `fs.DirEntry` interface. The `Name` method of the `DirEntry` interface provides the name of the respective file. The obtained name does not include the "parent directory". The `Info` function can be used to obtain a `FileInfo` object. The `FileInfo` interface has useful methods that are generally common across operating systems. The `Size` method can be used to obtain length information.
+
+  
+**Key Notes: Operating systems do not track the lengths of directories. When the ``Size`` method is called for a directory, different values may be obtained from system to system. Therefore, the ``Size`` method has no meaningful interpretation for directories.**
+
+```go
+package main
+
+import (
+	"fmt"
+	"golang.org/x/mod/modfile"
+	"os"
+)
+
+func printFileInformation(de os.DirEntry) {
+	fi, err := de.Info()
+	if err == nil {
+		if fi.IsDir() {
+			fmt.Printf("%s <DIR>\n", fi.Name())
+		} else {
+			fmt.Printf("%s %d\n", fi.Name(), fi.Size())
+		}
+
+	} else {
+		fmt.Printf("Error:%s\n", err.Error())
+	}
+
+}
+
+func main() {
+	if len(os.Args) != 2 {
+		_, _ = fmt.Fprintf(os.Stderr, "Wrong number of arguments!...\n")
+		os.Exit(1)
+	}
+
+	if modfile.IsDirectoryPath(os.Args[1]) {
+		entries, err := os.ReadDir(os.Args[1])
+		if err == nil {
+			for _, de := range entries {
+				printFileInformation(de)
+			}
+		} else {
+			_, _ = fmt.Fprintf(os.Stderr, "ReadDir:%s\n", err.Error())
+		}
+	} else {
+		fmt.Println("Is not a directory")
+	}
+}
+```
+
+Many standard and non-standard packages are used for working with file data. One of the commonly used packages is the `io` package.
+  
+Regardless of its extension, a file contains a stack of bytes. Essentially, a programmer reads the bytes of a file or writes bytes to a file. Each byte within the file is assigned a position number in increasing order, with the first byte having a position number of zero. In file terminology, this number is referred to as the offset of that byte. In reading and writing operations, a "file pointer" is used. The file pointer can be thought of as a cursor. The file pointer indicates the offset from which reading or writing operations will be performed at that moment. In other words, the file pointer specifies a position (offset) within the file where reading or writing will occur at that time.
+
+```text
+x x x x x x
+0 1 2 3 4 5
+```
+
+Here, let's assume that the file pointer points to offset number 3. If a programmer performs a read operation of 2 bytes, the bytes at offsets 3 and 4 are read. Similarly, in a write operation, if the file pointer points to offset number 3 and 2 bytes are to be written, the bytes at offsets 3 and 4 are replaced with new values. Functions that perform reading and writing operations advance the file pointer by the number of bytes they read or write. So, for example, after reading 2 bytes starting from offset number 3, if another read or write operation is attempted, it will start from offset number 5.
+
+To operate on the data within a file, the file needs to be logically opened. Opening a file essentially involves performing the necessary operations at the operating system level to enable reading and/or writing operations on the data within that file. When a file is opened, except for some special opening modes, the file pointer (generally) points to the zero offset. As a special case, if the file pointer points to the end of the file, reading cannot be performed, but writing will extend the file.
+
+The condition where the file pointer points to the byte immediately following the last byte of the file is referred to as the ***EOF (End Of File)*** condition. In the EOF condition, reading cannot be performed, but writing is allowed. This situation implies appending to the file, as there is no other portable method for appending data to a file. The file pointer pointing to the byte immediately after the last byte of the file is portable, but it cannot be considered portable to point to a byte further ahead in the file.
+
+**Key Notes: In some operating systems, it's possible to position beyond the end of a file and write data. This condition is generally referred to as "file holes." File holes are not a portable concept. The concept of file holes will be discussed further in Unix/Linux systems.**
+
+In the following demo example, n randomly generated bytes are written to the respective file.
+
+```go
+package main
+
+import (
+	"SampleGoLand/csd/console"
+	"SampleGoLand/csd/err"
+	"SampleGoLand/csd/util/slice"
+	"fmt"
+	"math/rand"
+	"os"
+)
+
+func generateByteCallback() byte {
+	value := byte(rand.Intn(255) - 128)
+	fmt.Printf("%d ", value)
+	return value
+}
+
+func main() {
+	if len(os.Args) != 2 {
+		err.ExitFailure("Wrong number of arguments!...")
+	}
+
+	f, e := os.OpenFile(os.Args[1], os.O_WRONLY|os.O_CREATE, 0)
+
+	if e != nil {
+		err.ExitFailureError("OpenFile", e)
+	}
+
+	count := console.ReadInt("Input count:", "Invalid value!...")
+	data := slice.CreateSlice[byte](count, generateByteCallback)
+
+	n, e := f.Write(data)
+
+	if e != nil {
+		err.ExitFailureError("Write", e)
+	}
+	fmt.Printf("\n%d bytes written successfully\n", n)
+}
+
+```
+
+In the following demo example, reading from the file is done byte by byte.
+
+```go
+package main
+
+import (
+	"SampleGoLand/csd/err"
+	"fmt"
+	"io"
+	"os"
+)
+
+func main() {
+	if len(os.Args) != 2 {
+		err.ExitFailure("Wrong number of arguments!...")
+	}
+
+	f, e := os.OpenFile(os.Args[1], os.O_RDONLY, 0)
+
+	if e != nil {
+		err.ExitFailureError("OpenFile", e)
+	}
+
+	data := make([]byte, 1)
+
+	for {
+		_, e := f.Read(data)
+
+		if e != nil && e != io.EOF {
+			err.ExitFailureError("Read", e)
+		}
+
+		if e == io.EOF { //if n == 0 {
+			break
+		}
+
+		fmt.Printf("%d ", data[0])
+	}
+
+	fmt.Println()
+}
+```
+
+In the following demo example, reading from the file is done in blocks.
+
+```go
+package main
+
+import (
+	"SampleGoLand/csd/err"
+	"fmt"
+	"io"
+	"os"
+	"strconv"
+)
+
+func main() {
+	if len(os.Args) != 3 {
+		err.ExitFailure("Wrong number of arguments!...")
+	}
+	blockSize, e := strconv.Atoi(os.Args[2])
+
+	if e != nil {
+		err.ExitFailure("Invalid blockSize value!...")
+	}
+
+	f, e := os.OpenFile(os.Args[1], os.O_RDONLY, 0)
+
+	if e != nil {
+		err.ExitFailureError("OpenFile", e)
+	}
+
+	data := make([]byte, blockSize)
+
+	for {
+		n, e := f.Read(data)
+
+		if e != nil && e != io.EOF {
+			err.ExitFailureError("Read", e)
+		}
+
+		if e == io.EOF {
+			break
+		}
+
+		for i := 0; i < n; i++ {
+			fmt.Printf("%d ", data[i])
+		}
+	}
+
+	fmt.Println()
+}
+```
+
+In the following example, file copying is done in blocks. Here, the block length is determined by the user.
+
+```go
+package main
+
+import (
+	"SampleGoLand/csd/err"
+	"io"
+	"os"
+	"strconv"
+)
+
+func main() {
+	if len(os.Args) != 4 {
+		err.ExitFailure("usage:csd_copy <src path> <dest path> <block size>")
+	}
+
+	size, e := strconv.Atoi(os.Args[3])
+
+	if e != nil {
+		err.ExitFailure("Invalid block size")
+	}
+
+	fs, e := os.OpenFile(os.Args[1], os.O_RDONLY, 0)
+
+	if e != nil {
+		err.ExitFailureError("OpenFile", e)
+	}
+
+	fd, e := os.OpenFile(os.Args[2], os.O_CREATE|os.O_WRONLY, 0777)
+
+	if e != nil {
+		err.ExitFailureError("OpenFile", e)
+	}
+
+	data := make([]byte, size)
+	for {
+		n, e := fs.Read(data)
+
+		if e != nil && e != io.EOF {
+			err.ExitFailureError("Read", e)
+		}
+
+		if n == 0 {
+			break
+		}
+
+		writeData := make([]byte, n)
+		copy(writeData, data)
+
+		_, e = fd.Write(writeData)
+
+		if e != nil {
+			err.ExitFailureError("Write", e)
+		}
+	}
+}
+
+```
+
+The `io` package contains two interfaces for reading and writing operations: `io.Reader` and `io.Writer`. These interfaces have `Read` and `Write` functions, respectively. The `Read` function typically takes a byte array or slice and copies bytes up to the length of the array or slice at that address. The length of the slice represents the maximum amount of data that can be read. However, the reading operation may terminate before the desired length is reached. For example, when attempting to read 1024 bytes from a file, if the end of the file (EOF) is reached, the reading operation terminates. Therefore, this function returns the amount of data read. Additionally, it returns an error in case of a possible error situation.
+
+---
 
 #  Goroutines
 
