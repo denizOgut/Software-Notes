@@ -9683,7 +9683,7 @@ public class Hike {
 	public hike5() {} // DOES NOT COMPILE
 	public String int hike6() { } // DOES NOT COMPILE
 	String hike7(int a) { // DOES NOT COMPILE
-	if (1 < 2) return "orange";
+		if (1 < 2) return "orange";
 	}
 }
 ```
@@ -9884,7 +9884,7 @@ An *effectively final* local variable is one that is not modified after it is as
 
 ---
 The Effectively Final variable is a local variable that follows the following properties:
-- ==**Not defined as final**==
+- ==**Not defined as ``final``**==
 - ==**Assigned to ONLY once.**==
 ---
 
@@ -9930,9 +9930,34 @@ The ``age`` variable is given a value when it is declared, while the ``fishEaten
 
 ---
 
-**The compiler does not apply a default value to ``final`` variables, though. A ``final`` instance or ``final static`` variable must receive a value when it is declared or as part of initialization.**
+==**The compiler does not apply a default value to ``final`` variables, though. A ``final`` instance or ``final static`` variable must receive a value when it is declared or as part of initialization.**==
 
 ---
+
+```java
+public class PolarBear2 {  
+
+    final int age;  
+    final int fishEaten;  
+    final String name;  
+  
+    public PolarBear2() {  
+        this(1, 5);  
+    }  
+  
+    public PolarBear2(int age, int fishEaten) {  
+        this.age = age;  
+        this.fishEaten = fishEaten;  
+        name = "default";  
+    }  
+  
+    public PolarBear2(int age, int fishEaten, String name) {  
+        this.age = age;  
+        this.fishEaten = fishEaten;  
+        this.name = name;  
+    }
+```
+
 ## Working with Varargs
 
 ### Creating Methods with Varargs
@@ -9948,6 +9973,7 @@ public class VisitAttractions {
 	public void walk2(int start, int... steps) {}
 	public void walk3(int... steps, int start) {} // DOES NOT COMPILE
 	public void walk4(int... start, int... steps) {} // DOES NOT COMPILE
+	public void walk5(int start, ...int steps) {} // DOES NOT COMPILE
 }
 ```
 
@@ -10226,6 +10252,7 @@ public class GooseWatcher {
 	public void watch() {
 		Goose goose = new Goose();
 		goose.floatInWater(); // DOES NOT COMPILE
+		// This code doesn’t compile because we are not in the goose object.
 	}
 }
 ```
@@ -10267,15 +10294,12 @@ public class LostDuckling {
 
 A method in `` ______`` can access a ``______`` member.
 
-|                       | private | package | protected | public |
-| --------------------- | ------- | ------- | --------- | ------ |
-| the same class        | Yes     | Yes     | Yes       | Yes    |
-| another class in the  |         |         |           |        |
-| same package          | No      | Yes     | Yes       | Yes    |
-| a subclass in a       |         |         |           |        |
-| different package     | No      | No      | Yes       | Yes    |
-| an unrelated class in |         |         |           |        |
-| a different package   | No      | No      | No        | Yes    |
+|                                           | private | package | protected | public |
+| ----------------------------------------- | ------- | ------- | --------- | ------ |
+| the same class                            | Yes     | Yes     | Yes       | Yes    |
+| another class in the same package         | No      | Yes     | Yes       | Yes    |
+| a subclass in a different package         | No      | No      | Yes       | Yes    |
+| an unrelated class in a different package | No      | No      | No        | Yes    |
 ## Accessing ``static`` Data
 
 When the ``static`` keyword is applied to a variable, method, or class, it belongs to the class rather than a specific instance of the class.
@@ -10323,7 +10347,6 @@ public class Koala {
 - For utility or helper methods that don’t require any object state. Since there is no need to access instance variables, having static methods eliminates the need for the caller to instantiate an object just to call the method.
 
 -  For state that is shared by all instances of a class, like a counter. All instances must share the same state. Methods that merely use that state should be static as well.
-
 ### Accessing a ``static`` Variable or Method
 
 ```java
@@ -10351,7 +10374,7 @@ Java doesn’t care that ``s`` happens to be ``null``. Since we are looking for 
 
 ---
 
-**Remember to look at the reference type for a variable when you see a ``static`` method or variable. The exam creators will try to trick you into thinking a ``NullPointerException`` is thrown because the variable happens to be ``null``. Don’t be fooled!** #TIP 
+==**Remember to look at the reference type for a variable when you see a ``static`` method or variable. The exam creators will try to trick you into thinking a ``NullPointerException`` is thrown because the variable happens to be ``null``. Don’t be fooled!**== #TIP 
 
 ---
 
@@ -10523,12 +10546,22 @@ static {
 15: private static final int two;
 16: private static final int three = 3;
 17: private static final int four; // DOES NOT COMPILE
+	private int five;
+	private static final int eight;
+
 18: static {
-19: one = 1;
-20: two = 2;
-21: three = 3; // DOES NOT COMPILE
-22: two = 4; // DOES NOT COMPILE
+		19: one = 1;
+		20: two = 2;
+		21: three = 3; // DOES NOT COMPILE
+		22: two = 4; // DOES NOT COMPILE
+		five = 5; // DOES NOT COMPILE - instance variable!
+		static int seven = 7; // DOES NOT COMPILE - local variable
+		eight = 8;
 23: }
+
+	static {  
+	     eight = 8; // DOES NOT COMPILE  
+	}
 ```
 
 - Line 14 declares a ``static`` variable that is not ``final``. It can be assigned as many times as we like
@@ -10590,6 +10623,20 @@ import static zoo.A.TYPE;
 import static zoo.B.TYPE; // DOES NOT COMPILE
 ```
 
+```java
+import static java.lang.Integer.MAX_VALUE;  
+import static java.lang.Long.MAX_VALUE;  // DOES NOT COMPILE
+// Field 'MAX_VALUE' is already defined in a single static import  
+// Reference to 'MAX_VALUE' is ambiguous, both 'Integer.MAX_VALUE' and 'Long.MAX_VALUE'  
+public class StaticImportSameName {  
+  
+    public static void main(String[] args) {  
+  
+        System.out.println(MAX_VALUE);  
+  
+    }
+```
+
 ## Passing Data among Methods
 
 **==Java is a *pass-by-value* language. This means that a copy of the variable is made and the method receives that copy. Assignments made in the method do not affect the caller==**
@@ -10631,6 +10678,8 @@ public class Dog {
 		System.out.print(name); // WebbyGeorgette
 	}
 	public static void speak(StringBuilder s) {
+		s = null;  
+		s = new StringBuilder("reassign");
 		s.append("Georgette");
 	}
 }
@@ -10661,7 +10710,6 @@ public static void swap(int a, int b) {
 ```
 
 ---
-
 ### Returning Objects
 
 A copy is made of the primitive or reference and returned from the method. Most of the time, this returned value is used.
@@ -10779,7 +10827,6 @@ public class Gorilla {
 ```
 
 Java will cast or autobox the value automatically, but not both at the same time.
-
 ## Overloading Methods
 
 ==***Method overloading* occurs when methods in the same class have the same name but different method signatures, which means they use different parameter lists.**== Overloading also allows different numbers of parameters. **==Everything other than the method name can vary for overloading methods==**. This means
@@ -10828,7 +10875,6 @@ public class Dove {
 ```
 
 The call ``fly((short) 1)`` prints ``short``. It looks for matching types and calls the appropriate method.
-
 ### Reference Types
 
 **==the rule about Java picking the most specific version of a method that it can==**
@@ -10904,6 +10950,26 @@ public class Ostrich {
 - The first call passes an int and sees an exact match.
 - The second call passes a long and also sees an exact match
 Java has no problem calling a larger primitive. However, it will not do so unless a better match is not found.
+
+```java
+public class Ambiguous {  
+  
+    private static void fly(int a, long b) {  
+        System.out.println("int , long");  
+    }  
+  
+    private static void fly(long a, int b) {  
+        System.out.println("long , int");  
+    }  
+  
+    public static void main(String[] args) {  
+  
+        fly(1, 2); // DOES NOT COMPILE Ambiguous method call!  
+        fly(1L, 2);  
+        fly(1, 2L);  
+    }  
+}
+```
 ### Autoboxing
 
 ```java
