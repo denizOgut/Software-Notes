@@ -11662,3 +11662,886 @@ G. public void moo(int... i, int j...)
 
 # Chapter 6 - Class Design #Chapter
 
+At its core, proper Java class design is about code reusability, increased functionality, and standardization
+## Understanding Inheritance
+
+When creating a new class in Java, you can define the class as inheriting from an existing class. Inheritance is the process by which a subclass automatically includes certain members of the class, including primitives, objects, or methods, defined in the parent class.
+
+### Declaring a Subclass
+
+![[Pasted image 20240322192526.png]]
+
+indicate a class is a subclass by declaring it with the ``extends`` keyword. We don’t need to declare anything in the superclass other than making sure it is not marked ``final``.
+
+One key aspect of inheritance is that it is transitive. Given three classes ``[X, Y, Z]``, if ``X`` extends ``Y``, and ``Y`` extends ``Z``, then ``X`` is considered a subclass or descendant of ``Z``. Likewise, ``Z`` is a superclass or ancestor of ``X``. We sometimes use the term direct subclass or descendant to indicate the class directly extends the parent class. For example, ``X`` is a direct descendant only of class ``Y``, not ``Z``.
+
+**==When one class inherits from a parent class, all ``public`` and ``protected`` members are automatically available as part of the child class. If the two classes are in the same package, then package members are available to the child class. Last but not least, ``private`` members are restricted to the class they are defined in and are never available via inheritance.==**
+
+```java
+public class BigCat {
+	protected double size;
+}
+public class Jaguar extends BigCat {
+	public Jaguar() {
+		size = 10.2;
+	}
+	public void printDetails() {
+		System.out.print(size);
+	}
+}
+
+public class Spider {
+	public void printDetails() {
+		System.out.println(size); // DOES NOT COMPILE
+	}
+}
+```
+
+``Jaguar`` is a subclass or child of ``BigCat``, making ``BigCat`` a superclass or parent of ``Jaguar``. In the ``Jaguar`` class, size is accessible because it is marked ``protected``. Via inheritance, the ``Jaguar`` subclass can read or write size as if it were its own member. Contrast this with the ``Spider`` class, which has no access to size since it is not inherited
+### Class Modifiers
+
+| Modifier   | Description                                                          |
+| ---------- | -------------------------------------------------------------------- |
+| final      | The class may not be extended.                                       |
+| abstract   | The class is abstract, may contain abstract methods, and requires a  |
+|            | concrete subclass to instantiate.                                    |
+| sealed     | The class may only be extended by a specific list of classes.        |
+| non-sealed | A subclass of a sealed class permits potentially unnamed subclasses. |
+| static     | Used for static nested classes defined within a class.               |
+**==The ``final`` modifier prevents a class from being extended any further.==**
+
+```java
+public final class Rhinoceros extends Mammal { }
+public class Clara extends Rhinoceros { } // DOES NOT COMPILE
+```
+
+### Single vs. Multiple Inheritance
+
+Java supports single inheritance, by which a class may inherit from only one direct parent class. Java also supports **==multiple levels of inheritance==**, by which one class may extend another class, which in turn extends another class. You can have any number of levels of inheritance, allowing each descendant to gain access to its ancestor’s members.
+
+By design, Java doesn’t support multiple inheritance in the language because multiple inheritance can lead to complex, often difficult-to-maintain data models. Java does allow one exception to the single inheritance rule, which a class may implement multiple interfaces.
+
+![[Pasted image 20240322193445.png]]
+
+Part of what makes multiple inheritance complicated is determining which parent to inherit values from in case of a conflict. For example, if you have an object or method defined in all of the parents, which one does the child inherit? There is no natural ordering for parents in this example, which is why Java avoids these issues by disallowing multiple inheritance altogether.
+### Inheriting Object
+
+In Java, all classes inherit from a single class: ``java.lang.Object``, or ``Object`` for short. Furthermore, Object is the only class that doesn’t have a parent class. The following two are equivalent:
+
+```java
+public class Zoo { }
+public class Zoo extends java.lang.Object { }
+```
+
+**==The key is that when Java sees you define a class that doesn’t extend another class, the compiler automatically adds the syntax extends ``java.lang.Object`` to the class definition.==** The result is that every class gains access to any accessible methods in the Object class. For example, the ``toString()`` and ``equals()`` methods are available in Object; therefore, they are accessible in all classes. Without being overridden in a subclass, though, they may not be particularly useful.
+
+On the other hand, when you define a new class that extends an existing class, Java does not automatically extend the Object class. Since all classes inherit from Object, extending an existing class means the child already inherits from Object by definition.
+
+						![[Pasted image 20240322194238.png]]
+
+
+Primitive types such as ``int`` and ``boolean`` do not inherit from Object, since they are not classes. Through autoboxing they can be assigned or passed as an instance of an associated wrapper class, which does inherit ``Object``.
+
+## Creating Classes
+
+### Extending a Class
+
+```java
+// Animal.java
+public class Animal {
+	private int age;
+	protected String name;
+	public int getAge() {
+		return age;
+	}
+	public void setAge(int newAge) {
+		age = newAge;
+	}
+}
+// Lion.java
+public class Lion extends Animal {
+	protected void setProperties(int age, String n) {
+		setAge(age);
+		name = n;
+	}
+	public void roar() {
+		System.out.print(name + ", age " + getAge() + ", says: Roar!");
+	}
+	public static void main(String[] args) {
+		var lion = new Lion();
+		lion.setProperties(3, "kion");
+		lion.roar(); // kion, age 3, says: Roar!
+	}
+}
+```
+
+- The ``age`` variable exists in the parent ``Animal`` class and is not directly accessible in the ``Lion`` child class. It is indirectly accessible via the ``setAge()`` method.
+- The ``name`` variable is ``protected``, so it is inherited in the ``Lion`` class and directly accessible.
+- create the ``Lion`` instance in the ``main()`` method and use ``setProperties()`` to set instance variables.
+- Finally, call the ``roar()`` method,
+
+The instance variable ``age`` is marked ``private`` and is not directly accessible from the subclass ``Lion``. Therefore, the following would not compile:
+
+```java
+public class Lion extends Animal {
+	public void roar() {
+		System.out.print("Lions age: " + age); // DOES NOT COMPILE
+	}
+}
+```
+
+**==Remember when working with subclasses that ``private`` members are never inherited, and package members are only inherited if the two classes are in the same package.==**
+### Applying Class Access Modifiers
+
+Like variables and methods, you can apply access modifiers to classes. **==A top-level class is one not defined inside**== ==**another class. Also a .java file can have at most one top-level class.==** While you can only have one top-level
+class, you can have as many classes (in any order) with package access as you want
+
+```java
+// Bear.java
+class Bird {}
+class Bear {}
+class Fish {}
+```
+
+Trying to declare a top-level class with ``protected`` or ``private`` class will lead to a compiler error,
+
+```java
+// ClownFish.java
+protected class ClownFish{} // DOES NOT COMPILE
+// BlueTang.java
+private class BlueTang {} // DOES NOT COMPILE
+```
+
+### Accessing the ``this`` Reference
+
+What happens when a method parameter has the same name as an existing instance variable ?
+
+```java
+public class Flamingo {
+	private String color = null;
+	public void setColor(String color) {
+		color = color;
+	}
+	public static void main(String... unused) {
+		var f = new Flamingo();
+		f.setColor("PINK");
+		System.out.print(f.color); // null
+	}
+}
+```
+
+Java uses the most granular scope, so when it sees ``color = color``, it thinks you are assigning the method parameter value to itself (not the instance variable). The assignment completes successfully within the method, but the value of the instance variable ``color`` is never modified and is ``null`` when printed in the ``main()`` method.
+
+The fix **==when you have a local variable with the same name as an instance variable is to use the ``this`` reference or keyword. The this reference refers to the current instance of the class==** and can be used to access any member of the class, including inherited members. It can be used in any instance method, constructor, or instance initializer block. **==It cannot be used when there is no implicit instance of the class, such as in a static method or static initializer block.==**
+
+```java
+public void setColor(String color) {
+	this.color = color; // Sets the instance variable with method parameter
+}
+```
+
+In many cases, the ``this`` reference is optional. If Java encounters a variable or method it cannot find, it will check the class hierarchy to see if it is available.
+
+```java
+1: public class Duck {
+	2: private String color;
+	3: private int height;
+	4: private int length;
+5:
+	6: public void setData(int length, int theHeight) {
+		7: length = this.length; // Backwards --no good!
+		8: height = theHeight; // Fine, because a different name
+		9: this.color = "white"; // Fine, but this. reference not necessary
+	10: }
+11:
+	12: public static void main(String[] args) {
+		13: Duck b = new Duck();
+		14: b.setData(1,2);
+		15: System.out.print(b.length + " " + b.height + " " + b.color); // 0 2 white
+	16: } }
+```
+
+- Line 7 is incorrect, and you should watch for it on the exam. The instance variable ``length`` starts out with a 0 value. That 0 is assigned to the method parameter ``length``. The instance variable stays at 0.
+-  Line 8 is more straightforward. The parameter ``theHeight`` and instance variable ``height`` have different names. **==Since there is no naming collision, this is not required.==**
+- line 9 shows that a variable assignment is allowed to use the this reference even when there is no duplication of variable names.
+### Calling the ``super`` Reference
+
+In Java, a variable or method can be defined in both a parent class and a child class. This means the object instance actually holds two copies of the same variable with the same underlying name. When this happens, how do we reference the version in the parent class instead of the current class?
+
+```java
+// Reptile.java
+1: public class Reptile {
+	2: protected int speed = 10;
+3: }
+
+// Crocodile.java
+1: public class Crocodile extends Reptile {
+	2: protected int speed = 20;
+	3: public int getSpeed() {
+		4: return speed;
+	5: }
+	
+	6: public static void main(String[] data) {
+		7: var croc = new Crocodile();
+		8: System.out.println(croc.getSpeed()); // 20
+	9: } 
+}
+```
+
+**==One of the most important things to remember about this code is that an instance of ``Crocodile`` stores two separate values for ``speed``: one at the ``Reptile`` level and one at the ``Crocodile`` level==**. On line 4, Java first checks to see if there is a local variable or method parameter named ``speed``. Since there is not, it then checks ``this.speed;`` and since it exists, the program prints 20.
+
+Within the ``Crocodile`` class, we can access the parent value of ``speed``, instead, by using the ``super`` reference or keyword. **==The ``super`` reference is similar to the this reference, except that it excludes any members found in the current class. In other words, the member must be accessible via inheritance.==**
+
+```java
+3: public int getSpeed() {
+	4: return super.speed; // Causes the program to now print 10
+5: }
+```
+
+```java
+1: class Insect {
+	2: protected int numberOfLegs = 4;
+	3: String label = "buggy";
+4: }
+5:
+6: public class Beetle extends Insect {
+	7: protected int numberOfLegs = 6;
+	8: short age = 3;
+	9: public void printData() {
+		10: System.out.println(this.label);
+		11: System.out.println(super.label);
+		12: System.out.println(this.age);
+		13: System.out.println(super.age);
+		14: System.out.println(numberOfLegs);
+	15: }
+	16: public static void main(String []n) {
+		17: new Beetle().printData();
+	18: }
+19: }
+```
+
+this program code would not compile!
+
+- Since ``label`` is defined in the parent class, it is accessible via both ``this`` and ``super`` references. For this reason, lines 10 and 11 compile and would both print buggy if the class compiled.
+- the variable ``age`` is defined only in the current class, making it accessible via ``this`` but not ``super``. For this reason, line 12 compiles (and would print 3), but line 13 does not. **==while ``this`` includes current and inherited members, ``super`` only includes inherited members.==**
+- Even though both ``numberOfLegs`` variables are accessible in ``Beetle``, **==Java checks outward, starting with the narrowest scope.==** For this reason, the value of ``numberOfLegs`` in the ``Beetle`` class is used, and 6 is printed.
+
+
+**==Since ``this`` includes inherited members, you often only use ``super`` when you have a naming conflict via inheritance.==** For example, you have a method or variable defined in the current class that matches a method or variable in a parent class. This commonly comes up in method overriding and variable hiding
+## Declaring Constructors
+
+a constructor is a special method that matches the name of the class and has no return type. It is called when a new instance of the class is created.
+### Creating a Constructor
+
+```java
+public class Bunny {
+	public Bunny() {
+		System.out.print("hop");
+	}
+}
+```
+
+The name of the constructor, ``Bunny``, matches the name of the class, ``Bunny``, and there is no return type, not even ``void``. That makes this a constructor.
+
+```java
+public class Bunny {
+	public bunny() {} // DOES NOT COMPILE
+	public void Bunny() {}
+}
+```
+
+The first one doesn’t match the class name because Java is case-sensitive. Since it doesn’t match, Java knows it can’t be a constructor and is supposed to be a regular method. However, it is missing the return type and doesn’t compile. The second method is a perfectly good method but is not a constructor because it has a return type. **==Like method parameters, constructor parameters can be any valid class, array, or primitive type, including generics, but may not include ``var``==**. For example, the following does not compile:
+
+```java
+public class Bonobo {
+	public Bonobo(var food) { // DOES NOT COMPILE
+	}
+}
+```
+
+**==A class can have multiple constructors, as long as each constructor has a unique constructor signature==**. In this case, that means ==the constructor parameters must be distinct==. Like methods with the same name but different signatures, declaring multiple constructors with different signatures is referred to as constructor overloading.
+
+```java
+public class Turtle {
+	private String name;
+	public Turtle() {
+		name = "John Doe";
+	}
+	public Turtle(int age) {}
+	public Turtle(long age) {}
+	public Turtle(String newName, String... favoriteFoods) {
+		name = newName;
+	}
+}
+```
+
+Constructors are used when creating a new object. This process is called instantiation because it creates a new instance of the class. A constructor is called when we write new followed by the name of the class we want to instantiate.
+
+```java
+new Turtle(15)
+```
+
+When Java sees the new keyword, it allocates memory for the new object. It then looks for a constructor with a matching signature and calls it.
+
+### The Default Constructor
+
+Every class in Java has a constructor, whether you code one or not. If you don’t include any constructors in the class, Java will create one for you without any parameters. This Java-created constructor is called the default constructor and is added any time a class is declared without any constructors.
+
+```java
+public class Rabbit {
+	public static void main(String[] args) {
+		new Rabbit(); // Calls the default constructor
+	}
+}
+```
+
+The previous class is equivalent to the following, in which the default constructor is provided and therefore not inserted by the compiler:
+
+```java
+public class Rabbit {
+	public Rabbit() {}
+	public static void main(String[] args) {
+		new Rabbit(); // Calls the user-defined constructor
+	}
+}
+```
+
+This happens during the compile step. **==For the exam, one of the most important rules you need to know is that the compiler only inserts the default constructor when no constructors are defined.==**
+
+```java
+public class Rabbit1 {} // Valid No Args Ctor
+
+public class Rabbit2 {
+	public Rabbit2() {}
+}
+public class Rabbit3 {
+	public Rabbit3(boolean b) {}
+}
+public class Rabbit4 {
+	private Rabbit4() {}
+}
+```
+
+```java
+1: public class RabbitsMultiply {
+	2: public static void main(String[] args) {
+		3: var r1 = new Rabbit1();
+		4: var r2 = new Rabbit2();
+		5: var r3 = new Rabbit3(true);
+		6: var r4 = new Rabbit4(); // DOES NOT COMPILE
+	7: } }
+```
+
+Line 6 does not compile. ``Rabbit4`` made the constructor ``private`` so that other classes could not call it.
+
+---
+
+**Having only private constructors in a class tells the compiler not to provide a default no-argument constructor. It also prevents other classes from instantiating the class**
+
+---
+###  Calling Overloaded Constructors with ``this()``
+
+Since a class can contain multiple overloaded constructors, these constructors can actually call one another.
+
+```java
+public class Hamster {
+	private String color;
+	private int weight;
+	public Hamster(int weight, String color) { // First constructor
+		this.weight = weight;
+		this.color = color;
+	}
+	public Hamster(int weight) { // Second constructor
+		this.weight = weight;
+		color = "brown";
+	}
+}
+```
+
+One of the constructors takes a single ``int`` parameter. The other takes an ``int`` and a ``String``. These parameter lists are different, so the constructors are successfully overloaded. There is a bit of duplication, as ``this.weight`` is assigned the same way in both constructors. What we really want is for the first constructor to call the second constructor with two parameters.
+
+```java
+public Hamster(int weight) { // Second constructor
+	Hamster(weight, "brown"); // DOES NOT COMPILE
+}
+```
+
+This will not work. Constructors can be called only by writing new before the name of the constructor. They are not like normal methods that you can just call
+
+```java
+public Hamster(int weight) { // Second constructor
+	new Hamster(weight, "brown"); // Compiles, but creates an extra object
+}
+```
+
+This attempt does compile. When this constructor is called, it creates a new object with the default ``weight`` and ``color``. It then constructs a different object with the desired ``weight`` and ``color``.
+
+Java provides a solution: ``this()`` When ``this()`` is used with parentheses, Java calls another constructor on the same instance of the class.
+
+```java
+public Hamster(int weight) { // Second constructor
+	this(weight, "brown");
+}
+```
+
+Now Java calls the constructor that takes two parameters, with ``weight`` and ``color`` set as expected.
+
+---
+**``this`` vs. ``this()``** #TIP 
+
+**Despite using the same keyword, ``this`` and ``this()`` are very different. ==The first, this, refers to an instance of the class, while the second, this(), refers to a constructor call within the class==.**
+
+---
+
+**==Calling ``this()`` has one special rule you need to know. If you choose to call it, the`` this()`` call must be the first statement in the constructor. The side effect of this is that there can be only one call to ``this()`` in any constructor.==**
+
+```java
+3: public Hamster(int weight) {
+4: System.out.println("chew");
+5: // Set weight and default color
+6: this(weight, "brown"); // DOES NOT COMPILE
+7: }
+```
+
+There’s one last rule for overloaded constructors
+
+```java
+public class Gopher {
+	public Gopher(int dugHoles) {
+		this(5); // DOES NOT COMPILE
+	}
+}
+```
+
+**==The compiler is capable of detecting that this constructor is calling itself infinitely. This is often referred to as a cycle and is similar to the infinite loops Since the code can never terminate, the compiler stops and reports this as an error.==**
+
+```java
+public class Gopher {
+	public Gopher() {
+		this(5); // DOES NOT COMPILE
+	}
+	public Gopher(int dugHoles) {
+		this(); // DOES NOT COMPILE
+	}
+}
+```
+
+the constructors call each other, and the process continues infinitely. Since the compiler can detect this, it reports an error.
+
+- ==**A class can contain many overloaded constructors, provided the signature for each is distinct.**==
+- ==**The compiler inserts a default no-argument constructor if no constructors are declared.**==
+- ==**If a constructor calls ``this()``, then it must be the first line of the constructor.**==
+- ==**Java does not allow cyclic constructor calls.==**
+
+### Calling Parent Constructors with ``super()``
+
+**==The first statement of every constructor is a call to a parent constructor using ``super()`` or another constructor in the class using ``this()``.==**
+
+```java
+public class Animal {
+	private int age;
+	public Animal(int age) {
+		super(); // Refers to constructor in java.lang.Object
+		this.age = age;
+	}
+}
+	public class Zebra extends Animal {
+		public Zebra(int age) {
+		super(age); // Refers to constructor in Animal
+	}
+	public Zebra() {
+		this(4); // Refers to constructor in Zebra with int argument
+	}
+}
+```
+
+---
+**``super`` vs. ``super()``** #TIP
+
+**Like ``this`` and ``this()``, ``super`` and ``super()`` are unrelated in Java. ==The first, ``super``, is used to reference members of the parent class, while the second, ``super()``, calls a parent constructor.**==
+
+---
+**==Like calling ``this()``, calling ``super()`` can only be used as the first statement of the constructor.==**
+
+```java
+public class Zoo {
+	public Zoo() {
+		System.out.println("Zoo created");
+		super(); // DOES NOT COMPILE
+	}
+}
+public class Zoo {
+	public Zoo() {
+		super();
+		System.out.println("Zoo created");
+		super(); // DOES NOT COMPILE
+	}
+}
+```
+
+If the parent class has more than one constructor, the child class may use any valid parent constructor in its definition
+
+```java
+public class Animal {
+	private int age;
+	private String name;
+	public Animal(int age, String name) {
+		super();
+		this.age = age;
+		this.name = name;
+	}
+	public Animal(int age) {
+		super();
+		this.age = age;
+		this.name = null;
+	}
+}
+public class Gorilla extends Animal {
+	public Gorilla(int age) {
+		super(age,"Gorilla"); // Calls the first Animal constructor
+	}
+	public Gorilla() {
+		super(5); // Calls the second Animal constructor
+	}
+}
+```
+
+notice that the child constructors are not required to call matching parent constructors. Any valid parent constructor is acceptable as long as the appropriate input parameters to the parent constructor are provided.
+
+### Understanding Compiler Enhancements
+
+the Java compiler automatically inserts a call to the no-argument constructor ``super()`` if you do not explicitly call ``this()`` or ``super()`` as the first line of a constructor.
+
+```java
+public class Donkey {}
+
+public class Donkey {
+	public Donkey() {}
+}
+
+public class Donkey {
+	public Donkey() {
+		super();
+	}
+}
+```
+
+### Default Constructor Tips and Tricks
+
+What happens if we define a subclass with no constructors, or a subclass with a constructor that doesn’t include a ``super()`` reference?
+
+```java
+public class Mammal {
+	public Mammal(int age) {}
+}
+public class Seal extends Mammal {} // DOES NOT COMPILE
+public class Elephant extends Mammal {
+	public Elephant() {} // DOES NOT COMPILE
+}
+```
+
+The answer is that neither subclass compiles. Since ``Mammal`` defines a constructor, the compiler does not insert a no-argument constructor. The compiler will insert a default no-argument constructor into ``Seal``, though, but it will be a simple implementation that just calls a nonexistent parent default constructor.
+
+```java
+public class Seal extends Mammal {
+	public Seal() {
+		super(); // DOES NOT COMPILE
+	}
+}
+```
+
+Likewise, ``Elephant`` will not compile for similar reasons. The compiler doesn’t see a call to ``super()`` or ``this()`` as the first line of the constructor so it inserts a call to a nonexistent no-argument ``super()`` automatically.
+
+```java
+public class Elephant extends Mammal {
+	public Elephant() {
+		super(); // DOES NOT COMPILE
+	}
+}
+```
+
+the compiler will not help, and you must create at least one constructor in your child class that explicitly calls a parent constructor via the ``super()`` command.
+
+```java
+public class Seal extends Mammal {
+	public Seal() {
+		super(6); // Explicit call to parent constructor
+	}
+}
+public class Elephant extends Mammal {
+	public Elephant() {
+		super(4); // Explicit call to parent constructor
+	}
+}
+```
+
+Subclasses may include no-argument constructors even if their parent classes do not
+
+---
+**``super()`` Always Refers to the Most Direct Parent**
+**A class may have multiple ancestors via inheritance. For constructors, though, ``super()`` always refers to the most direct parent.**
+
+---
+
+- ==**The first line of every constructor is a call to a parent constructor using ``super()`` or an overloaded constructor using ``this()``.**==
+- ==**If the constructor does not contain a ``this()`` or ``super()`` reference, then the compiler automatically inserts super() with no arguments as the first line of the constructor.**==
+- ==**If a constructor calls ``super()``, then it must be the first line of the constructor.==**
+
+## Initializing Objects
+
+Order of initialization refers to how members of a class are assigned values. They can be given default values, like 0 for an ``int``, or require explicit values, such as for ``final`` variables.
+### Initializing Classes
+
+First, we initialize the class, which involves invoking all ``static`` members in the class hierarchy, starting with the highest superclass and working downward. This is sometimes referred to as loading the class. The Java Virtual Machine (JVM) controls when the class is initialized, although you can assume the class is loaded before it is used. The class may be initialized when the program first starts, when a ``static`` member of the class is referenced, or shortly before an instance of the class is created.
+
+**==One of the most important rules with class initialization is that it happens at most once for each class.==**
+
+**Initialize Class X**
+
+1. ==**If there is a superclass ``Y`` of ``X``, then initialize class ``Y`` first.**==
+2. ==**Process all ``static`` variable declarations in the order in which they appear in the class.**==
+3. ==**Process all ``static`` initializers in the order in which they appear in the class.==**
+
+```java
+public class Animal {
+	static { System.out.print("A"); }
+}
+public class Hippo extends Animal {
+	public static void main(String[] grass) {
+		System.out.print("C");
+		new Hippo();
+		new Hippo();
+		new Hippo();
+	}
+	static { System.out.print("B"); }
+}
+```
+
+It prints ``ABC`` exactly once. Since the ``main()`` method is inside the ``Hippo`` class, the class will be initialized first, starting with the superclass and printing AB. Afterward, the ``main()`` method is executed, printing C. Even though the ``main()`` method creates three instances, the class is loaded only once.
+
+### Initializing ``final`` Fields
+
+**==A default value is only applied to a non-final field==**
+
+``final static`` variables must be explicitly assigned a value exactly once. Fields marked ``final`` follow similar rules. They can be assigned values in the line in which they are declared or in an instance initializer.
+
+```java
+public class MouseHouse {
+	private final int volume;
+	private final String name = "The Mouse House"; // Declaration assignment
+	{
+		volume = 10; // Instance initializer assignment
+	}
+}
+```
+ 
+ Unlike ``static`` class members, though, ``final`` instance fields can also be set in a constructor. The constructor is part of the initialization process, so it is allowed to assign ``final`` instance variables. **==one important rule: by the time the constructor completes, all ``final`` instance variables must be assigned a value exactly once.==**
+
+```java
+public class MouseHouse {
+	private final int volume;
+	private final String name;
+	public MouseHouse() {
+		this.name = "Empty House"; // Constructor assignment
+	}
+	{
+		volume = 10; // Instance initializer assignment
+	}
+}
+```
+
+Unlike local ``final`` variables, which are not required to have a value unless they are actually used, ``final`` instance variables must be assigned a value. If they are not assigned a value when they are declared or in an instance initializer, then they must be assigned a value in the constructor declaration. Failure to do so will result in a compiler error
+
+```java
+public class MouseHouse {
+	private final int volume;
+	private final String type;
+	{
+		this.volume = 10;
+	}
+	public MouseHouse(String type) {
+		this.type = type;
+	}
+	public MouseHouse() { // DOES NOT COMPILE
+		this.volume = 2; // DOES NOT COMPILE
+	}
+}
+```
+
+**==In terms of assigning values, each constructor is reviewed individually==**, which is why the second constructor does not compile. First, the constructor fails to set a value for the type variable. The compiler detects that a value is never set for type and reports an error on the line where the constructor is declared. Second, the constructor sets a value for the volume variable, even though it was already assigned a value by the instance initializer.
+
+---
+
+**On the exam, be wary of any instance variables marked ``final``. Make sure they are assigned a value in the line where they are declared, in an instance initializer, or in a constructor. They should be assigned a value only once, and failure to assign a value is considered a compiler error in the constructor.**
+
+---
+
+What about ``final`` instance variables when a constructor calls another constructor in the same class? In that case, you have to follow the flow carefully, making sure every ``final`` instance variable is assigned a value exactly once.
+
+```java
+public MouseHouse() {
+	this(null);
+}
+```
+
+can assign a ``null`` value to ``final`` instance variables as long as they are explicitly set.
+
+### Initializing Instances
+
+First, start at the lowest-level constructor where the ``new`` keyword is used. Remember, the first line of every constructor is a call to ``this()`` or ``super()``, and if omitted, the compiler will automatically insert a call to the parent no-argument constructor ``super()``. Then, progress upward and note the order of constructors. Finally, initialize each class starting with the superclass, processing each instance initializer and constructor in the reverse order in which it was called.
+
+**Initialize Instance of X**
+
+1. ==**Initialize class ``X`` if it has not been previously initialized.**==
+2. ==**If there is a superclass ``Y`` of ``X``, then initialize the instance of ``Y`` first.**==
+3. ==**Process all instance variable declarations in the order in which they appear in the class.**==
+4. ==**Process all instance initializers in the order in which they appear in the class.**==
+5. ==**Initialize the constructor, including any overloaded constructors referenced with ``this()``==**
+
+```java
+1: public class ZooTickets {
+2: private String name = "BestZoo";
+3: { System.out.print(name + "-");}
+4: private static int COUNT = 0;
+5: static { System.out.print(COUNT + "-");}
+6: static { COUNT += 10; System.out.print(COUNT + "-");}
+7:
+8: public ZooTickets() {
+	9: System.out.print("z-");
+10: }
+11:
+12: public static void main(String... patrons) {
+	13: new ZooTickets();
+	// 0-10-BestZoo-z-
+14: } }
+```
+
+- First, have to initialize the class. Since there is no superclass declared, which means the superclass is ``Object`` we can start with the ``static`` components of ``ZooTickets`` In this case, lines 4, 5, and 6 are executed, printing 0-and 10-
+- Next, we initialize the instance created on line 13. Again, since no superclass is declared, we start with the instance components. Lines 2 and 3 are executed, which prints BestZoo- 
+- Finally, we run the constructor on lines 8–10, which outputs z-.
+
+```java
+class Primate {
+    public Primate() {
+        System.out.print("Primate-");
+    }
+}
+
+class Ape extends Primate {
+    public Ape(int fur) {
+        System.out.print("Ape1-");
+    }
+
+    public Ape() {
+        System.out.print("Ape2-");
+    }
+}
+
+public class Chimpanzee extends Ape {
+    public Chimpanzee() {
+        super(2);
+        System.out.print("Chimpanzee-");
+    }
+
+    public static void main(String[] args) {
+        new Chimpanzee(); // Primate-Ape1-Chimpanzee-
+    }
+}
+```
+
+The compiler inserts the ``super()`` command as the first statement of both the ``Primate`` and ``Ape`` constructors. The code will execute with the parent constructors called first
+
+Notice that only one of the two ``Ape()`` constructors is called. You need to start with the call to ``new Chimpanzee()`` to determine which constructors will be executed. Remember, constructors are executed from the bottom up, but since the first line of every constructor is a call to another constructor, **==the flow ends up with the parent constructor executed before the child constructor.==**
+
+```java
+1: public class Cuttlefish {
+	2: private String name = "swimmy";
+	3: { System.out.println(name); }
+	4: private static int COUNT = 0;
+	5: static { System.out.println(COUNT); }
+	6: { COUNT++; System.out.println(COUNT); }
+	7:
+	8: public Cuttlefish() {
+		9: System.out.println("Constructor");
+	10: }
+	11:
+	12: public static void main(String[] args) {
+			13: System.out.println("Ready");
+			14: new Cuttlefish();
+15: } }
+```
+
+```text
+0
+Ready
+swimmy
+1
+Constructor
+```
+
+- No superclass is declared, so we can skip any steps that relate to inheritance.
+- first process the ``static`` variables and ``static`` initializers—lines 4 and 5, with line 5 printing 0.
+- the ``main()`` method can run, which prints Ready.
+- create an instance declared on line 14
+- Lines 2, 3, and 6 are processed, with line 3 printing swimmy and line 6 printing 1.
+- Finally, the constructor is run on lines 8–10, which prints Constructor.
+
+```java
+1: class GiraffeFamily {
+	2: static { System.out.print("A"); }
+	3: { System.out.print("B"); }
+	4:
+	5: public GiraffeFamily(String name) {
+		6: this(1);
+		7: System.out.print("C");
+	8: }
+	9:
+	10: public GiraffeFamily() {
+		11: System.out.print("D");
+	12: }
+	13:
+	14: public GiraffeFamily(int stripes) {
+		15: System.out.print("E");
+	16: }
+17: }
+18: public class Okapi extends GiraffeFamily {
+	19: static { System.out.print("F"); }
+	20:
+	21: public Okapi(int stripes) {
+		22: super("sugar");
+		23: System.out.print("G");
+	24: }
+	25: { System.out.print("H"); }
+	26:
+	27: public static void main(String[] grass) {
+		28: new Okapi(1);
+		29: System.out.println();
+		30: new Okapi(2);
+	31: }
+32: }
+```
+
+```text
+AFBECHG
+BECHG
+```
+
+- Start with initializing the ``Okapi`` class. Since it has a superclass ``GiraffeFamily``, initialize it first, printing A on line 2.
+- Next, initialize the ``Okapi`` class, printing F on line 19.
+- After the classes are initialized, execute the ``main()`` method on line 27. The first line of the ``main()`` method creates a new ``Okapi`` object, triggering the instance initialization process. Per the first rule, the superclass instance of ``GiraffeFamily`` is initialized first. Per our third rule, the instance initializer in the superclass ``GiraffeFamily`` is called, and B is printed on line 3.
+- Per the fourth rule, we initialize the constructors. In this case, this involves calling the constructor on line 5, which in turn calls the overloaded constructor on line 14. The result is that EC is printed, as the constructor bodies are unwound in the reverse order that they were called.
+- The process then continues with the initialization of the ``Okapi`` instance itself. Per the third and fourth rules, H is printed on line 25, and G is printed on line 23, respectively
+- Line 29 then inserts a line break in the output.
+- Finally, line 30 initializes a new ``Okapi`` object. The order and initialization are the same as line 28, sans the class initialization, so BECHG is printed again. Notice that D is never printed, as only two of the three constructors in the superclass ``GiraffeFamily`` are called.
+
+This example is tricky for a few reasons. There are multiple overloaded constructors, lots of initializers, and a complex constructor pathway to keep track of. Luckily, questions like this are uncommon on the exam. If you see one, just write down what is going on as you read the code.
+
+- ==**A class is initialized at most once by the JVM before it is referenced or used.**==
+- ==**All ``static final`` variables must be assigned a value exactly once, either when they are declared or in a ``static`` initializer.**==
+- ==**All ``final`` fields must be assigned a value exactly once, either when they are declared, in an instance initializer, or in a constructor.**==
+- ==**Non-final static and instance variables defined without a value are assigned a default value based on their type.**==
+- ==**Order of initialization is as follows: variable declarations, then initializers, and finally constructors.==**
+
+## Inheriting Members
+
+

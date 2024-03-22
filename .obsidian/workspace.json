@@ -48,7 +48,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#Chapter",
+                "query": "tag:#TIP",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -149,8 +149,12 @@
   },
   "active": "3ae04bb646c8a37b",
   "lastOpenFiles": [
-    "Golang Notes.md",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240322193445.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240322194238.png",
+    "Pasted image 20240322194336.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240322192526.png",
+    "Golang Notes.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240316191549.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240315184800.png",
     "JAVA APP - 2 NOTES.md",
@@ -159,10 +163,6 @@
     "JAVA APP Screen Shoots/Pasted image 20240306115520.png",
     "JAVA APP - 1 NOTES.md",
     "JAVA APP Screen Shoots/Pasted image 20240306121256.png",
-    "JAVA APP Screen Shoots/Pasted image 20240306120253.png",
-    "JAVA APP Screen Shoots/Pasted image 20240306115843.png",
-    "JAVA APP Screen Shoots/Pasted image 20240306115657.png",
-    "JAVA APP Screen Shoots/Pasted image 20240305113049.png",
     "100 Go Mistakes and How to Avoid Them.md",
     "Excalidraw/Drawing 2024-02-07 14.41.32.excalidraw.md",
     "Excalidraw",
