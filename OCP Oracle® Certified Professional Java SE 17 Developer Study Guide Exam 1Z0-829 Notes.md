@@ -11095,6 +11095,8 @@ E. A primitive that is marked final cannot be modified.
 **My Answer:  A,E**
 **Correct Answer: A,E**
 
+**A, E. Instance and static variables can be marked final, making option A correct. Effectively final means a local variable is not marked final but whose value does not change after it is set, making option B incorrect. Option C is incorrect, as final refers only to the reference to an object, not its contents. Option D is incorrect, as var and final can be used together. Finally, option E is correct: once a primitive is marked final, it cannot be modified.**
+
 ---
 
 2. Which of the following can fill in the blank in this code to make it compile? (Choose all that apply.)
@@ -11115,6 +11117,8 @@ F. zzz:
 **My Answer:  B,C**
 **Correct Answer: B,C**
 
+**The keyword void is a return type. Only the access modifier or optional specifiers are allowed before the return type. Option C is correct, creating a method with private access. Option B is also correct, creating a method with package access and the optional specifier final. Since package access does not use a modifier, we get to jump right to final.**
+
 ---
 
 3. Which of the following methods compile? (Choose all that apply.)
@@ -11128,6 +11132,8 @@ F. zzz:
 
 **My Answer:  A,D**
 **Correct Answer: A,D**
+
+**Options A and D are correct because the optional specifiers are allowed in any order. Options B and C are incorrect because they each have two return types. Options E and F are incorrect because the return type is before the optional specifier and access modifier, respectively.**
 
 ---
 
@@ -11146,6 +11152,8 @@ F. Double
 **My Answer:  A,B,C,E**
 **Correct Answer: A,B,C,E**
 
+**The value 6 can be implicitly promoted to any of the primitive types, making options A, C, and E correct. It can also be autoboxed to Integer, making option B correct. ==It cannot be both promoted and autoboxed, making options D and F incorrect==.**
+
 ---
 
 5. Which of the following methods compile? (Choose all that apply.)
@@ -11160,6 +11168,8 @@ F. Double
 **My Answer:  A,C,D**
 **Correct Answer: A,C,D**
 
+**Options A and C are correct because a void method is optionally allowed to have a return statement as long as it doesn’t try to return a value. Option B does not compile because null requires a reference object as the return type. Since int is primitive, it is not a reference object. Option D is correct because it returns an int value. Option E does not compile because it tries to return a double when the return type is int. Since a double cannot be assigned to an int, it cannot be returned as one either. Option F does not compile because no value is actually returned.**
+
 ---
 
 6. Which of the following methods compile? (Choose all that apply.)
@@ -11173,6 +11183,8 @@ F. Double
 
 **My Answer:  A,B,F**
 **Correct Answer: A,B,F**
+
+**Options A and B are correct because the single varargs parameter is the last parameter declared. Option F is correct because it doesn’t use any varargs parameters. Option C is incorrect because the varargs parameter is not last. Option D is incorrect because two varargs parameters are not allowed in the same method. Option E is incorrect because the ``...`` for a varargs must be after the type, not before it.**
 
 ---
 
@@ -11194,6 +11206,8 @@ public int juggle(boolean b, boolean... b2) {
 **My Answer:  D,F**
 **Correct Answer: D,F**
 
+Option D passes the initial parameter plus two more to turn into a varargs array of size 2. Option F passes the initial parameter plus an array of size 2. Option A does not compile because it does not pass the initial parameter. Option E does not compile because it does not declare an array properly. It should be ``new boolean[] {true, true}``. Option B creates a varargs array of size 0, and option C creates a varargs array of size 1.
+
 ---
 
 8. Which of the following statements is correct?
@@ -11206,6 +11220,8 @@ E. You can use access modifiers to restrict access to all classes that begin wit
 
 **My Answer:  D**
 **Correct Answer: D**
+
+**Option D is correct. A common practice is to set all fields to be private and all methods to be public. Option A is incorrect because protected access allows everything that package access allows and additionally allows subclasses access. Option B is incorrect because the class is public. This means that other classes can see the class. However, they cannot call any of the methods or read any of the fields. It is essentially a useless class. Option C is incorrect because package access applies to the whole package. Option E is incorrect because Java has no such wildcard access capability.**
 
 ---
 
@@ -11237,6 +11253,8 @@ teacherName = t; } }
 
 **My Answer:  C,D**
 **Correct Answer: B,C,D,F**
+
+**The two classes are in different packages, which means private access and package access will not compile. This causes compiler errors on lines 5, 6, and 7, making options B, C, and D correct answers. Additionally, protected access will not compile since School does not inherit from Classroom. This causes the compiler error on line 9, making option F a correct answer as well.**
 
 ---
 
@@ -11274,6 +11292,8 @@ F. Compiler error on line 7 of Chimp
 **My Answer:  B**
 **Correct Answer: B**
 
+**Rope runs line 3, setting LENGTH to 5, and then immediately after that runs the static initializer, which sets it to 10. Line 5 in the Chimp class calls the static method normally and prints swing and a space. Line 6 also calls the static method. Java allows calling a static method through an instance variable, although it is not recommended. Line 7 uses the static import on line 2 to reference LENGTH.**
+
 ---
 
 11. Which statements are true of the following code? (Choose all that apply.)
@@ -11309,6 +11329,8 @@ F. If the line(s) with compile errors are removed, the code throws a NullPointer
 **My Answer:  C,F**
 **Correct Answer: B,E**
 
+**Line 10 does not compile because static methods are not allowed to call instance methods. Even though we are calling play() as if it were an instance method and an instance exists, Java knows play() is really a static method and treats it as such. Since this is the only line that does not compile, option B is correct. If line 10 is removed, the code prints swing-swing, making ==option E correct. It does not throw a NullPointerException on line 17 because play() is a static method. Java looks at the type of the reference for rope2 and translates the call to Rope.play().==**
+
 ---
 
 12. How many variables in the following method are effectively final?
@@ -11339,6 +11361,8 @@ F. None of the above. The code does not compile.
 
 **My Answer:  B**
 **Correct Answer: B**
+
+**The test for effectively final is if the final modifier can be added to the local variable and the code still compiles.**
 
 ---
 
@@ -11376,6 +11400,8 @@ F. An exception is thrown.
 
 **My Answer:  E**
 **Correct Answer: D**
+ 
+ **There are two details to notice in this code. First, ==note that RopeSwing has an instance initializer and not a static initializer. Since RopeSwing is never constructed, the instance initializer does not run==. The other detail is that length is static. Changes from any object update this common static variable. The code prints 8, making option D correct.**
 
 ---
 
@@ -11411,6 +11437,8 @@ F. 5
 **My Answer:  D**
 **Correct Answer: E**
 
+**If a variable is static final, it must be set exactly once, and it must be in the declaration line or in a static initialization block. Line 4 doesn’t compile because bench is not set in either of these locations. Line 15 doesn’t compile because final variables are not allowed to be set after that point. Line 11 doesn’t compile because name is set twice: once in the declaration and again in the static block. Line 12 doesn’t compile because rightRope is set twice as well. Both are in static initialization**
+
 ---
 
 15. Which of the following can replace line 2 to make this code compile? (Choose all that apply.)
@@ -11434,6 +11462,8 @@ F. 5
 
 **My Answer:  B**
 **Correct Answer: B**
+
+**The two valid ways to do this are import static ``java.util.Collections.``*; and import static ``java.util.Collections.sort``;. Option A is incorrect because you can do a static import only on static members. Classes such as Collections require a regular import. Option C is nonsense as method parameters have no business in an import. Options D, E, and F try to trick you into reversing the syntax of import static.**
 
 ---
 
@@ -11472,6 +11502,8 @@ F. byte-Object-Object-
 **My Answer: E**
 **Correct Answer: E**
 
+**The argument on line 17 is a short. It can be promoted to an int, so print() on line 5 is invoked. The argument on line 18 is a boolean. It can be autoboxed to a Boolean, so print() on line 11 is invoked. The argument on line 19 is a double. It can be autoboxed to a Double, so print() on line 11 is invoked. Therefore, the output is int-Object-Object-** 
+
 ---
 
 17. What is the result of the following program?
@@ -11498,6 +11530,8 @@ E. Compiler error on a different line
 
 **My Answer: B**
 **Correct Answer: B**
+
+**Since Java is pass-by- value and the variable on line 8 never gets reassigned, it stays as 9.**
 
 ---
 
@@ -11532,6 +11566,8 @@ F. The code does not compile.
 **My Answer: A,D,E**
 **Correct Answer: B,D,E**
 
+**Since Java is pass-by-value, assigning a new object to a does not change the caller. Calling append() does affect the caller because both the method parameter and the caller have a reference to the same object. Finally, returning a value does pass the reference to the caller for assignment to s3.**
+
 ---
 
 19. Which of the following will compile when independently inserted in the following code? (Choose all that apply.)
@@ -11558,6 +11594,8 @@ F. Insert at line 9: value3 = "turquoise";
 
 **My Answer: B,C,E**
 **Correct Answer: B,C,E**
+
+**The variable value1 is a final instance variable. It can be set only once: in the variable declaration, an instance initializer, or a constructor. Option A does not compile because the final variable was already set in the declaration. The variable value2 is a static variable. Both instance and static initializers are able to access static variables, making options B and E correct. The variable value3 is an instance variable. Options D and F do not compile because a static initializer does not have access to instance variables.**
 
 ---
 
@@ -11597,6 +11635,8 @@ F. The code prints 4-4- if you remove the method static void execute(int num).
 **My Answer: A,E**
 **Correct Answer: A,E**
 
+**The 100 parameter is an int and so calls the matching int method, making option A correct. When this method is removed, Java looks for the next most specific constructor. Java prefers autoboxing to varargs, so it chooses the Integer constructor. The 100L parameter is a long. Since it can’t be converted into a smaller type, it is autoboxed into a Long, and then the method for Object is called,**
+
 ---
 
 21. Which method signatures are valid overloads of the following method signature? (Choose all that apply.)
@@ -11615,6 +11655,8 @@ G. public void moo(int... i, int j...)
 
 **My Answer: B,D**
 **Correct Answer: B,D**
+
+**Option A is incorrect because it has the same parameter list of types and therefore the same signature as the original method. Options B and D are valid method overloads because the types of parameters in the list change. When overloading methods, the return type and access modifiers do not need to be the same. Options C and E are incorrect because the method name is different. Options F and G do not compile. There can be at most one varargs parameter, and it must be the last element in the parameter list.**
 
 ---
 
