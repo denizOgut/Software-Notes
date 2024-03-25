@@ -11959,7 +11959,7 @@ public class Bonobo {
 }
 ```
 
-**==A class can have multiple constructors, as long as each constructor has a unique constructor signature==**. In this case, that means ==the constructor parameters must be distinct==. Like methods with the same name but different signatures, declaring multiple constructors with different signatures is referred to as constructor overloading.
+**==A class can have multiple constructors, as long as each constructor has a unique constructor signature==**. In this case, that means ==**the constructor parameters must be distinct**==. Like methods with the same name but different signatures, declaring multiple constructors with different signatures is referred to as constructor overloading.
 
 ```java
 public class Turtle {
@@ -12541,7 +12541,6 @@ This example is tricky for a few reasons. There are multiple overloaded construc
 - ==**All ``final`` fields must be assigned a value exactly once, either when they are declared, in an instance initializer, or in a constructor.**==
 - ==**Non-final static and instance variables defined without a value are assigned a default value based on their type.**==
 - ==**Order of initialization is as follows: variable declarations, then initializers, and finally constructors.==**
-
 ## Inheriting Members
 
 Inheriting a class not only grants access to inherited methods in the parent class but also sets the stage for collisions between methods defined in both the parent class and the subclass
@@ -12911,7 +12910,7 @@ public abstract class Mammal {
 	abstract void eatLeaf();
 }
 public abstract class Rhino extends Mammal {
-	void showHorn() {} // Inherited from Mammal
+	void showHorn() {} // Inherited from Mammal Because no abstract keyword start of the method
 }
 public class BlackRhino extends Rhino {
 	void eatLeaf() {} // Inherited from Mammal
@@ -13184,6 +13183,8 @@ The copy operation is called a defensive copy because the copy is being made in 
 **Be able to write code that creates and extends abstract classes**. In Java, classes and methods can be declared as ``abstract``. An ``abstract`` class cannot be instantiated. An instance of an ``abstract`` class can be obtained only through a concrete subclass. Abstract classes can include any number of ``abstract`` and non-abstract methods, including zero. Abstract methods follow all the method override rules and may be defined only within ``abstract`` classes. **==The first concrete subclass of an abstract class must implement all the inherited methods. Abstract classes and methods may not be marked as ``final``==**.
 
 **Create immutable objects.** An immutable object is one that cannot be modified after it is declared. An immutable class is commonly implemented with a private constructor, no setter methods, and no ability to modify mutable objects contained within the class.
+
+## Review Questions
 
 
 
