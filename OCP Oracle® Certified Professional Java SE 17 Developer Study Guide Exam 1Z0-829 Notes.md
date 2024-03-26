@@ -13214,6 +13214,10 @@ E. Replace line 1 with this(2);.
 F. Replace line 2 with this(2);.
 G. The code prints 2 without any changes.
 
+**My Answer: E**
+**Correct Answer: E**
+
+**A and B will not compile because constructors cannot be called without new. Options C and D will compile but will create a new object rather than setting the fields in this one. The result is the program will print 0, not 2, at runtime. Calling an overloaded constructor, using this(), or a parent constructor, using super(), is only allowed on the first line of the constructor, making option E correct and option F incorrect.**
 
 ---
 
@@ -13224,6 +13228,11 @@ C. static and abstract
 D. private and abstract
 E. abstract and final
 F. private and final
+
+**My Answer: A,F**
+**Correct Answer: A,B,F**
+
+**The final modifier can be used with private and static, making options A and F correct. Marking a private method final is redundant but allowed. A private method may also be marked static, making option B correct.**
 
 ---
 
@@ -13236,6 +13245,10 @@ D. Overloaded methods must have the same return type.
 E. Overridden methods must have the same return type.
 F. Hidden methods must have the same return type.
 
+**My Answer: B,C**
+**Correct Answer: B,C**
+
+**Overloaded methods have the same method name but a different signature (the method parameters differ), making option A incorrect. Overridden instance methods and hidden static methods must have the same signature (the name and method parameters must match), making options B and C correct. ==Overloaded methods can have different return types, while overridden and hidden methods can have covariant return types==.**
 
 ---
 
@@ -13263,6 +13276,11 @@ C. PlatypusMammal
 D. MammalPlatypus
 E. The code will compile if line 7 is changed.
 F. The code will compile if line 9 is changed.
+
+**My Answer: B**
+**Correct Answer: F**
+
+**The code will not compile as is, because the parent class Mammal does not define a no-argument constructor. For this reason, the first line of a Platypus constructor should be an explicit call to super(int), making option F the correct answer**
 
 ---
 
@@ -13293,6 +13311,11 @@ E. super.numSpots = numSpots;
 F. The code does not compile regardless of the code inserted into the constructor.
 G. None of the above
 
+**My Answer: C,E**
+**Correct Answer: E**
+
+**An instance variable with the same name as an inherited instance variable is hidden, not overridden. This means that both variables exist, and the one that is used depends on the location and reference type. Because the main() method uses a reference type of Speedster to access the numSpots variable, the variable in the Speedster class, not the Cheetah class, must be set to 50. Option E is the only correct answer, as it assigns the instance variable numSpots in the Speedster class a value of 50. The numSpots variable in the Speedster class is then correctly referenced in the main() method, printing 50 at runtime.**
+
 ---
 
 6. Which of the following declare immutable classes? (Choose all that apply.)
@@ -13319,6 +13342,11 @@ C. Reindeer
 D. Elk
 E. Deer
 F. None of the above
+
+**My Answer: A,D**
+**Correct Answer: D,E**
+
+**The Moose class doesn’t compile, as the final variable antlers is not initialized  when it is declared, in an instance initializer, or in a constructor. Caribou and Reindeer are not immutable because they are not marked final, which means a subclass could extend them and add mutable fields. Elk and Deer are both immutable classes since they are marked final and only include private final members, making options D and E correct.**
 
 ---
 
@@ -13352,6 +13380,11 @@ E. The code will not compile because of line 5.
 F. The code will not compile because of line 9.
 G. None of the above
 
+**My Answer: A**
+**Correct Answer: A**
+
+**The code compiles and runs without issue, so options E and F are incorrect. The Arthropod class defines two overloaded versions of the printName() method. The printName() method that takes an int value on line 5 is correctly overridden in theSpider class on line 9. Remember, an overridden method can have a broader access modifier, and protected access is broader than package access. Because of polymorphism, the overridden method replaces the method on all calls, even if an Arthropod reference variable is used, as is done in the main() method. For these reasons, the overridden method is called on lines 14 and 15, printing Spider twice. Note that the short value is automatically cast to the larger type of int, which then uses the overridden method. Line 16 calls the overloaded method in the Arthropod class, as the long value 5L does not match the overridden method, resulting in Arthropod being printed. Therefore, option A is the correct answer.**
+
 ---
 
 8. What is the result of the following code?
@@ -13377,6 +13410,11 @@ D. Wow-Oh-Pelican
 E. The code contains a compilation error.
 F. None of the above
 
+**My Answer: D**
+**Correct Answer: D**
+
+**The question is making sure you know that superclass constructors are called in the same manner in abstract classes as they are in non-abstract classes. Line 9 calls the constructor on line 6. The compiler automatically inserts super() as the first line of the constructor defined on line 6. The program then calls the constructor on line 3 and prints Wow-.Control then returns to line 6, and Oh-is printed. Finally, the method call on line 10 uses the version of fly() in the Pelican class, since it is marked private and the reference type of var is resolved as Pelican. The final output is Wow-Oh- Pelican, making option D the correct answer**
+
 ---
 9. Which of the following statements about overridden methods are true? (Choose all that apply.)
 
@@ -13386,6 +13424,11 @@ C. An overridden method must be more accessible than the method in the parent cl
 D. An overridden method may declare a broader checked exception than the method in the parent class.
 E. If an inherited method returns void, then the overridden version of the method must return void.
 F. None of the above
+
+**My Answer: B,E**
+**Correct Answer: C,E**
+
+**An overridden method must not declare any new checked exceptions or a checked exception that is broader than the inherited method. For this reason, option B is correct Option C is incorrect because an overridden method may have the same access modifier as the version in the parent class. Finally, overridden methods must have covariant return types, and only void is covariant with void, making option E correct.**
 
 ---
 10. Which of the following pairs, when inserted into the blanks, allow the code to compile? (Choose all that apply.)
@@ -13416,6 +13459,11 @@ D. super() at line 3, super() at line 14
 E. this(2L) at line 3, super((short)2) at line 14
 F. this(5) at line 3, super(null) at line 14
 G. Remove lines 3 and 14.
+
+**My Answer: A,C**
+**Correct Answer: A,C**
+
+**Option A is correct, as this(3) calls the constructor declared on line 5, while this("") calls the constructor declared on line 10. Option B does not compile, as inserting this() at line 3 results in a compiler error, since there is no matching constructor. Option C is correct, as short can be implicitly cast to int, resulting in this((short)1) calling the constructor declared on line 5. In addition, this(null) calls the String constructor declared on line 10.** 
 
 ---
 
@@ -13451,6 +13499,11 @@ E. taftacb
 F. The code does not compile.
 G. An exception is thrown.
 
+**My Answer: F**
+**Correct Answer: C**
+
+**Line 16 initializes a PolarBear instance and assigns it to the bear reference. The variable declaration and instance initializers are run first, setting value to tac. The constructor declared on line 5 is called, resulting in value being set to tacb. Remember, a static main() method can access private constructors declared in the same class. Line 17 creates another PolarBear instance, replacing the bear reference declared on line 16. First, value is initialized to tac as before. Line 17 calls the constructor declared on line 8, since String is the narrowest match of a String literal. This constructor then calls the overloaded constructor declared on line 5, resulting in value being updated to tacb. Control returns to the previous constructor, with line 10 updating value to tacbf, and making option C the correct answer.**
+
 ---
 
 12. How many lines of the following program contain a compilation error?
@@ -13476,6 +13529,11 @@ C. 2
 D. 3
 E. 4
 F. 5
+
+**My Answer: B**
+**Correct Answer: C**
+
+**The first compilation error is on line 8. Since Rodent declares at least one constructor and it is not a no-argument constructor, Beaver must declare a constructor with an explicit call to a super() constructor. Line 9 contains two compilation errors. First, the return types are not covariant since Number is a supertype, not a subtype, of Integer. Second, the inherited method is static, but the overridden method is not, making this an invalid override**
 
 ---
 
@@ -13510,6 +13568,9 @@ public Bird bird() { return null; }
 }
 ```
 
+**My Answer: A,G**
+**Correct Answer: A,G**
+
 ---
 
 14.  Which of the following statements about inheritance are correct? (Choose all that apply.)
@@ -13520,6 +13581,11 @@ C. All variables inherit java.lang.Object.
 D. If class A is extended by B, then B is a superclass of A.
 E. If class C implements interface D, then C is a subtype of D.
 F. Multiple inheritance is the property of a class to have multiple direct superclasses.
+
+**My Answer: B,E,F**
+**Correct Answer: B,E,F**
+
+**A class that implements an interface is a subtype of that interface, making option E correct.**
 
 ---
 
@@ -13544,6 +13610,11 @@ D. The code will not compile because of line 5.
 E. The code will not compile because of line 7.
 F. The code will not compile because of line 8.
 G. None of the above
+
+**My Answer: C**
+**Correct Answer: C**
+
+**The code does not compile because the isBlind() method in Nocturnal is not marked abstract and does not contain a method body. The rest of the lines compile without issue, making option C the only correct answer**
 
 ---
 
@@ -13578,6 +13649,11 @@ E. qu qu qumcrcr
 F. qu qu qucrcrm
 G. The code does not compile.
 
+**My Answer: D**
+**Correct Answer: D**
+
+**==Based on order of initialization, the static components are initialized first, starting with the Arachnid class, since it is the parent of the Scorpion class, which initializes the StringBuilder to u. The static initializer in Scorpion then updates sb to contain uq==, which is printed twice by lines 13 and 14 along with spaces separating the values. Next, an instance of Arachnid is initialized on line 15. There are two instance initializers in Arachnid, and they run in order, appending cr to the  StringBuilder, resulting in a value of uqcr. An instance of Scorpion is then initialized on line 16. The instance initializers in the superclass Arachnid run first, appending cr again and updating the value of sb to uqcrcr. Finally, the instance initializer in Scorpion runs and appends m.**
+
 ---
 
 17. Which of the following are true? (Choose all that apply.)
@@ -13587,6 +13663,9 @@ C. this.variableName can be called from any instance method in the class.
 D. this.variableName can be called from any static method in the class.
 E. You can call the default constructor written by the compiler using this().
 F. You can access a private constructor with the main() method in the same class.
+
+**My Answer: C,F**
+**Correct Answer: C,F**
 
 ---
 
@@ -13617,6 +13696,11 @@ F. The dance() method in Mammal is correctly overloaded on line 11.
 G. The eat() method in Primate is correctly hidden on line 12.
 H. The eat() method in Primate is correctly overloaded on line 12.
 
+**My Answer: H**
+**Correct Answer: E,F**
+
+**The eat() method is private in the Mammal class. Since it is not inherited in the Primate class, it is neither overridden nor overloaded, making options A and B incorrect. The drink() method in Mammal is correctly hidden in the Monkey class, as the signature is the same and both are static, making option D correct and option C incorrect. The version in the Monkey class throws a new exception, but it is unchecked; therefore, it is allowed. The dance() method in Mammal is correctly overloaded in the Monkey class because the signaturesare not the same, making option E incorrect and option F correct.**
+
 ---
 
 19. What is the output of the following code?
@@ -13646,6 +13730,11 @@ C. BLizardA
 D. ALizard
 E. The code will not compile because of line 3.
 F. None of the above
+
+**My Answer: F**
+**Correct Answer: F**
+
+**The Reptile class defines a constructor, but it is not a no-argument constructor. Therefore, the Lizard constructor must explicitly call super(), passing in an int value. For this reason, line 9 does not compile, and option F is the correct answer.**
 
 ---
 
@@ -13681,6 +13770,11 @@ D. The code compiles but throws a ClassCastException at runtime.
 E. The program compiles and prints 3.
 F. The program compiles and prints 0.
 
+**My Answer: E**
+**Correct Answer: E**
+
+**The fly() method is correctly overridden in each subclass since the signature is the same, the access modifier is less restrictive, and the return types are covariant. For covariance, Macaw is a subtype of Parrot, which is a subtype of Bird, so overridden return types are valid. Likewise, the constructors are all implemented properly, with explicit calls to the parent constructors as needed. Line 19 calls the overridden version of fly() defined in the Macaw class, as overriding replaces the method regardless of the reference type. This results in feathers being assigned a value of 3. The Macaw object is then cast to Parrot, which is allowed because Macaw inherits Parrot. The feathers variable is visible since it is defined in the Bird class, and line 19 prints 3,**
+
 ---
 
 21. Which of the following are properties of immutable classes? (Choose all that apply.)
@@ -13693,24 +13787,27 @@ E. The class may not contain any static variables.
 F. The class may only contain private constructors.
 G. The data for mutable instance variables may be read, provided they cannot be modified by the caller.
 
+**My Answer: B,G**
+**Correct Answer: B,G**
+
 ---
 
 22. What does the following program print?
 ```java
 1: class Person {
-2: static String name;
-3: void setName(String q) { name = q; } }
+	2: static String name;
+	3: void setName(String q) { name = q; } }
 4: public class Child extends Person {
-5: static String name;
-6: void setName(String w) { name = w; }
-7: public static void main(String[] p) {
-8: final Child m = new Child();
-9: final Person t = m;
-10: m.name = "Elysia";
-11: t.name = "Sophia";
-12: m.setName("Webby");
-13: t.setName("Olivia");
-14: System.out.println(m.name + " " + t.name);
+	5: static String name;
+	6: void setName(String w) { name = w; }
+	7: public static void main(String[] p) {
+		8: final Child m = new Child();
+		9: final Person t = m;
+		10: m.name = "Elysia";
+		11: t.name = "Sophia";
+		12: m.setName("Webby");
+		13: t.setName("Olivia");
+		14: System.out.println(m.name + " " + t.name);
 15: } }
 ```
 
@@ -13720,6 +13817,11 @@ C. Olivia Olivia
 D. Olivia Sophia
 E. The code does not compile.
 F. None of the above
+
+**My Answer: D**
+**Correct Answer: D**
+
+**The Child class overrides the setName() method and hides the static name variable defined in the inherited Person class. Since variables are only hidden, not overridden, there are two distinct name variables accessible, depending on the location and reference type. Line 8 creates a Child instance, which is implicitly cast to a Person reference type on line 9. Line 10 uses the Child reference type, updating Child.name to Elysia. Line 11 uses the Person referencetype, updating Person.name to Sophia. Lines 12 and 13 both call the overridden setName() instance method declared on line 6. This sets Child.name to Webby on line 12 and then to Olivia on line 13. The final values of Child.name and Person.name are Olivia and Sophia, respectively, making option D the correct answer.**
 
 ---
 
@@ -13766,6 +13868,11 @@ E. apjm
 F. The code does not compile.
 G. None of the above
 
+**My Answer: F**
+**Correct Answer: B**
+
+**The constructors are called from the child class upward, but since each line of a constructor is a call to another constructor, via this() or super(), they are ultimately executed in a top-down manner. On line 29, the main() method calls the Fennec() constructor declared on line 19. Remember, integer literals in Java are considered int by default. This constructor calls the Fox() constructor defined on line 12, which in turn calls the overloaded Fox() constructor declared on line11. Since the constructor on line 11 does not explicitly call a parent constructor, the compiler inserts a call to the no-argument super() constructor, which exists on line 3 of the Canine class. Line 3 is then executed, adding q to the output, and the compiler chain is unwound. Line 11 then executes, adding p, followed by line 14, adding z. Finally, line 21 is executed, and j is added, resulting in a final value for logger of qpzj, and making option B correct. For the exam, remember to follow constructors from the lowest level upward to determine the correct pathway, but then execute them from the top down using the established order.**
+
 ---
 
 24. What is printed by the following program?
@@ -13798,6 +13905,11 @@ D. 421389
 E. The code does not compile.
 F. The output cannot be determined until runtime.
 
+**My Answer: C**
+**Correct Answer: C**
+
+**First, the class is initialized, starting with the superclass Antelope and then the subclass Gazelle. This involves invoking the static variable declarations and static initializers. The program first prints 1, followed by 8. Then we follow the constructor pathway from the object created on line 14 upward, initializing each class instance using a top-down approach. Within each class, the instance initializers are run, followed by the referenced constructors. The Antelope instance is initialized, printing 24, followed by the Gazelle instance, printing 93. The final output is 182493**
+
 ---
 
  25. Which of the following are true about a concrete class? (Choose all that apply.)
@@ -13806,6 +13918,9 @@ B. A concrete class must implement all inherited abstract methods.
 C. A concrete class can be marked as final.
 D. A concrete class must be immutable.
 E. A concrete method that implements an abstract method must match the method declaration of the abstract method exactly.
+
+**My Answer: B,C**
+**Correct Answer: B,C**
 
 ---
 
@@ -13837,6 +13952,11 @@ E. The code will not compile because of line 11.
 F. The code will not compile because of line 12.
 G. The code will not compile because of line 17.
 H. None of the above
+
+**My Answer: D**
+**Correct Answer: D**
+
+**The classes are structured correctly, but the body of the main() method contains a compiler error. The Orca object is implicitly cast to a Whale reference on line 7. This is permitted because Orca is a subclass of Whale. By performing the cast, the whale reference on line 8 does not have access to the dive(int... depth) method. For this reason, line 8 does not compile, making option D correct.**
 
 ---
 
