@@ -13961,3 +13961,639 @@ H. None of the above
 ---
 
 # Chapter 7 - Beyond Classes #Chapter
+
+Java file may have at most one ``public`` top-level type, and it must match the name of the file. This applies to classes, enums, records, and so on. a top-level type can only be declared with ``public`` or package access.
+## Implementing Interfaces
+
+a class may implement any number of interfaces. An interface is an abstract data type that declares a list of abstract methods that any class implementing the interface must provide.
+
+### Declaring and Using an Interface
+
+In Java, an interface is defined with the ``interface`` keyword, analogous to the ``class`` keyword used when defining a class
+
+![[Pasted image 20240330165738.png]]
+
+**==Interface variables are referred to as constants because they are assumed to be ``public``, ``static``, and ``final``.==** They are initialized with a constant value when they are declared. Since they are ``public`` and ``static``, they can be used outside the interface declaration without requiring an instance of the interface
+
+**==One aspect of an interface declaration that differs from an abstract class is that it contains implicit modifiers==**. An implicit modifier is a modifier that the compiler automatically inserts into the code. For example, an interface is always considered to be abstract, even if it is not marked so.
+
+```java
+public abstract interface WalksOnTwoLegs {}
+```
+
+The ``abstract`` modifier in this example is optional for interfaces, with the compiler inserting it if it is not provided.
+
+```java
+public class Biped {
+	public static void main(String[] args) {
+		var e = new WalksOnTwoLegs(); // DOES NOT COMPILE
+	}
+}
+public final interface WalksOnEightLegs {} // DOES NOT COMPILE
+```
+
+- The first example doesn’t compile, as ``WalksOnTwoLegs`` is an interface and cannot be instantiated.
+- The second example, ``WalksOnEightLegs``, doesn’t compile because **==interfaces cannot be marked as ``final``==** for the same reason that abstract classes cannot be marked as final. 
+
+```java
+public interface Climb {
+	Number getSpeed(int age);
+}
+```
+
+![[Pasted image 20240330170530.png]]
+
+The ``FieldMouse`` class declares that it implements the ``Climb`` interface and includes an overridden version of ``getSpeed()`` inherited from the ``Climb`` interface. The method signature of ``getSpeed()`` matches exactly, and the return type is covariant, since a ``Float`` can be implicitly cast to a ``Number``. The access modifier of the interface method is implicitly ``public`` in Climb, although the concrete class ``FieldMouse`` must explicitly declare it.
+
+**==If any of the interfaces define abstract methods, then the concrete class is required to override them.==**
+
+### Extending an Interface
+
+Like a class, an interface can extend another interface using the ``extends`` keyword.
+
+```java
+public interface Nocturnal {}
+public interface HasBigEyes extends Nocturnal {}
+```
+
+Unlike a class, which can extend only one class, an interface can extend multiple interfaces.
+
+```java
+public interface Nocturnal {
+	public int hunt();
+}
+public interface CanFly {
+	public void flap();
+}
+public interface HasBigEyes extends Nocturnal, CanFly {}
+	public class Owl implements HasBigEyes {
+	public int hunt() { return 5; }
+	public void flap() { System.out.println("Flap!"); }
+}
+```
+
+Extending two interfaces is permitted because interfaces are not initialized as part of a class hierarchy. Unlike abstract classes, they do not contain constructors and are not part of instance initialization. Interfaces simply define a set of rules and methods that a class implementing them must follow.
+
+### Inheriting an Interface
+
+Like an abstract class, when a concrete class inherits an interface, all of the inherited abstract methods must be implemented.
+
+```java
+public interface HasTail {
+	public int getTailLength();
+}
+public interface HasWhiskers {
+	public int getNumberOfWhiskers();
+}
+
+public abstract class HarborSeal implements HasTail, HasWhiskers {}
+public class CommonSeal extends HarborSeal {} // DOES NOT COMPILE
+```
+
+- The ``HarborSeal`` class compiles because it is abstract and not required to implement any of the abstract methods it inherits
+- The concrete ``CommonSeal`` class, though, must override all inherited abstract methods.
+
+#### Mixing Class and Interface Keywords
+
+**==Although a class can implement an interface, a class cannot extend an interface. Likewise, while an interface can extend another interface, an interface cannot implement another interface.==**
+
+```java
+public interface CanRun {}
+public class Cheetah extends CanRun {} // DOES NOT COMPILE
+public class Hyena {}
+public interface HasFur extends Hyena {} // DOES NOT COMPILE
+```
+
+#### Inheriting Duplicate Abstract Methods
+
+Java supports inheriting two abstract methods that have compatible method declarations.
+
+```java
+public interface Herbivore { public void eatPlants(); }
+public interface Omnivore { public void eatPlants(); }
+public class Bear implements Herbivore, Omnivore {
+public void eatPlants() {
+	System.out.println("Eating plants");
+} }
+```
+
+By compatible, we mean a method can be written that properly overrides both inherited methods:
+
+```java
+public interface Herbivore { public void eatPlants(); }
+public interface Omnivore { public int eatPlants(); }
+public class Tiger implements Herbivore, Omnivore { // DOES NOT COMPILE
+	...
+}
+```
+
+### Inserting Implicit Modifiers
+
+**==an implicit modifier is one that the compiler will automatically insert.==**
+
+-  ==**Interfaces are implicitly ``abstract``.**==
+-  ==**Interface variables are implicitly ``public``, ``static``, and ``final``.**==
+-  ==**Interface methods without a body are implicitly ``abstract``.**==
+-  ==**Interface methods without the ``private`` modifier are implicitly ``public``.==**
+
+The following two interface definitions are equivalent, as the compiler will convert them both to the second declaration:
+
+```java
+public interface Soar {
+	int MAX_HEIGHT = 10;
+	final static boolean UNDERWATER = true;
+	void fly(int speed);
+	abstract void takeoff();
+	public abstract double dive();
+}
+
+public abstract interface Soar {
+	public static final int MAX_HEIGHT = 10;
+	public final static boolean UNDERWATER = true;
+	public abstract void fly(int speed);
+	public abstract void takeoff();
+	public abstract double dive();
+}
+```
+
+#### Conflicting Modifiers
+
+What happens if a developer marks a method or variable with a modifier that conflicts with an implicit modifier?
+
+```java
+public interface Dance {
+	private int count = 4; // DOES NOT COMPILE
+	protected void step(); // DOES NOT COMPILE
+}
+```
+
+Neither of these interface member declarations compiles, as the compiler will apply the ``public`` modifier to both, resulting in a conflict.
+
+#### Differences between Interfaces and Abstract Classes
+
+**==Even though abstract classes and interfaces are both considered abstract types, only interfaces make use of implicit modifiers.==**
+
+```java
+abstract class Husky { // abstract required in class declaration
+	abstract void play(); // abstract required in method declaration
+}
+interface Poodle { // abstract optional in interface declaration
+	void play(); // abstract optional in method declaration
+}
+```
+
+```java
+public class Webby extends Husky {
+	void play() {} // OK -play() is declared with package access in Husky
+}
+public class Georgette implements Poodle {
+	void play() {} // DOES NOT COMPILE -play() is public in Poodle
+}
+```
+
+Even though the two method implementations are identical, the method in the ``Georgette`` class reduces the access modifier on the method from ``public`` to package access.
+
+### Declaring Concrete Interface Methods
+
+![[Pasted image 20240330172909.png]]
+
+--- 
+What About ``protected`` or Package Interface Members?
+
+**Alongside ``public`` methods, interfaces now support ``private`` methods. ==They do not support protected access, though, as a class cannot extend an interface. They also do not support package access, although more likely for syntax reasons and backward compatibility==. Since interface methods without an access modifier have been considered implicitly public, changing this behavior to package access would break many existing programs!**
+
+---
+
+#### Writing a ``default`` Interface Method
+
+A default method is a method defined in an interface with the ``default`` keyword and includes a method body. It may be optionally overridden by a class implementing the interface.
+
+One use of ``default`` methods is for backward compatibility. You can add a new ``default`` method to an interface without the need to modify all of the existing classes that implement the interface. The older classes will just use the default implementation of the method defined in the interface
+
+```java
+public interface IsColdBlooded {
+	boolean hasScales();
+	default double getTemperature() {
+		return 10.0;
+	} 
+}
+```
+
+```java
+public class Snake implements IsColdBlooded {
+	public boolean hasScales() { // Required override
+		return true;
+	}
+	public double getTemperature() { // Optional override
+		return 12;
+	}
+}
+
+```
+
+---
+
+**the ``default`` interface method modifier is not the same as the ``default`` label used in a switch statement or expression. Likewise, even though package access is sometimes referred to as default access, that feature is implemented by omitting an access modifier.**
+
+---
+
+**Default Interface Method Definition Rules**
+1. ==**A ``default`` method may be declared only within an interface.**==
+2. ==**A ``default`` method must be marked with the ``default`` keyword and include a method body.**==
+3. ==**A ``default`` method is implicitly public.**==
+4. ==**A ``default`` method cannot be marked ``abstract``, ``final``, or ``static``.**==
+5. ==**A ``default`` method may be overridden by a class that implements the interface.**==
+6. ==**If a class inherits two or more ``default`` methods with the same method signature, then the**==
+==**class must override the method.==**
+
+```java
+public interface Carnivore {
+	public default void eatMeat(); // DOES NOT COMPILE
+	public int getRequiredFoodAmount() { // DOES NOT COMPILE
+		return 13;
+} }
+```
+
+Unlike ``abstract`` methods, though, ``default`` interface methods cannot be marked abstract since they provide a body. They also cannot be marked as ``final``, because they are designed so that they can be overridden in classes implementing the interface, just like ``abstract`` methods. Finally, they cannot be marked ``static`` since they are associated with the instance of the class implementing the interface.
+
+##### Inheriting Duplicate ``default`` Methods
+
+```java
+public interface Walk {
+	public default int getSpeed() { return 5; }
+}
+public interface Run {
+	public default int getSpeed() { return 10; }
+}
+public class Cat implements Walk, Run {} // DOES NOT COMPILE
+```
+
+If the class implementing the interfaces overrides the duplicate default method, the code will compile without issue. By overriding the conflicting method, the ambiguity about which version of the method to call has been removed.
+
+```java
+public class Cat implements Walk, Run {
+	public int getSpeed() { return 1; }
+}
+```
+
+##### Calling a Hidden ``default`` Method
+
+what if the ``Cat`` class wanted to access the version of ``getSpeed()`` in ``Walk`` or ``Run``? Is it still accessible?
+
+```java
+public class Cat implements Walk, Run {
+	public int getSpeed() {
+		return 1;
+	}
+	public int getWalkSpeed() {
+		return Walk.super.getSpeed();
+	}
+}
+```
+
+we **==use the ``super`` keyword to show that we are following instance inheritance, not class inheritance==**. Note that calling ``Walk.getSpeed()`` or ``Walk.this.getSpeed()`` would not have worked.
+
+#### Declaring ``static`` Interface Methods
+
+**Static Interface Method Definition Rules**
+1. ==**A ``static`` method must be marked with the ``static`` keyword and include a method body.**==
+2. ==**A ``static`` method without an access modifier is implicitly ``public``.**==
+3. ==**A ``static`` method cannot be marked ``abstract`` or ``final``.**==
+4. ==**A ``static`` method is not inherited and cannot be accessed in a class implementing the interface without a reference to the interface name.**==
+
+ can use the ``private`` access modifier with ``static`` methods.
+
+```java
+public interface Hop {
+	static int getJumpHeight() {
+		return 8;
+	} 
+}
+```
+
+Since the method is defined without an access modifier, the compiler will automatically insert the ``public`` access modifier. The method ``getJumpHeight()`` works just like a ``static`` method as defined in a class. In other words, it can be accessed without an instance of a class.
+
+```java
+public class Skip {
+	public int skip() {
+		return Hop.getJumpHeight();
+	}
+}
+```
+
+```java
+public class Bunny implements Hop {
+	public void printDetails() {
+		System.out.println(getJumpHeight()); // DOES NOT COMPILE
+	} 
+}
+```
+
+Without an explicit reference to the name of the interface, the code will not compile, even though ``Bunny`` implements ``Hop``.
+
+```java
+public class Bunny implements Hop {
+	public void printDetails() {
+		System.out.println(Hop.getJumpHeight());
+	} 
+}
+```
+
+**==Java “solved” the multiple inheritance problem of ``static`` interface methods by not allowing them to be inherited!==**
+#### Reusing Code with ``private`` Interface Methods
+
+The last two types of concrete methods that can be added to interfaces are ``private`` and ``private`` ``static`` interface methods. **==Because both types of methods are ``private``, they can only be used in the interface declaration in which they are declared==**. For this reason, they were added primarily to reduce code duplication.
+
+```java
+public interface Schedule {
+	default void wakeUp() { checkTime(7); }
+	private void haveBreakfast() { checkTime(9); }
+	static void workOut() { checkTime(18); }
+	private static void checkTime(int hour) {
+		if (hour> 17) {
+			System.out.println("You're late!");
+		} else {
+			System.out.println("You have "+(17-hour)+" hours left " + "to make the appointment");
+		} 
+	} 
+}
+```
+
+The difference between a ``non-static private`` method and a ``static`` one is analogous to the difference between an instance and static method declared within a class. In particular, it’s all about what methods each can be called from.
+
+**Private Interface Method Definition Rules**
+1. ==**A ``private`` interface method must be marked with the private modifier and include a method body.**==
+2. ==**A ``private`` ``static`` interface method may be called by any method within the interface definition.**==
+3. ==**A ``private`` interface method may only be called by ``default`` and other ``private non-static`` methods within the interface definition.**==
+
+#### Calling Abstract Methods
+
+``default`` and ``private non-static`` methods can access ``abstract`` methods declared in the interface. This is the primary reason we associate these methods with instance membership. When they are invoked, there is an instance of the interface.
+
+```java
+public interface ZooRenovation {
+	public String projectName();
+	abstract String status();
+	default void printStatus() {
+		System.out.print("The " + projectName() + " project " + status());
+	} 
+}
+```
+
+both ``projectName()`` and ``status()`` have the same modifiers (``abstract`` and ``public`` are implicit) and can be called by the default method ``printStatus()``.
+
+### Reviewing Interface Members
+
+![[Pasted image 20240330182307.png]]
+
+quick tips for the exam:
+-  ==**Treat ``abstract``, ``default``, and ``non-static private`` methods as belonging to an instance of the interface.**==
+-  ==**Treat ``static`` methods and variables as belonging to the interface class object.**==
+-  ==**All private interface method types are only accessible within the interface declaration.==**
+
+```java
+public interface ZooTrainTour {
+	abstract int getTrainName();
+	private static void ride() {}
+	default void playHorn() { getTrainName(); ride(); }
+	public static void slowDown() { playHorn(); }
+	static void speedUp() { ride(); }
+}
+```
+
+The ``slowDown()`` method does not compile. is ``static``, though, and cannot call a ``default`` or ``private`` method, such as ``playHorn()``, without an explicit reference object
+## Working with Enums
+
+An enumeration, or enum for short, is like a fixed set of constants. Using an enum is much better than using a bunch of constants because it provides type-safe checking. With enums, it is impossible to create an invalid enum value without introducing a compiler error.
+
+**==Enumerations show up whenever you have a set of items whose types are known at compile time==**. Common examples include the compass directions, the months of the year, the planets in the solar system, and the cards in a deck
+### Creating Simple Enums
+
+![[Pasted image 20240330185501.png]]
+
+an enum that only contains a list of values as a simple enum. **==When working with simple enums, the semicolon at the end of the list is optional.==**
+
+---
+
+**Enum values are considered constants and are commonly written using snake case. For example, an enum declaring a list of ice cream flavors might include values like VANILLA, ROCKY_ROAD, INT_CHOCOLATE_CHIP, and so on.**
+
+---
+
+```java
+var s = Season.SUMMER;
+System.out.println(Season.SUMMER); // SUMMER
+System.out.println(s == Season.SUMMER); // true
+```
+
+enums print the name of the enum when ``toString()`` is called. They can be compared using ``==`` because they are like ``static final`` constants. In other words, you can use ``equals()`` or ``==`` to compare enums, since **==each enum value is initialized only once in the Java Virtual Machine (JVM).**==
+==**One thing that you can’t do is extend an enum.==**
+
+```java
+public enum ExtendedSeason extends Season {} // DOES NOT COMPILE
+```
+
+The values in an enum are fixed. You cannot add more by extending the enum.
+#### Calling the ``values()``, ``name()``, and ``ordinal()`` Methods
+
+An enum provides a ``values()`` method to get an array of all of the values.
+
+```java
+for(var season: Season.values()) {
+	System.out.println(season.name() + " " + season.ordinal());
+}
+```
+
+The output shows that each enum value has a corresponding int value, and the values are listed in the order in which they are declared:
+
+```text
+WINTER 0
+SPRING 1
+SUMMER 2
+FALL 3
+```
+
+You can’t compare an ``int`` and an enum value directly anyway since an enum is a type, like a Java class, and not a primitive ``int``.
+
+```java
+if ( Season.SUMMER == 2) {} // DOES NOT COMPILE
+```
+
+#### Calling the ``valueOf()`` Method
+
+Another useful feature is retrieving an enum value from a ``String`` using the ``valueOf()`` method. **==The ``String`` passed in must match the enum value exactly, though.==**
+
+```java
+Season s = Season.valueOf("SUMMER"); // SUMMER
+Season t = Season.valueOf("summer"); // IllegalArgumentException
+```
+
+**==Each enum value is created once when the enum is first loaded. Once the enum has been loaded, it retrieves the single enum value with the matching name==**.
+
+### Using Enums in ``switch`` Statements
+
+```java
+Season summer = Season.SUMMER;
+switch(summer) {
+	case WINTER:
+		System.out.print("Get out the sled!");
+		break;
+	case SUMMER:
+		System.out.print("Time for the pool!");
+		break;
+	default:
+		System.out.print("Is it summer yet?");
+}
+```
+
+**==Java treats the enum type as implicit==**. In fact, if you were to type case ``Season.WINTER``, it would not compile.
+
+```java
+Season summer = Season.SUMMER;
+var message = switch(summer) {
+	case Season.WINTER -> "Get out the sled!"; // DOES NOT COMPILE
+	case 0 -> "Time for the pool!"; // DOES NOT COMPILE
+	default -> "Is it summer yet?";
+};
+System.out.print(message);
+```
+
+- The first case statement does not compile because ``Season`` is used in the case value. If we changed ``Season.FALL`` to just ``FALL``, then the line would compile.
+- can’t compare enums with ``int`` values
+### Adding Constructors, Fields, and Methods
+
+```java
+1: public enum Season {
+	2: WINTER("Low"), SPRING("Medium"), SUMMER("High"), FALL("Medium");
+	3: private final String expectedVisitors;
+	4: private Season(String expectedVisitors) {
+		5: this.expectedVisitors = expectedVisitors;
+	6: }
+	7: public void printExpectedVisitors() {
+		8: System.out.println(expectedVisitors);
+	9: } 
+}
+```
+
+- On line 2, the list of enum values ends with a semicolon ``(;)``. While this is optional when our enum is composed solely of a list of values, it is required if there is anything in the enum besides the values.
+- Lines 3–9 are regular Java code.
+
+---
+
+**Although it is possible to create an enum with instance variables that can be modified, it is a very poor practice to do so since they are shared within the JVM. When designing an enum, the values should be immutable.**
+
+---
+
+**==All enum constructors are implicitly ``private``, with the modifier being optional. In fact, an enum constructor will not compile if it contains a ``public`` or ``protected`` modifier.==**
+
+the parentheses on line 2? Those are constructor calls, but without the new keyword normally used for objects. The first time we ask for any of the enum values, Java constructs all of the enum values. After that, Java just returns the already constructed enum values.
+
+```java
+public enum OnlyOne {
+	ONCE(true);
+	private OnlyOne(boolean b) {
+		System.out.print("constructing,");
+	}
+}
+
+public class PrintTheOne {
+	public static void main(String[] args) {
+		System.out.print("begin,");
+		OnlyOne firstCall = OnlyOne.ONCE; // Prints constructing,
+		OnlyOne secondCall = OnlyOne.ONCE; // Doesn't print anything
+		System.out.print("end");
+	} // begin,constructing,end
+}
+```
+
+If the ``OnlyOne`` enum was used earlier in the program, and therefore initialized sooner, then the line that declares the ``firstCall`` variable would not print anything.
+
+```java
+Season.SUMMER.printExpectedVisitors();
+```
+
+to define different methods for each enum.
+
+```java
+public enum Season {
+	WINTER {
+		public String getHours() { return "10am-3pm";}
+	},
+	SPRING {
+		public String getHours() { return "9am-5pm";}
+	},
+	SUMMER {
+		public String getHours() { return "9am-7pm";}
+	},
+	FALL {
+		public String getHours() { return "9am-5pm";}
+	};
+	public abstract String getHours();
+}
+```
+
+The enum itself has an ``abstract`` method. This means that each and every enum value is required to implement this method. If we forget to implement the method for one of the values, we get a compiler error:
+
+But what if we don’t want each and every enum value to have a method? We can create an implementation for all values and override it only for the special cases.
+
+```java
+public enum Season {
+	WINTER {
+		public String getHours() { return "10am-3pm";}
+	},
+	SUMMER {
+		public String getHours() { return "9am-7pm";}
+	},
+	SPRING, FALL;
+		public String getHours() { return "9am-5pm";}
+}
+```
+
+---
+
+```java
+public enum Operation {
+    PLUS("+") {
+        public double apply(double x, double y) { return x + y; }
+    },
+    MINUS("-") {
+        public double apply(double x, double y) { return x - y; }
+    },
+    TIMES("*") {
+        public double apply(double x, double y) { return x * y; }
+    },
+    DIVIDE("/") {
+        public double apply(double x, double y) { return x / y; }
+    };
+
+    private final String symbol;
+
+    Operation(String symbol) {
+        this.symbol = symbol;
+    }
+
+    @Override public String toString() { return symbol; }
+
+    public abstract double apply(double x, double y);
+}
+```
+
+---
+
+An enum can even implement an interface, as this just requires overriding the ``abstract`` methods:
+
+```java
+public interface Weather { int getAverageTemperature(); }
+public enum Season implements Weather {
+	WINTER, SPRING, SUMMER, FALL;
+	public int getAverageTemperature() { return 30; }
+}
+```
+
+---
+
+**==the list of values came first. This was not an accident. Whether the enum is simple or complex, the list of values always comes first.==**
+
+---
+
+## Sealing Classes
+
