@@ -11,11 +11,9 @@
             "id": "3ae04bb646c8a37b",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-                "mode": "source",
-                "source": false
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330230403.png"
               }
             }
           }
@@ -85,7 +83,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330230403.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +100,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330230403.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +123,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330230403.png"
               }
             }
           }
@@ -147,21 +145,21 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "3ae04bb646c8a37b",
   "lastOpenFiles": [
-    "EFFECTIVE JAVA NOTES.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330234703.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330233434.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330231930.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330230403.png",
+    "EFFECTIVE JAVA NOTES.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330185501.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330165738.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330182307.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330172909.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240330170530.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240322193445.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240322194238.png",
-    "Pasted image 20240322194336.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240322192526.png",
     "Golang Notes.md",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240316191549.png",
     "JAVA APP - 2 NOTES.md",
     "JAVA APP - 1 NOTES.md",
     "100 Go Mistakes and How to Avoid Them.md",

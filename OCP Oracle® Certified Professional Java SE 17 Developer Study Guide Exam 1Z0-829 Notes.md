@@ -14597,3 +14597,413 @@ public enum Season implements Weather {
 
 ## Sealing Classes
 
+A sealed class is a class that restricts which other classes may **==directly==** extend it
+
+### Declaring a Sealed Class
+
+A sealed class declares a list of classes that can extend it, while the subclasses declare that they extend the sealed class.
+
+![[Pasted image 20240330230403.png]]
+
+**Sealed Class Keywords**
+- ==**sealed: Indicates that a class or interface may only be extended/implemented by named classes or interfaces**==
+- ==**permits: Used with the sealed keyword to list the classes and interfaces allowed**==
+- ==**non-sealed: Applied to a class or interface that extends a sealed class, indicating that it can be extended by unspecified classes**==
+
+```java
+public class sealed Frog permits GlassFrog {} // DOES NOT COMPILE
+public final class GlassFrog extends Frog {}
+public abstract sealed class Wolf permits Timber {}
+public final class Timber extends Wolf {}
+public final class MyWolf extends Wolf {} // DOES NOT COMPILE
+```
+
+- The first example does not compile because the ``class`` and ``sealed`` modifiers are in the wrong order.
+- The second example does not compile because ``MyWolf`` isn’t listed in the declaration of ``Wolf``.
+
+---
+
+**Sealed classes are commonly declared with the abstract modifier, although this is certainly not required**
+
+---
+
+Declaring a sealed class with the ``sealed`` modifier is the easy part. Most of the time, if you see a question on the exam about sealed classes, they are testing your knowledge of whether the subclass ``extends`` the ``sealed`` class properly
+
+### Compiling Sealed Classes
+
+```java
+// Penguin.java
+package zoo;
+public sealed class Penguin permits Emperor {}
+```
+
+**==a sealed class needs to be declared (and compiled) in the same package as its direct subclasses==**. But what about the subclasses themselves? They must each extend the sealed class
+
+```java
+// Penguin.java
+package zoo;
+public sealed class Penguin permits Emperor {} // DOES NOT COMPILE
+
+// Emperor.java
+package zoo;
+public final class Emperor {}
+```
+
+### Specifying the Subclass Modifier
+
+**==Every class that directly extends a sealed class must specify exactly one of the following three modifiers: ``final``, ``sealed``, or ``non-sealed``.==**
+
+#### A ``final`` Subclass
+
+```java
+public sealed class Antelope permits Gazelle {}
+public final class Gazelle extends Antelope {}
+public class George extends Gazelle {} // DOES NOT COMPILE
+```
+
+#### A ``sealed`` Subclass
+
+```java
+public sealed class Mammal permits Equine {}
+public sealed class Equine extends Mammal permits Zebra {}
+public final class Zebra extends Equine {}
+```
+
+The ``sealed`` modifier applied to the subclass ``Equine`` means the same kind of rules that we applied to the parent class ``Mammal`` must be present. Namely, ``Equine`` defines its own list of permitted subclasses.
+
+Despite allowing indirect subclasses not named in ``Mammal``, the list of classes that can inherit ``Mammal`` is still fixed. If you have a reference to a ``Mammal`` object, it must be a ``Mammal``, ``Equine``, or ``Zebra``.
+
+#### A ``non-sealed`` Subclass
+
+The ``non-sealed`` modifier is used to open a sealed parent class to potentially unknown subclasses.
+
+```java
+public sealed class Wolf permits Timber {}
+public non-sealed class Timber extends Wolf {}
+public class MyWolf extends Timber {}
+public class MyFurryWolf extends MyWolf {}
+```
+
+### Omitting the ``permits`` Clause
+
+```java
+// Snake.java
+public sealed class Snake permits Cobra {}
+final class Cobra extends Snake {}
+```
+
+In this case, the ``permits`` clause is optional and can be omitted. The ``extends`` keyword is still required in the subclass, though:
+
+```java
+// Snake.java
+public sealed class Snake {}
+final class Cobra extends Snake {}
+```
+
+If these classes were in separate files, this code would not compile! This rule also applies to sealed classes with nested subclasses.
+
+```java
+// Snake.java
+public sealed class Snake {
+final class Cobra extends Snake {}
+}
+```
+
+---
+**Referencing Nested Subclasses**
+
+**While it makes the code easier to read if you omit the ``permits`` clause for nested subclasses, you are welcome to name them. However, the syntax might be different than you expect.**
+
+```java
+public sealed class Snake permits Cobra { // DOES NOT COMPILE
+	final class Cobra extends Snake {}
+}
+```
+
+**This code does not compile because ``Cobra`` requires a reference to the ``Snake`` namespace. The following fixes this issue:**
+
+```java
+public sealed class Snake permits Snake.Cobra {
+	final class Cobra extends Snake {}
+}
+```
+
+**When all of your subclasses are nested, we strongly recommend omitting the ``permits`` class.**
+
+---
+
+![[Pasted image 20240330231930.png]]
+
+### Sealing Interfaces
+
+Besides classes, interfaces can also be sealed. The idea is analogous to classes, and many of the same rules apply. For example, the ``sealed`` interface must appear in the same package or named module as the classes or interfaces that directly extend or implement it. **==One distinct feature of a ``sealed`` interface is that the ``permits`` list can apply to a class that implements the interface or an interface that extends the interface==**.
+
+```java
+// Sealed interface
+public sealed interface Swims permits Duck, Swan, Floats {}
+// Classes permitted to implement sealed interface
+public final class Duck implements Swims {}
+public final class Swan implements Swims {}
+// Interface permitted to extend sealed interface
+public non-sealed interface Floats extends Swims {}
+```
+
+**==Interfaces are implicitly ``abstract`` and cannot be marked ``final``. For this reason, interfaces that ``extend`` a ``sealed`` interface can only be marked ``sealed`` or ``non-sealed``. They cannot be marked ``final``.==**
+
+### Reviewing Sealed Class Rules
+
+**Sealed Class Rules**
+- ==**Sealed classes are declared with the ``sealed`` and ``permits`` modifiers.**==
+- ==**Sealed classes must be declared in the same package or named module as their direct subclasses.**==
+- ==**Direct subclasses of ``sealed`` classes must be marked ``final``, ``sealed``, or ``non-sealed``.**==
+- ==**The permits clause is optional if the ``sealed`` class and its direct subclasses are declared within the same file or the subclasses are nested within the ``sealed`` class.**==
+- ==**Interfaces can be ``sealed`` to limit the classes that implement them or the interfaces that extend them.**==
+
+## Encapsulating Data with Records
+
+### Understanding Encapsulation
+
+A *POJO*, which stands for Plain Old Java Object, is a class used to model and pass data around, often with few or no complex methods
+
+```java
+public class Crane {
+	int numberEggs;
+	String name;
+	public Crane(int numberEggs, String name) {
+		this.numberEggs = numberEggs;
+		this.name = name;
+	}
+}
+```
+
+```java
+public class Poacher {
+	public void badActor() {
+		var mother = new Crane(5, "Cathy");
+		mother.numberEggs = -100;
+	}
+}
+```
+
+*Encapsulation* is a way to protect class members by restricting access to them. In Java, it is commonly implemented by declaring all instance variables ``private``. Callers are required to use methods to retrieve or modify instance variables. Encapsulation is about protecting a class from unexpected use. It also allows us to modify the methods and behavior of the class later without someone already having direct access to an instance variable within the class.
+
+```java
+1: public final class Crane {
+	2: private final int numberEggs;
+	3: private final String name;
+	4: public Crane(int numberEggs, String name) {
+		5: if (numberEggs >= 0) this.numberEggs = numberEggs; // guard condition
+		6: else throw new IllegalArgumentException();
+		7: this.name = name;
+	8: }
+	9: public int getNumberEggs() { // getter
+		10: return numberEggs;
+	11: }
+	12: public String getName() { // getter
+		13: return name;
+	14: }
+15: }
+```
+
+
+- the instance variables are now ``private`` on lines 2 and 3. This means only code within the class can read or write their values.
+- added a method on lines 9–11 to read the value, which is called an accessor method or a getter.
+- marked the class and its instance variables ``final``, and we don’t have any mutator methods, or setters, to modify the value of the instance variables. That’s because we want our class to be immutable in addition to being well encapsulated.
+### Applying Records
+
+![[Pasted image 20240330233434.png]]
+
+A record is a special type of data-oriented class in which the compiler inserts boilerplate code for you
+As a bonus, the compiler inserts useful implementations of the ``Object`` methods ``equals()``, ``hashCode()``, and ``toString()``. 
+Creating an instance of a ``Crane`` and printing some fields is easy:
+
+```java
+var mommy = new Crane(4, "Cammy");
+System.out.println(mommy.numberEggs()); // 4
+System.out.println(mommy.name()); // Cammy
+```
+
+Behind the scenes, it **==creates a constructor for you with the parameters in the same order in which they appear in the record declaration==**. Omitting or changing the type order will lead to compiler errors:
+
+```java
+var mommy1 = new Crane("Cammy", 4); // DOES NOT COMPILE
+var mommy2 = new Crane("Cammy"); // DOES NOT COMPILE
+```
+
+For each field, it also creates an accessor as the field name, plus a set of parentheses. Unlike traditional *POJOs* or *JavaBeans*, the methods don’t have the prefix ``get`` or ``is``.
+
+**Members Automatically Added to Records**
+- ==**Constructor: A constructor with the parameters in the same order as the record declaration**==
+- ==**Accessor method: One accessor for each field**==
+- ==**``equals()``: A method to compare two elements that returns ``true`` if each field is equal in terms of ``equals()``**==
+- ==**``hashCode()``: A consistent ``hashCode()`` method using all of the fields**==
+- ==**``toString()``: A ``toString()`` implementation that prints each field of the record in a convenient, easy-to- read format**==
+
+```java
+var father = new Crane(0, "Craig");
+System.out.println(father); // Crane[numberEggs=0, name=Craig]
+var copy = new Crane(0, "Craig");
+System.out.println(copy); // Crane[numberEggs=0, name=Craig]
+System.out.println(father.equals(copy)); // true
+System.out.println(father.hashCode() + ", " + copy.hashCode()); // 1007, 1007
+```
+
+it is legal to have a record without any fields. It is simply declared with the ``record`` keyword and parentheses:
+
+```java
+public record Crane() {}
+```
+
+### Understanding Record Immutability
+
+records don’t have setters. Every field is inherently ``final`` and cannot be modified after it has been written in the constructor. In order to “modify” a record, you have to make a new object and copy all of the data you want to preserve.
+
+```java
+var cousin = new Crane(3, "Jenny");
+var friend = new Crane(cousin.numberEggs(), "Janeice");
+```
+
+Just as interfaces are implicitly ``abstract``, **==records are also implicitly ``final``. The ``final`` modifier is optional but assumed.==**
+
+```java
+public final record Crane(int numberEggs, String name) {}
+```
+
+**==Like enums, that means you can’t extend or inherit a record.==**
+
+```java
+public record BlueCrane() extends Crane {} // DOES NOT COMPILE
+```
+
+**==Also like enums, a record can implement a regular or sealed interface, provided it implements all of the abstract methods.==**
+
+```java
+public interface Bird {}
+public record Crane(int numberEggs, String name) implements Bird {}
+```
+
+### Declaring Constructors
+
+What if you need to declare a record with some guards ? 
+#### The Long Constructor
+
+can just declare the constructor the compiler normally inserts automatically, which we refer to as the long constructor.
+
+```java
+public record Crane(int numberEggs, String name) {
+	public Crane(int numberEggs, String name) {
+		if (numberEggs < 0) throw new IllegalArgumentException();
+		this.numberEggs = numberEggs;
+		this.name = name;
+	}
+}
+```
+
+**==The compiler will not insert a constructor if you define one with the same list of parameters in the same order. Since each field is ``final``, the constructor must set every field.==**
+
+```java
+public record Crane(int numberEggs, String name) {
+	public Crane(int numberEggs, String name) {} // DOES NOT COMPILE
+}
+```
+
+While being able to declare a constructor is a nice feature of records, it’s also problematic. If we have 20 fields, we’ll need to declare assignments for every one, introducing the boilerplate we sought to remove.
+
+#### Compact Constructors
+
+A *compact constructor* is a special type of constructor used for records to process validation and transformations succinctly. It takes no parameters and implicitly sets all fields.
+
+![[Pasted image 20240330234703.png]]
+
+we can check the values we want, and we don’t have to list all the constructor parameters and trivial assignments. Java will execute the full constructor after the compact constructor. also remember that a compact constructor is declared without parentheses, as the exam might try to trick you on this. we can even transform constructor parameters as we discuss more in the next section.
+##### Transforming Parameters
+
+Compact constructors give you the opportunity to apply transformations to any of the input values.
+
+```java
+public record Crane(int numberEggs, String name) {
+	public Crane {
+		if (name == null || name.length() < 1)
+			throw new IllegalArgumentException();
+		name = name.substring(0,1).toUpperCase() + name.substring(1).toLowerCase();
+	}
+}
+```
+
+**==While compact constructors can modify the constructor parameters, they cannot modify the fields of the record.==**
+
+```java
+public record Crane(int numberEggs, String name) {
+	public Crane {
+		this.numberEggs = 10; // DOES NOT COMPILE
+	}
+}
+```
+
+#### Overloaded Constructors
+
+can also create overloaded constructors that take a completely different list of parameters. They are more closely related to the long-form constructor and don’t use any of the syntactical features of compact constructors.
+
+```java
+public record Crane(int numberEggs, String name) {
+	public Crane(String firstName, String lastName) {
+		this(0, firstName + " " + lastName);
+	}
+}
+```
+
+**==The first line of an overloaded constructor must be an explicit call to another constructor via ``this()``. If there are no other constructors, the long constructor must be called.==**
+Also, unlike compact constructors, you can only transform the data on the first line. After the first line, all of the fields will already be assigned, and the object is immutable.
+
+```java
+public record Crane(int numberEggs, String name) {
+	public Crane(int numberEggs, String firstName, String lastName) {
+		this(numberEggs + 1, firstName + " " + lastName);
+		numberEggs = 10; // NO EFFECT (applies to parameter, not instance field)
+		this.numberEggs = 20; // DOES NOT COMPILE
+	}
+}
+```
+
+also can’t declare two record constructors that call each other infinitely or as a cycle.
+
+```java
+public record Crane(int numberEggs, String name) {
+	public Crane(String name) {
+		this(1); // DOES NOT COMPILE
+	}
+	public Crane(int numberEggs) {
+		this(""); // DOES NOT COMPILE
+	}
+}
+```
+### Customizing Records
+
+Records actually support many of the same features as a class.
+
+be familiar with for the exam:
+- Overloaded and compact constructors
+- Instance methods including overriding any provided methods (accessors, ``equals()``, ``hashCode()``, ``toString()``)
+- Nested classes, interfaces, annotations, enum, and records
+
+```java
+public record Crane(int numberEggs, String name) {
+	@Override public int numberEggs() { return 10; }
+	@Override public String toString() { return name; }
+}
+```
+
+While you can add methods, ``static`` fields, and other data types, **==you cannot add instance fields outside the record declaration, even if they are ``private``==**. Doing so defeats the purpose of using a record and could break immutability!
+
+```java
+public record Crane(int numberEggs, String name) {
+	private static int type = 10;
+	public int size; // DOES NOT COMPILE
+	private boolean friendly; // DOES NOT COMPILE
+}
+```
+
+Records also do not support instance initializers. **==All initialization for the fields of a record must happen in a constructor.==**
+ 
+## Creating Nested Classes
+
