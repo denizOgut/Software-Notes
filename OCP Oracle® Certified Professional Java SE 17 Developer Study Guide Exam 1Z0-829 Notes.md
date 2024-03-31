@@ -15287,5 +15287,302 @@ public class Gorilla {
 
 ## Understanding Polymorphism
 
+the property of an object to take on many different forms. To put this more precisely, a Java object may be accessed using:
+
+- ==**A reference with the same type as the object**==
+- ==**A reference that is a superclass of the object**==
+- ==**A reference that defines an interface the object implements or inherits==**
+
+**==Furthermore, a cast is not required if the object is being reassigned to a supertype or interface of the object==.**
+
+```java
+public class Primate {
+    public boolean hasHair() {
+        return true;
+    }
+}
+
+public interface HasTail {
+    public abstract boolean isTailStriped();
+}
+
+public class Lemur extends Primate implements HasTail {
+    public boolean isTailStriped() {
+        return false;
+    }
+
+    public int age = 10;
+
+    public static void main(String[] args) {
+        Lemur lemur = new Lemur();
+        System.out.println(lemur.age); // 10
+        HasTail hasTail = lemur;
+        System.out.println(hasTail.isTailStriped()); // false
+        Primate primate = lemur;
+        System.out.println(primate.hasHair()); // true
+    }
+}
+```
+
+**==The most important thing to note about this example is that only one object, ``Lemur``, is created==**. Polymorphism enables an instance of ``Lemur`` to be reassigned or passed to a method using one of its supertypes, such as Primate or ``HasTail``.
+
+Once the object has been assigned to a new reference type, only the methods and variables available to that reference type are callable on the object without an explicit cast.
+
+```java
+HasTail hasTail = new Lemur();
+System.out.println(hasTail.age); // DOES NOT COMPILE
+Primate primate = new Lemur();
+System.out.println(primate.isTailStriped()); // DOES NOT COMPILE
+```
+
+- the reference ``hasTail`` has direct access only to methods defined with the ``HasTail`` interface; therefore, it doesn’t know that the variable age is part of the object.
+- Likewise, the reference primate has access only to methods defined in the ``Primate`` class, and it doesn’t have direct access to the ``isTailStriped()`` method.
+### Object vs. Reference
+
+In Java, all objects are accessed by reference, so as a developer you never have direct access to the object itself. Conceptually, though, you should consider the object as the entity that exists in memory, allocated by the Java Runtime Environment. Regardless of the type of the reference you have for the object in memory, the object itself doesn’t change.
+
+Since all objects inherit ``java.lang.Object``, they can all be reassigned to`` java.lang.Object``,
+
+```java
+Lemur lemur = new Lemur();
+Object lemurAsObject = lemur;
+```
+
+Even though the ``Lemur`` object has been assigned to a reference with a different type, the object itself has not changed and still exists as a ``Lemur`` object in memory. What has changed, then, is our ability to access methods within the ``Lemur`` class with the ``lemurAsObject`` reference. Without an explicit cast back to ``Lemur``, we no longer have access to the ``Lemur`` properties of the object.
+summarize this principle with the following two rules:
+1. ==**The type of the object determines which properties exist within the object in memory.**==
+2. ==**The type of the reference to the object determines which methods and variables are accessible to the Java program.**==
+
+
+![[Pasted image 20240331192333.png]]
+
+**==the same object exists in memory regardless of which reference is pointing to it. Depending on the type of the reference, we may only have access to certain methods.==**
+
+---
+
+**Using Interface References**
+
+**When working with a group of objects that implement a common interface, it is considered a good coding practice to use an interface as the reference type. This is especially common with collections**
+
+```java
+public void sortAndPrintZooAnimals(List<String> animals) {
+	Collections.sort(animals);
+	for(String a : animals) System.out.println(a);
+}
+```
+
+**At no point is this class interested in what the actual underlying object for ``animals`` is. It might be an ``ArrayList`` or another type. The point is, our code works on any of these types because we used the interface reference type rather than a class type.**
+
+---
+### Casting Objects
+
+```java
+Lemur lemur = new Lemur();
+Primate primate = lemur; // Implicit Cast to supertype
+Lemur lemur2 = (Lemur)primate; // Explicit Cast to subtype
+Lemur lemur3 = primate; // DOES NOT COMPILE (missing cast)
+```
+
+- first create a ``Lemur`` object and implicitly cast it to a ``Primate`` reference. Since ``Lemur`` is a subtype of ``Primate``, this can be done without a cast operator.
+- then cast it back to a ``Lemur`` object using an explicit cast, gaining access to all of the methods and fields in the ``Lemur`` class.
+- The last line does not compile because an explicit cast is required. Even though the object is stored in memory as a ``Lemur`` object, we need an explicit cast to assign it to ``Lemur``.
+
+Casting objects is similar to casting primitives. 
+- **==When casting objects, you do not need a cast operator if casting to an inherited supertype. This is referred to as an implicit cast and applies to classes or interfaces the object inherits.==**
+- **==Alternatively, to access a subtype of the current reference, you need to perform an explicit cast with a compatible type. If the underlying object is not compatible with the type, then a ``ClassCastException`` will be thrown at runtime.==**
+
+When reviewing a question on the exam that involves casting and polymorphism, be sure to remember what the instance of the object actually is. Then, focus on whether the compiler will allow the object to be referenced with or without explicit casts.
+
+1. ==**Casting a reference from a subtype to a supertype doesn’t require an explicit cast.**==
+2. ==**Casting a reference from a supertype to a subtype requires an explicit cast.**==
+3. ==**At runtime, an invalid cast of a reference to an incompatible type results in a ``ClassCastException`` being thrown.**==
+4. ==**The compiler disallows casts to unrelated types.==**
+
+#### Disallowed Casts
+
+The exam may try to trick you with a cast that the compiler knows is not permitted (aka impossible). 
+
+```java
+public class Bird {}
+
+public class Fish {
+	public static void main(String[] args) {
+		Fish fish = new Fish();
+		Bird bird = (Bird)fish; // DOES NOT COMPILE
+	}
+}
+```
+
+the classes ``Fish`` and ``Bird`` are not related through any class hierarchy that the compiler is aware of; therefore, the code will not compile. While they both extend Object implicitly, they are considered unrelated types since one cannot be a subtype of the other.
+
+#### Casting Interfaces
+
+While the compiler can enforce rules about casting to unrelated types for classes, it cannot always do the same for interfaces. instances support multiple inheritance, which limits what the compiler can reason about them. While a given class may not implement an interface, it’s possible that some subclass may implement the interface. When holding a reference to a particular class, the compiler doesn’t know which specific subtype it is holding.
+
+```java
+1: interface Canine {}
+2: interface Dog {}
+3: class Wolf implements Canine {}
+4:
+5: public class BadCasts {
+	6: public static void main(String[] args) {
+		7: Wolf wolfy = new Wolf();
+		8: Dog badWolf = (Dog)wolfy;
+	9: } 
+}
+```
+
+- a ``Wolf`` object is created and then assigned to a ``Wolf`` reference type on line 7. With interfaces, the compiler has limited ability to enforce many rules because even though a reference type may not implement an interface, one of its subclasses could. 
+- Therefore, it allows the invalid cast to the ``Dog`` reference type on line 8, even though ``Dog`` and ``Wolf`` are not related. even though the code compiles, it still throws a ``ClassCastException`` at runtime.
+
+**==the compiler can enforce one rule around interface casting. The compiler does not allow a cast from an interface reference to an object reference if the object type cannot possibly implement the interface, such as if the class is marked ``final``==**
+
+if the ``Wolf`` interface is marked final on line 3, then line 8 no longer compiles. The compiler recognizes that there are no possible subclasses of ``Wolf`` capable of implementing the ``Dog`` interface.
+###  The ``instanceof`` Operator
+
+The ``instanceof`` operator can be used to check whether an object belongs to a particular class or interface and to prevent a ``ClassCastException`` at runtime.
+
+```java
+1: class Rodent {}
+2:
+3: public class Capybara extends Rodent {
+	4: public static void main(String[] args) {
+		5: Rodent rodent = new Rodent();
+		6: var capybara = (Capybara)rodent; // ClassCastException
+	7: }
+8: }
+```
+
+```java
+6: if(rodent instanceof Capybara c) {
+	7: // Do stuff
+8: }
+```
+
+Now the code snippet doesn’t throw an exception at runtime and performs the cast only if the ``instanceof`` operator is successful. **==Just as the compiler does not allow casting an object to unrelated types, it also does not allow ``instanceof`` to be used with unrelated types==**
+
+```java
+public class Bird {}
+public class Fish {
+	public static void main(String[] args) {
+		Fish fish = new Fish();
+		if (fish instanceof Bird b) { // DOES NOT COMPILE
+			// Do stuff
+		}
+	}
+}
+```
+
+### Polymorphism and Method Overriding
+
+In Java, polymorphism states that when you override a method, you replace all calls to it, even those defined in the parent class.
+
+```java
+class Penguin {
+	public int getHeight() { return 3; }
+	public void printInfo() {
+		System.out.print(this.getHeight());
+	}
+}
+public class EmperorPenguin extends Penguin {
+	public int getHeight() { return 8; }
+	public static void main(String []fish) {
+		new EmperorPenguin().printInfo(); // 8
+	}
+}
+```
+
+- In this example, the object being operated on in memory is an ``EmperorPenguin``.
+- The ``getHeight()`` method is overridden in the subclass, meaning all calls to it are replaced at runtime. Despite ``printInfo()`` being defined in the ``Penguin`` class, calling ``getHeight()`` on the object calls the method associated with the precise object in memory, not the current reference type where it is called.
+- Even using the ``this`` reference, which is optional in this example, does not call the parent version because the method has been replaced.
+
+***==Polymorphism’s ability to replace methods at runtime via overriding is one of the most important properties of Java.==***
+
+can choose to limit polymorphic behavior by marking methods ``final``, which prevents them from being overridden by a subclass
+
+---
+
+**Calling the Parent Version of an Overridden Method**
+
+**can use the ``super`` reference to access it.**
+
+```java
+class Penguin {
+	public int getHeight() { return 3; }
+	public void printInfo() {
+		System.out.print(super.getHeight()); // DOES NOT COMPILE
+	}
+}
+```
+
+**``super`` refers to the superclass of ``Penguin``; in this case, ``Object``. The solution is to override ``printInfo()`` in the child ``EmperorPenguin`` class and use super there.**
+
+```java
+public class EmperorPenguin extends Penguin {
+	public int getHeight() { return 8; }
+	public void printInfo() {
+		System.out.print(super.getHeight());
+	}
+	public static void main(String []fish) {
+		new EmperorPenguin().printInfo(); // 3
+	}
+}
+```
+
+---
+
+#### Overriding vs. Hiding Members
+
+While method overriding replaces the method everywhere it is called, ``static`` method and variable hiding do not. hiding members is not a form of polymorphism since the methods and variables maintain their individual properties. Unlike method overriding, hiding members is very sensitive to the reference type and location where the member is being used.
+
+```java
+class Penguin {
+	public static int getHeight() { return 3; }
+	public void printInfo() {
+		System.out.println(this.getHeight());
+	}
+}
+public class CrestedPenguin extends Penguin {
+	public static int getHeight() { return 8; }
+	public static void main(String... fish) {
+		new CrestedPenguin().printInfo(); //3 
+	}
+}
+```
+
+The ``getHeight()`` method is static and is therefore hidden, not overridden. The result is that calling ``getHeight()`` in ``CrestedPenguin`` returns a different value than calling it in ``Penguin``, even if the underlying object is the same 
+
+while you are permitted to use an instance reference to access a ``static`` variable or method, doing so is often discouraged. The compiler will warn you when you access ``static`` members in a non-static way. In this case, the ``this`` reference had no impact on the program output. Besides the location, the reference type can also determine the value you get when you are working with hidden members
+
+```java
+class Marsupial {
+    protected int age = 2;
+
+    public static boolean isBiped() {
+        return false;
+    }
+}
+
+public class Kangaroo extends Marsupial {
+    protected int age = 6;
+
+    public static boolean isBiped() {
+        return true;
+    }
+
+    public static void main(String[] args) {
+        Kangaroo joey = new Kangaroo();
+        Marsupial moey = joey;
+        System.out.println(joey.isBiped()); // true
+        System.out.println(moey.isBiped()); // false
+        System.out.println(joey.age); // 6 
+        System.out.println(moey.age); // 2
+    }
+}
+```
+
+only one object (of type ``Kangaroo``) is created and stored in memory! Since ``static`` methods can only be hidden, not overridden, Java uses the reference type to determine which version of ``isBiped()`` should be called, resulting in ``joey.isBiped()`` printing true and ``moey.isBiped()`` printing false.
+Likewise, the ``age`` variable is hidden, not overridden, so the reference type is used to determine which value to output. This results in`` joey.age`` returning 6 and ``moey.age`` returning 2.
+## Summary #OCP_Summary 
 
 
