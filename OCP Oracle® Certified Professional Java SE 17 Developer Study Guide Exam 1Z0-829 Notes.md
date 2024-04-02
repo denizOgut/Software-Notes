@@ -16480,4 +16480,434 @@ G. All of the classes compile without issue.
 
 # Chapter 8 - Lambdas and Functional Interfaces #Chapter
 
+## Writing Simple Lambdas
+
+Functional programming is a way of writing code more declaratively. You specify what you want to do rather than dealing with the state of objects. You focus more on expressions than loops.
+
+Functional programming uses lambda expressions to write code. A lambda expression is a block of code that gets passed around. a lambda expression as an unnamed method existing inside an anonymous class. **==It has parameters and a body just like full-fledged methods do, but it doesn’t have a name like a real method.==**
+
+### Looking at a Lambda Example
+
+```java
+public record Animal(String species, boolean canHop, boolean canSwim) { }
+
+public interface CheckTrait {
+	boolean test(Animal a);
+}
+
+public class CheckIfHopper implements CheckTrait {
+	public boolean test(Animal a) {
+		return a.canHop();
+	}
+}
+```
+
+This is part of the problem that lambdas solve
+
+```java
+1: import java.util.*;
+2: public class TraditionalSearch {
+	3: public static void main(String[] args) {
+		4:
+		5: // list of animals
+		6: var animals = new ArrayList<Animal>();
+		7: animals.add(new Animal("fish", false, true));
+		8: animals.add(new Animal("kangaroo", true, false));
+		9: animals.add(new Animal("rabbit", true, false));
+		10: animals.add(new Animal("turtle", false, true));
+		11:
+		12: // pass class that does check
+		13: print(animals, new CheckIfHopper());
+	14: }
+	15: private static void print(List<Animal> animals, CheckTrait checker) {
+		16: for (Animal animal : animals) {
+		17:
+		18: // General check
+			19: if (checker.test(animal))
+				20: System.out.print(animal + " ");
+			21: }
+			22: System.out.println();
+	23: }
+24: }
+```
+
+What happens if we want to print the ``Animals`` that swim? Sigh. We need to write another class, ``CheckIfSwims``. Granted, it is only a few lines, but it is a whole new file.
+
+```java
+13: print(animals, a -> a.canHop());
+```
+
+We only have to add one line of code—no need for an extra class to do something simple. Here’s that other line:
+
+```java
+13: print(animals, a -> a.canSwim());
+// ...
+13: print(animals, a -> !a.canSwim());
+```
+
+The point is that it is really easy to write code that uses lambdas once you get the basics in place. **==This code uses a concept called deferred execution. Deferred execution means that code is specified now but will run later.==**
+
+### Learning Lambda Syntax
+
+One of the simplest lambda expressions is
+
+```java
+a -> a.canHop()
+```
+
+**==Lambdas work with interfaces that have exactly one abstract method.==**
+**==Java relies on *context* when figuring out what lambda expressions mean. Context refers to where and how the lambda is interpreted.==**
+
+```java
+print(animals, a -> a.canHop());
+```
+
+The ``print()`` method expects a ``CheckTrait`` as the second parameter:
+
+```java
+private static void print(List<Animal> animals, CheckTrait checker) { ... }
+```
+
+Since we are passing a lambda instead, Java tries to map our lambda to the abstract method declaration in the ``CheckTrait`` interface:
+
+```java
+boolean test(Animal a);
+```
+
+Since that interface’s method takes an ``Animal``, the lambda parameter has to be an ``Animal``. And since that interface’s method returns a ``boolean``, we know the lambda returns a ``boolean``.
+
+```java
+a -> a.canHop()
+(Animal a) -> { return a.canHop(); } // Identical !
+```
+
+The first example, shown in Figure 8.1, has three parts:
+
+![[Pasted image 20240402190013.png]]
+
+-  ==**A single parameter specified with the name a**==
+-  ==**The arrow operator (->) to separate the parameter and body**==
+-  ==**A body that calls a single method and returns the result of that method==**
+
+
+The second example shows the most verbose form of a lambda that returns a ``boolean`` in Figure 8.2
+
+![[Pasted image 20240402190127.png]]
+
+-  ==**A single parameter specified with the name a and stating that the type is ``Animal``**==
+-  ==**The arrow operator (->) to separate the parameter and body**==
+-  ==**A body that has one or more lines of code, including a semicolon and a ``return`` statement==**
+
+**==The parentheses around the lambda parameters can be omitted only if there is a single parameter and its type is not explicitly stated. We can omit braces when we have only a single statement. Java allows you to omit a ``return`` statement and semicolon ``(;)`` when no braces are used.==** This special shortcut doesn’t work when you have two or more statements.
+
+The syntax in Figure 8.1 and Figure 8.2 can be mixed and matched.
+
+```java
+a -> { return a.canHop(); }
+(Animal a) -> a.canHop()
+```
+
+---
+
+**fun fact: s -> {} is a valid lambda. If there is no code on the right side of the expression, you don’t need the semicolon or return statement.** #TIP 
+
+---
+
+![[Pasted image 20240402191012.png]]
+
+The final two rows take two parameters and ignore one of them—there isn’t a rule that says you must use all defined parameters.
+
+![[Pasted image 20240402191042.png]]
+
+Remember that the parentheses are optional only when there is one parameter and it doesn’t have a type declared.
+
+---
+
+**Assigning Lambdas to ``var``**
+
+```java
+var invalid = (Animal a) -> a.canHop(); // DOES NOT COMPILE
+```
+
+**Java inferring information about the lambda from the context? Well, ``var`` assumes the type based on the context as well. There’s not enough context here! ==Neither the lambda nor ``var`` have enough information to determine what type of functional interface should be used==.**
+
+----
+## Coding Functional Interfaces
+
+**==A functional interface is an interface that contains a single abstract method.==**
+###  Defining a Functional Interface
+
+```java
+@FunctionalInterface
+public interface Sprint {
+	public void sprint(int speed);
+}
+public class Tiger implements Sprint {
+	public void sprint(int speed) {
+		System.out.println("Animal is sprinting fast! " + speed);
+	}
+}
+```
+
+the ``Sprint`` interface is a functional interface because it contains exactly one abstract method, and the ``Tiger`` class is a valid class that implements the interface.
+
+---
+**The ``@FunctionalInterface`` Annotation**
+
+**The ``@FunctionalInterface`` annotation tells the compiler that you intend for the code to be a functional interface. If the interface does not follow the rules for a functional interface, the compiler will give you an error**
+
+```java
+@FunctionalInterface
+public interface Dance { // DOES NOT COMPILE
+	void move();
+	void rest();
+}
+```
+
+**Java includes ``@FunctionalInterface`` on some, but not all, functional interfaces. This annotation means the authors of the interface promise it will be safe to use in a lambda in the future. However, just because you don’t see the annotation doesn’t mean it’s not a functional interface. Remember that having exactly one abstract method is what makes it a functional interface, not the annotation.**
+
+---
+
+```java
+public interface Dash extends Sprint {}
+public interface Skip extends Sprint {
+	void skip();
+}
+public interface Sleep {
+	private void snore() {}
+	default int getZzz() { return 1; }
+}
+public interface Climb {
+	void reach();
+	default void fall() {}
+	static int getBackUp() { return 100; }
+	private static boolean checkHeight() { return true; }
+}
+```
+
+- The ``Dash`` interface is a functional interface because it extends the ``Sprint`` interface and inherits the single abstract method ``sprint()``.
+- The ``Skip`` interface is not a valid functional interface because it has two abstract methods: the inherited ``sprint()`` method and the declared ``skip()`` method.
+- The ``Sleep`` interface is also not a valid functional interface. Neither ``snore()`` nor ``getZzz()`` meets the criteria of a single abstract method. **==Even though default methods function like abstract methods, in that they can be overridden in a class implementing the interface, they are insufficient for satisfying the single abstract method requirement.==**
+- the ``Climb`` interface is a functional interface. Despite defining a slew of methods, it contains only one abstract method: ``reach()``.
+
+### Adding Object Methods
+
+All classes inherit certain methods from ``Object``.
+
+-  `public String toString()`
+-  `public boolean equals(Object)`
+-  `public int hashCode()`
+
+**==there is one exception to the single abstract method rule that you should be familiar with. If a functional interface includes an ``abstract`` method with the same signature as a ``public`` method found in ``Object``, those methods do not count toward the single abstract method test.==** The motivation behind this rule is that any class that implements the interface will inherit from ``Object``, as all classes do, and therefore always implement these methods.
+
+---
+
+**Since Java assumes all classes ``extend`` from ``Object``, you also cannot declare an interface method that is incompatible with Object. For example, declaring an abstract method ``int toString()`` in an interface would not compile since Object’s version of the method returns a ``String``.**
+
+---
+
+```java
+public interface Soar {
+	abstract String toString(); // Not functional interface
+}
+```
+
+Since ``toString()`` is a public method implemented in ``Object``, it does not count toward the single abstract method test
+
+```java
+public interface Dive {
+	String toString();
+	public boolean equals(Object o);
+	public abstract int hashCode();
+	public void dive(); // Functional Interface
+}
+```
+
+The ``dive()`` method is the single ``abstract`` method, while the others are not counted since they are ``public`` methods defined in the ``Object`` class.
+
+Be wary of examples that resemble methods in the ``Object`` class but are not actually defined in the ``Object`` class
+
+```java
+public interface Hibernate {
+	String toString();
+	public boolean equals(Hibernate o);
+	public abstract int hashCode();
+	public void rest();
+}
+```
+
+Despite looking a lot like our ``Dive`` interface, the ``Hibernate`` interface uses ``equals(Hibernate)`` instead of ``equals(Object)``. Because this does not match the method signature of the ``equals(Object)`` method defined in the ``Object`` class, this interface is counted as containing two abstract methods: ``equals(Hibernate)`` and ``rest()``
+
+## Using Method References
+
+Method references are another way to make the code easier to read, such as simply mentioning the name of the method.
+
+```java
+public interface LearnToSpeak {
+	void speak(String sound);
+}
+
+	public class DuckHelper {
+	public static void teacher(String name, LearnToSpeak trainer) {
+		// Exercise patience (omitted)
+		trainer.speak(name);
+	}
+}
+
+public class Duckling {
+	public static void makeSound(String sound) {
+		LearnToSpeak learner = s -> System.out.println(s);
+		DuckHelper.teacher(sound, learner);
+	}
+}
+```
+
+There’s a bit of redundancy, though. The lambda declares one parameter named ``s``. However, it does nothing other than pass that parameter to another method. A method reference lets us remove that redundancy and instead write this:
+
+```java
+LearnToSpeak learner = System.out::println;
+```
+
+The ``::`` operator tells Java to call the ``println()`` method later
+
+**==A method reference and a lambda behave the same way at runtime==**. You can pretend the compiler turns your method references into lambdas for you. There are four formats for method references:
+
+-  ==**static methods**==
+-  ==**Instance methods on a particular object**==
+-  ==**Instance methods on a parameter to be determined at runtime**==
+-  ==**Constructors==**
+
+### Calling ``static`` Methods
+
+```java
+interface Converter {
+	long round(double num);
+}
+```
+
+can implement this interface with the ``round()`` method in ``Math``. Here we assign a method reference and a lambda to this functional interface:
+
+```java
+14: Converter methodRef = Math::round;
+15: Converter lambda = x -> Math.round(x);
+16:
+17: System.out.println(methodRef.round(100.1)); // 100
+```
+
+On line 14, we reference a method with one parameter, and Java knows that it’s like a lambda with one parameter. Additionally, Java knows to pass that parameter to the method. With both lambdas and method references, Java infers information from the *context*. Java looks for a method that matches that description. If it can’t find it or finds multiple matches, then the compiler will report an error. The latter is sometimes called an ambiguous type error.
+
+### Calling Instance Methods on a Particular Object
+
+```java
+interface StringStart {
+	boolean beginningCheck(String prefix);
+}
+
+18: var str = "Zoo";
+19: StringStart methodRef = str::startsWith;
+20: StringStart lambda = s -> str.startsWith(s);
+21:
+22: System.out.println(methodRef.beginningCheck("A")); // false
+```
+
+Line 19 shows that we want to call ``str.startsWith()`` and pass a single parameter to be supplied at runtime.
+**==A method reference doesn’t have to take any parameters.==**
+
+```java
+interface StringChecker {
+boolean check();
+}
+
+18: var str = "";
+19: StringChecker methodRef = str::isEmpty;
+20: StringChecker lambda = () -> str.isEmpty();
+21:
+22: System.out.print(methodRef.check()); // true
+```
+
+Since the method on ``String`` is an instance method, we call the method reference on an instance of the ``String`` class. While all method references can be turned into lambdas, the opposite is not always true.
+
+```java
+var str = "";
+StringChecker lambda = () -> str.startsWith("Zoo");
+
+StringChecker methodReference = str::startsWith; // DOES NOT COMPILE
+StringChecker methodReference = str::startsWith("Zoo"); // DOES NOT COMPILE
+```
+
+### Calling Instance Methods on a Parameter
+
+```java
+interface StringParameterChecker {
+	boolean check(String text);
+}
+
+23: StringParameterChecker methodRef = String::isEmpty;
+24: StringParameterChecker lambda = s -> s.isEmpty();
+25:
+26: System.out.println(methodRef.check("Zoo")); // false
+```
+
+Line 23 says the method that we want to call is declared in ``String``. It looks like a ``static`` method, but it isn’t. Instead, Java knows that ``isEmpty()`` is an instance method that does not take any parameters. Java uses the parameter supplied at runtime as the instance on which the method is called.
+
+can even combine the two types of instance method references.
+
+```java
+interface StringTwoParameterChecker {
+	boolean check(String text, String prefix);
+}
+```
+
+Pay attention to the parameter order when reading the implementation:
+
+```java
+26: StringTwoParameterChecker methodRef = String::startsWith;
+27: StringTwoParameterChecker lambda = (s, p) -> s.startsWith(p);
+28:
+29: System.out.println(methodRef.check("Zoo", "A")); // false
+```
+
+Since the functional interface takes two parameters, Java has to figure out what they represent. The first one will always be the instance of the object for instance methods. Any others are to be method parameters.
+
+line 26 may look like a ``static`` method, but it is really a method reference declaring that the instance of the object will be specified later. Line 27 shows some of the power of a method reference.
+
+### Calling Constructors
+
+A constructor reference is a special type of method reference that uses ``new`` instead of a method and instantiates an object.
+
+```java
+interface EmptyStringCreator {
+	String create();
+}
+
+30: EmptyStringCreator methodRef = String::new;
+31: EmptyStringCreator lambda = () -> new String();
+32:
+33: var myString = methodRef.create();
+34: System.out.println(myString.equals("Snake")); // false
+```
+
+```java
+interface StringCopier {
+	String copy(String value);
+}
+```
+
+In the implementation, notice that line 32 in the following example has the same method reference as line 30 in the previous example:
+
+```java
+32: StringCopier methodRef = String::new;
+33: StringCopier lambda = x -> new String(x);
+34:
+35: var myString = methodRef.copy("Zebra");
+36: System.out.println(myString.equals("Zebra")); // true
+```
+
+This means you can’t always determine which method can be called by looking at the method reference. **==Instead, you have to look at the context to see what parameters are used and if there is a return type.==**
+
+### Reviewing Method References
+
+![[Pasted image 20240402200041.png]]
+
+## Working with Built-in Functional Interfaces
 
