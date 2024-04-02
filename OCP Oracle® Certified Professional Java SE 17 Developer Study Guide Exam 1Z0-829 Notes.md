@@ -15643,6 +15643,8 @@ F. None of the above
 **My Answer: A, B
 Correct Answer: B,D**
 
+**Iguana does not compile, as it declares a static field with the same name as an instance field. ==Records are implicitly final and cannot be marked abstract==, which is why Gecko compiles and Chameleon does not**
+
 ---
 
 2. Which of the following statements can be inserted in the blank line so that the code will compile
@@ -15670,6 +15672,8 @@ G. None of the above; the code contains a compilation error.
 **My Answer: A,B,D,E**
 **Correct Answer: A,B,D,E**
 
+**The blank can be filled with any class or interface that is a supertype of TurtleFrog. Option A is the direct superclass of TurtleFrog, and option B is the same class, so both are correct. TurtleFrog inherits the CanHop interface, so option D is correct. Option E is also correct, as var is permitted when the type is known.**
+
 ---
 
 3. What is the result of the following program?
@@ -15696,6 +15700,8 @@ F. None of the above
 
 **My Answer: C**
 **Correct Answer: C**
+
+**When an enum contains only a list of values, the semicolon (;) after the list is optional. When an enum contains any other members, such as a constructor or variable, the semicolon is required. Since the enum list does not end with a semicolon, the code does not compile, making option C the correct answer**
 
 ---
 
@@ -15727,6 +15733,8 @@ E. None of the above
 **My Answer: C**
 **Correct Answer: C**
 
+**A class extending a sealed class must be marked final, sealed, or non-sealed. Since Armadillo is missing a modifier, the code does not compile**
+
 ---
 
 5.  Which statements about the following program are correct? (Choose all that apply.)
@@ -15755,6 +15763,8 @@ F. The code will not compile because of line 10.
 **My Answer: F**
 **Correct Answer: E**
 
+**The concrete class Beetle extends Insect and inherits two abstract methods, getNumberOfSections() and getNumberOfLegs(). The Beetle class includes an overloaded version of getNumberOfSections() that takes an int value. The method declaration is valid, making option F incorrect, although it does not satisfy the abstract method requirement inherited from HasExoskeleton. For this reason, only one of the two abstract methods is properly overridden. The Beetle class therefore does not compile, and option E is correct.**
+
 ---
 
 6. Which statements about the following program are correct? (Choose all that apply.)
@@ -15780,6 +15790,8 @@ F. The code will not compile because line 8 contains an invalid method override.
 
 **My Answer: D,E**
 **Correct Answer: D,E**
+
+**Line 4 does not compile, since an abstract method cannot include a body. Line 7 also does not compile because the wrong keyword is used. A class implements an interface; it does not extend it.**
 
 ---
 
@@ -15807,6 +15819,8 @@ F. None of the above
 **My Answer: B**
 **Correct Answer: E**
 
+**The inherited interface method getNumOfGills(int) is implicitly public; therefore, it must be declared public in any concrete class that implements the interface. Since the method uses the package (default) modifier in the ClownFish class, line 6 does not compile, making option E the correct answer.**
+
 ---
 
 8. When inserted in order, which modifiers can fill in the blank to create a properly encapsulated class? (Choose all that apply.)
@@ -15832,6 +15846,8 @@ F. None of the above
 
 **My Answer: A**
 **Correct Answer: A,B,C**
+
+**Instance variables must include the private access modifier, making option D incorrect. While it is common for methods to be public, this is not required.**
 
 ---
 
@@ -15862,6 +15878,8 @@ blank.
 **My Answer: C,F**
 **Correct Answer: A,E,F**
 
+**The setSnake() method requires an instance of Snake. Cobra is a direct subclass, while GardenSnake is an indirect subclass. For these reasons, options A and E are correct. Option B is incorrect because Snake is abstract and requires a concrete subclass for instantiation. Option C is incorrect because Object is a supertype of Snake, not a subtype. Option D is incorrect as String is an unrelated class and does not inherit Snake. Finally, a null value can always be passed as an object value, regardless of type, so option F is also correct.**
+
 ---
 
 10. What types can be inserted in the blanks on the lines marked X and Z that allow the code to compile? (Choose all that apply.)
@@ -15891,6 +15909,8 @@ G. The code does not compile for a different reason.
 
 **My Answer: G**
 **Correct Answer: A,B,C,E**
+
+**Walk declares a private method that is not inherited in any of its subtypes. For this reason, any valid class is supported on line X, making options A, B, and C correct. Line Z is more restrictive, with only ArrayList or subtypes of ArrayList supported, making option E correct**
 
 ---
 
@@ -15924,6 +15944,8 @@ F. The code compiles but produces an exception at runtime.
 **My Answer: B**
 **Correct Answer: E**
 
+**Starting with Java 16, inner classes can contain static variables, so the code compiles. Remember that ==private constructors can be used by any methods within the outer class==. The butter reference on line 8 refers to the inner class variable defined on line 6, with the output being 10 at runtime, and making option B correct**
+
 ---
 
 12. Which of the following are true about encapsulation? (Choose all that apply.)
@@ -15936,6 +15958,8 @@ E. It requires private instance variables.
 
 **My Answer: A,B,E**
 **Correct Answer: A,B,E**
+
+
 
 ---
 
@@ -15968,6 +15992,8 @@ G. The code compiles but produces an exception at runtime.
 **My Answer: F**
 **Correct Answer: F**
 
+**When using an enum in a switch expression, the case statement must be made up of the enum values only. If the enum name is used in the case statement value, then the code does not compile.** 
+
 ---
 
 14. Which statements about sealed classes are correct? (Choose all that apply.)
@@ -15982,6 +16008,9 @@ G. None of the above
 
 **My Answer: C,D**
 **Correct Answer: A,C,E**
+
+**A sealed interface restricts which interfaces may extend it, or which classes may implement it, making options A and E correct. Option C is correct. While a sealed class is commonly extended by a subclass**
+**marked final, it can also be extended by a sealed or non-sealed subclass marked abstract**
 
 ---
 
@@ -16015,6 +16044,8 @@ G. None of the above
 **My Answer: B,C,D,F**
 **Correct Answer: G**
 
+**Trick question—the code does not compile! For this reason, option G is correct. The Spirit class is marked final, so it cannot be extended. The main() method uses an anonymous class that inherits from Spirit, which is not allowed**
+
 ---
 
 16. The following code appears in a file named Ostrich.java. What is the result of compiling the source file?
@@ -16036,6 +16067,8 @@ E. A compiler error occurs on line 5.
 
 **My Answer: E**
 **Correct Answer: E**
+
+**The OstrichWrangler class is a static nested class; therefore, it cannot access the instance member count. For this reason, line 5 does not compile, and option E is correct.**
 
 ---
 
@@ -16064,6 +16097,8 @@ H. Line 8
 
 **My Answer: E,G**
 **Correct Answer: E,G**
+
+**Lines 2 and 3 compile with interface variables implicitly public, static, and final. Line 4 also compiles, as static methods are implicitly public. Line 5 does not compile, making option E correct. Non-static interface methods with a body must be explicitly marked private or default. Line 6 compiles, with the public modifier being added by the compiler. Line 7 does not compile, as interfaces do not have protected members, making option G correct. Finally, line 8 compiles without issue.**
 
 ---
 
@@ -16097,6 +16132,8 @@ G. None of the above
 **My Answer: B**
 **Correct Answer: E**
 
+**Diet is an inner class, which requires an instance of Deer to instantiate. Since the main() method is static, there is no such instance. Therefore, the main() method does not compile, and option E is correct**
+
 ---
 
 19. Which of the following are printed by the Bear program? (Choose all that apply.)
@@ -16129,6 +16166,8 @@ G. The code does not compile.
 **My Answer: G**
 **Correct Answer: G**
 
+
+
 ---
 
 20. Which statements about polymorphism and method inheritance are correct? (Choose all that apply.)
@@ -16141,6 +16180,8 @@ F. The reference type of the variable determines which hidden method will be cal
 
 **My Answer: A,D,F**
 **Correct Answer: A,D,F**
+
+**Polymorphism is the property of an object to take on many forms. Part of polymorphism is that methods are replaced through overriding wherever they are called, regardless of whether they’re in a parent or child class. For this reason, option A is correct, and option E is incorrect. With hidden static methods, Java relies on the location and reference type to determine which method is called, making option B incorrect and option F correct. Finally, making a method final, not static, prevents it from being overridden, making option D correct and option C incorrect.**
 
 ---
 
@@ -16166,6 +16207,8 @@ F. None of the above
 **My Answer: A,C,F**
 **Correct Answer: F**
 
+**==The record defines an overloaded constructor using parentheses, not a compact one. For this reason, the first line must be a call to another constructor, such as this(500, "Acme", LocalDate.now())==. For this reason, the code does not compile and option F is correct**
+
 ---
 
 22. Which of the following can be inserted in the rest() method? (Choose all that apply.)
@@ -16190,6 +16233,8 @@ H. var h = new Cub()
 
 **My Answer: C,D,H**
 **Correct Answer: C,D,G**
+
+**Option C correctly creates an instance of an inner class Cub using an instance of the outer class Lion. Options A, B, E, and H use incorrect syntax for creating an instance of the Cub class. Options D and G correctly create an instance of the static nested Den class, which does not require an instance of Lion, while option F uses invalid syntax.**
 
 ---
 
@@ -16224,6 +16269,8 @@ output without creating a new object.
 **My Answer: D**
 **Correct Answer: D**
 
+**if a class or interface inherits two interfaces containing default methods with the same signature, it must override the method with its own implementation. The Penguin class does this correctly, so option E is incorrect. The way to access an inherited default method is by using the syntax Swim.super.perform(), making option D correct**
+
 ---
 
 24. Which lines of the following interface do not compile? (Choose all that apply.)
@@ -16249,6 +16296,8 @@ G. None of the above
 
 **My Answer: B,E**
 **Correct Answer: B,E**
+
+**Line 3 does not compile because the static method hunt() cannot access an abstract instance method getName(), making option B correct. Line 6 does not compile because the private static method sneak() cannot access the private instance method roar(), making option E correct. The rest of the lines compile without issue.**
 
 ---
 
@@ -16284,6 +16333,8 @@ F. None of the above
 **My Answer: A**
 **Correct Answer: B**
 
+**Zebra.this.x is the correct way to refer to x in the Zebra class. Line 5 defines an abstract local class within a method, while line 11 defines a concrete anonymous class that extends the Stripes class. The code compiles without issue and prints x is 24 at runtime, making option B the correct answer.**
+
 ---
 
 26.   Which statements about the following enum are true? (Choose all that apply.)
@@ -16314,6 +16365,8 @@ G. The code compiles successfully.
 **My Answer: C,F**
 **Correct Answer: C,F**
 
+**Enums are required to have a semicolon (;) after the list of values if there is anything else in the enum. Don’t worry; you won’t be expected to track down missing semicolons on the whole exam—only on enum questions. For this reason, line 5 should have a semicolon after it since it is the end of the list of enums, making option F correct. Enum constructors are implicitly private, making option C correct as well. The rest of the enum compiles without issue.**
+
 ---
 
 27. Assuming a record is defined with at least one field, which components does the compiler always insert, each of which may be overridden or redeclared? (Choose all that apply.)
@@ -16327,6 +16380,7 @@ G. The hashCode() method
 
 **My Answer: B,C,D,G**
 **Correct Answer: B,C,D,G**
+
 
 ---
 
@@ -16352,6 +16406,8 @@ F. None of the classes or interfaces compile.
 
 **My Answer: B,D,E**
 **Correct Answer: A,B,D**
+
+**Camel does not compile because the travel() method does not declare a body, nor is it marked abstract, making option A correct. EatsGrass also does not compile because an interface method cannot be marked both private and abstract, making option B correct. Finally, Eagle does not compile because it declares an abstract method soar() in a concrete class, making option D correct. The other classes compile without issue.**
 
 ---
 
@@ -16389,6 +16445,8 @@ G. 4
 **My Answer: F**
 **Correct Answer: F**
 
+**The code does not compile, so options A through C are incorrect. Both lines 5 and 12 do not compile, as this() is used instead of this. Remember, this() refers to calling a constructor, whereas this is a reference to the current instance. Next, the compiler does not allow casting to an unrelated class type. Since Orangutan is not a subclass of Primate, the cast on line 15 is invalid, and the code does not compile. Due to these three lines containing compilation errors, option F is the correct answer.**
+
 ---
 
 30. Assuming the following classes are declared as top-level types in the same file, which classes contain compiler errors? (Choose all that apply.)
@@ -16414,6 +16472,8 @@ G. All of the classes compile without issue.
 
 **My Answer: G**
 **Correct Answer: C,E**
+ 
+ **Bird and its nested Flamingo subclass compile without issue. The permits clause is optional if the subclass is nested or declared in the same file. For this reason, Monkey and its subclass Mandrill also compile without issue. ==EmperorTamarin does not compile, as it is missing a non-sealed, sealed, or final modifier, making option C correct==. ==Friendly also does not compile, since it lists a subclass Silly that does not extend it, making option E correct==. While the permits clause is optional, the extends clause is not. Silly compiles just fine. Even though it does not extend Friendly, the compiler error is in the sealed class.**
 
 ---
 
