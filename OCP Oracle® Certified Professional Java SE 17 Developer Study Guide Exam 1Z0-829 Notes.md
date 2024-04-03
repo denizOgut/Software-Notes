@@ -17210,3 +17210,171 @@ There are a few things to notice that are different between Table 8.4 and Table 
 -  ==**The single abstract method is often renamed when a primitive type is returned.==**
 
 ## Working with Variables in Lambdas
+
+They can appear in three places with respect to lambdas: 
+- ==**the parameter list,**== 
+- ==**local variables declared inside the lambda body,**==  
+- ==**variables referenced from the lambda body.==** 
+ 
+All three of these are opportunities for the exam to trick you
+
+![[Pasted image 20240403152301.png]]
+
+### Listing Parameters
+
+specifying the type of parameters is optional. Additionally, ``var`` can be used in place of the specific type. That means that all three of these statements are interchangeable:
+
+```java
+Predicate<String> p = x -> true;
+Predicate<String> p = (var x) -> true;
+Predicate<String> p = (String x) -> true;
+```
+
+The exam might ask you to identify the type of the lambda parameter. A lambda infers the types from the surrounding context. That means you get to do the same.  Another place to look for the type is in a method signature.
+
+```java
+public void whatAmI() {
+	consume((var x) -> System.out.print(x), 123);
+}
+
+public void consume(Consumer<Integer> c, int num) {
+	c.accept(num);
+}
+```
+
+The ``whatAmI()`` method creates a lambda to be passed to the ``consume()`` method. Since the ``consume()`` method expects an ``Integer`` as the generic, we know that is what the inferred type of ``x`` will be. In some cases, you can determine the type without even seeing the method signature
+
+```java
+public void counts(List<Integer> list) {
+	list.sort((var x, var y) -> x.compareTo(y));
+}
+```
+
+Since we are sorting a list, we can use the type of the list to determine the type of the lambda parameter.
+**==Since lambda parameters are just like method parameters, you can add modifiers to them. Specifically, you can add the ``final`` modifier or an ``annotation``==**
+
+```java
+public void counts(List<Integer> list) {
+	list.sort((final var x, @Deprecated var y) -> x.compareTo(y));
+}
+```
+
+---
+Parameter List Formats
+
+**You have three formats for specifying parameter types within a lambda: without types, with types, and with ``var``. ==The compiler requires all parameters in the lambda to use the same format==.**
+
+```java
+5: (var x, y) -> "Hello" // DOES NOT COMPILE
+6: (var x, Integer y) -> true // DOES NOT COMPILE
+7: (String x, var y, Integer z) -> true // DOES NOT COMPILE
+8: (Integer x, y) -> "goodbye" // DOES NOT COMPILE
+```
+
+- Lines 5 needs to remove var from x or add it to y
+- lines 6 and 7 need to use the type or var consistently.
+- line 8 needs to remove Integer from x or add a type to y.
+---
+
+### Using Local Variables Inside a Lambda Body
+
+While it is most common for a lambda body to be a single expression, it is legal to define a block. That block can have anything that is valid in a normal Java block, including local variable declarations.
+
+```java
+(a, b) -> { int c = 0; return 5; }
+(a, b) -> { int a = 0; return 5; } // DOES NOT COMPILE
+```
+
+We tried to redeclare ``a``, which is not allowed. **==Java doesn’t let you create a local variable with the same name as one already declared in that scope==**. While this kind of error is less likely to come up in real life, it has been known to appear on the exam!
+
+```java
+11: public void variables(int a) {
+		12: int b = 1;
+		13: Predicate<Integer> p1 = a ->{
+		14: int b = 0;
+		15: int c = 0;
+	16: return b == c; }
+17: }
+```
+
+- The first is on line 13. The variable ``a`` was already used in this scope as a method parameter, so it cannot be reused.
+- line 14, where the code attempts to redeclare local variable ``b``.
+- The variable ``p1`` is missing a semicolon at the end. There is a semicolon before the }, but that is inside the block.
+### Referencing Variables from the Lambda Body
+
+Lambda bodies are allowed to reference some variables from the surrounding code.
+
+```java
+import java.util.function.Consumer;
+
+public class Crow {
+    private String color;
+    
+    public void caw(String name) {
+        String volume = "loudly";
+        Consumer<String> consumer = s ->
+            System.out.println(name + " says " + volume + " that she is " + color);
+    }
+}
+```
+
+a lambda can access an instance variable, method parameter, or local variable under certain conditions. **==Instance variables (and class variables) are always allowed. The only thing lambdas cannot access are variables that are not final or effectively final.==** 
+
+```java
+2: public class Crow {
+	3: private String color;
+	4: public void caw(String name) {
+		5: String volume = "loudly";
+		6: name = "Caty";
+		7: color = "black";
+	8:
+	9: Consumer<String> consumer = s ->
+		10: System.out.println(name + " says " // DOES NOT COMPILE
+		11: + volume + " that she is " + color); // DOES NOT COMPILE
+		12: volume = "softly";
+	13: }
+14: }
+```
+
+- The method parameter name is not effectively final because it is set on line 6.
+- However, the compiler error occurs on line 10.
+- It’s not a problem to assign a value to a non-final variable.
+- However, once the lambda tries to use it, we do have a problem.
+- The variable is no longer effectively final, so the lambda is not allowed to use the variable.
+- The variable volume is not effectively final either since it is updated on line 12.
+- In this case, the compiler error is on line 11. That’s before the reassignment.
+
+![[Pasted image 20240403154441.png]]
+
+## Summary #OCP_Summary 
+
+**==Lambda expressions, or lambdas, allow passing around blocks of code. The full syntax looks like this==:**
+```java
+(String a, String b) -> { return a.equals(b); }
+```
+
+**==The parameter types can be omitted. When only one parameter is specified without a type, the parentheses can also be omitted. The braces and ``return`` statement can be omitted for a single statement, making the short form as follows:==**
+
+```java
+a -> a.equals(b)
+```
+
+**==Lambdas can be passed to a method expecting an instance of a functional interface. A lambda can define parameters or variables in the body as long as their names are different from existing local variables. The body of a lambda is allowed to use any instance or class variables. Additionally, it can use any local variables or method parameters that are ``final`` or effectively final.**==
+
+==**A method reference is a compact syntax for writing lambdas that refer to methods. There are four types: ``static`` methods, instance methods on a particular object, instance methods on a parameter, and constructor references.**==
+
+==**A functional interface has a single abstract method. Any functional interface can be implemented with a lambda expression. You must know the built-in functional interfaces.==**
+
+## Exam Essentials #Essential 
+
+**Write simple lambda expressions**. Look for the presence or absence of optional elements in lambda code. **==Parameter types are optional. Braces and the return keyword are optional when the body is a single statement. Parentheses are optional when only one parameter is specified and the type is implicit.==**
+
+**Determine whether a variable can be used in a lambda body**. **==Local variables and method parameters must be final or effectively final to be referenced. This means the code must compile if you were to add the final keyword to these variables. Instance and class variables are always allowed.==**
+
+**Translate method references to the “long form” lambda.** Be able to convert method references into regular lambda expressions and vice versa. For example, ``System.out::print`` and ``x -> System.out.print(x)`` are equivalent. Remember that the order of method parameters is inferred when using a method reference.
+
+**Determine whether an interface is a functional interface**. Use the single abstract method
+(SAM) rule to determine whether an interface is a functional interface. **==Other interface method types (``default``, ``private``, ``static``, and ``private static``) do not count toward the single abstract method count, nor do any ``public`` methods with signatures found in ``Object``.==**
+
+**Identify the correct functional interface given the number of parameters, return type, and method name—and vice versa.** The most common functional interfaces are Supplier, Consumer, Function, and Predicate. There are also binary versions and primitive versions of many of these methods. You can use the number of parameters and return type to tell them apart.
+## Review Questions
