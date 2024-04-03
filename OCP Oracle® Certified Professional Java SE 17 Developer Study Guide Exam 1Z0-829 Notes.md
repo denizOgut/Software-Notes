@@ -16911,3 +16911,302 @@ This means you can’t always determine which method can be called by looking at
 
 ## Working with Built-in Functional Interfaces
 
+The core functional interfaces in Table 8.4 are provided in the ``java.util.function`` package.
+
+**TABLE 8.4 Common functional interfaces**
+![[Pasted image 20240403140214.png]]
+
+### Implementing Supplier
+
+A ``Supplier`` is used when you want to generate or supply values without taking any input. The ``Supplier`` interface is defined as follows:
+
+```java
+@FunctionalInterface
+public interface Supplier<T> {
+    T get();
+}
+
+Supplier<LocalDate> s1 = LocalDate::now; 
+Supplier<LocalDate> s2 = () -> LocalDate.now();
+
+LocalDate d1 = s1.get(); 
+LocalDate d2 = s2.get();
+```
+
+The ``LocalDate::now`` method reference is used to create a Supplier to assign to an intermediate variable ``s1``. A Supplier is often used when constructing new objects. We’ve been using generics to declare what type of Supplier we are using.
+
+```java
+Supplier<ArrayList<String>> s3 = ArrayList::new;
+ArrayList<String> a1 = s3.get();
+System.out.println(a1); // []
+```
+
+have a Supplier of a certain type. That type happens to be ``ArrayList<String>``. Then calling ``get()`` creates a new instance of ``ArrayList<String>``, which is the generic type of the Supplier—in other words, a generic that contains another generic. Be sure to look at the code carefully when this type of thing comes up.
+Notice how we called ``get()`` on the functional interface. What would happen if we tried to print out ``s3`` itself?
+
+```java
+System.out.println(s3); // functionalinterface.BuiltIns$$Lambda$1/0x0000000800066840@4909b8da
+```
+
+That’s the result of calling ``toString()`` on a lambda. 
+### Implementing Consumer and BiConsumer
+ 
+ use a Consumer when you want to do something with a parameter but not return anything. BiConsumer does the same thing, except that it takes two parameters. The interfaces are defined as follows:
+
+```java
+@FunctionalInterface
+public interface Consumer<T> {
+	void accept(T t);
+	// omitted default method
+}
+@FunctionalInterface
+public interface BiConsumer<T, U> {
+	void accept(T t, U u);
+	// omitted default method
+}
+```
+
+```java
+Consumer<String> c1 = System.out::println;
+Consumer<String> c2 = x -> System.out.println(x);
+
+c1.accept("Annie"); // Annie
+c2.accept("Annie"); // Annie
+```
+
+**==BiConsumer is called with two parameters. They don’t have to be the same type.==**
+
+```java
+var map = new HashMap<String, Integer>();
+BiConsumer<String, Integer> b1 = map::put;
+BiConsumer<String, Integer> b2 = (k, v) -> map.put(k, v);
+
+b1.accept("chicken", 7);
+b2.accept("chick", 1);
+System.out.println(map); // {chicken=7, chick=1}
+```
+
+```java
+var map = new HashMap<String, String>();
+BiConsumer<String, String> b1 = map::put;
+BiConsumer<String, String> b2 = (k, v) -> map.put(k, v);
+
+b1.accept("chicken", "Cluck");
+b2.accept("chick", "Tweep");
+System.out.println(map); // {chicken=Cluck, chick=Tweep}
+```
+
+### Implementing Predicate and BiPredicate
+
+Predicate is often used when filtering or matching. Both are common operations. A BiPredicate is just like a Predicate, except that it takes two parameters instead of one. The interfaces are defined as follows:
+
+```java
+@FunctionalInterface
+public interface Predicate<T> {
+	boolean test(T t);
+	// omitted default and static methods
+}
+@FunctionalInterface
+public interface BiPredicate<T, U> {
+	boolean test(T t, U u);
+	// omitted default methods
+}
+```
+
+```java
+Predicate<String> p1 = String::isEmpty;
+Predicate<String> p2 = x -> x.isEmpty();
+
+System.out.println(p1.test("")); // true
+System.out.println(p2.test("")); // true
+```
+
+```java
+BiPredicate<String, String> b1 = String::startsWith;
+BiPredicate<String, String> b2 = (string, prefix) -> string.startsWith(prefix);
+
+System.out.println(b1.test("chicken", "chick")); // true
+System.out.println(b2.test("chicken", "chick")); // true
+```
+
+**==The method reference includes both the instance variable and parameter for ``startsWith()``==**. This is a good example of how method references save quite a lot of typing. The downside is that they are less explicit, and you really have to understand what is going on!
+
+### Implementing Function and BiFunction
+
+A Function is responsible for turning one parameter into a value of a potentially different type and returning it. Similarly, a BiFunction is responsible for turning two parameters into a value and returning it.
+
+```java
+@FunctionalInterface
+public interface Function<T, R> {
+	R apply(T t);
+	// omitted default and static methods
+}
+@FunctionalInterface
+public interface BiFunction<T, U, R> {
+	R apply(T t, U u);
+	// omitted default method
+}
+```
+
+```java
+Function<String, Integer> f1 = String::length;
+Function<String, Integer> f2 = x -> x.length();
+System.out.println(f1.apply("cluck")); // 5
+System.out.println(f2.apply("cluck")); // 5
+```
+
+This function turns the ``String`` into an int, which is autoboxed into an ``Integer``.
+
+```java
+BiFunction<String, String, String> b1 = String::concat;
+BiFunction<String, String, String> b2 = (string, toAdd) -> string.concat(toAdd);
+
+System.out.println(b1.apply("baby ", "chick")); // baby chick
+System.out.println(b2.apply("baby ", "chick")); // baby chick
+```
+
+**==The first two types in the BiFunction are the input types. The third is the result type==**. For the method reference, the first parameter is the instance that ``concat()`` is called on, and the second is passed to concat().
+
+### Implementing UnaryOperator and BinaryOperator
+
+UnaryOperator and BinaryOperator are special cases of a Function. **==They require all type parameters to be the same type==**. A UnaryOperator transforms its value into one of the same type. For example, incrementing by one is a unary operation. In fact, UnaryOperator extends Function. A BinaryOperator merges two values into one of the same type. Adding two numbers is a binary operation. Similarly, BinaryOperator extends BiFunction.
+
+```java
+@FunctionalInterface
+public interface UnaryOperator<T> extends Function<T, T> {
+	T apply(T t); // UnaryOperator
+	// omitted static method
+}
+@FunctionalInterface
+public interface BinaryOperator<T> extends BiFunction<T, T, T> {
+	T apply(T t1, T t2); // BinaryOperator
+	// omitted static methods
+}
+```
+
+
+In the Javadoc, you’ll notice that these methods are inherited from the Function/BiFunction superclass. **==The generic declarations on the subclass are what force the type to be the same.==**
+
+```java
+UnaryOperator<String> u1 = String::toUpperCase;
+UnaryOperator<String> u2 = x -> x.toUpperCase();
+
+System.out.println(u1.apply("chirp")); // CHIRP
+System.out.println(u2.apply("chirp")); // CHIRP
+```
+
+We don’t need to specify the return type in the generics because UnaryOperator requires it to be the same as the parameter
+
+```java
+BinaryOperator<String> b1 = String::concat;
+BinaryOperator<String> b2 = (string, toAdd) -> string.concat(toAdd);
+
+System.out.println(b1.apply("baby ", "chick")); // baby chick
+System.out.println(b2.apply("baby ", "chick")); // baby chick
+```
+
+Notice that this does the same thing as the BiFunction example. The code is more succinct, which shows the importance of using the best functional interface
+
+### Checking Functional Interfaces
+
+-  Returns a String without taking any parameters -> ``Supplier<String>``
+-  Returns a Boolean and takes a String -> ``Function<String, Boolean>``
+-  Returns an Integer and takes two Integers -> ``BinaryOperator<Integer>``
+
+The second one is a ``Function<String,Boolean>`` because it takes one parameter and returns another type. It’s a little tricky. You might think it is a ``Predicate<String>``. Note that a **==Predicate returns a boolean primitive and not a Boolean object==**.
+
+```java
+6: ?? <List> ex1 = x -> "".equals(x.get(0)); //Predicate
+7: ?? <Long> ex2 = (Long l) -> System.out.println(l); //Consumer
+8: ?? <String, String> ex3 = (s1, s2) -> false; // BiPredicate
+```
+
+- Line 6 passes one List parameter to the lambda and returns a boolean. This tells us that it is a Predicate or Function. Since the generic declaration has only one parameter, it is a Predicate.
+- Line 7 passes one Long parameter to the lambda and doesn’t return anything. This tells us that it is a Consumer.
+- Line 8 takes two parameters and returns a boolean. When you see a boolean returned, think Predicate unless the generics specify a Boolean return type. In this case, there are two parameters, so it is a BiPredicate.
+
+```java
+6: Function<List<String>> ex1 = x -> x.get(0); // DOES NOT COMPILE
+7: UnaryOperator<Long> ex2 = (Long l) -> 3.14; // DOES NOT COMPILE
+```
+
+- Line 6 claims to be a Function. A Function needs to specify two generic types: the input parameter type and the return value type. The return value type is missing from line 6, causing the code not to compile.
+- Line 7 is a UnaryOperator, which returns the same type as it is passed in. The example returns a double rather than a Long, causing the code not to compile.
+
+### Using Convenience Methods on Functional Interfaces
+
+By definition, all functional interfaces have a single abstract method. Several of the common functional interfaces provide a number of helpful ``default`` interface methods.
+
+The BiConsumer, BiFunction, and BiPredicate interfaces have similar methods available.
+
+![[Pasted image 20240403143832.png]]
+
+```java
+Predicate<String> egg = s -> s.contains("egg");
+Predicate<String> brown = s -> s.contains("brown");
+
+Predicate<String> brownEggs = s -> s.contains("egg") && s.contains("brown");
+Predicate<String> otherEggs = s -> s.contains("egg") && !s.contains("brown");
+```
+
+This works, but it’s not great. It’s a bit long to read, and it contains duplication. better way to deal with this situation is to use two of the default methods on Predicate.
+
+```java
+Predicate<String> brownEggs = egg.and(brown);
+Predicate<String> otherEggs = egg.and(brown.negate());
+```
+
+
+```java
+Consumer<String> c1 = x -> System.out.print("1: " + x);
+Consumer<String> c2 = x -> System.out.print(",2: " + x);
+Consumer<String> combined = c1.andThen(c2); combined.accept("Annie"); // 1: Annie,2: Annie
+```
+
+Notice how the same parameter is passed to both ``c1`` and ``c2``. This shows that **==the Consumer instances are run in sequence and are independent of each other. By contrast, the ``compose()`` method on Function chains functional interfaces==**. However, it passes along the output of one to the input of another.
+
+```java
+Function<Integer, Integer> before = x -> x + 1;
+Function<Integer, Integer> after = x -> x * 2;
+Function<Integer, Integer> combined = after.compose(before);
+System.out.println(combined.apply(3)); // 8
+```
+
+This time, the before runs first, turning the 3 into 4. Then the after runs, doubling the 4 to 8.
+
+### Learning the Functional Interfaces for Primitives
+
+There are also a large number of special functional interfaces for primitives. 
+
+Most of them are for the double, int, and long types. There is one exception, which is BooleanSupplier.
+
+#### Functional Interfaces for boolean
+
+BooleanSupplier is a separate type. It has one method to implement:
+
+```java
+@FunctionalInterface
+public interface BooleanSupplier {
+	boolean getAsBoolean();
+}
+```
+
+```java
+12: BooleanSupplier b1 = () -> true;
+13: BooleanSupplier b2 = () -> Math.random()> .5;
+14: System.out.println(b1.getAsBoolean()); // true
+15: System.out.println(b2.getAsBoolean()); // false
+```
+
+#### Functional Interfaces for double, int, and long
+
+Table 8.6 shows the equivalent of Table 8.4 for these primitives.
+
+![[Pasted image 20240403145305.png]]
+
+There are a few things to notice that are different between Table 8.4 and Table 8.6:
+
+-  **==Generics are gone from some of the interfaces, and instead the type name tells us what primitive type is involved. In other cases, such as IntFunction, only the return type generic is needed because we’re converting a primitive int into an object.**==
+-  ==**The single abstract method is often renamed when a primitive type is returned.==**
+
+## Working with Variables in Lambdas
