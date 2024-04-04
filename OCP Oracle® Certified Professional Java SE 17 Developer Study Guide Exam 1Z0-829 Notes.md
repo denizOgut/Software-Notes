@@ -16485,7 +16485,6 @@ G. All of the classes compile without issue.
 Functional programming is a way of writing code more declaratively. You specify what you want to do rather than dealing with the state of objects. You focus more on expressions than loops.
 
 Functional programming uses lambda expressions to write code. A lambda expression is a block of code that gets passed around. a lambda expression as an unnamed method existing inside an anonymous class. **==It has parameters and a body just like full-fledged methods do, but it doesn’t have a name like a real method.==**
-
 ### Looking at a Lambda Example
 
 ```java
@@ -16506,30 +16505,38 @@ This is part of the problem that lambdas solve
 
 ```java
 1: import java.util.*;
-2: public class TraditionalSearch {
-	3: public static void main(String[] args) {
-		4:
-		5: // list of animals
-		6: var animals = new ArrayList<Animal>();
-		7: animals.add(new Animal("fish", false, true));
-		8: animals.add(new Animal("kangaroo", true, false));
-		9: animals.add(new Animal("rabbit", true, false));
-		10: animals.add(new Animal("turtle", false, true));
-		11:
-		12: // pass class that does check
-		13: print(animals, new CheckIfHopper());
-	14: }
-	15: private static void print(List<Animal> animals, CheckTrait checker) {
-		16: for (Animal animal : animals) {
-		17:
-		18: // General check
-			19: if (checker.test(animal))
-				20: System.out.print(animal + " ");
-			21: }
-			22: System.out.println();
-	23: }
-24: }
-```
+public class TraditionalSearch {  
+    public static void main(String[] args) {  
+  
+        // list of animals  
+        var animals = new ArrayList<Animal>();  
+        animals.add(new Animal("fish", false, true));  
+        animals.add(new Animal("kangaroo", true, false));  
+        animals.add(new Animal("rabbit", true, false));  
+        animals.add(new Animal("turtle", false, true));  
+  
+        // pass class that does check  
+        print(animals, new CheckIfHopper());  
+  
+        print(animals, new CheckIfSwims());  
+  
+        print(animals, a -> a.canHop());  
+  
+        print(animals, a -> a.canSwim());  
+  
+        print(animals, a -> !a.canSwim());  
+  
+    }  
+  
+    private static void print(List<Animal> animals, CheckTrait checker) {  
+        for (Animal animal : animals) {  
+// General check  
+            if (checker.test(animal))  
+                System.out.print(animal + " ");  
+        }  
+        System.out.println();  
+    }  
+}```
 
 What happens if we want to print the ``Animals`` that swim? Sigh. We need to write another class, ``CheckIfSwims``. Granted, it is only a few lines, but it is a whole new file.
 
@@ -16546,7 +16553,6 @@ We only have to add one line of code—no need for an extra class to do somethin
 ```
 
 The point is that it is really easy to write code that uses lambdas once you get the basics in place. **==This code uses a concept called deferred execution. Deferred execution means that code is specified now but will run later.==**
-
 ### Learning Lambda Syntax
 
 One of the simplest lambda expressions is
@@ -16555,8 +16561,7 @@ One of the simplest lambda expressions is
 a -> a.canHop()
 ```
 
-**==Lambdas work with interfaces that have exactly one abstract method.==**
-**==Java relies on *context* when figuring out what lambda expressions mean. Context refers to where and how the lambda is interpreted.==**
+**==Lambdas work with interfaces that have exactly one abstract method.==** **==Java relies on *context* when figuring out what lambda expressions mean. Context refers to where and how the lambda is interpreted.==**
 
 ```java
 print(animals, a -> a.canHop());
@@ -16609,7 +16614,7 @@ a -> { return a.canHop(); }
 
 ---
 
-**fun fact: s -> {} is a valid lambda. If there is no code on the right side of the expression, you don’t need the semicolon or return statement.** #TIP 
+**fun fact:`` s -> {}`` is a valid lambda. If there is no code on the right side of the expression, you don’t need the semicolon or return statement.** #TIP 
 
 ---
 
@@ -16737,7 +16742,6 @@ public interface Hibernate {
 ```
 
 Despite looking a lot like our ``Dive`` interface, the ``Hibernate`` interface uses ``equals(Hibernate)`` instead of ``equals(Object)``. Because this does not match the method signature of the ``equals(Object)`` method defined in the ``Object`` class, this interface is counted as containing two abstract methods: ``equals(Hibernate)`` and ``rest()``
-
 ## Using Method References
 
 Method references are another way to make the code easier to read, such as simply mentioning the name of the method.
@@ -16794,7 +16798,70 @@ can implement this interface with the ``round()`` method in ``Math``. Here we as
 17: System.out.println(methodRef.round(100.1)); // 100
 ```
 
-On line 14, we reference a method with one parameter, and Java knows that it’s like a lambda with one parameter. Additionally, Java knows to pass that parameter to the method. With both lambdas and method references, Java infers information from the *context*. Java looks for a method that matches that description. If it can’t find it or finds multiple matches, then the compiler will report an error. The latter is sometimes called an ambiguous type error.
+On line 14, we reference a method with one parameter, and Java knows that it’s like a lambda with one parameter. Additionally, Java knows to pass that parameter to the method. With both lambdas and method references, Java infers information from the *context*. **==Java looks for a method that matches that description. If it can’t find it or finds multiple matches, then the compiler will report an error. The latter is sometimes called an ambiguous type error.==**
+
+```java
+public class CallingStaticMethods {  
+  
+    public static void main(String[] args) {  
+  
+        Converter methodRef = Math::round;  
+        Converter lambda = x -> Math.round(x);  
+        Converter lambda2 = (double x) -> Math.round(x);  
+        Converter methodRef2 = StaticMethodRef::deferred;  
+  
+        System.out.println(methodRef.round(101.1));  
+        System.out.println(lambda.round(101.1));  
+        System.out.println(methodRef2.round(101.1));  
+  
+        GreetingInterface greetingInterfaceMethodRef = StaticMethodRef::printMessage;  
+  
+        GreetingInterface greetingInterfaceLamda = () -> StaticMethodRef.printMessage();  
+  
+        greetingInterfaceMethodRef.message();  
+        greetingInterfaceLamda.message();  
+  
+        // GreetingInterface greetingInterfaceLamda2 =  -> StaticMethodRef.printMessage(); // DOES NOT COMPILE  
+        // GreetingInterface greetingInterfaceLamda3 =  x -> StaticMethodRef.printMessage(); // DOES NOT COMPILE  
+        GreetingInterface greetingInterfaceLambda4 = () -> StaticMethodRef.printMessageV2();  
+        GreetingInterface greetingInterfaceLambda5 = () -> {  
+            StaticMethodRef.printMessageV2();  
+        };  
+        // GreetingInterface greetingInterfaceLambda6 = () -> { return StaticMethodRef.printMessageV2(); }; // DOES NOT COMPILE  
+        GreetingInterface greetingInterfaceMethodRef2 = StaticMethodRef::printMessageV2;  
+  
+        GreetingInterface greetingInterfaceLambda7 = () -> StaticMethodRef.printMessageV3("hello printMessageV3");  
+        // GreetingInterface greetingInterfaceMethodRef3 = StaticMethodRef::printMessageV3; // DOES NOT COMPILE  
+  
+        greetingInterfaceMethodRef2.message();  
+        greetingInterfaceLambda4.message();  
+        greetingInterfaceLambda5.message();  
+        greetingInterfaceLambda7.message();  
+    }  
+  
+}  
+  
+class StaticMethodRef {  
+  
+    static long deferred(double num) {  
+        return (long) (num * 2);  
+    }  
+  
+    static void printMessage() {  
+        System.out.println("hello printMessage!");  
+    }  
+  
+    static String printMessageV2() {  
+        String message = "hello printMessageV2";  
+        System.out.println(message);  
+        return message;  
+    }  
+      
+    static void printMessageV3(String message) {  
+        System.out.println(message);  
+    }  
+}
+```
 
 ### Calling Instance Methods on a Particular Object
 
@@ -16815,7 +16882,7 @@ Line 19 shows that we want to call ``str.startsWith()`` and pass a single parame
 
 ```java
 interface StringChecker {
-boolean check();
+	boolean check();
 }
 
 18: var str = "";
@@ -16833,6 +16900,205 @@ StringChecker lambda = () -> str.startsWith("Zoo");
 
 StringChecker methodReference = str::startsWith; // DOES NOT COMPILE
 StringChecker methodReference = str::startsWith("Zoo"); // DOES NOT COMPILE
+```
+
+```java
+public class CallingInstanceMethodsOnAParticularObject {  
+  
+    public static void main(String[] args) {  
+  
+        exampleMethod1StringStart();  
+  
+        exampleMethod2StringStart();  
+  
+        exampleMethod3StringStart();  
+  
+        var callingInstanceMethodsOnAParticularObject = new CallingInstanceMethodsOnAParticularObject();  
+        callingInstanceMethodsOnAParticularObject.exampleMethod4StringStart();  
+  
+        exampleMethod1StringChecker();  
+  
+        exampleMethod2StringChecker();  
+  
+        exampleMethod3StringChecker();  
+  
+        exampleMethod1Calculator();  
+    }  
+  
+    private static MyClass myClassStaticVariable = new MyClass();  
+    private MyClass myClassInstanceVariable = new MyClass();  
+  
+    private static void exampleMethod1StringStart() {  
+        System.out.println("### exampleMethod1StringStart ###");  
+  
+        var str = "Zoo";  
+        StringStart methodRef = str::startsWith;  
+        StringStart lambda = s -> str.startsWith(s);  
+  
+        System.out.println(methodRef.beginningCheck("A"));  
+        System.out.println(lambda.beginningCheck("A"));  
+    }  
+  
+    private static void exampleMethod2StringStart() {  
+  
+        System.out.println("### exampleMethod2StringStart ###");  
+  
+        StringStart stringStart1 = MyClass::staticMethod;  
+        StringStart stringStart2 = new MyClass()::instanceMethod;  
+        MyClass myClassRef = new MyClass();  
+        StringStart stringStart3 = myClassRef::instanceMethod;  
+        // Static method referenced through non-static qualifier  
+        //StringStart stringStart4 = myClassRef::staticMethod; // DOES NOT COMPILE        StringStart stringStart5 = ss -> myClassRef.instanceMethod(ss);  
+        StringStart stringStart6 = ss -> MyClass.staticMethod(ss);  
+  
+        System.out.println(stringStart1.beginningCheck("MyClass"));  
+        System.out.println(stringStart2.beginningCheck("MyClass"));  
+        System.out.println(stringStart3.beginningCheck("MyClass"));  
+        System.out.println(stringStart5.beginningCheck("MyClass"));  
+        System.out.println(stringStart6.beginningCheck("MyClass"));  
+    }  
+  
+    private static void exampleMethod3StringStart() {  
+  
+        System.out.println("### exampleMethod3StringStart ###");  
+  
+        StringStart stringStart1 = myClassStaticVariable::instanceMethod;  
+        //StringStart stringStart2 = myClassInstanceVariable::instanceMethod; // DOES NOT COMPILE  
+  
+        //Static method referenced through non-static qualifier        // StringStart stringStart3 = myClassStaticVariable::staticMethod; // DOES NOT COMPILE        StringStart stringStart4 = MyClass::staticMethod;  
+  
+        System.out.println(stringStart1.beginningCheck("MyClass"));  
+    }  
+  
+    private void exampleMethod4StringStart() {  
+  
+        System.out.println("### exampleMethod4StringStart ###");  
+  
+        StringStart stringStart1 = myClassStaticVariable::instanceMethod;  
+        StringStart stringStart2 = myClassInstanceVariable::instanceMethod;  
+  
+        // Static method referenced through non-static qualifier  
+        // StringStart stringStart3 = myClassStaticVariable::staticMethod; // DOES NOT COMPILE        // StringStart stringStart4 = myClassStaticVariable::staticMethod; // DOES NOT COMPILE  
+        StringStart stringStart5 = MyClass::staticMethod;  
+  
+        System.out.println(stringStart1.beginningCheck("MyClass"));  
+        System.out.println(stringStart2.beginningCheck("MyClass"));  
+        System.out.println(stringStart5.beginningCheck("MyClass"));  
+    }  
+  
+    private static void exampleMethod1StringChecker() {  
+  
+        System.out.println("### exampleMethod1StringChecker ###");  
+  
+        var str = "";  
+        StringChecker methodRef = str::isEmpty;  
+        StringChecker lambda = () -> str.isEmpty();  
+  
+        System.out.println(methodRef.check());  
+        System.out.println(lambda.check());  
+    }  
+  
+    private static void exampleMethod2StringChecker() {  
+  
+        System.out.println("### exampleMethod2StringChecker ###");  
+  
+        MyClassEmptyCheck myClassEmptyCheck = new MyClassEmptyCheck();  
+  
+        StringChecker stringChecker1 = myClassEmptyCheck::instanceMethod;  
+        StringChecker stringChecker2 = MyClassEmptyCheck::staticMethod;  
+  
+        System.out.println(stringChecker1.check());  
+        System.out.println(stringChecker2.check());  
+    }  
+  
+    private static void exampleMethod3StringChecker() {  
+  
+        System.out.println("### exampleMethod3StringChecker ###");  
+  
+        var str = "";  
+        StringChecker lambda = () -> str.startsWith("Zoo");  
+        //StringChecker lambda2 = s -> str.startsWith("Zoo"); // DOES NOT COMPILE  
+        //StringChecker lambda3 = (String s) -> str.startsWith("Zoo"); // DOES NOT COMPILE  
+        System.out.println(lambda.check());  
+  
+        // StringChecker methodReference = str::startsWith; // DOES NOT COMPILE  
+        // StringChecker methodReference = str::startsWith ("Zoo"); // DOES NOT COMPILE    }  
+  
+    private static void exampleMethod1Calculator() {  
+  
+        System.out.println("### exampleMethod1Calculator ###");  
+  
+        Calculator lambda1 = (i, j) -> i * j;  
+        Calculator lambda2 = (int i, int j) -> i + j;  
+  
+        // Incompatible parameter types in lambda expression: expected int but found Integer  
+        //Calculator lambda3 = (Integer i, Integer j) -> i + j; // DOES NOT COMPILE  
+        Calculator lambda4 = (var i, var j) -> i / j;  
+        Calculator lambda5 = (int i, int j) -> {  
+            return i - j;  
+        };  
+  
+        CalculatorHelper calculatorHelper = new CalculatorHelper();  
+        Calculator lambda6 = (int i, int j) -> calculatorHelper.sum(i, j);  
+        Calculator lambda7 = (int i, int j) -> calculatorHelper.multiply(i, j);  
+        Calculator lambda8 = (int i, int j) -> CalculatorHelper.subtraction(i, j);  
+  
+        Calculator methodReference1 = calculatorHelper::sum;  
+        Calculator methodReference2 = calculatorHelper::multiply;  
+  
+        //Static method referenced through non-static qualifier  
+        //Calculator methodReference3 = calculatorHelper::subtraction; // DOES NOT COMPILE        Calculator methodReference4 = CalculatorHelper::subtraction;  
+  
+        System.out.println(lambda1.calculate(10, 5));  
+        System.out.println(lambda2.calculate(10, 5));  
+        System.out.println(lambda4.calculate(10, 5));  
+        System.out.println(lambda5.calculate(10, 5));  
+        System.out.println(lambda6.calculate(10, 5));  
+        System.out.println(lambda7.calculate(10, 5));  
+        System.out.println(lambda8.calculate(10, 5));  
+  
+        System.out.println(methodReference1.calculate(10, 5));  
+        System.out.println(methodReference2.calculate(10, 5));  
+    }  
+  
+}  
+  
+  
+class MyClass {  
+  
+    boolean instanceMethod(String str) {  
+        return str.startsWith("My");  
+    }  
+  
+    static boolean staticMethod(String str) {  
+        return str.startsWith("My");  
+    }  
+}  
+  
+class MyClassEmptyCheck {  
+    boolean instanceMethod() {  
+        return "".isEmpty();  
+    }  
+  
+    static boolean staticMethod() {  
+        return "".isEmpty();  
+    }  
+}  
+  
+class CalculatorHelper {  
+  
+    int sum(int num1, int num2) {  
+        return num1 + num2;  
+    }  
+  
+    int multiply(int num1, int num2) {  
+        return num1 * num2;  
+    }  
+  
+    static int subtraction(int num1, int num2) {  
+        return num1 - num2;  
+    }  
+}
 ```
 
 ### Calling Instance Methods on a Parameter
@@ -16858,7 +17124,7 @@ interface StringTwoParameterChecker {
 }
 ```
 
-Pay attention to the parameter order when reading the implementation:
+**==Pay attention to the parameter order when reading the implementation:==**
 
 ```java
 26: StringTwoParameterChecker methodRef = String::startsWith;
@@ -16870,6 +17136,196 @@ Pay attention to the parameter order when reading the implementation:
 Since the functional interface takes two parameters, Java has to figure out what they represent. The first one will always be the instance of the object for instance methods. Any others are to be method parameters.
 
 line 26 may look like a ``static`` method, but it is really a method reference declaring that the instance of the object will be specified later. Line 27 shows some of the power of a method reference.
+
+```java
+public class CalingInstanceMethodsOnAParameter {  
+  
+    public static void main(String[] args) {  
+  
+        exampleMethodStringParameterChecker();  
+  
+        exampleMethodStringChecker();  
+  
+        exampleStringParameterCheckerHelperClass();  
+  
+        exampleHelperClassParameter();  
+  
+        exampleStringTwoParameterChecker();  
+  
+        exampleHelperClassParameter2();  
+    }  
+  
+    private static void exampleMethodStringParameterChecker() {  
+  
+        System.out.println("### exampleMethodStringParameterChecker ###");  
+  
+        StringParameterChecker methodRef = String::isEmpty;  
+        StringParameterChecker lambda = s -> s.isEmpty();  
+        System.out.println(methodRef.check("Zoo"));  
+        System.out.println(lambda.check("Zoo"));  
+    }  
+  
+    private static void exampleMethodStringChecker() {  
+  
+        System.out.println("### exampleMethodStringChecker ###");  
+  
+        var str = "Zoo";  
+  
+        // StringParameterChecker methodRef = str::isEmpty; // DOES NOT COMPILE  
+  
+        StringChecker methodRef = str::isEmpty;  
+        StringChecker lambda = () -> str.isEmpty();  
+  
+        System.out.println(methodRef.check());  
+        System.out.println(lambda.check());  
+    }  
+  
+    private static void exampleStringParameterCheckerHelperClass() {  
+  
+        System.out.println("### exampleStringParameterCheckerHelperClass ###");  
+  
+        StringParameterChecker stringParameterChecker1 = HelperClass::staticMethod;  
+        StringParameterChecker stringParameterChecker2 = new HelperClass()::method;  
+        HelperClass helperRef = new HelperClass();  
+        StringParameterChecker stringParameterChecker3 = helperRef::method;  
+        //Static method referenced through non-static qualifier  
+        //StringParameterChecker stringParameterChecker4 = helperRef::staticMethod; // DOES NOT COMPILE  
+        StringParameterChecker stringParameterChecker4 = s -> helperRef.method(s);  
+        StringParameterChecker stringParameterChecker5 = (String s) -> HelperClass.staticMethod(s);  
+        StringParameterChecker stringParameterChecker6 = (String s) -> true;  
+  
+        System.out.println(stringParameterChecker1.check("abc"));  
+        System.out.println(stringParameterChecker2.check("abc"));  
+        System.out.println(stringParameterChecker3.check("abc"));  
+        System.out.println(stringParameterChecker4.check("abc"));  
+        System.out.println(stringParameterChecker5.check("abc"));  
+    }  
+  
+  
+    private static void exampleHelperClassParameter() {  
+  
+        System.out.println("### exampleHelperClassParameter ###");  
+  
+        MyInterface lambda1 = hcp -> hcp.isNull();  
+        MyInterface lambda2 = (HelperClassParameter hcp) -> hcp.isNull();  
+        MyInterface lambda3 = (HelperClassParameter hcp) -> false;  
+  
+        MyInterface methodReference = HelperClassParameter::isNull;  
+  
+        System.out.println(lambda1.method(new HelperClassParameter()));  
+        System.out.println(lambda2.method(new HelperClassParameter()));  
+        System.out.println(lambda3.method(new HelperClassParameter()));  
+  
+        System.out.println(methodReference.method(new HelperClassParameter()));  
+    }  
+  
+    private static void exampleStringTwoParameterChecker() {  
+  
+        System.out.println("### exampleStringTwoParameterChecker ###");  
+  
+        StringTwoParameterChecker lambda = (s, p) -> s.startsWith(p);  
+        StringTwoParameterChecker lambda2 = (String s, String p) -> true;  
+        StringTwoParameterChecker methodRef = String::startsWith;  
+  
+        System.out.println(methodRef.check("Zoo", "Z"));  
+        System.out.println(lambda.check("Zoo", "A"));  
+        System.out.println(lambda2.check("Zoo", "A"));  
+    }  
+  
+  
+    private static void exampleHelperClassParameter2() {  
+  
+        System.out.println("### exampleHelperClassParameter2 ###");  
+  
+        MyInterface2 lambda1 = (hpc, str) -> hpc.instanceMethod(str);  
+        MyInterface2 lambda2 = (HelperClassParameter2 hpc, String str) ->  
+        {  
+            return hpc.instanceMethod(str);  
+        };  
+  
+        MyInterface2 lambda3 = (HelperClassParameter2 hpc, String str) ->  
+        {  
+            return Integer.parseInt(str);  
+        };  
+  
+        MyInterface2 lambda4 = (HelperClassParameter2 hpc, String str) ->  
+        {  
+            return new Random().nextInt();  
+        };  
+  
+        MyInterface2 lambda5 = (hpc, str) -> 10;  
+  
+  
+        MyInterface2 methodReference = HelperClassParameter2::instanceMethod;  
+  
+        // MyInterface2 methodReference2 = HelperClassParameter2::instanceMethod2; // DOES NOT COMPILE  
+  
+        // MyInterface2 methodReference3 = HelperClassParameter2::instanceMethod3; // DOES NOT COMPILE  
+        // MyInterface2 methodReference4 = HelperClassParameter2::staticMethod; // DOES NOT COMPILE  
+        MyInterface2 methodReference4 = HelperClassParameter2::staticMethod2;  
+  
+        System.out.println(lambda1.method(new HelperClassParameter2(), "100"));  
+        System.out.println(lambda2.method(new HelperClassParameter2(), "100"));  
+        System.out.println(lambda3.method(new HelperClassParameter2(), "100"));  
+        System.out.println(lambda4.method(new HelperClassParameter2(), "100"));  
+        System.out.println(methodReference.method(new HelperClassParameter2(), "100"));  
+        System.out.println(methodReference4.method(new HelperClassParameter2(), "100"));  
+  
+    }  
+}  
+  
+class HelperClass {  
+  
+    static boolean staticMethod(String str) {  
+        return str.startsWith("a");  
+    }  
+  
+    boolean method(String str) {  
+        return str.startsWith("a");  
+    }  
+}  
+  
+interface MyInterface {  
+    boolean method(HelperClassParameter hpc);  
+}  
+  
+class HelperClassParameter {  
+  
+    boolean isNull() {  
+        return this == null;  
+    }  
+}  
+  
+interface MyInterface2 {  
+  
+    Integer method(HelperClassParameter2 hpc, String str);  
+}  
+  
+class HelperClassParameter2 {  
+  
+    Integer instanceMethod(String str) {  
+        return Integer.parseInt(str);  
+    }  
+  
+    Integer instanceMethod2(StringBuilder sb) {  
+        return Integer.parseInt(sb.toString());  
+    }  
+  
+    Integer instanceMethod3(String str, Integer number) {  
+        return Integer.parseInt(str) + number;  
+  
+    }  
+  
+    static Integer staticMethod(String str) {  
+        return Integer.parseInt(str);  
+    }  
+  
+    static Integer staticMethod2(HelperClassParameter2 hpc, String str) {  
+        return Integer.parseInt(str);  
+    }  
+  
+}
+```
 
 ### Calling Constructors
 
@@ -16909,6 +17365,196 @@ This means you can’t always determine which method can be called by looking at
 
 ![[Pasted image 20240402200041.png]]
 
+```java
+public class CalingInstanceMethodsOnAParameter {  
+  
+    public static void main(String[] args) {  
+  
+        exampleMethodStringParameterChecker();  
+  
+        exampleMethodStringChecker();  
+  
+        exampleStringParameterCheckerHelperClass();  
+  
+        exampleHelperClassParameter();  
+  
+        exampleStringTwoParameterChecker();  
+  
+        exampleHelperClassParameter2();  
+    }  
+  
+    private static void exampleMethodStringParameterChecker() {  
+  
+        System.out.println("### exampleMethodStringParameterChecker ###");  
+  
+        StringParameterChecker methodRef = String::isEmpty;  
+        StringParameterChecker lambda = s -> s.isEmpty();  
+        System.out.println(methodRef.check("Zoo"));  
+        System.out.println(lambda.check("Zoo"));  
+    }  
+  
+    private static void exampleMethodStringChecker() {  
+  
+        System.out.println("### exampleMethodStringChecker ###");  
+  
+        var str = "Zoo";  
+  
+        // StringParameterChecker methodRef = str::isEmpty; // DOES NOT COMPILE  
+  
+        StringChecker methodRef = str::isEmpty;  
+        StringChecker lambda = () -> str.isEmpty();  
+  
+        System.out.println(methodRef.check());  
+        System.out.println(lambda.check());  
+    }  
+  
+    private static void exampleStringParameterCheckerHelperClass() {  
+  
+        System.out.println("### exampleStringParameterCheckerHelperClass ###");  
+  
+        StringParameterChecker stringParameterChecker1 = HelperClass::staticMethod;  
+        StringParameterChecker stringParameterChecker2 = new HelperClass()::method;  
+        HelperClass helperRef = new HelperClass();  
+        StringParameterChecker stringParameterChecker3 = helperRef::method;  
+        //Static method referenced through non-static qualifier  
+        //StringParameterChecker stringParameterChecker4 = helperRef::staticMethod; // DOES NOT COMPILE  
+        StringParameterChecker stringParameterChecker4 = s -> helperRef.method(s);  
+        StringParameterChecker stringParameterChecker5 = (String s) -> HelperClass.staticMethod(s);  
+        StringParameterChecker stringParameterChecker6 = (String s) -> true;  
+  
+        System.out.println(stringParameterChecker1.check("abc"));  
+        System.out.println(stringParameterChecker2.check("abc"));  
+        System.out.println(stringParameterChecker3.check("abc"));  
+        System.out.println(stringParameterChecker4.check("abc"));  
+        System.out.println(stringParameterChecker5.check("abc"));  
+    }  
+  
+  
+    private static void exampleHelperClassParameter() {  
+  
+        System.out.println("### exampleHelperClassParameter ###");  
+  
+        MyInterface lambda1 = hcp -> hcp.isNull();  
+        MyInterface lambda2 = (HelperClassParameter hcp) -> hcp.isNull();  
+        MyInterface lambda3 = (HelperClassParameter hcp) -> false;  
+  
+        MyInterface methodReference = HelperClassParameter::isNull;  
+  
+        System.out.println(lambda1.method(new HelperClassParameter()));  
+        System.out.println(lambda2.method(new HelperClassParameter()));  
+        System.out.println(lambda3.method(new HelperClassParameter()));  
+  
+        System.out.println(methodReference.method(new HelperClassParameter()));  
+    }  
+  
+    private static void exampleStringTwoParameterChecker() {  
+  
+        System.out.println("### exampleStringTwoParameterChecker ###");  
+  
+        StringTwoParameterChecker lambda = (s, p) -> s.startsWith(p);  
+        StringTwoParameterChecker lambda2 = (String s, String p) -> true;  
+        StringTwoParameterChecker methodRef = String::startsWith;  
+  
+        System.out.println(methodRef.check("Zoo", "Z"));  
+        System.out.println(lambda.check("Zoo", "A"));  
+        System.out.println(lambda2.check("Zoo", "A"));  
+    }  
+  
+  
+    private static void exampleHelperClassParameter2() {  
+  
+        System.out.println("### exampleHelperClassParameter2 ###");  
+  
+        MyInterface2 lambda1 = (hpc, str) -> hpc.instanceMethod(str);  
+        MyInterface2 lambda2 = (HelperClassParameter2 hpc, String str) ->  
+        {  
+            return hpc.instanceMethod(str);  
+        };  
+  
+        MyInterface2 lambda3 = (HelperClassParameter2 hpc, String str) ->  
+        {  
+            return Integer.parseInt(str);  
+        };  
+  
+        MyInterface2 lambda4 = (HelperClassParameter2 hpc, String str) ->  
+        {  
+            return new Random().nextInt();  
+        };  
+  
+        MyInterface2 lambda5 = (hpc, str) -> 10;  
+  
+  
+        MyInterface2 methodReference = HelperClassParameter2::instanceMethod;  
+  
+        // MyInterface2 methodReference2 = HelperClassParameter2::instanceMethod2; // DOES NOT COMPILE  
+  
+        // MyInterface2 methodReference3 = HelperClassParameter2::instanceMethod3; // DOES NOT COMPILE  
+        // MyInterface2 methodReference4 = HelperClassParameter2::staticMethod; // DOES NOT COMPILE  
+        MyInterface2 methodReference4 = HelperClassParameter2::staticMethod2;  
+  
+        System.out.println(lambda1.method(new HelperClassParameter2(), "100"));  
+        System.out.println(lambda2.method(new HelperClassParameter2(), "100"));  
+        System.out.println(lambda3.method(new HelperClassParameter2(), "100"));  
+        System.out.println(lambda4.method(new HelperClassParameter2(), "100"));  
+        System.out.println(methodReference.method(new HelperClassParameter2(), "100"));  
+        System.out.println(methodReference4.method(new HelperClassParameter2(), "100"));  
+  
+    }  
+}  
+  
+class HelperClass {  
+  
+    static boolean staticMethod(String str) {  
+        return str.startsWith("a");  
+    }  
+  
+    boolean method(String str) {  
+        return str.startsWith("a");  
+    }  
+}  
+  
+interface MyInterface {  
+    boolean method(HelperClassParameter hpc);  
+}  
+  
+class HelperClassParameter {  
+  
+    boolean isNull() {  
+        return this == null;  
+    }  
+}  
+  
+interface MyInterface2 {  
+  
+    Integer method(HelperClassParameter2 hpc, String str);  
+}  
+  
+class HelperClassParameter2 {  
+  
+    Integer instanceMethod(String str) {  
+        return Integer.parseInt(str);  
+    }  
+  
+    Integer instanceMethod2(StringBuilder sb) {  
+        return Integer.parseInt(sb.toString());  
+    }  
+  
+    Integer instanceMethod3(String str, Integer number) {  
+        return Integer.parseInt(str) + number;  
+  
+    }  
+  
+    static Integer staticMethod(String str) {  
+        return Integer.parseInt(str);  
+    }  
+  
+    static Integer staticMethod2(HelperClassParameter2 hpc, String str) {  
+        return Integer.parseInt(str);  
+    }  
+  
+}
+```
+
 ## Working with Built-in Functional Interfaces
 
 The core functional interfaces in Table 8.4 are provided in the ``java.util.function`` package.
@@ -16916,7 +17562,7 @@ The core functional interfaces in Table 8.4 are provided in the ``java.util.func
 **TABLE 8.4 Common functional interfaces**
 ![[Pasted image 20240403140214.png]]
 
-### Implementing Supplier
+### Implementing ``Supplier``
 
 A ``Supplier`` is used when you want to generate or supply values without taking any input. The ``Supplier`` interface is defined as follows:
 
@@ -16933,7 +17579,7 @@ LocalDate d1 = s1.get();
 LocalDate d2 = s2.get();
 ```
 
-The ``LocalDate::now`` method reference is used to create a Supplier to assign to an intermediate variable ``s1``. A Supplier is often used when constructing new objects. We’ve been using generics to declare what type of Supplier we are using.
+The ``LocalDate::now`` method reference is used to create a ``Supplier`` to assign to an intermediate variable ``s1``. A ``Supplier`` is often used when constructing new objects. We’ve been using generics to declare what type of Supplier we are using.
 
 ```java
 Supplier<ArrayList<String>> s3 = ArrayList::new;
@@ -16941,7 +17587,7 @@ ArrayList<String> a1 = s3.get();
 System.out.println(a1); // []
 ```
 
-have a Supplier of a certain type. That type happens to be ``ArrayList<String>``. Then calling ``get()`` creates a new instance of ``ArrayList<String>``, which is the generic type of the Supplier—in other words, a generic that contains another generic. Be sure to look at the code carefully when this type of thing comes up.
+have a ``Supplier`` of a certain type. That type happens to be ``ArrayList<String>``. Then calling ``get()`` creates a new instance of ``ArrayList<String>``, which is the generic type of the ``Supplier``—in other words, a generic that contains another generic. Be sure to look at the code carefully when this type of thing comes up.
 Notice how we called ``get()`` on the functional interface. What would happen if we tried to print out ``s3`` itself?
 
 ```java
@@ -16949,9 +17595,148 @@ System.out.println(s3); // functionalinterface.BuiltIns$$Lambda$1/0x000000080006
 ```
 
 That’s the result of calling ``toString()`` on a lambda. 
-### Implementing Consumer and BiConsumer
+
+```java
+public class ImplementingSupplier {  
+  
+    public static void main(String[] args) {  
+  
+        localDateSupplierExample();  
+        stringBuilderSupplierExample();  
+        arrayListSupplierExample();  
+        randomSupplierExample();  
+        stringSupplierExample();  
+        supplierHelperExample();  
+    }  
+  
+    private static void localDateSupplierExample() {  
+  
+        System.out.println("### localDateSupplierExample ###");  
+        Supplier<LocalDate> s1 = LocalDate::now;  
+        Supplier<LocalDate> s2 = () -> LocalDate.now();  
+  
+        LocalDate d1 = s1.get();  
+        LocalDate d2 = s2.get();  
+  
+        System.out.println(d1);  
+        System.out.println(d2);  
+    }  
+  
+    private static void stringBuilderSupplierExample() {  
+  
+        System.out.println("### stringBuilderSupplierExample ###");  
+        Supplier<StringBuilder> s1 = StringBuilder::new;  
+        Supplier<StringBuilder> s2 = () -> new StringBuilder();  
+  
+        System.out.println(s1.get());  
+        System.out.println(s2.get());  
+  
+    }  
+  
+    private static void arrayListSupplierExample() {  
+  
+        System.out.println("### arrayListSupplierExample ###");  
+        Supplier<ArrayList<String>> s1 = ArrayList::new;  
+        Supplier<ArrayList<String>> s2 = () -> new ArrayList<>();  
+  
+        ArrayList<String> a1 = s1.get();  
+        ArrayList<String> a2 = s2.get();  
+        System.out.println(a1); // []  
+        System.out.println(a2);  
+  
+        System.out.println(s1);  
+  
+    }  
+  
+    private static void randomSupplierExample() {  
+  
+        System.out.println("### randomSupplierExample ###");  
+        Supplier<Double> s1 = () -> Math.random();  
+        Supplier<Double> s2 = Math::random;  
+        Supplier<Integer> s3 = new Random()::nextInt;  
+        Supplier<Integer> s4 = () -> 10;  
+  
+        System.out.println(s1.get());  
+        System.out.println(s2.get());  
+        System.out.println(s3.get());  
+        System.out.println(s4.get());  
+    }  
+  
+    private static void stringSupplierExample() {  
+  
+        System.out.println("### stringSupplierExample ###");  
+        Supplier<String> s1 = String::new;  
+        Supplier<String> s2 = () -> "value";  
+  
+        // Supplier<Integer> s3 = Integer::new; // DOES NOT COMPILE  
+        Supplier<Integer> s4 = () -> 100;  
+        Supplier<Integer> s5 = () -> Integer.valueOf(100);  
+  
+  
+        System.out.println(s1.get());  
+        System.out.println(s2.get());  
+        System.out.println(s4.get());  
+        System.out.println(s5.get());  
+    }  
+  
+  
+    private static void supplierHelperExample() {  
+  
+        System.out.println("### supplierHelperExample ###");  
+  
+        Supplier<Integer> s1 = SupplierHelper::method1;  
+        Supplier<Integer> s2 = () -> SupplierHelper.method1();  
+        Supplier<Integer> s3 = () -> {  
+            return SupplierHelper.method1();  
+        };  
+        Supplier<Integer> s4 = () -> 10;  
+  
+        Supplier<Integer> s5 = SupplierHelper::method2;  
+  
+        // Bad return type in method reference: cannot convert long to java.lang.Integer  
+        //Supplier<Integer> s6 = SupplierHelper::method3; // DOES NOT COMPILE  
+        // ad return type in method reference: cannot convert short to java.lang.Integer        //Supplier<Integer> s7 = SupplierHelper::method4; // DOES NOT COMPILE  
+        // Supplier<Integer> s8 = SupplierHelper::instanceMethod; // DOES NOT COMPILE  
+        Supplier<Integer> s9 = new SupplierHelper()::instanceMethod;  
+  
+        System.out.println(s1.get());  
+        System.out.println(s2.get());  
+        System.out.println(s3.get());  
+        System.out.println(s4.get());  
+        System.out.println(s5.get());  
+        System.out.println(s9.get());  
+  
+    }  
+  
+}  
+  
+class SupplierHelper {  
+  
+    static int method1() {  
+        return new Random().nextInt();  
+    }  
+  
+    static Integer method2() {  
+        return new Random().nextInt();  
+    }  
+  
+    static long method3() {  
+        return new Random().nextInt();  
+    }  
+  
+    static short method4() {  
+        return (short) new Random().nextInt();  
+    }  
+  
+    int instanceMethod() {  
+        return new Random().nextInt();  
+    }  
+}
+```
+
+### Implementing ``Consumer`` and ``BiConsumer``
  
- use a Consumer when you want to do something with a parameter but not return anything. BiConsumer does the same thing, except that it takes two parameters. The interfaces are defined as follows:
+ use a ``Consumer`` when you want to do something with a parameter but not return anything. ``BiConsumer`` does the same thing, except that it takes two parameters. The interfaces are defined as follows:
 
 ```java
 @FunctionalInterface
@@ -16974,7 +17759,7 @@ c1.accept("Annie"); // Annie
 c2.accept("Annie"); // Annie
 ```
 
-**==BiConsumer is called with two parameters. They don’t have to be the same type.==**
+**==``BiConsumer`` is called with two parameters. They don’t have to be the same type.==**
 
 ```java
 var map = new HashMap<String, Integer>();
@@ -16996,9 +17781,169 @@ b2.accept("chick", "Tweep");
 System.out.println(map); // {chicken=Cluck, chick=Tweep}
 ```
 
-### Implementing Predicate and BiPredicate
+```java
+public class ImplementingConsumerAndBiConsumer {  
+  
+    public static void main(String[] args) {  
+  
+        consumerExample();  
+        consumerHelperExample();  
+        biConsumerExample1();  
+        biConsumerHelperExample();  
+        biConsumerExample2();  
+        biConsumerExample3();  
+  
+  
+    }  
+  
+    private static void consumerExample() {  
+  
+        System.out.println("### consumerExample ###");  
+        Consumer<String> c1 = System.out::println;  
+        Consumer<String> c2 = x -> System.out.println(x);  
+  
+        PrintStream ps = System.out;  
+        Consumer<String> c3 = ps::println;  
+  
+  
+        Consumer<StringBuilder> c4 = System.out::println;  
+        Consumer<List> c5 = System.out::println;  
+  
+        c1.accept("Annie");  
+        c2.accept("Annie");  
+        c3.accept("Annie");  
+        c4.accept(new StringBuilder("Annie"));  
+        c5.accept(List.of("Annie"));  
+  
+    }  
+  
+    private static void consumerHelperExample() {  
+  
+        System.out.println("### consumerHelperExample ###");  
+        Consumer<String> c1 = ConsumerHelper::method;  
+        Consumer<Integer> c2 = ConsumerHelper::method;  
+        Consumer<Integer> c3 = ConsumerHelper::methodWithReturn;  
+  
+        Consumer<String> c4 = s -> ConsumerHelper.method(s);  
+        // Consumer<String> c5 = s -> "value"; // DOES NOT COMPILE  
+  
+        Consumer<String> c6 = s -> {  
+            System.out.println(s);  
+            System.out.println(s.length());  
+        };  
+  
+        Consumer<StringBuilder> c7 = ConsumerHelper::method;  
+        Consumer<List<String>> c8 = ConsumerHelper::method;  
+  
+        c1.accept("hello world!");  
+        c2.accept(10);  
+        c3.accept(20);  
+        c4.accept("hello world!");  
+        c6.accept("hello world!");  
+        c7.accept(new StringBuilder("hello world!"));  
+        c8.accept(List.of("v1", "v2", "v3"));  
+    }  
+  
+    private static void biConsumerExample1() {  
+  
+        System.out.println("### biConsumerExample1 ###");  
+        var map = new HashMap<String, Integer>();  
+        BiConsumer<String, Integer> b1 = map::put;  
+        BiConsumer<String, Integer> b2 = (k, v) -> map.put(k, v);  
+  
+        b1.accept("chicken", 7);  
+        b2.accept("chick", 1);  
+  
+        System.out.println(map);  
+    }  
+  
+    private static void biConsumerHelperExample() {  
+  
+        System.out.println("### biConsumerHelperExample ###");  
+        BiConsumer<Integer, Integer> bc1 = BiConsumerHelper::method;  
+        BiConsumer<String, Integer> bc2 = BiConsumerHelper::method;  
+  
+        bc1.accept(5, 10);  
+        bc2.accept("10", 20);  
+    }  
+  
+    private static void biConsumerExample2() {  
+  
+        System.out.println("### biConsumerExample2 ###");  
+        BiConsumer<String, String> bc1 = String::concat;  
+        BiConsumer<String, String> bc2 = (str1, str2) -> str1.concat(str2);  
+        BiConsumer<String, String> bc3 = (str1, str2) ->  
+        {  
+            System.out.println(str1.concat(str2));  
+        };  
+  
+        BiConsumer<BiConsumerHelper, String> bc4 = BiConsumerHelper::instanceMethod;  
+  
+  
+        bc1.accept("hello", "world");  
+        bc2.accept("hello", "world");  
+        bc3.accept("hello", "world");  
+        bc4.accept(new BiConsumerHelper(), "message!");  
+    }  
+  
+    private static void biConsumerExample3() {  
+  
+        System.out.println("### biConsumerExample3 ###");  
+        var map = new HashMap<String, String>();  
+        BiConsumer<String, String> b1 = map::put;  
+        BiConsumer<String, String> b2 = (k, v) -> map.put(k, v);  
+  
+        b1.accept("chicken", "Cluck");  
+        b2.accept("chick", "Tweep");  
+  
+        System.out.println(map);  
+    }  
+}  
+  
+class ConsumerHelper {  
+  
+    static void method(String str) {  
+        System.out.println(str);  
+    }  
+  
+    static void method(Integer i) {  
+        System.out.println(i);  
+    }  
+  
+    static int methodWithReturn(Integer i) {  
+        System.out.println(i * 2);  
+        return i * 2;  
+    }  
+  
+    static void method(StringBuilder sb) {  
+        System.out.println(sb);  
+    }  
+  
+    static void method(List<String> list) {  
+        System.out.println(list);  
+    }  
+}  
+  
+class BiConsumerHelper {  
+  
+    static void method(Integer i, Integer j) {  
+        System.out.println(i + j);  
+    }  
+  
+    static void method(String str, Integer j) {  
+        System.out.println(Integer.parseInt(str) * j);  
+    }  
+  
+    void instanceMethod(String str) {  
+        System.out.println(str);  
+    }  
+  
+}
+```
 
-Predicate is often used when filtering or matching. Both are common operations. A BiPredicate is just like a Predicate, except that it takes two parameters instead of one. The interfaces are defined as follows:
+### Implementing ``Predicate`` and ``BiPredicate``
+
+``Predicate`` is often used when filtering or matching. Both are common operations. A ``BiPredicate`` is just like a ``Predicate``, except that it takes two parameters instead of one. The interfaces are defined as follows:
 
 ```java
 @FunctionalInterface
@@ -17031,9 +17976,150 @@ System.out.println(b2.test("chicken", "chick")); // true
 
 **==The method reference includes both the instance variable and parameter for ``startsWith()``==**. This is a good example of how method references save quite a lot of typing. The downside is that they are less explicit, and you really have to understand what is going on!
 
-### Implementing Function and BiFunction
+```java
+public class ImplementingPredicateAndBiPredicate {  
+  
+    public static void main(String[] args) {  
+  
+        predicateExample1();  
+        predicateExample2();  
+        predicateExample3();  
+        predicateHelperExample();  
+        biPredicateExample();  
+        biPredicateHelperExample();  
+    }  
+  
+    private static void predicateExample1() {  
+  
+        System.out.println("### predicateExample1 ###");  
+        Predicate<String> p1 = String::isEmpty;  
+        Predicate<String> p2 = x -> x.isEmpty();  
+        Predicate<String> p3 = (String str) -> str.length() > 5;  
+        Predicate<String> p4 = (String str) -> true;  
+  
+  
+        System.out.println(p1.test("")); // true  
+        System.out.println(p2.test("")); // true  
+        System.out.println(p3.test("Hello Predicate!"));  
+        System.out.println(p4.test("always-true"));  
+    }  
+  
+    private static void predicateExample2() {  
+  
+        System.out.println("### predicateExample2 ###");  
+        Predicate<Integer> p1 = number -> number > 100;  
+        Predicate<Integer> p2 = (Integer number) -> {  
+            return number > 100;  
+        };  
+  
+  
+        System.out.println(p1.test(20));  
+        System.out.println(p1.test(120));  
+  
+        System.out.println(p2.test(20));  
+        System.out.println(p2.test(120));  
+    }  
+  
+    private static void predicateExample3() {  
+  
+        System.out.println("### predicateExample3 ###");  
+        Predicate<List<Integer>> p1 = (List<Integer> list) -> list.contains(100);  
+  
+        Predicate<List<Integer>> p2 = List::isEmpty;  
+        //Predicate<List<Integer>> p3 = ArrayList::isEmpty; // DOES NOT COMPILE  
+        p1.test(List.of(10, 20, 50, 100));  
+        p2.test(List.of(1, 2, 3));  
+    }  
+  
+    private static void predicateHelperExample() {  
+  
+        System.out.println("### predicateHelperExample ###");  
+        Predicate<Long> p1 = PredicateHelper::checkSize;  
+        Predicate<Integer> p2 = PredicateHelper::checkSize;  
+  
+        Predicate<PredicateHelper> p3 = PredicateHelper::sampleMethod;  
+        //Predicate<PredicateHelper> p4 = PredicateHelper::sampleStaticMethod; // DOES NOT COMPILE  
+        Predicate<PredicateHelper> p5 = PredicateHelper::sampleStaticMethod2; // DOES NOT COMPILE  
+  
+        System.out.println(p1.test(20L));  
+        p2.test(10);  
+        p3.test(new PredicateHelper(100));  
+        p5.test(new PredicateHelper(10));  
+    }  
+  
+    private static void biPredicateExample() {  
+  
+        System.out.println("### biPredicateExample ###");  
+        BiPredicate<String, String> b1 = String::startsWith;  
+        BiPredicate<String, String> b2 = (string, prefix) -> string.startsWith(prefix);  
+  
+        BiPredicate<String, String> b3 = String::endsWith;  
+        BiPredicate<String, String> b4 = (string, suffix) -> string.endsWith(suffix);  
+  
+        BiPredicate<String, String> b5 = String::contains;  
+  
+        System.out.println(b1.test("chicken", "chick")); // true  
+        System.out.println(b2.test("chicken", "chick")); // true  
+        System.out.println(b3.test("hello", "world"));  
+        System.out.println(b4.test("hello", "world"));  
+        System.out.println(b5.test("injavawetrust", "java"));  
+  
+    }  
+  
+    private static void biPredicateHelperExample() {  
+  
+        System.out.println("### biPredicateHelperExample ###");  
+        BiPredicate<Integer, Integer> b1 = BiPredicateHelper::check;  
+        BiPredicate<String, Integer> b2 = BiPredicateHelper::check2;  
+  
+        System.out.println(b1.test(1, 5));  
+        System.out.println(b2.test("hello", 5));  
+    }  
+}  
+  
+class PredicateHelper {  
+  
+    private int size;  
+  
+    public PredicateHelper(int size) {  
+        this.size = size;  
+    }  
+  
+    static boolean checkSize(long size) {  
+        return size > 10;  
+    }  
+  
+    static boolean checkSize(int size) {  
+        return size > 10;  
+    }  
+  
+    boolean sampleMethod() {  
+        return this.size == 10;  
+    }  
+  
+    static boolean sampleStaticMethod() {  
+        return false;  
+    }  
+  
+    static boolean sampleStaticMethod2(PredicateHelper ph) {  
+        return ph == null;  
+    }  
+}  
+  
+class BiPredicateHelper {  
+    static boolean check(Integer i, Integer j) {  
+        return i > j;  
+    }  
+  
+    static Boolean check2(String s, Integer i) {  
+        return s.length() > i;  
+    }  
+}
+```
 
-A Function is responsible for turning one parameter into a value of a potentially different type and returning it. Similarly, a BiFunction is responsible for turning two parameters into a value and returning it.
+### Implementing ``Function`` and ``BiFunction``
+
+A ``Function`` is responsible for turning one parameter into a value of a potentially different type and returning it. Similarly, a ``BiFunction`` is responsible for turning two parameters into a value and returning it.
 
 ```java
 @FunctionalInterface
@@ -17065,11 +18151,139 @@ System.out.println(b1.apply("baby ", "chick")); // baby chick
 System.out.println(b2.apply("baby ", "chick")); // baby chick
 ```
 
-**==The first two types in the BiFunction are the input types. The third is the result type==**. For the method reference, the first parameter is the instance that ``concat()`` is called on, and the second is passed to concat().
+**==The first two types in the ``BiFunction`` are the input types. The third is the result type==**. For the method reference, the first parameter is the instance that ``concat()`` is called on, and the second is passed to ``concat()``.
+
+```java
+public class ImplementingFunctionAndBiFunction {  
+  
+    public static void main(String[] args) {  
+  
+        functionExample();  
+        functionExample2();  
+        functionExample3();  
+        functionHelperExample();  
+        biFunctionExample();  
+        biFunctionHelperExample();  
+    }  
+  
+    private static void functionExample() {  
+  
+        System.out.println("### functionExample ###");  
+        Function<String, Integer> f1 = String::length;  
+        Function<String, Integer> f2 = x -> x.length();  
+  
+        Function<String, String> f3 = String::toUpperCase;  
+        Function<String, String> f4 = s -> s.toUpperCase();  
+  
+        System.out.println(f1.apply("cluck"));  
+        System.out.println(f2.apply("cluck"));  
+        System.out.println(f3.apply("hello"));  
+        System.out.println(f4.apply("hello"));  
+    }  
+  
+    private static void functionExample2() {  
+  
+        System.out.println("### functionExample2 ###");  
+        String str = "content";  
+        Function<String, Integer> f1 = str::indexOf;  
+        System.out.println(f1.apply("o"));  
+    }  
+  
+    private static void functionExample3() {  
+  
+        System.out.println("### functionExample3 ###");  
+        Function<List<Integer>, Integer> f1 = List::size;  
+        Function<List<Integer>, Integer> f2 = (list) -> list.size();  
+  
+        System.out.println(f1.apply(List.of(1, 2, 3)));  
+        System.out.println(f2.apply(List.of(1, 2, 3)));  
+    }  
+  
+    private static void functionHelperExample() {  
+  
+        System.out.println("### functionHelperExample ###");  
+        Function<String, Integer> f1 = FunctionHelper::length;  
+        Function<String, Integer> f2 = s -> FunctionHelper.length(s);  
+        Function<FunctionHelper, Integer> f3 = FunctionHelper::multiply;  
+  
+        System.out.println(f1.apply("hello world!"));  
+        System.out.println(f2.apply("hello world"));  
+        System.out.println(f3.apply(new FunctionHelper(10)));  
+    }  
+  
+    private static void biFunctionExample() {  
+  
+        System.out.println("### biFunctionExample ###");  
+        BiFunction<String, String, String> b1 = String::concat;  
+        BiFunction<String, String, String> b2 = (string, toAdd) -> string.concat(toAdd);  
+  
+        System.out.println(b1.apply("baby ", "chick")); // baby chick  
+        System.out.println(b2.apply("baby ", "chick")); // baby chick  
+    }  
+  
+    private static void biFunctionHelperExample() {  
+  
+        System.out.println("### biFunctionHelperExample ###");  
+        BiFunction<String, String, String> bf1 = BiFunctionHelper::concat;  
+        BiFunction<String, String, Integer> bf2 = BiFunctionHelper::length;  
+  
+        BiFunction<BiFunctionHelper, String, Integer> bf3 = BiFunctionHelper::compareTo;  
+        BiFunction<BiFunctionHelper, String, Integer> bf4 = BiFunctionHelper::compareToV2;  
+  
+        System.out.println(bf1.apply("hello", "world"));  
+        System.out.println(bf2.apply("hello", "world"));  
+        System.out.println(bf3.apply(new BiFunctionHelper("hello-world"), "sample"));  
+        System.out.println(bf4.apply(new BiFunctionHelper("hello-world"), "sample"));  
+    }  
+  
+}  
+  
+class FunctionHelper {  
+  
+    private int size;  
+  
+    public FunctionHelper(int size) {  
+        this.size = size;  
+    }  
+  
+    static Integer length(String s) {  
+        return s.length();  
+    }  
+  
+    Integer multiply() {  
+        return size * 5;  
+    }  
+}  
+  
+class BiFunctionHelper {  
+  
+    private String content;  
+  
+    public BiFunctionHelper(String content) {  
+        this.content = content;  
+    }  
+  
+    static String concat(String str, String str2) {  
+        return "Prefix -".concat(str).concat(str2).concat(" - suffix");  
+    }  
+  
+    static Integer length(String str, String str2) {  
+        return str.concat(str2).length();  
+    }  
+  
+    Integer compareTo(String str) {  
+        return content.compareTo(str);  
+    }  
+  
+    static Integer compareToV2(BiFunctionHelper bfh, String str) {  
+        return 10;  
+    }  
+}
+```
 
 ### Implementing UnaryOperator and BinaryOperator
 
-UnaryOperator and BinaryOperator are special cases of a Function. **==They require all type parameters to be the same type==**. A UnaryOperator transforms its value into one of the same type. For example, incrementing by one is a unary operation. In fact, UnaryOperator extends Function. A BinaryOperator merges two values into one of the same type. Adding two numbers is a binary operation. Similarly, BinaryOperator extends BiFunction.
+``UnaryOperator`` and ``BinaryOperator`` are special cases of a ``Function``. **==They require all type parameters to be the same type==**. A ``UnaryOperator`` transforms its value into one of the same type. For example, incrementing by one is a unary operation. In fact, ``UnaryOperator`` extends ``Function``. A ``BinaryOperator`` merges two values into one of the same type. Adding two numbers is a binary operation. Similarly, ``BinaryOperator`` extends ``BiFunction``.
 
 ```java
 @FunctionalInterface
@@ -17085,7 +18299,7 @@ public interface BinaryOperator<T> extends BiFunction<T, T, T> {
 ```
 
 
-In the Javadoc, you’ll notice that these methods are inherited from the Function/BiFunction superclass. **==The generic declarations on the subclass are what force the type to be the same.==**
+In the Javadoc, you’ll notice that these methods are inherited from the ``Function/BiFunction`` superclass. **==The generic declarations on the subclass are what force the type to be the same.==**
 
 ```java
 UnaryOperator<String> u1 = String::toUpperCase;
@@ -17095,7 +18309,7 @@ System.out.println(u1.apply("chirp")); // CHIRP
 System.out.println(u2.apply("chirp")); // CHIRP
 ```
 
-We don’t need to specify the return type in the generics because UnaryOperator requires it to be the same as the parameter
+We don’t need to specify the return type in the generics because ``UnaryOperator`` requires it to be the same as the parameter
 
 ```java
 BinaryOperator<String> b1 = String::concat;
@@ -17105,13 +18319,111 @@ System.out.println(b1.apply("baby ", "chick")); // baby chick
 System.out.println(b2.apply("baby ", "chick")); // baby chick
 ```
 
-Notice that this does the same thing as the BiFunction example. The code is more succinct, which shows the importance of using the best functional interface
+Notice that this does the same thing as the ``BiFunction`` example. The code is more succinct, which shows the importance of using the best functional interface
+
+```java
+public class ImplementingUnaryOperatorAndBinaryOperator {  
+  
+    public static void main(String[] args) {  
+  
+        unaryOperatorExample();  
+        unaryOperatorExample2();  
+        unaryOperatorHelperExample();  
+        binaryOperatorExample();  
+        binaryOperatorExample2();  
+        binaryOperatorHelperExample();  
+  
+    }  
+  
+    private static void unaryOperatorExample() {  
+  
+        System.out.println("### unaryOperatorExample ###");  
+        UnaryOperator<String> u1 = String::toUpperCase;  
+        UnaryOperator<String> u2 = x -> x.toUpperCase();  
+  
+        System.out.println(u1.apply("chirp")); // CHIRP  
+        System.out.println(u2.apply("chirp")); // CHIRP  
+    }  
+  
+    private static void unaryOperatorExample2() {  
+  
+        System.out.println("### unaryOperatorExample2 ###");  
+        String str = "content ";  
+        UnaryOperator<String> u1 = str::concat;  
+        // UnaryOperator<String> u2 = String::concat; // DOES NOT COMPILE  
+  
+        System.out.println(u1.apply("chirp")); // CHIRP  
+  
+    }  
+  
+    private static void unaryOperatorHelperExample() {  
+  
+        System.out.println("### unaryOperatorHelperExample ###");  
+        UnaryOperator<Integer> u1 = UnaryOperatorHelper::square;  
+  
+        // Bad return type in method reference: cannot convert long to java.lang.Integer  
+        // UnaryOperator<Integer> u2 = UnaryOperatorHelper::square2;  
+        UnaryOperator<Long> u3 = UnaryOperatorHelper::square2;  
+  
+        System.out.println(u1.apply(25));  
+        System.out.println(u3.apply(10L));  
+    }  
+  
+  
+    private static void binaryOperatorExample() {  
+  
+        System.out.println("### binaryOperatorExample ###");  
+        BinaryOperator<String> b1 = String::concat;  
+        BinaryOperator<String> b2 = (string, toAdd) -> string.concat(toAdd);  
+        System.out.println(b1.apply("baby ", "chick")); // baby chick  
+        System.out.println(b2.apply("baby ", "chick")); // baby chick  
+    }  
+  
+  
+    private static void binaryOperatorExample2() {  
+  
+        System.out.println("### binaryOperatorExample ###");  
+        BinaryOperator<Double> b1 = Math::pow;  
+        BinaryOperator<Integer> b2 = Math::max;  
+  
+        System.out.println(b1.apply(2.0, 5.0));  
+        System.out.println(b2.apply(12, 15));  
+    }  
+  
+    private static void binaryOperatorHelperExample() {  
+  
+        System.out.println("### binaryOperatorHelperExample ###");  
+        BinaryOperator<Integer> b1 = BinaryOperatorHelper::multiply;  
+        BinaryOperator<Integer> b2 = (Integer i, Integer j) -> BinaryOperatorHelper.multiply(i, j);  
+  
+        System.out.println(b1.apply(10, 6));  
+        System.out.println(b2.apply(10, 6));  
+    }  
+}  
+  
+class UnaryOperatorHelper {  
+  
+    static int square(int i) {  
+        return i * i;  
+    }  
+  
+    static long square2(long i) {  
+        return i * i;  
+    }  
+}  
+  
+class BinaryOperatorHelper {  
+  
+    static int multiply(int i, int j) {  
+        return i * j;  
+    }
+```
 
 ### Checking Functional Interfaces
 
--  Returns a String without taking any parameters -> ``Supplier<String>``
--  Returns a Boolean and takes a String -> ``Function<String, Boolean>``
--  Returns an Integer and takes two Integers -> ``BinaryOperator<Integer>``
+-  Returns a ``String`` without taking any parameters -> ``Supplier<String>``
+-  Returns a ``Boolean`` and takes a ``String`` -> ``Function<String, Boolean>``
+-  Returns an ``Integer`` and takes two ``Integers`` -> ``BinaryOperator<Integer>``
 
 The second one is a ``Function<String,Boolean>`` because it takes one parameter and returns another type. It’s a little tricky. You might think it is a ``Predicate<String>``. Note that a **==Predicate returns a boolean primitive and not a Boolean object==**.
 
@@ -17121,23 +18433,23 @@ The second one is a ``Function<String,Boolean>`` because it takes one parameter 
 8: ?? <String, String> ex3 = (s1, s2) -> false; // BiPredicate
 ```
 
-- Line 6 passes one List parameter to the lambda and returns a boolean. This tells us that it is a Predicate or Function. Since the generic declaration has only one parameter, it is a Predicate.
-- Line 7 passes one Long parameter to the lambda and doesn’t return anything. This tells us that it is a Consumer.
-- Line 8 takes two parameters and returns a boolean. When you see a boolean returned, think Predicate unless the generics specify a Boolean return type. In this case, there are two parameters, so it is a BiPredicate.
+- Line 6 passes one List parameter to the lambda and returns a ``boolean``. This tells us that it is a ``Predicate`` or ``Function``. Since the generic declaration has only one parameter, it is a ``Predicate``.
+- Line 7 passes one ``Long`` parameter to the lambda and doesn’t return anything. This tells us that it is a ``Consumer``.
+- Line 8 takes two parameters and returns a ``boolean``. When you see a ``boolean`` returned, think ``Predicate`` unless the generics specify a ``Boolean`` return type. In this case, there are two parameters, so it is a ``BiPredicate``.
 
 ```java
 6: Function<List<String>> ex1 = x -> x.get(0); // DOES NOT COMPILE
 7: UnaryOperator<Long> ex2 = (Long l) -> 3.14; // DOES NOT COMPILE
 ```
 
-- Line 6 claims to be a Function. A Function needs to specify two generic types: the input parameter type and the return value type. The return value type is missing from line 6, causing the code not to compile.
-- Line 7 is a UnaryOperator, which returns the same type as it is passed in. The example returns a double rather than a Long, causing the code not to compile.
+- Line 6 claims to be a ``Function``. A ``Function`` needs to specify two generic types: the input parameter type and the return value type. The return value type is missing from line 6, causing the code not to compile.
+- Line 7 is a ``UnaryOperator``, which returns the same type as it is passed in. The example returns a double rather than a Long, causing the code not to compile.
 
 ### Using Convenience Methods on Functional Interfaces
 
 By definition, all functional interfaces have a single abstract method. Several of the common functional interfaces provide a number of helpful ``default`` interface methods.
 
-The BiConsumer, BiFunction, and BiPredicate interfaces have similar methods available.
+The ``BiConsumer``, ``BiFunction``, and ``BiPredicate`` interfaces have similar methods available.
 
 ![[Pasted image 20240403143832.png]]
 
@@ -17163,7 +18475,7 @@ Consumer<String> c2 = x -> System.out.print(",2: " + x);
 Consumer<String> combined = c1.andThen(c2); combined.accept("Annie"); // 1: Annie,2: Annie
 ```
 
-Notice how the same parameter is passed to both ``c1`` and ``c2``. This shows that **==the Consumer instances are run in sequence and are independent of each other. By contrast, the ``compose()`` method on Function chains functional interfaces==**. However, it passes along the output of one to the input of another.
+Notice how the same parameter is passed to both ``c1`` and ``c2``. This shows that **==the ``Consumer`` instances are run in sequence and are independent of each other. By contrast, the ``compose()`` method on ``Function`` chains functional interfaces==**. However, it passes along the output of one to the input of another.
 
 ```java
 Function<Integer, Integer> before = x -> x + 1;
@@ -17180,9 +18492,9 @@ There are also a large number of special functional interfaces for primitives.
 
 Most of them are for the double, int, and long types. There is one exception, which is BooleanSupplier.
 
-#### Functional Interfaces for boolean
+#### Functional Interfaces for ``boolean``
 
-BooleanSupplier is a separate type. It has one method to implement:
+``BooleanSupplier`` is a separate type. It has one method to implement:
 
 ```java
 @FunctionalInterface
@@ -17198,7 +18510,35 @@ public interface BooleanSupplier {
 15: System.out.println(b2.getAsBoolean()); // false
 ```
 
-#### Functional Interfaces for double, int, and long
+```java
+public class PrimitiveTypesSupplierInterfaceForBoolean {  
+  
+    public static void main(String[] args) {  
+  
+        BooleanSupplier b1 = () -> true;  
+        BooleanSupplier b2 = () -> Math.random() > .5;  
+        BooleanSupplier b3 = PrimitiveBooleanHelper::isRandomNumGreaterThan5;  
+  
+        String str = "not-empty";  
+        BooleanSupplier b4 = str::isEmpty;  
+  
+        System.out.println(b1.getAsBoolean());  
+        System.out.println(b2.getAsBoolean());  
+        System.out.println(b3.getAsBoolean());  
+        System.out.println(b4.getAsBoolean());  
+  
+    }  
+}  
+  
+class PrimitiveBooleanHelper {  
+  
+    static boolean isRandomNumGreaterThan5() {  
+        return new Random().nextInt(10) > 5;  
+    }  
+}
+```
+
+#### Functional Interfaces for ``double``, ``int``, and ``long``
 
 Table 8.6 shows the equivalent of Table 8.4 for these primitives.
 
@@ -17209,6 +18549,815 @@ There are a few things to notice that are different between Table 8.4 and Table 
 -  **==Generics are gone from some of the interfaces, and instead the type name tells us what primitive type is involved. In other cases, such as IntFunction, only the return type generic is needed because we’re converting a primitive int into an object.**==
 -  ==**The single abstract method is often renamed when a primitive type is returned.==**
 
+
+**PrimitiveTypesSupplierInterfaces**
+
+```java
+public class PrimitiveTypesSupplierInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        doubleSupplierExample();  
+        intSupplierExample();  
+        longSupplierExample();  
+  
+    }  
+  
+    private static void doubleSupplierExample() {  
+  
+        System.out.println("### doubleSupplierExample ###");  
+  
+        DoubleSupplier ds1 = () -> 10.0;  
+        DoubleSupplier ds2 = () -> Math.random();  
+        DoubleSupplier ds3 = Math::random;  
+        DoubleSupplier ds4 = () -> new Random().nextDouble();  
+        DoubleSupplier ds5 = PrimitiveSupplierHelper::randomDouble;  
+        Supplier<Double> s1 = Math::random;  
+        Supplier<Double> s2 = () -> Math.random();  
+  
+        System.out.println(ds1.getAsDouble());  
+        System.out.println(ds2.getAsDouble());  
+        System.out.println(ds3.getAsDouble());  
+        System.out.println(ds4.getAsDouble());  
+        System.out.println(ds5.getAsDouble());  
+        System.out.println(s1.get());  
+        System.out.println(s2.get());  
+    }  
+  
+  
+    private static void intSupplierExample() {  
+  
+        System.out.println("### intSupplierExample ###");  
+  
+        IntSupplier is1 = () -> 10;  
+        IntSupplier is2 = () -> (int) Math.random();  
+        IntSupplier is3 = () -> new Random().nextInt();  
+        IntSupplier is4 = PrimitiveSupplierHelper::randomInt;  
+        Supplier<Integer> s1 = PrimitiveSupplierHelper::randomInt;  
+  
+        System.out.println(is1.getAsInt());  
+        System.out.println(is2.getAsInt());  
+        System.out.println(is3.getAsInt());  
+        System.out.println(is4.getAsInt());  
+        System.out.println(s1.get());  
+    }  
+  
+    private static void longSupplierExample() {  
+  
+        System.out.println("### longSupplierExample ###");  
+  
+        LongSupplier ls1 = () -> 10;  
+        LongSupplier ls2 = new Random()::nextInt;  
+        LongSupplier ls3 = new Random()::nextLong;  
+        LongSupplier ls4 = PrimitiveSupplierHelper::randomInt;  
+        LongSupplier ls5 = PrimitiveSupplierHelper::randomLong;  
+  
+        // Supplier<Long> s1 = PrimitiveSupplierHelper::randomInt; // DOES NOT COMPILE  
+        Supplier<Long> s2 = PrimitiveSupplierHelper::randomLong;  
+  
+        System.out.println(ls1.getAsLong());  
+        System.out.println(ls2.getAsLong());  
+        System.out.println(ls3.getAsLong());  
+        System.out.println(ls4.getAsLong());  
+        System.out.println(ls5.getAsLong());  
+        System.out.println(s2.get());  
+    }  
+  
+}  
+  
+  
+class PrimitiveSupplierHelper {  
+  
+    static double randomDouble() {  
+        Random random = new Random();  
+        return random.nextDouble();  
+    }  
+  
+    static int randomInt() {  
+        Random random = new Random();  
+        return random.nextInt();  
+    }  
+  
+    static long randomLong() {  
+        Random random = new Random();  
+        return random.nextLong();  
+    }  
+}
+```
+
+**PrimitiveTypesConsumerInterfaces**
+
+```java
+public class PrimitiveTypesConsumerInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        doubleConsumerExample();  
+        intConsumerExample();  
+        longConsumerExample();  
+  
+    }  
+  
+    private static void doubleConsumerExample() {  
+  
+        System.out.println("### doubleConsumerExample ###");  
+  
+        DoubleConsumer dc1 = (value) -> System.out.println(value);  
+        DoubleConsumer dc2 = System.out::println;  
+        DoubleConsumer dc3 = PrimitiveConsumerHelper::consumeDouble;  
+  
+        Consumer<Double> c1 = (value) -> System.out.println(value);  
+        Consumer<Double> c2 = System.out::println;  
+        Consumer<Double> c3 = PrimitiveConsumerHelper::consumeDouble;  
+  
+        dc1.accept(10);  
+        dc2.accept(10);  
+        dc3.accept(10);  
+        c1.accept(10d);  
+        c2.accept(10D);  
+        c3.accept(10.0);  
+    }  
+  
+    private static void intConsumerExample() {  
+  
+        System.out.println("### intConsumerExample ###");  
+  
+        IntConsumer ic1 = value -> System.out.println(value);  
+        IntConsumer ic2 = System.out::println;  
+        IntConsumer ic3 = PrimitiveConsumerHelper::consumeDouble;  
+        IntConsumer ic4 = PrimitiveConsumerHelper::consumeInt;  
+  
+        Consumer<Integer> c1 = (value) -> System.out.println(value);  
+        Consumer<Integer> c2 = System.out::println;  
+        Consumer<Integer> c3 = PrimitiveConsumerHelper::consumeDouble;  
+        Consumer<Integer> c4 = PrimitiveConsumerHelper::consumeInt;  
+  
+        ic1.accept(10);  
+        ic2.accept(10);  
+        ic3.accept(10);  
+        ic4.accept(10);  
+  
+        c1.accept(10);  
+        c2.accept(10);  
+        c3.accept(10);  
+        c4.accept(10);  
+  
+    }  
+  
+  
+    private static void longConsumerExample() {  
+  
+        System.out.println("### longConsumerExample ###");  
+  
+        LongConsumer lc1 = (value) -> System.out.println(value);  
+        LongConsumer lc2 = System.out::println;  
+        // LongConsumer lc3 = PrimitiveConsumerHelper::consumeInt; // DOES  NOT COMPILE  
+        LongConsumer lc4 = PrimitiveConsumerHelper::consumeLong;  
+        LongConsumer lc5 = PrimitiveConsumerHelper::consumeDouble;  
+  
+        Consumer<Long> c1 = (value) -> System.out.println(value);  
+        Consumer<Long> c2 = System.out::println;  
+        // Consumer<Long> c3 = PrimitiveConsumerHelper::consumeInt; // DOES NOT COMPILE  
+        Consumer<Long> c4 = PrimitiveConsumerHelper::consumeLong;  
+        Consumer<Long> c5 = PrimitiveConsumerHelper::consumeDouble;  
+  
+        lc1.accept(1);  
+        lc2.accept(1);  
+        lc4.accept(1);  
+        lc5.accept(1);  
+  
+        c1.accept(1L);  
+        c2.accept(1L);  
+        c4.accept(1L);  
+        c5.accept(1L);  
+    }  
+  
+}  
+  
+class PrimitiveConsumerHelper {  
+  
+    static void consumeDouble(double d) {  
+        System.out.println(d * 2);  
+    }  
+  
+    static void consumeInt(int d) {  
+        System.out.println(d * 2);  
+    }  
+  
+    static void consumeLong(long l) {  
+        System.out.println(l * 2);  
+    }  
+}
+```
+
+**PrimitiveTypesPredicateInterfaces**
+
+```java
+public class PrimitiveTypesPredicateInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        doublePredicateExample();  
+        intPredicateExample();  
+        longPredicateExample();  
+    }  
+  
+    private static void doublePredicateExample() {  
+  
+        System.out.println("### doublePredicateExample ###");  
+  
+        DoublePredicate dp1 = (d) -> d > 1.5;  
+        DoublePredicate dp2 = PredicatePrimitiveHelper::predicateDouble;  
+        DoublePredicate dp3 = d -> PredicatePrimitiveHelper.predicateDouble(d);  
+  
+        DoublePredicate dp4 = Double::isInfinite;  
+        DoublePredicate dp5 = Double::isNaN;  
+        DoublePredicate dp6 = Double::isFinite;  
+  
+        System.out.println(dp1.test(0.5));  
+        System.out.println(dp2.test(1.1));  
+        System.out.println(dp3.test(2.5));  
+  
+        System.out.println(dp4.test(Double.POSITIVE_INFINITY));  
+        System.out.println(dp5.test(Double.NaN));  
+        System.out.println(dp6.test(Double.MAX_VALUE));  
+    }  
+  
+    private static void intPredicateExample() {  
+  
+        System.out.println("### intPredicateExample ###");  
+  
+        IntPredicate dp1 = (d) -> d > 1.5;  
+        IntPredicate dp2 = PredicatePrimitiveHelper::predicateDouble;  
+        IntPredicate dp3 = PredicatePrimitiveHelper::predicateInt;  
+        IntPredicate dp4 = d -> PredicatePrimitiveHelper.predicateDouble(d);  
+        IntPredicate dp5 = d -> PredicatePrimitiveHelper.predicateInt(d);  
+  
+        System.out.println(dp1.test(5));  
+        System.out.println(dp2.test(5));  
+        System.out.println(dp3.test(34));  
+        System.out.println(dp3.test(54));  
+        System.out.println(dp4.test(26));  
+        System.out.println(dp5.test(36));  
+    }  
+  
+    private static void longPredicateExample() {  
+  
+        System.out.println("### longPredicateExample ###");  
+  
+        LongPredicate dp1 = (long d) -> d > 1.5;  
+        LongPredicate dp2 = PredicatePrimitiveHelper::predicateLong;  
+        LongPredicate dp3 = PredicatePrimitiveHelper::predicateDouble;  
+        // LongPredicate dp4 = PredicatePrimitiveHelper::predicateInt; // DOES NOT COMPILE  
+        LongPredicate dp5 = d -> PredicatePrimitiveHelper.predicateLong(d);  
+        LongPredicate dp6 = d -> PredicatePrimitiveHelper.predicateDouble(d);  
+        //LongPredicate dp7 = d -> PredicatePrimitiveHelper.predicateInt(d); // DOES NOT COMPILE  
+  
+        System.out.println(dp1.test(5));  
+        System.out.println(dp2.test(5));  
+        System.out.println(dp3.test(26));  
+        System.out.println(dp5.test(26));  
+        System.out.println(dp6.test(26));  
+  
+    }  
+}  
+  
+  
+class PredicatePrimitiveHelper {  
+  
+    static boolean predicateDouble(double d) {  
+        return d > 1.2;  
+    }  
+  
+    static boolean predicateInt(int i) {  
+        return i > 2;  
+    }  
+  
+    static boolean predicateLong(long i) {  
+        return i > 2;  
+    }  
+}
+```
+
+**PrimitiveTypesFunctionInterfaces**
+
+```java
+public class PrimitiveTypesFunctionInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        doubleFunctionExample();  
+        intFunctionExample();  
+        longFunctionExample();  
+    }  
+  
+    private static void doubleFunctionExample() {  
+        System.out.println("### doubleFunctionExample ### ");  
+        DoubleFunction<String> df1 = Double::toHexString;  
+        DoubleFunction<String> df2 = (d) -> Double.toHexString(d);  
+        DoubleFunction<Double> df3 = Double::valueOf;  
+        DoubleFunction<Double> df4 = Math::sqrt;  
+        DoubleFunction<String> df5 = PrimitiveFunctionHelper::convertFromDouble;  
+  
+        DoubleFunction<Double> df6 = new Random()::nextDouble;  
+  
+        System.out.println(df1.apply(10.5));  
+        System.out.println(df2.apply(10.5));  
+        System.out.println(df3.apply(10.5));  
+        System.out.println(df4.apply(10.5));  
+        System.out.println(df5.apply(10.5));  
+        System.out.println(df6.apply(10.5));  
+  
+    }  
+  
+    private static void intFunctionExample() {  
+  
+        System.out.println("### intFunctionExample ### ");  
+        IntFunction<String> if1 = Double::toHexString;  
+        IntFunction<String> if2 = Integer::toHexString;  
+  
+        IntFunction<String> if3 = (d) -> Double.toHexString(d);  
+        IntFunction<String> if4 = (d) -> Integer.toHexString(d);  
+  
+        IntFunction<Double> if5 = Double::valueOf;  
+        IntFunction<Integer> if6 = Integer::valueOf;  
+  
+        IntFunction<Double> if7 = Math::sqrt;  
+        IntFunction<String> if8 = PrimitiveFunctionHelper::convertFromDouble;  
+        IntFunction<String> if9 = PrimitiveFunctionHelper::convertFromInt;  
+  
+        IntFunction<Integer> if10 = new Random()::nextInt;  
+  
+        System.out.println(if1.apply(10));  
+        System.out.println(if2.apply(10));  
+        System.out.println(if3.apply(10));  
+        System.out.println(if4.apply(10));  
+        System.out.println(if5.apply(10));  
+        System.out.println(if6.apply(10));  
+        System.out.println(if7.apply(10));  
+        System.out.println(if8.apply(10));  
+        System.out.println(if9.apply(10));  
+        System.out.println(if10.apply(10));  
+  
+    }  
+  
+  
+    private static void longFunctionExample() {  
+        System.out.println("### longFunctionExample ### ");  
+        LongFunction<String> lf1 = Double::toHexString;  
+        LongFunction<String> lf2 = Long::toHexString;  
+  
+        LongFunction<String> lf3 = (d) -> Double.toHexString(d);  
+        LongFunction<String> lf4 = (d) -> Long.toHexString(d);  
+  
+        LongFunction<Double> lf5 = Double::valueOf;  
+        LongFunction<Long> lf6 = Long::valueOf;  
+  
+        LongFunction<Double> lf7 = Math::sqrt;  
+        LongFunction<String> lf8 = PrimitiveFunctionHelper::convertFromDouble;  
+        LongFunction<String> lf9 = PrimitiveFunctionHelper::convertFromLong;  
+  
+        LongFunction<Long> lf10 = new Random()::nextLong;  
+  
+        System.out.println(lf1.apply(10));  
+        System.out.println(lf2.apply(10));  
+        System.out.println(lf3.apply(10));  
+        System.out.println(lf4.apply(10));  
+        System.out.println(lf5.apply(10));  
+        System.out.println(lf6.apply(10));  
+        System.out.println(lf7.apply(10));  
+        System.out.println(lf8.apply(10));  
+        System.out.println(lf9.apply(10));  
+        System.out.println(lf10.apply(10));  
+  
+    }  
+  
+}  
+  
+class PrimitiveFunctionHelper {  
+    static String convertFromDouble(double value) {  
+        return "converted value : " + value;  
+    }  
+  
+    static String convertFromInt(int value) {  
+        return "converted value : " + value;  
+    }  
+  
+    static String convertFromLong(long value) {  
+        return "converted value : " + value;  
+    }  
+}
+```
+
+**PrimitiveTypesUnaryOperatorInterfaces**
+
+```java
+public class PrimitiveTypesUnaryOperatorInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        doubleUnaryOperatorExample();  
+        intUnaryOperatorExample();  
+        longUnaryOperatorExample();  
+  
+    }  
+  
+    private static void doubleUnaryOperatorExample() {  
+  
+        System.out.println("### doubleUnaryOperatorExample ###");  
+        DoubleUnaryOperator duo1 = Double::valueOf;  
+        DoubleUnaryOperator duo2 = Math::sqrt;  
+        DoubleUnaryOperator duo3 = Math::sin;  
+        DoubleUnaryOperator duo4 = (double d) -> d * 2;  
+        // Incompatible parameter types in lambda expression: expected double but found Double  
+        // DoubleUnaryOperator duo5 = (Double d) -> d * 2;        DoubleUnaryOperator duo6 = PrimitiveUnaryOperatorHelper::multiply;  
+  
+  
+        System.out.println(duo1.applyAsDouble(5.2));  
+        System.out.println(duo2.applyAsDouble(5.2));  
+        System.out.println(duo3.applyAsDouble(5.2));  
+        System.out.println(duo4.applyAsDouble(5.2));  
+        System.out.println(duo6.applyAsDouble(5.2));  
+    }  
+  
+    private static void intUnaryOperatorExample() {  
+  
+        System.out.println("### intUnaryOperatorExample ###");  
+        IntUnaryOperator iuo1 = Integer::valueOf;  
+        IntUnaryOperator iuo2 = (i) -> i * 5;  
+        IntUnaryOperator iuo3 = Math::toIntExact;  
+        IntUnaryOperator iuo4 = PrimitiveUnaryOperatorHelper::sum;  
+  
+        // Bad return type in method reference: cannot convert double to int  
+        // IntUnaryOperator iuo5 = PrimitiveUnaryOperatorHelper::multiply; // DOES NOT COMPILE  
+        System.out.println(iuo1.applyAsInt(10));  
+        System.out.println(iuo2.applyAsInt(10));  
+        System.out.println(iuo3.applyAsInt(10));  
+        System.out.println(iuo4.applyAsInt(10));  
+  
+    }  
+  
+    private static void longUnaryOperatorExample() {  
+  
+        System.out.println("### longUnaryOperatorExample ###");  
+  
+        LongUnaryOperator luo1 = Long::valueOf;  
+        LongUnaryOperator luo2 = (i) -> i * 5;  
+        LongUnaryOperator luo3 = Math::toIntExact;  
+        LongUnaryOperator luo4 = PrimitiveUnaryOperatorHelper::substract;  
+  
+        System.out.println(luo1.applyAsLong(10));  
+        System.out.println(luo2.applyAsLong(10));  
+        System.out.println(luo3.applyAsLong(10));  
+        System.out.println(luo4.applyAsLong(10));  
+    }  
+  
+}  
+  
+class PrimitiveUnaryOperatorHelper {  
+    static double multiply(double value) {  
+        return value * 2;  
+    }  
+  
+    static int sum(int num) {  
+        return num + 100;  
+    }  
+  
+    static long substract(long num) {  
+        return num - 100;  
+    }  
+  
+}
+```
+
+**PrimitiveTypesBinaryOperatorInterfaces**
+
+```java
+public class PrimitiveTypesBinaryOperatorInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        doubleBinaryOperatorExample();  
+        intBinaryOperatorExample();  
+        longBinaryOperatorExample();  
+  
+    }  
+  
+    private static void doubleBinaryOperatorExample() {  
+        System.out.println("### doubleBinaryOperatorExample ###");  
+        DoubleBinaryOperator dbo1 = Math::pow;  
+        DoubleBinaryOperator dbo2 = Math::max;  
+        DoubleBinaryOperator dbo3 = (double d1, double d2) -> d1 * d2;  
+        DoubleBinaryOperator dbo4 = PrimitiveBinaryOperatorHelper::multiply;  
+  
+        System.out.println(dbo1.applyAsDouble(2.0, 3.0));  
+        System.out.println(dbo2.applyAsDouble(2.0, 3.0));  
+        System.out.println(dbo3.applyAsDouble(2.0, 3.0));  
+        System.out.println(dbo4.applyAsDouble(2.0, 3.0));  
+    }  
+  
+    private static void intBinaryOperatorExample() {  
+        System.out.println("### intBinaryOperatorExample ###");  
+        IntBinaryOperator ibo1 = Integer::min;  
+        IntBinaryOperator ibo2 = Integer::max;  
+        IntBinaryOperator ibo3 = (int i, int j) -> i * j;  
+        IntBinaryOperator ibo4 = PrimitiveBinaryOperatorHelper::multiply;  
+  
+        System.out.println(ibo1.applyAsInt(2, 3));  
+        System.out.println(ibo2.applyAsInt(2, 3));  
+        System.out.println(ibo3.applyAsInt(2, 3));  
+        System.out.println(ibo4.applyAsInt(2, 3));  
+    }  
+  
+    private static void longBinaryOperatorExample() {  
+        System.out.println("### longBinaryOperatorExample ###");  
+        LongBinaryOperator lbo1 = Long::min;  
+        LongBinaryOperator lbo2 = Long::max;  
+        LongBinaryOperator lbo3 = (long i, long j) -> i * j;  
+        LongBinaryOperator lbo4 = PrimitiveBinaryOperatorHelper::multiply;  
+  
+        System.out.println(lbo1.applyAsLong(2, 3));  
+        System.out.println(lbo2.applyAsLong(2, 3));  
+        System.out.println(lbo3.applyAsLong(2, 3));  
+        System.out.println(lbo4.applyAsLong(2, 3));  
+    }  
+}  
+  
+class PrimitiveBinaryOperatorHelper {  
+  
+    static double multiply(double d1, double d2) {  
+        return d1 * d2;  
+    }  
+  
+    static int multiply(int i, int j) {  
+        return i * j;  
+    }  
+  
+    static long multiply(long i, long j) {  
+        return i * j;  
+    }  
+}
+```
+
+![[Pasted image 20240403152301.png]]
+
+**ToXyzFunctionInterfaces**
+
+```java
+public class ToXyzFunctionInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        toDoubleFunctionExample();  
+        toIntFunctionExample();  
+        toLongFunctionExample();  
+  
+    }  
+  
+    private static void toDoubleFunctionExample() {  
+  
+        System.out.println("### toDoubleFunctionExample ###");  
+  
+        ToDoubleFunction<Integer> tdf1 = (Integer i) -> i * 2.5;  
+        ToDoubleFunction<String> tdf2 = (String s) -> Double.parseDouble(s);  
+        ToDoubleFunction<String> tdf3 = Double::parseDouble;  
+  
+        System.out.println(tdf1.applyAsDouble(10));  
+        System.out.println(tdf2.applyAsDouble("10.25"));  
+        System.out.println(tdf3.applyAsDouble("10.35"));  
+    }  
+  
+    private static void toIntFunctionExample() {  
+  
+        System.out.println("### toIntFunctionExample ###");  
+  
+        ToIntFunction<Double> tif1 = (Double d) -> d.intValue();  
+        ToIntFunction<String> tif2 = (String s) -> Integer.parseInt(s);  
+        ToIntFunction<String> tif3 = Integer::parseInt;  
+  
+        System.out.println(tif1.applyAsInt(10.0));  
+        System.out.println(tif2.applyAsInt("10"));  
+        System.out.println(tif3.applyAsInt("10"));  
+  
+        var d = 1.0;  
+        ToIntFunction f1 = x -> 1;  
+        f1.applyAsInt(d);  
+    }  
+  
+    private static void toLongFunctionExample() {  
+  
+        System.out.println("### toLongFunctionExample ###");  
+  
+        ToLongFunction<Long> tlf1 = (Long i) -> i * 5;  
+        ToLongFunction<String> tlf2 = (String s) -> Long.parseLong(s);  
+        ToLongFunction<String> tlf3 = Long::parseLong;  
+  
+  
+        System.out.println(tlf1.applyAsLong(10L));  
+        System.out.println(tlf2.applyAsLong("10"));  
+        System.out.println(tlf3.applyAsLong("10"));  
+    }  
+  
+}
+```
+
+**ToXyzBiFunctionInterfaces**
+
+```java
+public class ToXyzBiFunctionInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        toDoubleBiFunctionExample();  
+        toIntBiFunctionExample();  
+        toLongBiFunctionExample();  
+  
+    }  
+  
+    private static void toDoubleBiFunctionExample() {  
+  
+        System.out.println("### toDoubleBiFunctionExample ###");  
+  
+        ToDoubleBiFunction<Integer, Integer> tdbf1 = (i, j) -> i + j;  
+        ToDoubleBiFunction<Integer, Integer> tdbf2 = (Integer i, Integer j) -> (i + j) * 5.2;  
+        ToDoubleBiFunction<Double, Double> tdbf3 = (var d1, var d2) -> Double.max(d1, d2);  
+        ToDoubleBiFunction<Double, Double> tdbf4 = Double::min;  
+  
+        System.out.println(tdbf1.applyAsDouble(15, 20));  
+        System.out.println(tdbf2.applyAsDouble(15, 20));  
+        System.out.println(tdbf3.applyAsDouble(15.0, 20.0));  
+        System.out.println(tdbf4.applyAsDouble(15.0, 20.0));  
+    }  
+  
+    private static void toIntBiFunctionExample() {  
+  
+        System.out.println("### toIntBiFunctionExample ###");  
+  
+        ToIntBiFunction<Integer, Integer> tibf1 = (i, j) -> i + j;  
+        ToIntBiFunction<Integer, Integer> tibf2 = Integer::max;  
+        ToIntBiFunction<Integer, Integer> tibf3 = Integer::compareTo;  
+        ToIntBiFunction<String, String> tibf4 = (str1, str2) -> str1.length() + str2.length();  
+  
+        System.out.println(tibf1.applyAsInt(10, 20));  
+        System.out.println(tibf2.applyAsInt(10, 20));  
+        System.out.println(tibf3.applyAsInt(10, 20));  
+        System.out.println(tibf4.applyAsInt("content1", "content2"));  
+    }  
+  
+  
+    private static void toLongBiFunctionExample() {  
+  
+        System.out.println("### toLongBiFunctionExample ###");  
+        ToLongBiFunction<String, String> tlbf1 = (var str1, var str2) -> str1.length() + str2.length();  
+        ToLongBiFunction<Long, Long> tlbf2 = Math::max;  
+        ToLongBiFunction<Integer, Integer> tlbf3 = Math::max;  
+        ToLongBiFunction<Long, Long> tlbf4 = Long::max;  
+  
+        System.out.println(tlbf1.applyAsLong("key", "value"));  
+        System.out.println(tlbf2.applyAsLong(100L, 2000L));  
+        System.out.println(tlbf3.applyAsLong(100, 2000));  
+        System.out.println(tlbf4.applyAsLong(100L, 2000L));  
+    }  
+}
+```
+
+**XToYFunction**
+
+```java
+public class XToYFunction {  
+  
+    public static void main(String[] args) {  
+  
+        doubleToIntFunctionExample();  
+        doubleToLongFunctionExample();  
+        intToDoubleFunctionExample();  
+        intToLongFunctionExample();  
+        longToDoubleFunctionExample();  
+        longToIntFunctionExample();  
+    }  
+      
+    private static void doubleToIntFunctionExample() {  
+  
+        System.out.println("### doubleToIntFunctionExample ###");  
+        DoubleToIntFunction dtif1 = (double d1) -> (int) d1;  
+        DoubleToIntFunction dtif2 = Helper::ceil;  
+  
+        System.out.println(dtif1.applyAsInt(10.5));  
+        System.out.println(dtif2.applyAsInt(10.5));  
+  
+        var d = 1.0;  
+        DoubleToIntFunction f1 = x -> 1;  
+        f1.applyAsInt(d);  
+    }  
+  
+    private static void doubleToLongFunctionExample() {  
+  
+        System.out.println("### doubleToLongFunctionExample ###");  
+        DoubleToLongFunction dtlf1 = (double d1) -> (long) d1;  
+        DoubleToLongFunction dtlf2 = Helper::ceil;  
+  
+        System.out.println(dtlf1.applyAsLong(10.5));  
+        System.out.println(dtlf2.applyAsLong(10.5));  
+    }  
+  
+    private static void intToDoubleFunctionExample() {  
+  
+        System.out.println("### doubleToLongFunctionExample ###");  
+        IntToDoubleFunction itdf1 = (int i) -> i;  
+        IntToDoubleFunction itdf2 = (int i) -> Math.sqrt(i);  
+        IntToDoubleFunction itdf3 = Math::sqrt;  
+  
+        System.out.println(itdf1.applyAsDouble(15));  
+        System.out.println(itdf2.applyAsDouble(15));  
+        System.out.println(itdf3.applyAsDouble(15));  
+    }  
+  
+  
+    private static void intToLongFunctionExample() {  
+  
+        System.out.println("### intToLongFunctionExample ###");  
+        IntToLongFunction itlf1 = (int i) -> i;  
+        IntToLongFunction itlf2 = (int i) -> i * 10L;  
+        IntToLongFunction itlf3 = (int i) -> Long.valueOf(i);  
+        IntToLongFunction itlf4 = Long::valueOf;  
+  
+        System.out.println(itlf1.applyAsLong(15));  
+        System.out.println(itlf2.applyAsLong(15));  
+        System.out.println(itlf3.applyAsLong(15));  
+        System.out.println(itlf4.applyAsLong(15));  
+    }  
+  
+  
+    private static void longToDoubleFunctionExample() {  
+  
+        System.out.println("### longToDoubleFunctionExample ###");  
+        LongToDoubleFunction ltdf1 = (long x) -> x;  
+        LongToDoubleFunction ltdf2 = (var x) -> x * 2.0;  
+        LongToDoubleFunction ltdf3 = Double::valueOf;  
+        LongToDoubleFunction ltdf4 = Math::sqrt;  
+  
+  
+        System.out.println(ltdf1.applyAsDouble(10));  
+        System.out.println(ltdf2.applyAsDouble(15));  
+        System.out.println(ltdf3.applyAsDouble(20));  
+        System.out.println(ltdf4.applyAsDouble(25));  
+    }  
+  
+    private static void longToIntFunctionExample() {  
+  
+        System.out.println("### longToIntFunctionExample ###");  
+  
+        LongToIntFunction ltif1 = (var x) -> (int) x;  
+        LongToIntFunction ltif2 = (long i) -> Math.toIntExact(i);  
+        LongToIntFunction ltif3 = Math::toIntExact;  
+  
+        System.out.println(ltif1.applyAsInt(100L));  
+        System.out.println(ltif2.applyAsInt(100L));  
+        System.out.println(ltif3.applyAsInt(100L));  
+    }  
+  
+}  
+  
+class Helper {  
+  
+    static int ceil(double d) {  
+        return (int) Math.ceil(d);  
+    }  
+}
+```
+
+**ObjXyzConsumerInterfaces**
+
+```java
+public class ObjXyzConsumerInterfaces {  
+  
+    public static void main(String[] args) {  
+  
+        objDoubleConsumerExample();  
+        objIntConsumerExample();  
+        objLongConsumerExample();  
+    }  
+  
+    private static void objDoubleConsumerExample() {  
+        System.out.println("### objDoubleConsumerExample ###");  
+        ObjDoubleConsumer<String> odc1 = (String str, double d) -> System.out.println(Double.parseDouble(str) + d);  
+        odc1.accept("100.5", 20);  
+    }  
+  
+    private static void objIntConsumerExample() {  
+        System.out.println("### objIntConsumerExample ###");  
+        ObjIntConsumer<String> odc1 = (String str, int d) -> System.out.println(Double.parseDouble(str) + d);  
+        odc1.accept("100.5", 20);  
+    }  
+  
+    private static void objLongConsumerExample() {  
+        System.out.println("### objLongConsumerExample ###");  
+        ObjLongConsumer<String> odc1 = (String str, long d) -> System.out.println(Double.parseDouble(str) + d);  
+        odc1.accept("100.5", 20);  
+    }  
+}
+```
+
 ## Working with Variables in Lambdas
 
 They can appear in three places with respect to lambdas: 
@@ -17217,8 +19366,6 @@ They can appear in three places with respect to lambdas:
 - ==**variables referenced from the lambda body.==** 
  
 All three of these are opportunities for the exam to trick you
-
-![[Pasted image 20240403152301.png]]
 
 ### Listing Parameters
 
@@ -17260,7 +19407,7 @@ public void counts(List<Integer> list) {
 ```
 
 ---
-Parameter List Formats
+**Parameter List Formats**
 
 **You have three formats for specifying parameter types within a lambda: without types, with types, and with ``var``. ==The compiler requires all parameters in the lambda to use the same format==.**
 
@@ -17275,7 +19422,6 @@ Parameter List Formats
 - lines 6 and 7 need to use the type or var consistently.
 - line 8 needs to remove Integer from x or add a type to y.
 ---
-
 ### Using Local Variables Inside a Lambda Body
 
 While it is most common for a lambda body to be a single expression, it is legal to define a block. That block can have anything that is valid in a normal Java block, including local variable declarations.
