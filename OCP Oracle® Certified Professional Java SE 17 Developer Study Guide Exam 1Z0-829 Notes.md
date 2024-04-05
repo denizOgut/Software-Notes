@@ -20057,6 +20057,678 @@ G. None of these is a valid functional interface.
 
 ---
 
-
 # Chapter 9 Collections and Generics  #Chapter
 
+## Using Common Collection APIs
+
+A *collection* is a group of objects contained in a single object. The *Java Collections Framework* is a set of classes in ``java.util`` for storing collections. There are four main interfaces in the Java Collections Framework.
+
+- **List**: A list is an ordered collection of elements that allows duplicate entries. Elements in a list can be accessed by an int index.
+- **Set**: A set is a collection that does not allow duplicate entries.
+- **Queue**: A queue is a collection that orders its elements in a specific order for processing. A Deque is a subinterface of Queue that allows access at both ends.
+- **Map**: A map is a collection that maps keys to values, with no duplicate keys allowed. The elements in a map are key/value pairs.
+
+![[Pasted image 20240405233314.png]]
+
+Notice that ``Map`` doesn’t implement the ``Collection`` interface. It is considered part of the Java Collections Framework even though it isn’t technically a ``Collection``. It is a collection (note the lowercase), though, in that it contains a group of objects. **==The reason maps are treated differently is that they need different methods due to being key/value pairs.==**
+
+### Using the Diamond Operator
+
+When constructing a Java Collections Framework, you need to specify the type that will go inside.
+
+```java
+List<Integer> list = new ArrayList<Integer>();
+Map<Long,List<Integer>> mapLists = new HashMap<Long,List<Integer>>();
+```
+
+That’s a lot of duplicate code to write! Luckily, the diamond operator ``(<>)`` is a shorthand notation that allows you to omit the generic type from the right side of a statement when the type can be inferred. It is called the diamond operator because ``<>`` looks like a diamond.
+
+```java
+List<Integer> list = new ArrayList<>();
+Map<Long,List<Integer>> mapOfLists = new HashMap<>();
+```
+
+To the compiler, both these declarations and our previous ones are equivalent. **==The diamond operator cannot be used as the type in a variable declaration. It can be used only on the right side of an assignment operation==**
+
+```java
+List<> list = new ArrayList<Integer>(); // DOES NOT COMPILE
+
+class InvalidUse {
+	void use(List<> data) {} // DOES NOT COMPILE
+}
+```
+
+### Adding Data
+
+The ``add()`` method inserts a new element into the ``Collection`` and returns whether it was successful.
+
+```java
+	public boolean add(E element)
+```
+
+For some ``Collection`` types, ``add()`` always returns true. For other types, there is logic as to whether the ``add()`` call was successful.
+
+```java
+3: Collection<String> list = new ArrayList<>();
+4: System.out.println(list.add("Sparrow")); // true
+5: System.out.println(list.add("Sparrow")); // true
+6:
+7: Collection<String> set = new HashSet<>();
+8: System.out.println(set.add("Sparrow")); // true
+9: System.out.println(set.add("Sparrow")); // false
+```
+
+### Removing Data
+
+The ``remove()`` method removes a single matching value in the ``Collection`` and returns whether it was successful.
+
+```java
+public boolean remove(Object object
+```
+
+```java
+3: Collection<String> birds = new ArrayList<>();
+4: birds.add("hawk"); // [hawk]
+5: birds.add("hawk"); // [hawk, hawk]
+6: System.out.println(birds.remove("cardinal")); // false
+7: System.out.println(birds.remove("hawk")); // true
+8: System.out.println(birds); // [hawk]
+```
+
+### Counting Elements
+
+The ``isEmpty()`` and ``size()`` methods look at how many elements are in the ``Collection``
+
+```java
+public boolean isEmpty()
+public int size()
+```
+
+```java
+Collection<String> birds = new ArrayList<>();
+System.out.println(birds.isEmpty()); // true
+System.out.println(birds.size()); // 0
+birds.add("hawk"); // [hawk]
+birds.add("hawk"); // [hawk, hawk]
+System.out.println(birds.isEmpty()); // false
+System.out.println(birds.size()); // 2
+```
+
+### Clearing the Collection
+
+The ``clear()`` method provides an easy way to discard all elements of the ``Collection``.
+
+```java
+public void clear()
+```
+
+```java
+Collection<String> birds = new ArrayList<>();
+birds.add("hawk"); // [hawk]
+birds.add("hawk"); // [hawk, hawk]
+System.out.println(birds.isEmpty()); // false
+System.out.println(birds.size()); // 2
+birds.clear(); // []
+System.out.println(birds.isEmpty()); // true
+System.out.println(birds.size()); // 0
+```
+
+### Check Contents
+
+The ``contains()`` method checks whether a certain value is in the ``Collection``.
+
+```java
+public boolean contains(Object object)
+```
+
+```java
+Collection<String> birds = new ArrayList<>();
+birds.add("hawk"); // [hawk]
+System.out.println(birds.contains("hawk")); // true
+System.out.println(birds.contains("robin")); // false
+```
+
+The ``contains()`` method calls ``equals()`` on elements of the ``ArrayList`` to see whether there are any matches.
+
+### Removing with Conditions
+
+The ``removeIf()`` method removes all elements that match a condition.
+
+```JAVA
+public boolean removeIf(Predicate<? super E> filter)
+```
+
+```java
+4: Collection<String> list = new ArrayList<>();
+5: list.add("Magician");
+6: list.add("Assistant");
+7: System.out.println(list); // [Magician, Assistant]
+8: list.removeIf(s -> s.startsWith("A"));
+9: System.out.println(list); // [Magician]
+10:
+11: Collection<String> set = new HashSet<>();
+12: set.add("Wand");
+13: set.add("");
+14: set.removeIf(String::isEmpty); // s -> s.isEmpty()
+15: System.out.println(set); // [Wand]
+```
+
+### Iterating
+
+There’s a ``forEach()`` method that you can call on a ``Collection`` instead of writing a loop. It uses a ``Consumer`` that takes a single parameter and doesn’t return anything.
+
+```java
+public void forEach(Consumer<? super T> action)
+```
+
+```java
+Collection<String> cats = List.of("Annie", "Ripley");
+cats.forEach(System.out::println);
+cats.forEach(c -> System.out.println(c));
+```
+
+### Determining Equality
+
+**==There is a custom implementation of ``equals()`` so you can compare two Collections to compare the type and contents==**. The implementation will vary. For example, ``ArrayList`` checks order, while ``HashSet`` does not.
+
+```java
+boolean equals(Object object)
+```
+
+```java
+23: var list1 = List.of(1, 2);
+24: var list2 = List.of(2, 1);
+25: var set1 = Set.of(1, 2);
+26: var set2 = Set.of(2, 1);
+27:
+28: System.out.println(list1.equals(list2)); // false
+29: System.out.println(set1.equals(set2)); // true
+30: System.out.println(list1.equals(set1)); // false
+```
+
+---
+**Unboxing nulls**
+
+**Java protects us from many problems with ``Collections``. However, it is still possible to write a ``NullPointerException``:**
+
+```java
+3: var heights = new ArrayList<Integer>();
+4: heights.add(null);
+5: int h = heights.get(0); // NullPointerException
+```
+
+**On line 4, we add a ``null`` to the list. This is legal because a ``null`` reference can be assigned to any reference variable. On line 5, we try to unbox that ``null`` to an ``int`` primitive. This is a problem. Java tries to get the ``int`` value of ``null``. Since calling any method on ``null`` gives a ``NullPointerException``, that is just what we get**
+
+---
+
+## Using the ``List`` Interface
+
+use a list when you want an ordered collection that **==can contain duplicate entries. Each element of the ``List`` has an index, and the indexes begin with zero.==** The main thing all ``List`` implementations have in common is that they are ordered and allow duplicates. Beyond that, they each offer different functionality
+
+---
+
+**Pay special attention to which names are classes and which are interfaces. The exam may ask you which is the best class or which is the best interface for a scenario.**
+
+---
+
+### Comparing List Implementations
+
+An ``ArrayList`` is like a resizable array. When elements are added, the ``ArrayList`` automatically grows. When you aren’t sure which collection to use, use an ``ArrayList``. 
+
+**==The main benefit of an ``ArrayList`` is that you can look up any element in constant time. Adding or removing an element is slower than accessing an element. This makes an ``ArrayList`` a good choice when you are reading more often than (or the same amount as) writing to the ``ArrayList``.==**
+
+A ``LinkedList`` is special because it implements both ``List`` and ``Deque``. It has all the methods of a ``List``. It also has additional methods to facilitate adding or removing from the beginning and/or end of the list.
+
+**==The main benefits of a ``LinkedList`` are that you can access, add to, and remove from the beginning and end of the list in constant time. The trade-off is that dealing with an arbitrary index takes linear time. This makes a ``LinkedList`` a good choice when you’ll be using it as ``Deque``.==**
+
+### Creating a ``List`` with a Factory
+
+When you create a ``List`` of type ``ArrayList`` or ``LinkedList``, you know the type. There are a few special methods where you get a ``List`` back but don’t know the type. These methods let you create a ``List`` including data in one line using a factory method. Some of these methods return an immutable object
+
+![[Pasted image 20240406000221.png]]
+
+```java
+16: String[] array = new String[] {"a", "b", "c"};
+17: List<String> asList = Arrays.asList(array); // [a, b, c]
+18: List<String> of = List.of(array); // [a, b, c]
+19: List<String> copy = List.copyOf(asList); // [a, b, c]
+20:
+21: array[0] = "z";
+22:
+23: System.out.println(asList); // [z, b, c]
+24: System.out.println(of); // [a, b, c]
+25: System.out.println(copy); // [a, b, c]
+26:
+27: asList.set(0, "x");
+28: System.out.println(Arrays.toString(array)); // [x, b, c]
+29:
+30: copy.add("y"); // UnsupportedOperationException
+```
+
+- Lines 18 and 19 create an immutable ``List``. 
+- Line 30 shows it is immutable by throwing an exception when trying to add a value. 
+ 
+All three lists would throw an exception when adding or removing a value. The of and copy lists would also throw one on trying to update an element.
+
+### Creating a ``List`` with a Constructor
+
+Most Collections have two constructors that you need to know for the exam.
+
+```java
+var linked1 = new LinkedList<String>();
+var linked2 = new LinkedList<String>(linked1);
+```
+
+- The first says to create an empty ``LinkedList`` containing all the defaults. 
+- The second tells Java that we want to make a copy of another ``LinkedList``.
+
+``ArrayList`` has an extra constructor you need to know.
+
+```java
+var list3 = new ArrayList<String>(10);
+```
+
+create an ``ArrayList`` containing a specific number of slots, but again not to assign any. You can think of this as the size of the underlying array.
+
+---
+**Using ``var`` with ``ArrayList``**
+
+```java
+var strings = new ArrayList<String>();
+strings.add("a");
+for (String s: strings) { }
+```
+
+**The type of ``var`` is ``ArrayList<String>``.**
+
+```java
+var list = new ArrayList<>();
+```
+
+**this does compile. ==The type of the ``var`` is ``ArrayList<Object>``. Since there isn’t a type specified for the generic, Java has to assume the ultimate superclass.**==**
+
+```java
+var list = new ArrayList<>();
+list.add("a");
+for (String s: list) { } // DOES NOT COMPILE
+```
+
+**The type of ``var`` is ``ArrayList<Object>``. Since there isn’t a type in the diamond operator, Java has to assume the most generic option it can. Therefore, it picks ``Object``, the ultimate superclass. Adding a ``String`` to the list is fine. You can add any subclass of ``Object``. However, in the loop, we need to use the ``Object`` type rather than ``String``.**
+
+---
+
+### Working with ``List`` Methods
+
+The methods in the List interface are for working with indexes.
+
+![[List-methods.png]]
+
+```java
+3: List<String> list = new ArrayList<>();
+4: list.add("SD"); // [SD]
+5: list.add(0, "NY"); // [NY,SD]
+6: list.set(1, "FL"); // [NY,FL]
+7: System.out.println(list.get(0)); // NY
+8: list.remove("NY"); // [FL]
+9: list.remove(0); // []
+10: list.set(0, "?"); // IndexOutOfBoundsException
+```
+
+- Line 5 adds an element at index 0 that bumps the original index 0 to index 1. Notice how the ``ArrayList`` is now automatically one larger.
+- Line 10 throws an ``IndexOutOfBoundsException`` because there are no elements in the List. Since there are no elements to replace, even index 0 isn’t allowed.
+
+the ``replaceAll()`` method. It uses a ``UnaryOperator`` that takes one parameter and returns a value of the same type:
+
+```java
+var numbers = Arrays.asList(1, 2, 3);
+numbers.replaceAll(x -> x*2);
+System.out.println(numbers); // [2, 4, 6]
+```
+
+The ``replaceAll()`` method calls the lambda on each element of the list and replaces the value at that index.
+
+---
+
+**Overloaded ``remove()`` Methods**
+
+**two overloaded ``remove()`` methods. The one from ``Collection`` removes an object that matches the parameter. By contrast, the one from ``List`` removes an element at a specified index.**
+
+**This gets tricky when you have an ``Integer`` type.**
+
+```java
+31: var list = new LinkedList<Integer>();
+32: list.add(3);
+33: list.add(2);
+34: list.add(1);
+35: list.remove(2);
+36: list.remove(Integer.valueOf(2));
+37: System.out.println(list); // 3
+```
+
+**At the end of line 34, we have [3, 2, 1]. Line 35 passes a primitive, which means we are requesting deletion of the element at index 2. This leaves us with [3, 2]. Then line 36 passes an ``Integer`` object, which means we are deleting the value 2. That brings us to [3].**
+
+---
+
+### Converting from ``List`` to an Array
+
+```java
+13: List<String> list = new ArrayList<>();
+14: list.add("hawk");
+15: list.add("robin");
+16: Object[] objectArray = list.toArray();
+17: String[] stringArray = list.toArray(new String[0]);
+18: list.clear();
+19: System.out.println(objectArray.length); // 2
+20: System.out.println(stringArray.length); // 2
+```
+
+- Line 16 shows that a ``List`` knows how to convert itself to an array. The only problem is that it defaults to an array of class ``Object``
+- Line 17 specifies the type of the array and does what we want. The advantage of specifying a size of 0 for the parameter is that Java will create a new array of the proper size for the return value.
+
+## Using the ``Set`` Interface
+
+**==The main thing that all ``Set`` implementations have in common is that they do not allow duplicates.==**
+
+### Comparing ``Set`` Implementations
+
+A ``HashSet`` stores its elements in a hash table, which means the keys are a hash and the values are an Object. This means that **==the ``HashSet`` uses the ``hashCode()`` method of the objects to retrieve them more efficiently. Remember that a valid ``hashCode()`` doesn’t mean every object will get a unique value, but the method is often written so that hash values are spread out over a large range to reduce collisions.==**
+
+The main benefit is that adding elements and checking whether an element is in the set both have constant time. The trade-off is that you lose the order in which you inserted the elements. Most of the time, you aren’t concerned with this in a Set anyway, making ``HashSet`` the most common set.
+
+A ``TreeSet`` stores its elements in a sorted tree structure. The main benefit is that the set is always in sorted order. The trade-off is that adding and checking whether an element exists takes longer than with a ``HashSet``, especially as the tree grows larger.
+
+### Working with ``Set`` Methods
+
+Like a ``List``, you can create an immutable ``Set`` in one line or make a copy of an existing one.
+
+```java
+Set<Character> letters = Set.of('z', 'o', 'o');
+Set<Character> copy = Set.copyOf(letters);
+```
+
+```java
+3: Set<Integer> set = new HashSet<>();
+4: boolean b1 = set.add(66); // true
+5: boolean b2 = set.add(10); // true
+6: boolean b3 = set.add(66); // false
+7: boolean b4 = set.add(8); // true
+8: set.forEach(System.out::println); // 66 - 8 - 10
+```
+
+**==the ``equals()`` method is used to determine equality. The ``hashCode()`` method is used to know which bucket to look in so that Java doesn’t have to look through the whole set to find out whether an object is there. The best case is that hash codes are unique and Java has to call ``equals()`` on only one object. The worst case is that all implementations return the same ``hashCode()`` and Java has to call ``equals()`` on every element of the set anyway.==**
+
+```JAVA
+3: Set<Integer> set = new TreeSet<>();
+4: boolean b1 = set.add(66); // true
+5: boolean b2 = set.add(10); // true
+6: boolean b3 = set.add(66); // false
+7: boolean b4 = set.add(8); // true
+8: set.forEach(System.out::println); // 3 - 10 - 66
+```
+
+The elements are printed out in their natural sorted order. Numbers implement the ``Comparable`` interface in Java, which is used for sorting.
+
+## Using the ``Queue`` and ``Deque`` Interfaces
+
+use a ``Queue`` when elements are added and removed in a specific order. You can think of a queue as a line. *FIFO*
+A ``Deque`` (double-ended queue), often pronounced *deck* is different from a regular queue in that you can insert and remove elements from both the front (head) and back (tail).
+
+All queues have specific requirements for adding and removing the next element. Beyond that, they each offer different functionality
+
+### Comparing ``Deque`` Implementations
+
+``LinkedList`` in addition to being a list, it is a ``Deque``. The main benefit of a ``LinkedList`` is that it implements both the ``List`` and ``Deque`` interfaces. The trade-off is that it isn’t as efficient as a “pure” queue.
+
+### Working with ``Queue`` and ``Deque`` Methods
+
+![[Pasted image 20240406004150.png]]
+
+```java
+public class LinkedListQueueExample {  
+  
+    public static void main(String[] args) {  
+  
+        linkedListQueueExample();  
+        linkedListQueueExample2();  
+    }  
+  
+    private static void linkedListQueueExample() {  
+  
+        System.out.println("### linkedListQueueExample ###");  
+  
+        Queue<Integer> queue = new LinkedList<>();  
+        queue.add(10);  
+        queue.add(4);  
+  
+        System.out.println(queue.remove()); // 10  
+        System.out.println(queue.peek()); //4  
+        System.out.println(queue.peek()); //4  
+    }  
+  
+    private static void linkedListQueueExample2() {  
+  
+        System.out.println("### linkedListQueueExample ###");  
+  
+        Queue<Integer> queue = new LinkedList<>();  
+  
+        queue.add(35);  
+        queue.offer(10);  
+        queue.offer(30);  
+        queue.add(25);  
+        queue.add(15);  
+        queue.add(5);  
+  
+        System.out.println(queue);  
+  
+        System.out.println(queue.peek());  
+        System.out.println(queue.peek());  
+        System.out.println(queue.peek());  
+  
+        System.out.println(queue);  
+        System.out.println(queue.poll());  
+        System.out.println(queue.poll());  
+        System.out.println(queue);  
+        System.out.println(queue.remove());  
+        System.out.println(queue.remove());  
+        System.out.println(queue);  
+        System.out.println(queue.remove());  
+        System.out.println(queue.remove());  
+        System.out.println(queue);  
+  
+        System.out.println(queue.poll()); // No Exception!  
+        System.out.println(queue.poll()); // No Exception!  
+        System.out.println(queue.poll()); // No Exception!  
+        System.out.println(queue.poll()); // No Exception!  
+  
+        System.out.println(queue.remove()); // NoSuchElementException  
+  
+    }  
+}
+```
+
+```java
+public class PriorityQueueExample {  
+  
+    public static void main(String[] args) {  
+  
+        priorityQueueExample();  
+        priorityQueueExample2();  
+    }  
+  
+    private static void priorityQueueExample() {  
+  
+        System.out.println("### priorityQueueExample ###");  
+  
+        Queue<Integer> queue = new PriorityQueue<>();  
+        queue.add(10);  
+        queue.add(4);  
+  
+        System.out.println(queue.remove()); // 10  
+        System.out.println(queue.peek()); //4  
+        System.out.println(queue.peek()); //4  
+    }  
+  
+    private static void priorityQueueExample2() {  
+  
+        System.out.println("### priorityQueueExample2 ###");  
+  
+        Queue<Integer> queue = new PriorityQueue<>();  
+  
+        queue.add(35);  
+        queue.offer(10);  
+        queue.offer(30);  
+        queue.add(25);  
+        queue.add(15);  
+        queue.add(5);  
+  
+        System.out.println(queue);  
+  
+        System.out.println(queue.peek());  
+        System.out.println(queue.peek());  
+        System.out.println(queue.peek());  
+  
+        System.out.println(queue);  
+        System.out.println(queue.poll());  
+        System.out.println(queue.poll());  
+        System.out.println(queue);  
+        System.out.println(queue.remove());  
+        System.out.println(queue.remove());  
+        System.out.println(queue);  
+        System.out.println(queue.remove());  
+        System.out.println(queue.remove());  
+        System.out.println(queue);  
+  
+        System.out.println(queue.poll()); // No Exception!  
+        System.out.println(queue.poll()); // No Exception!  
+        System.out.println(queue.poll()); // No Exception!  
+        System.out.println(queue.poll()); // No Exception!  
+  
+        System.out.println(queue.remove()); // NoSuchElementException  
+  
+    }  
+}
+```
+
+Since the ``Deque`` interface supports double-ended queues, it inherits all ``Queue`` methods and adds more so that it is clear if we are working with the front or back of the queue.
+
+![[Pasted image 20240406004240.png]]
+
+```java
+public static void main(String[] args) {  
+  
+    Deque<Integer> deque = new LinkedList<>();  
+  
+    System.out.println(deque.offerFirst(10)); //true  
+    System.out.println(deque.offerLast(4));  // true  
+    System.out.println(deque);                  // [10, 4]  
+    System.out.println(deque.peekFirst());      // 10  
+    System.out.println(deque.pollFirst());      // 10  
+    System.out.println(deque.pollLast());       // 4  
+    System.out.println(deque.pollFirst());      // null  
+    System.out.println(deque.pollFirst());      // null  
+    System.out.println(deque.removeLast());      // NoSuchElementException  
+}
+```
+
+
+```java
+public static void main(String[] args) {  
+  
+    Deque<Integer> arrayDeque = new ArrayDeque<>();  
+  
+    arrayDeque.addFirst(2);  
+    arrayDeque.add(3);  
+    arrayDeque.add(4);  
+    arrayDeque.addFirst(1);  
+    arrayDeque.addFirst(0);  
+    arrayDeque.addLast(5);  
+    arrayDeque.add(6);  
+  
+    System.out.println(arrayDeque); // [0, 1, 2, 3, 4, 5, 6]  
+  
+    System.out.println("peekFirst");  
+    System.out.println(arrayDeque.peekFirst());  // 0  
+    System.out.println(arrayDeque.peekFirst());  // 0  
+    System.out.println(arrayDeque.peekFirst());  // 0  
+  
+    System.out.println("peekLast");  
+    System.out.println(arrayDeque.peekLast());  // 6  
+    System.out.println(arrayDeque.peekLast());  // 6  
+    System.out.println(arrayDeque.peekLast());  // 6  
+  
+    System.out.println("peek");  
+    System.out.println(arrayDeque.peek());      // 0  
+    System.out.println(arrayDeque.peek());      // 0  
+    System.out.println(arrayDeque.peek());      // 0  
+  
+    System.out.println("getFirst");  
+    System.out.println(arrayDeque.getFirst());      // 0  
+    System.out.println(arrayDeque.getFirst());      // 0  
+    System.out.println(arrayDeque.getFirst());      // 0  
+  
+    System.out.println("getLast");  
+    System.out.println(arrayDeque.getLast());      // 6  
+    System.out.println(arrayDeque.getLast());      // 6  
+    System.out.println(arrayDeque.getLast());      // 6  
+  
+    System.out.println("removeFirst");  
+    System.out.println(arrayDeque.removeFirst());      // 0  
+    System.out.println(arrayDeque.removeFirst());      // 1  
+    System.out.println(arrayDeque); // [2, 3, 4, 5, 6]  
+  
+    System.out.println("removeLast");  
+    System.out.println(arrayDeque.removeLast());      // 6  
+    System.out.println(arrayDeque.removeLast());      // 5  
+    System.out.println(arrayDeque); // [2, 3, 4]  
+  
+    System.out.println("pollFirst");  
+    System.out.println(arrayDeque.pollFirst());      // 2  
+    System.out.println(arrayDeque); // [3, 4]  
+  
+    System.out.println("pollLast");  
+    System.out.println(arrayDeque.pollLast());      // 4  
+    System.out.println(arrayDeque); // [3]  
+  
+    System.out.println("poll");  
+    System.out.println(arrayDeque.poll()); // 3  
+    System.out.println(arrayDeque); // []  
+    System.out.println(arrayDeque.poll()); // null  
+    System.out.println(arrayDeque.poll()); // null  
+  
+    System.out.println(arrayDeque.pollFirst()); // null  
+    System.out.println(arrayDeque.pollLast()); // null  
+  
+    // System.out.println(arrayDeque.remove()); // NoSuchElementException    // System.out.println(arrayDeque.removeFirst()); // NoSuchElementException    // System.out.println(arrayDeque.removeLast()); // NoSuchElementException}
+```
+
+In addition to FIFO queues, there are LIFO (last-in, first-out) queues, which are commonly referred to as *stacks*.
+
+```java
+public class StackExample {  
+  
+    public static void main(String[] args) {  
+  
+        Stack<Integer> stack = new Stack<>();  
+  
+        stack.push(50);  
+        stack.push(40);  
+        stack.push(30);  
+        stack.push(20);  
+        stack.push(10);  
+        System.out.println(stack); // [50, 40, 30, 20, 10]  
+  
+        System.out.println(stack.peek()); // 10  
+        System.out.println(stack.peek()); // 10  
+        System.out.println(stack.pop());  // 10  
+        System.out.println(stack.pop());  // 20  
+        System.out.println(stack.pop());  // 30  
+        System.out.println(stack.pop());  // 40  
+        System.out.println(stack.pop());  // 50  
+    }  
+}
+```
+
+
+When using a ``Deque``, it is really important to determine if it is being used as a FIFO queue, a LIFO stack, or a double-ended queue. To review, a FIFO queue is like a line of people. You get on in the back and off in the front. A LIFO stack is like a stack of plates. You put the plate on the top and take it off the top. A double-ended queue uses both ends.
+
+## Using the ``Map`` Interface
