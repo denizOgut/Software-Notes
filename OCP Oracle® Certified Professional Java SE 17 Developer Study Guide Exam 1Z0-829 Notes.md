@@ -20921,3 +20921,852 @@ System.out.println(favorites); // {Tom=Bus Tour, Sam=Skyride}
 ![[Pasted image 20240406100933.png]]
 
 ## Comparing Collection Types
+
+![[Pasted image 20240406160311.png]]
+
+![[Pasted image 20240406160415.png]]
+
+**==The data structures that involve sorting do not allow ``null`` values.==**
+
+## Sorting Data
+
+For numbers, order is obvious— it is numerical order. For ``String`` objects, order is defined according to the Unicode character mapping.
+
+---
+
+**==When working with a ``String``, remember that numbers sort before letters, and uppercase letters sort before lowercase letters.==**
+
+---
+
+can also sort objects that you create yourself. Java provides an interface called ``Comparable``. If your class implements ``Comparable``, it can be used in data structures that require comparison. There is also a class called ``Comparator``, which is used to specify that you want to use a different order than the object itself provides.
+
+``Comparable`` and ``Comparator`` are similar enough to be tricky. The exam likes to see if it can trick you into mixing up the two.
+
+### Creating a ``Comparable`` Class
+
+The ``Comparable`` interface has only one method
+
+```java
+public interface Comparable<T> {
+	int compareTo(T o);
+}
+```
+
+The generic ``T`` lets you implement this method and specify the type of your object. This lets you avoid a cast when implementing ``compareTo()``. Any object can be ``Comparable``.
+
+```java
+import java.util.*;
+public class Duck implements Comparable<Duck> {
+	private String name;
+	public Duck(String name) {
+		this.name = name;
+	}
+	public String toString() { // use readable output
+		return name;
+	}
+	public int compareTo(Duck d) {
+		return name.compareTo(d.name); // sorts ascendingly by name
+	}
+	public static void main(String[] args) {
+		var ducks = new ArrayList<Duck>();
+		ducks.add(new Duck("Quack"));
+		ducks.add(new Duck("Puddles"));
+		Collections.sort(ducks); // sort by name
+		System.out.println(ducks); // [Puddles, Quack]
+	}
+}
+```
+
+the ``Duck`` class implements ``compareTo()``. Since ``Duck`` is comparing objects of type ``String`` and the ``String`` class already has a ``compareTo()`` method, it can just delegate.
+
+There are three rules to know:
+-  ==**The number 0 is returned when the current object is equivalent to the argument to ``compareTo()``.**==
+-  ==**A negative number (less than 0) is returned when the current object is smaller than the argument to ``compareTo()``.**==
+-  ==**A positive number (greater than 0) is returned when the current object is larger than the argument to ``compareTo()``.==**
+
+
+```java
+1: public class Animal implements Comparable<Animal> {
+	2: private int id;
+	3: public int compareTo(Animal a) {
+		4: return id -a.id; // sorts ascending by id
+	5: }
+	6: public static void main(String[] args) {
+		7: var a1 = new Animal();
+		8: var a2 = new Animal();
+		9: a1.id = 5;
+		10: a2.id = 7;
+		11: System.out.println(a1.compareTo(a2)); // -2
+		12: System.out.println(a1.compareTo(a1)); // 0
+		13: System.out.println(a2.compareTo(a1)); // 2
+	14: } 
+}
+```
+
+Lines 3–5 show one way to compare two int values. We could have used ``Integer.compare(id, a.id)`` instead.
+
+---
+
+**==``id -a. id`` sorts in ascending order, and ``a.id -id`` sorts in descending order.==**
+
+---
+
+#### Casting the ``compareTo()`` Argument
+
+When dealing with legacy code or code that does not use generics, the ``compareTo()`` method requires a cast since it is passed an ``Object``.
+
+```java
+public class LegacyDuck implements Comparable {
+	private String name;
+	public int compareTo(Object obj) {
+		LegacyDuck d = (LegacyDuck) obj; // cast because no generics
+		return name.compareTo(d.name);
+	}
+}
+```
+
+Since we don’t specify a generic type for ``Comparable``, Java assumes that we want an ``Object``, which means that we have to cast to ``LegacyDuck`` before accessing instance variables on it.
+
+#### Checking for ``null``
+
+```java
+public class MissingDuck implements Comparable<MissingDuck> {
+	private String name;
+	public int compareTo(MissingDuck quack) {
+		if (quack == null)
+			throw new IllegalArgumentException("Poorly formed duck!");
+		if (this.name == null && quack.name == null)
+			return 0;
+		else if (this.name == null) return -1;
+		else if (quack.name == null) return 1;
+		else return name.compareTo(quack.name);
+	}
+}
+```
+
+This method throws an exception if it is passed a ``null`` ``MissingDuck`` object.
+
+#### Keeping ``compareTo()`` and ``equals()`` Consistent
+
+If you write a class that implements ``Comparable``, you introduce new business logic for determining equality. The ``compareTo()`` method returns 0 if two objects are equal, while your ``equals()`` method returns true if two objects are equal. **==A natural ordering that uses ``compareTo()`` is said to be consistent with equals if, and only if, ``x.equals(y)`` is true whenever ``x.compareTo(y)`` equals 0. Similarly, ``x.equals(y)`` must be false whenever ``x.compareTo(y)`` is not 0.==** You are strongly encouraged to make your ``Comparable`` classes consistent with equals because not all collection classes behave predictably if the ``compareTo()`` and ``equals()`` methods are not consistent.
+
+```java
+public class Product implements Comparable<Product> {
+	private int id;
+	private String name;
+	public int hashCode() { return id; }
+		public boolean equals(Object obj) {
+		if(!(obj instanceof Product)) return false;
+			var other = (Product) obj;
+		return this.id == other.id;
+	}
+	public int compareTo(Product obj) {
+		return this.name.compareTo(obj.name);
+	}
+}
+```
+
+You might be sorting ``Product`` objects by name, but names are not unique. The ``compareTo()`` method does not have to be consistent with equals. One way to fix that is to use a ``Comparator`` to define the sort elsewhere.
+
+### Comparing Data with a ``Comparator``
+
+Sometimes you want to sort an object that did not implement ``Comparable``, or you want to sort objects in different ways at different times.
+
+```java
+1: import java.util.ArrayList;
+2: import java.util.Collections;
+3: import java.util.Comparator;
+4:
+5: public class Duck implements Comparable<Duck> {
+	6: private String name;
+	7: private int weight;
+8:
+9: // Assume getters/setters/constructors provided
+10:
+11: public String toString() { return name; }
+12:
+13: public int compareTo(Duck d) {
+	14: return name.compareTo(d.name);
+15: }
+16:
+17: public static void main(String[] args) {
+18: Comparator<Duck> byWeight = new Comparator<Duck>() {
+	19: public int compare(Duck d1, Duck d2) {
+		20: return d1.getWeight()-d2. getWeight();
+	21: }
+22: };
+23: var ducks = new ArrayList<Duck>();
+24: ducks.add(new Duck("Quack", 7));
+25: ducks.add(new Duck("Puddles", 10));
+26: Collections.sort(ducks);
+27: System.out.println(ducks); // [Puddles, Quack]
+28: Collections.sort(ducks, byWeight);
+29: System.out.println(ducks); // [Quack, Puddles]
+30:
+```
+
+- this program imports ``java.util.Comparator`` on line 3.
+- attention to the fact that **==``Comparable`` and ``Comparator`` are in different packages: ``java.lang`` and ``java.util``, respectively. That means ``Comparable`` can be used without an import statement, while ``Comparator`` cannot==**.
+- The ``Duck`` class itself can define only one ``compareTo()`` method. In this case, name was chosen. If we want to sort by something else, we have to define that sort order outside the ``compareTo()`` method using a separate class or lambda expression.
+- Lines 18–22 of the ``main()`` method show how to define a ``Comparator`` using an inner class.
+
+``Comparator`` is a functional interface since there is only one ``abstract`` method to implement. This means that we can rewrite the ``Comparator`` on lines 18–22 using a lambda expression or method reference
+
+```java
+Comparator<Duck> byWeight = (d1, d2) -> d1.getWeight()-d2. getWeight();
+Comparator<Duck> byWeight = Comparator.comparing(Duck::getWeight);
+```
+
+---
+**Is ``Comparable`` a Functional Interface?**
+
+**``Comparable`` is also a functional interface since it also has a single abstract method. However, using a lambda for ``Comparable`` would be silly. The point of ``Comparable`` is to implement it inside the object being compared.**
+
+---
+
+### Comparing ``Comparable`` and ``Comparator``
+
+![[Pasted image 20240406163439.png]]
+
+```java
+var byWeight = new Comparator<Duck>() { // DOES NOT COMPILE
+	public int compareTo(Duck d1, Duck d2) {
+		return d1.getWeight()-d2. getWeight();
+	}
+};
+```
+
+The method name is wrong. A ``Comparator`` must implement a method named ``compare()``. Pay special attention to method names and the number of parameters when you see ``Comparator`` and ``Comparable`` in questions.
+
+### Comparing Multiple Fields
+
+```java
+public class Squirrel {
+	private int weight;
+	private String species;
+	// Assume getters/setters/constructors provided
+}
+```
+
+```java
+public class MultiFieldComparator implements Comparator<Squirrel> {
+	public int compare(Squirrel s1, Squirrel s2) {
+		int result = s1.getSpecies().compareTo(s2.getSpecies());
+	if (result != 0) return result;
+		return s1.getWeight()-s2. getWeight();
+	}
+}
+```
+
+```java
+Comparator<Squirrel> c = Comparator.comparing(Squirrel::getSpecies) .thenComparingInt(Squirrel::getWeight);
+```
+
+We chain the methods. First, we create a ``Comparator`` on species ascending. Then, if there is a tie, we sort by weight. We can also sort in descending order. Some methods on ``Comparator``, like ``thenComparingInt()``, are ``default`` methods.
+
+```java
+var c = Comparator.comparing(Squirrel::getSpecies).reversed();
+```
+
+![[Pasted image 20240406163854.png]]
+
+![[Pasted image 20240406163904.png]]
+
+### Sorting and Searching
+
+The ``Collections.sort()`` method uses the ``compareTo()`` method to sort. It expects the objects to be sorted to be ``Comparable``.
+
+```java
+2: public class SortRabbits {
+	3: static record Rabbit(int id) {}
+	4: public static void main(String[] args) {
+		5: List<Rabbit> rabbits = new ArrayList<>();
+		6: rabbits.add(new Rabbit(3));
+		7: rabbits.add(new Rabbit(1));
+		8: Collections.sort(rabbits); // DOES NOT COMPILE
+9: }
+}
+```
+
+Java knows that the ``Rabbit`` record is not ``Comparable``. It knows sorting will fail, so it doesn’t even let the code compile. You can fix this by passing a ``Comparator`` to ``sort()``. **==Remember that a ``Comparator`` is useful when you want to specify sort order without using a ``compareTo()`` method.==**
+
+```java
+8: Comparator<Rabbit> c = (r1, r2) -> r1.id -r2. id;
+9: Collections.sort(rabbits, c);
+10: System.out.println(rabbits); // [Rabbit[id=1], Rabbit[id=3]]
+```
+
+```java
+8: Comparator<Rabbit> c = (r1, r2) -> r1.id -r2. id;
+9: Collections.sort(rabbits, c);
+10: Collections.reverse(rabbits);
+11: System.out.println(rabbits); // [Rabbit[id=3], Rabbit[id=1]]
+```
+
+The ``sort()`` and ``binarySearch()`` methods allow you to pass in a ``Comparator`` object when you don’t want to use the natural order. There is a trick in working with ``binarySearch()``.
+
+```java
+3: var names = Arrays.asList("Fluffy", "Hoppy");
+4: Comparator<String> c = Comparator.reverseOrder();
+5: var index = Collections.binarySearch(names, "Hoppy", c);
+6: System.out.println(index); // -1
+```
+
+- Line 3 creates a list, ``[Fluffy, Hoppy]``.
+- Line 4 creates a ``Comparator`` that reverses the natural order.
+- Line 5 requests a binary search in descending order.
+
+Since the list is not in that order, we don’t meet the precondition for doing a search. **==While the result of calling ``binarySearch()`` on an improperly sorted list is undefine==** sometimes you can get lucky.
+
+```java
+2: public class UseTreeSet {
+	3: static class Rabbit{ int id; }
+	4: public static void main(String[] args) {
+		5: Set<Duck> ducks = new TreeSet<>();
+		6: ducks.add(new Duck("Puddles"));
+		7:
+		8: Set<Rabbit> rabbits = new TreeSet<>();
+		9: rabbits.add(new Rabbit()); // ClassCastException
+10: }
+}
+```
+
+When ``TreeSet`` tries to sort it, Java discovers the fact that ``Rabbit`` does not implement Comparable. Java throws an exception
+
+```java
+Exception in thread "main" java.lang.ClassCastException:
+class Rabbit cannot be cast to class java.lang.Comparable
+```
+
+It may seem weird for this exception to be thrown when the first object is added to the set. After all, there is nothing to compare yet. Java works this way for consistency. Just like searching and sorting, you can tell collections that require sorting that you want to use a specific ``Comparator``
+
+```java
+8: Set<Rabbit> rabbits = new TreeSet<>((r1, r2) -> r1.id -r2. id); 
+9: rabbits.add(new Rabbit());
+```
+
+A ``Comparator`` is a helpful object. It lets you separate sort order from the object to be sorted. Notice that line 9 in both of the previous examples is the same. It’s the declaration of the ``TreeSet`` that has changed
+
+### Sorting a ``List``
+
+While you can call ``Collections.sort(list)``, you can also sort directly on the list object.
+
+```java
+3: List<String> bunnies = new ArrayList<>();
+4: bunnies.add("long ear");
+5: bunnies.add("floppy");
+6: bunnies.add("hoppy");
+7: System.out.println(bunnies); // [long ear, floppy, hoppy]
+8: bunnies.sort((b1, b2) -> b1.compareTo(b2));
+9: System.out.println(bunnies); // [floppy, hoppy, long ear]
+```
+
+The ``sort()`` method takes a ``Comparator`` that provides the sort order. Remember that ``Comparator`` takes two parameters and returns an ``int``. **==There is not a sort method on ``Set`` or ``Map``. Both of those types are unordered, so it wouldn’t make sense to sort them.==**
+
+## Working with Generics
+
+```java
+14: static void printNames(List list) {
+	15: for (int i = 0; i < list.size(); i++) {
+		16: String name = (String) list.get(i); // ClassCastException
+		17: System.out.println(name);
+	18: }
+19: }
+20: public static void main(String[] args) {
+	21: List names = new ArrayList();
+	22: names.add(new StringBuilder("Webby"));
+	23: printNames(names);
+24: }
+```
+
+This code throws a ``ClassCastException``. Line 22 adds a ``StringBuilder`` to list. This is legal because a non-generic list can contain anything. However, line 16 is written to expect a specific class to be in there. It casts to a ``String``, reflecting this assumption.
+
+Generics fix this by allowing you to write and use parameterized types. Since we specify that we want an ``ArrayList`` of ``String`` objects, the compiler has enough information to prevent this problem in the first place.
+
+```java
+List<String> names = new ArrayList<String>();
+names.add(new StringBuilder("Webby")); // DOES NOT COMPILE
+```
+
+### Creating Generic Classes
+
+You can introduce generics into your own classes. The syntax for introducing a generic is to declare a formal type parameter in angle brackets.
+
+```java
+public class Crate<T> {
+	private T contents;
+	public T lookInCrate() {
+		return contents;
+	}
+	public void packCrate(T contents) {
+		this.contents = contents;
+	}
+}
+```
+
+The generic type ``T`` is available anywhere within the ``Crate`` class. When you instantiate the class, you tell the compiler what ``T`` should be for that particular instance.
+
+```java
+Elephant elephant = new Elephant();
+Crate<Elephant> crateForElephant = new Crate<>();
+crateForElephant.packCrate(elephant);
+Elephant inNewHome = crateForElephant.lookInCrate();
+```
+
+To be fair, we didn’t pack the crate so much as the elephant walked into it. However, you can see that the ``Crate`` class is able to deal with an ``Elephant`` without knowing anything about it. This probably doesn’t seem particularly impressive. We could have just typed in ``Elephant`` instead of ``T`` when coding ``Crate``. What if we wanted to create a ``Crate`` for another animal?
+
+```java
+Crate<Zebra> crateForZebra = new Crate<>();
+```
+
+**==Generic classes become useful when the classes used as the type parameter can have absolutely nothing to do with each other.==**
+
+```java
+Robot joeBot = new Robot();
+Crate<Robot> robotCrate = new Crate<>();
+robotCrate.packCrate(joeBot);
+// ship to Houston
+Robot atDestination = robotCrate.lookInCrate();
+```
+
+The ``Crate`` class works with any type of class. Before generics, we would have needed ``Crate`` to use the ``Object`` class for its instance variable, which would have put the burden on the caller to cast the object it receives on emptying the crate.
+ 
+ In addition to ``Crate`` not needing to know about the objects that go into it, those objects don’t need to know about ``Crate``. We aren’t requiring the objects to implement an interface named ``Crateable`` or the like. A class can be put in the ``Crate`` without any changes at all.
+
+Generic classes aren’t limited to having a single type parameter.
+
+```java
+public class SizeLimitedCrate<T, U> {
+	private T contents;
+	private U sizeLimit;
+	public SizeLimitedCrate(T contents, U sizeLimit) {
+		this.contents = contents;
+		this.sizeLimit = sizeLimit;
+	} 
+}
+```
+
+```java
+Elephant elephant = new Elephant();
+Integer numPounds = 15_000;
+SizeLimitedCrate<Elephant, Integer> c1 = new SizeLimitedCrate<>(elephant, numPounds);
+```
+
+### Understanding Type Erasure
+
+Specifying a generic type allows the compiler to enforce proper use of the generic type. **==Behind the scenes, the compiler replaces all references to ``T`` in ``Crate`` with ``Object``. In other words, after the code compiles, your generics are just ``Object`` types.==**
+
+```java
+public class Crate {
+	private Object contents;
+	public Object lookInCrate() {
+		return contents;
+	}
+	public void packCrate(Object contents) {
+		this.contents = contents;
+	}
+}
+```
+
+This means there is only one class file. There aren’t different copies for different parameterized types. **==This process of removing the generics syntax from your code is referred to as type erasure. Type erasure allows your code to be compatible with older versions of Java that do not contain generics.==** The compiler adds the relevant casts for your code to work with this type of erased class.
+
+```java
+Robot r = crate.lookInCrate(); // FROM THIS 
+Robot r = (Robot) crate.lookInCrate(); // TO THIS
+```
+
+#### Overloading a Generic Method
+
+Only one of these two methods is allowed in a class because type erasure will reduce both sets of arguments to ``(List input)``:
+
+```java
+public class LongTailAnimal {
+	protected void chew(List<Object> input) {}
+	protected void chew(List<Double> input) {} // DOES NOT COMPILE
+}
+```
+
+For the same reason, you also can’t overload a generic method from a parent class.
+
+```java
+public class LongTailAnimal {
+	protected void chew(List<Object> input) {}
+}
+public class Anteater extends LongTailAnimal {
+	protected void chew(List<Double> input) {} // DOES NOT COMPILE
+}
+```
+
+In the compiled form, the generic type is dropped, and it appears as an invalid overloaded method.
+
+```java
+public class Anteater extends LongTailAnimal {
+	protected void chew(List<Object> input) {}
+	protected void chew(ArrayList<Double> input) {}
+}
+```
+
+- The first ``chew()`` method compiles because it uses the same generic type in the overridden method as the one defined in the parent class.
+- The second ``chew()`` method compiles as well.
+
+However, it is an overloaded method because one of the method arguments is a ``List`` and the other is an ``ArrayList``. When working with generic methods, it’s important to consider the underlying type.
+
+#### Returning Generic Types
+
+==**When you’re working with overridden methods that return generics, the return values must be covariant. In terms of generics, this means that the return type of the class or interface declared in the overriding method must be a subtype of the class defined in the parent class.**== The generic parameter type must match its parent’s type exactly.
+
+```java
+public class Mammal {
+	public List<CharSequence> play() { ... }
+	public CharSequence sleep() { ... }
+}
+public class Monkey extends Mammal {
+	public ArrayList<CharSequence> play() { ... }
+}
+public class Goat extends Mammal {
+	public List<String> play() { ... } // DOES NOT COMPILE
+	public String sleep() { ... }
+}
+```
+
+- The ``Monkey`` class compiles because ``ArrayList`` is a subtype of ``List``.
+- The ``play()`` method in the ``Goat`` class does not compile, though. For the return types to be covariant, the generic type parameter must match. Even though ``String`` is a subtype of ``CharSequence``, it does not exactly match the generic type defined in the ``Mammal`` class. Therefore, this is considered an invalid override.
+
+Notice that the ``sleep()`` method in the ``Goat`` class does compile since ``String`` is a subtype of ``CharSequence``. **==This example shows that covariance applies to the ``return`` type, just not the generic parameter type.==**
+
+For the exam, it might be helpful for you to apply type erasure to questions involving generics to ensure that they compile properly. Once you’ve determined which methods are overridden and which are being overloaded, work backward, making sure the generic types match for overridden methods. And ==**remember, generic methods cannot be overloaded by changing the generic parameter type only.**==
+
+### Implementing Generic Interfaces
+
+Just like a class, an interface can declare a formal type parameter.
+
+```java
+public interface Shippable<T> {
+	void ship(T t);
+}
+```
+
+There are three ways a class can approach implementing this interface.
+
+1. The first is to specify the generic type in the class.
+
+```java
+class ShippableRobotCrate implements Shippable<Robot> {
+	public void ship(Robot t) { }
+}
+```
+
+2. The next way is to create a generic class.
+
+```java
+class ShippableAbstractCrate<U> implements Shippable<U> {
+	public void ship(U t) { }
+}
+```
+
+The type parameter could have been named anything, including ``T``. We used ``U`` in the example to avoid confusion about what ``T`` refers to. The exam won’t mind trying to confuse you by using the same type parameter name.
+
+3. The final way is to not use generics at all. This is the old way of writing code. It generates a compiler warning about ``Shippable`` being a raw type, but it does compile.
+
+```java
+class ShippableCrate implements Shippable {
+	public void ship(Object t) { }
+}
+```
+
+### Writing Generic Methods
+
+This is often useful for ``static`` methods since they aren’t part of an instance that can declare the type. However, it is also allowed on non-``static`` methods.
+
+```java
+public class Handler {
+	public static <T> void prepare(T t) {
+		System.out.println("Preparing " + t);
+	}
+	public static <T> Crate<T> ship(T t) {
+		System.out.println("Shipping " + t);
+		return new Crate<T>();
+	}
+}
+```
+
+The method parameter is the generic type ``T``. Before the return type, we declare the formal type parameter of ``<T>``. In the ``ship()`` method, we show how you can use the generic parameter in the return type, ``Crate<T>``, for the method.
+
+**==Unless a method is obtaining the generic formal type parameter from the class/interface, it is specified immediately before the return type of the method.==**
+
+```java
+2: public class More {
+	3: public static <T> void sink(T t) { }
+	4: public static <T> T identity(T t) { return t; }
+	5: public static T noGood(T t) { return t; } // DOES NOT COMPILE
+6: }
+```
+
+- Line 3 shows the formal parameter type immediately before the return type of ``void``.
+- Line 4 shows the return type being the formal parameter type. It looks weird, but it is correct.
+- Line 5 omits the formal parameter type and therefore does not compile.
+
+**==When you have a method declare a generic parameter type, it is independent of the class generics.==**
+
+```java
+1: public class TrickyCrate<T> {
+	2: public <T> T tricky(T t) {
+		3: return t;
+	4: }
+5: }
+```
+
+```java
+10: public static String crateName() {
+	11: TrickyCrate<Robot> crate = new TrickyCrate<>();
+	12: return crate.tricky("bot");
+13: }
+```
+
+- On line 1, ``T`` is ``Robot`` because that is what gets referenced when constructing a ``Crate``. 
+- On line 2, ``T`` is ``String`` because that is what is passed to the method.
+
+### Creating a Generic Record
+
+```java
+public record CrateRecord<T>(T contents) {
+	@Override
+	public T contents() {
+		if (contents == null)
+			throw new IllegalStateException("missing contents");
+		return contents;
+	}
+}
+```
+
+### Bounding Generic Types
+
+A bounded parameter type is a generic type that specifies a bound for the generic. A wildcard generic type is an unknown generic type represented with a question mark ``(?)``.
+
+![[Pasted image 20240406180309.png]]
+
+#### Creating Unbounded Wildcards
+
+An unbounded wildcard represents any data type. You use ? when you want to specify that any type is okay with you
+
+```java
+public static void printList(List<Object> list) {
+	for (Object x: list)
+		System.out.println(x);
+}
+public static void main(String[] args) {
+	List<String> keywords = new ArrayList<>();
+	keywords.add("java");
+	printList(keywords); // DOES NOT COMPILE
+}
+```
+
+A ``String`` is a subclass of an ``Object``. This is true. However, ``List<String>`` cannot be assigned to ``List<Object>``
+
+```java
+4: List<Integer> numbers = new ArrayList<>();
+5: numbers.add(Integer.valueOf(42));
+6: List<Object> objects = numbers; // DOES NOT COMPILE
+7: objects.add("forty two");
+8: System.out.println(numbers.get(1));
+```
+
+On line 4, the compiler promises us that only ``Integer`` objects will appear in numbers. If line 6 compiled, line 7 would break that promise by putting a ``String`` in there since numbers and objects are references to the same object. Good thing the compiler prevents this. we cannot assign a ``List<String>`` to a ``List<Object>``.
+
+```java
+public static void printList(List<?> list) {
+	for (Object x: list)
+		System.out.println(x);
+}
+public static void main(String[] args) {
+	List<String> keywords = new ArrayList<>();
+	keywords.add("java");
+	printList(keywords);
+}
+```
+
+```java
+List<?> x1 = new ArrayList<>();
+var x2 = new ArrayList<>();
+```
+
+There are two key differences. 
+- First, ``x1`` is of type ``List``, while ``x2`` is of type ``ArrayList``. 
+- Additionally, we can only assign ``x2`` to a ``List<Object>``. 
+ 
+These two variables do have one thing in common. Both return type ``Object`` when calling the ``get()`` method.
+
+#### Creating Upper-Bounded Wildcards
+
+```java
+ArrayList<Number> list = new ArrayList<Integer>(); // DOES NOT COMPILE
+// INSTEAD
+List<? extends Number> list = new ArrayList<Integer>();
+```
+
+**==The upper-bounded wildcard says that any class that extends ``Number`` or ``Number`` itself can be used as the formal parameter type:==**
+
+```JAVA
+public static long total(List<? extends Number> list) {
+	long count = 0;
+	for (Number number: list)
+		count += number.longValue();
+	return count;
+}
+```
+
+Java converts the previous code to something equivalent to the following:
+
+```JAVA
+public static long total(List list) {
+	long count = 0;
+	for (Object obj: list) {
+		Number number = (Number) obj;
+		count += number.longValue();
+	}
+	return count;
+}
+```
+
+Something interesting happens when we work with upper bounds or unbounded wildcards. The list becomes logically immutable and therefore cannot be modified.
+
+```java
+2: static class Sparrow extends Bird { }
+3: static class Bird { }
+4:
+5: public static void main(String[] args) {
+	6: List<? extends Bird> birds = new ArrayList<Bird>();
+	7: birds.add(new Sparrow()); // DOES NOT COMPILE
+	8: birds.add(new Bird()); // DOES NOT COMPILE
+9: }
+```
+
+The problem stems from the fact that Java doesn’t know what type ``List<? extends Bird>`` really is. It could be ``List<Bird>`` or ``List<Sparrow>`` or some other generic type that hasn’t even been written yet.
+
+```java
+interface Flyer { void fly(); }
+class HangGlider implements Flyer { public void fly() {} }
+class Goose implements Flyer { public void fly() {} }
+```
+
+```java
+private void anyFlyer(List<Flyer> flyer) {}
+private void groupOfFlyers(List<? extends Flyer> flyer) {}
+```
+
+Note that we used the keyword ``extends`` rather than ``implements``. **==Upper bounds are like anonymous classes in that they use ``extends`` regardless of whether we are working with a class or an interface==**.
+
+#### Creating Lower-Bounded Wildcards
+
+```java
+List<String> strings = new ArrayList<String>();
+strings.add("tweet");
+List<Object> objects = new ArrayList<Object>(strings);
+addSound(strings);
+addSound(objects);
+```
+
+The problem is that we want to pass a ``List<String>`` and a`` List<Object>`` to the same method.
+
+![[Pasted image 20240406181615.png]]
+
+To solve this problem, we need to use a lower bound.
+
+```java
+public static void addSound(List<? super String> list) {
+	list.add("quack");
+}
+```
+
+**==With a lower bound, we are telling Java that the list will be a list of ``String`` objects or a list of some objects that are a superclass of ``String``==**. Either way, it is safe to add a ``String`` to that list.
+
+---
+**Understanding Generic Supertypes**
+
+**When you have subclasses and superclasses, lower bounds can get tricky.**
+
+```java
+3: List<? super IOException> exceptions = new ArrayList<Exception>();
+4: exceptions.add(new Exception()); // DOES NOT COMPILE
+5: exceptions.add(new IOException());
+6: exceptions.add(new FileNotFoundException());
+```
+
+- **Line 3 references a List that could be ``List<IOException>`` or ``List<Exception>`` or ``List<Object>``**
+- **Line 4 does not compile because we could have a ``List<IOException>``, and an ``Exception`` object wouldn’t fit in there.**
+
+**Line 5 is fine. ``IOException`` can be added to any of those types. Line 6 is also fine. ``FileNotFoundException`` can also be added to any of those three types. This is tricky because ``FileNotFoundException`` is a subclass of ``IOException``, and the keyword says super. Java says, “Well, ``FileNotFoundException`` also happens to be an ``IOException``, so everything is fine.”**
+
+---
+
+### Putting It All Together
+
+#### Combining Generic Declarations
+
+```java
+class A {}
+class B extends A {}
+class C extends B {}
+```
+
+```java
+6: List<?> list1 = new ArrayList<A>();
+7: List<? extends A> list2 = new ArrayList<A>();
+8: List<? super A> list3 = new ArrayList<A>();
+```
+
+- Line 6 creates an ``ArrayList`` that can hold instances of class ``A``. It is stored in a variable with an unbounded wildcard. Any generic type can be referenced from an unbounded wildcard, making this okay.
+- Line 7 tries to store a list in a variable declaration with an upper-bounded wildcard. This is okay. You can have ``ArrayList<A>``, ``ArrayList<B>``, or ``ArrayList<C>`` stored in that reference.
+- Line 8 is also okay. This time, you have a lower-bounded wildcard. The lowest type you can reference is ``A``. Since that is what you have, it compiles.
+
+```java
+9: List<? extends B> list4 = new ArrayList<A>(); // DOES NOT COMPILE
+10: List<? super B> list5 = new ArrayList<A>();
+11: List<?> list6 = new ArrayList<? extends A>(); // DOES NOT COMPILE
+```
+
+- Line 9 has an upper-bounded wildcard that allows ``ArrayList<B>`` or ``ArrayList<C>`` to be referenced. Since you have ``ArrayList<A>`` that is trying to be referenced, the code does not compile.
+- Line 10 has a lower-bounded wildcard, which allows a reference to ``ArrayList<A>``,`` ArrayList<B>``, or A``rrayList<Object>``.
+- line 11 allows a reference to any generic type since it is an unbounded wildcard. **==The problem is that you need to know what that type will be when instantiating the ``ArrayList``. It wouldn’t be useful anyway, because you can’t add any elements to that ``ArrayList``.==**
+
+#### Passing Generic Arguments
+
+```java
+<T> T first(List<? extends T> list) {
+	return list.get(0);
+}
+```
+
+The first method, ``first()``, is a perfectly normal use of generics. It uses a method-specific type parameter, ``T``. It takes a parameter of ``List<T>``, or some subclass of ``T``, and it returns a single object of that ``T`` type.
+
+```java
+<T> <? extends T> second(List<? extends T> list) { // DOES NOT COMPILE
+	return list.get(0);
+}
+```
+
+The next method, ``second()``, does not compile because the return type isn’t actually a type.
+
+```java
+<B extends A> B third(List<B> list) {
+	return new B(); // DOES NOT COMPILE
+}
+```
+
+This method, ``third()``, does not compile. ``<B extends A>`` says that you want to use ``B`` as a type parameter just for this method and that it needs to extend the ``A`` class. Coincidentally, ``B`` is also the name of a class. Well, it isn’t a coincidence. It’s an evil trick. **==Within the scope of the method, ``B`` can represent class ``A``, ``B``, or ``C``, because all extend the ``A`` class. Since ``B`` no longer refers to the ``B`` class in the method, you can’t instantiate it.==**
+
+```java
+void fourth(List<? super B> list) {}
+```
+
+You can pass the type ``List<B>``, ``List<A>``, or ``List<Object>``.
+
+```java
+<X> void fifth(List<X super B> list) { // DOES NOT COMPILE
+}
+```
+
+``fifth()``, does not compile because it tries to mix a method-specific type parameter with a wildcard. A wildcard must have a ``?`` in it.
+
+## Summary #OCP_Summary 
+
