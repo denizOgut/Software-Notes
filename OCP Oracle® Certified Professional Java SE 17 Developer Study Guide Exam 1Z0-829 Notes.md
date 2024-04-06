@@ -21770,3 +21770,36 @@ You can pass the type ``List<B>``, ``List<A>``, or ``List<Object>``.
 
 ## Summary #OCP_Summary 
 
+**==The Java Collections Framework includes four main types of data structures: lists, sets, queues, and maps. The Collection interface is the parent interface of ``List``, ``Set``, and ``Queue``. Additionally, ``Deque`` extends ``Queue``. The ``Map`` interface does not extend Collection.**==
+
+- ==**``List``: An ordered collection of elements that allows duplicate entries**==
+    - ==**``ArrayList``: Standard resizable list**==
+    - ==**``LinkedList``: Can easily add/remove from beginning or end**==
+- ==**``Set``: Does not allow duplicates**==
+    - ==**``HashSet``: Uses ``hashCode()`` to find unordered elements**==
+    - ==**``TreeSet``: Sorted. Does not allow null values.**==
+- ==**``Queue/Deque``: Orders elements for processing**==
+    - ==**``ArrayDeque``: Double-ended queue**==
+    - ==**``LinkedList``: Double-ended queue and list**==
+- ==**Map: Maps unique keys to values**==
+    - ==**``HashMap``: Uses ``hashCode()`` to find keys.**==
+    - ==**``TreeMap``: Sorted map. Does not allow null keys.**==
+
+==**The ``Comparable`` interface declares the ``compareTo()`` method. This method returns a negative number if the object is smaller than its argument, 0 if the two objects are equal, and a positive number otherwise. The ``compareTo()`` method is declared on the object that is being compared, and it takes one parameter. The ``Comparator`` interface defines the ``compare()`` method. A negative number is returned if the first argument is smaller, zero if they are equal, and a positive number otherwise. The ``compare()`` method can be declared in any code, and it takes two parameters. A ``Comparator`` is often implemented using a lambda.**==
+
+==**Generics are type parameters for code. To create a class with a generic parameter, add after the class name. You can use any name you want for the type parameter. Single uppercase letters are common choices. Generics allow you to specify wildcards. ``<?>`` is an unbounded wildcard that means any type. ``<? extends Object>`` is an upper bound that means any type that is ``Object`` or extends it. ``<? extends MyInterface>`` means any type that implements ``MyInterface``. ``<? super Number>`` is a lower bound that means any type that is ``Number`` or a superclass. A compiler error results from code that attempts to add an item in a list with an unbounded or upper-bounded wildcard.==**
+
+## Exam Essentials #Essential 
+
+**Pick the correct type collection from a description.** A ``List`` allows duplicates and orders the elements. A ``Set`` does not allow duplicates. A ``Deque`` orders its elements to facilitate retrievals from the front or back. A ``Map`` maps keys to values. Be familiar with the differences  n implementations of these interfaces.
+
+**Work with convenience methods.** The Collections Framework contains many methods such as ``contains()``,`` forEach()``, and ``removeIf()`` that you need to know for the exam. There are too many to list in this paragraph for review, so please do review the tables in this chapter.
+
+**Differentiate between Comparable and Comparator.** Classes that implement ``Comparable`` are said to have a natural ordering and implement the ``compareTo()`` method. **==A class is allowed to have only one natural ordering==**. A ``Comparator`` takes two objects in the ``compare()`` method. Different ones can have different sort orders. A ``Comparator`` is often implemented using a lambda such as ``(a, b) -> a.num - b.num``.
+
+**Identify valid and invalid uses of generics and wildcards.** ``<T>`` represents a type parameter.
+Any name can be used, but a single uppercase letter is the convention. `` <?>`` is an unbounded
+wildcard. ``<? extends X>`` is an upper-bounded wildcard. ``<? super X>`` is a lower-bounded
+wildcard.
+
+## Review Questions
