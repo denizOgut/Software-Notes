@@ -20236,14 +20236,17 @@ boolean equals(Object object)
 ```
 
 ```java
-23: var list1 = List.of(1, 2);
-24: var list2 = List.of(2, 1);
-25: var set1 = Set.of(1, 2);
-26: var set2 = Set.of(2, 1);
-27:
-28: System.out.println(list1.equals(list2)); // false
-29: System.out.println(set1.equals(set2)); // true
-30: System.out.println(list1.equals(set1)); // false
+var list1 = List.of(1, 2);  
+var list2 = List.of(2, 1);  
+var list3 = List.of(1, 2);  
+  
+var set1 = Set.of(1, 2);  
+var set2 = Set.of(2, 1);  
+  
+System.out.println(list1.equals(list2)); // false , because the elements are in a different order, and a List cares about order.  
+System.out.println(set1.equals(set2)); // true , because a Set is not sensitive to order  
+System.out.println(list1.equals(set1)); // false , because the types are different.  
+System.out.println(list1.equals(list3)); //true
 ```
 
 ---
@@ -20260,7 +20263,6 @@ boolean equals(Object object)
 **On line 4, we add a ``null`` to the list. This is legal because a ``null`` reference can be assigned to any reference variable. On line 5, we try to unbox that ``null`` to an ``int`` primitive. This is a problem. Java tries to get the ``int`` value of ``null``. Since calling any method on ``null`` gives a ``NullPointerException``, that is just what we get**
 
 ---
-
 ## Using the ``List`` Interface
 
 use a list when you want an ordered collection that **==can contain duplicate entries. Each element of the ``List`` has an index, and the indexes begin with zero.==** The main thing all ``List`` implementations have in common is that they are ordered and allow duplicates. Beyond that, they each offer different functionality
@@ -20345,7 +20347,7 @@ for (String s: strings) { }
 var list = new ArrayList<>();
 ```
 
-**this does compile. ==The type of the ``var`` is ``ArrayList<Object>``. Since there isn’t a type specified for the generic, Java has to assume the ultimate superclass.**==**
+**this does compile. ==The type of the ``var`` is ``ArrayList<Object>``. Since there isn’t a type specified for the generic, Java has to assume the ultimate superclass.**==
 
 ```java
 var list = new ArrayList<>();
@@ -20391,7 +20393,7 @@ The ``replaceAll()`` method calls the lambda on each element of the list and rep
 
 **Overloaded ``remove()`` Methods**
 
-**two overloaded ``remove()`` methods. The one from ``Collection`` removes an object that matches the parameter. By contrast, the one from ``List`` removes an element at a specified index.**
+==**two overloaded ``remove()`` methods. The one from ``Collection`` removes an object that matches the parameter. By contrast, the one from ``List`` removes an element at a specified index.**==
 
 **This gets tricky when you have an ``Integer`` type.**
 
@@ -20794,7 +20796,7 @@ for (String key: map.keySet())
 	System.out.print(key + ","); // giraffe,koala,lion,
 ```
 
-``TreeMap`` sorts the keys as we would expect. If we called ``values()`` instead of ,,, the order of the values would correspond to the order of the keys.
+``TreeMap`` sorts the keys as we would expect. If we called ``values()`` instead of ``keys()`` the order of the values would correspond to the order of the keys.
 
 ```java
 System.out.println(map.contains("lion")); // DOES NOT COMPILE
@@ -21628,7 +21630,7 @@ public static long total(List list) {
 }
 ```
 
-Something interesting happens when we work with upper bounds or unbounded wildcards. The list becomes logically immutable and therefore cannot be modified.
+Something interesting happens **==when we work with upper bounds or unbounded wildcards. The list becomes logically immutable and therefore cannot be modified.==**
 
 ```java
 2: static class Sparrow extends Bird { }
@@ -21692,10 +21694,11 @@ public static void addSound(List<? super String> list) {
 6: exceptions.add(new FileNotFoundException());
 ```
 
-- **Line 3 references a List that could be ``List<IOException>`` or ``List<Exception>`` or ``List<Object>``**
-- **Line 4 does not compile because we could have a ``List<IOException>``, and an ``Exception`` object wouldn’t fit in there.**
+- ==**Line 3 references a List that could be ``List<IOException>`` or ``List<Exception>`` or ``List<Object>``**==
+- ==**Line 4 does not compile because we could have a ``List<IOException>``, and an ``Exception`` object wouldn’t fit in there.**==
 
-**Line 5 is fine. ``IOException`` can be added to any of those types. Line 6 is also fine. ``FileNotFoundException`` can also be added to any of those three types. This is tricky because ``FileNotFoundException`` is a subclass of ``IOException``, and the keyword says super. Java says, “Well, ``FileNotFoundException`` also happens to be an ``IOException``, so everything is fine.”**
+- ==**Line 5 is fine. ``IOException`` can be added to any of those types**.== 
+- ==**Line 6 is also fine. ``FileNotFoundException`` can also be added to any of those three types. This is tricky because ``FileNotFoundException`` is a subclass of ``IOException``, and the keyword says super. Java says, “Well, ``FileNotFoundException`` also happens to be an ``IOException``, so everything is fine.”**==
 
 ---
 
