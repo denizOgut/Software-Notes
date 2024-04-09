@@ -21806,3 +21806,278 @@ wildcard. ``<? extends X>`` is an upper-bounded wildcard. ``<? super X>`` is a l
 wildcard.
 
 ## Review Questions
+
+1. Suppose you need to display a collection of products for sale, which may contain duplicates. Additionally, you have a collection of sales that you need to track, sorted by the natural order of the sale ID, and you need to retrieve the text of each. Which two of the following from the java.util package best suit your needs for this scenario? (Choose two.)
+
+A. ArrayList
+B. HashMap
+C. HashSet
+D. LinkedList
+E. TreeMap
+F. TreeSet
+
+**My Answer: A, E
+Correct Answer: A,E**
+
+**For the first scenario, the answer needs to implement List because the scenario allows duplicates, narrowing it down to options A and D. Option A is a better answer than option D because LinkedList is both a List and a Queue, and you just need a regular List.**
+
+**For the second scenario, the answer needs to implement Map because you are dealing with key/value pairs per the unique id field. This narrows it down to options B and E. Since the question talks about ordering, you need the TreeMap. Therefore, the answer is option E.**
+
+---
+
+2. Which of the following are true? (Choose all that apply.)
+```JAVA
+12: List<?> q = List.of("mouse", "parrot");
+13: var v = List.of("mouse", "parrot");
+14:
+15: q.removeIf(String::isEmpty);
+16: q.removeIf(s -> s.length() == 4);
+17: v.removeIf(String::isEmpty);
+18: v.removeIf(s -> s.length() == 4);
+```
+
+A. This code compiles and runs without error.
+B. Exactly one of these lines contains a compiler error.
+C. Exactly two of these lines contain a compiler error.
+D. Exactly three of these lines contain a compiler error.
+E. Exactly four of these lines contain a compiler error.
+F. If any lines with compiler errors are removed, this code runs without throwing an exception.
+G. If any lines with compiler errors are removed, this code throws an exception.
+
+**My Answer: C, F
+Correct Answer: C,F**
+
+**==Line 12 creates a List< ? >, which means it is treated as if all the elements are of type Object rather than String. Lines 15 and 16 do not compile since they call the String methods isEmpty() and length(), which are not defined on Object==. Line 13 creates a List< String > because var uses the type that it deduces from the context. Lines 17 and 18 do compile. However, List.of() creates an immutable list, so both of those lines would throw an UnsupportedOperationException if run. Therefore, options C and G are correct**
+
+--- 
+
+3. What is the result of the following statements?
+
+```JAVA
+3: var greetings = new ArrayDeque<String>();
+4: greetings.offerLast("hello");
+5: greetings.offerLast("hi");
+6: greetings.offerFirst("ola");
+7: greetings.pop();
+8: greetings.peek();
+9: while (greetings.peek() != null)
+10: System.out.print(greetings.pop());
+```
+
+A. hello
+B. hellohi
+C. hellohiola
+D. hiola
+E. The code does not compile.
+F. An exception is thrown.
+
+**My Answer: D
+Correct Answer: B**
+
+**This is a double-ended queue. On lines 4 and 5, we add to the back, giving us [hello, hi]. On line 6, we add to the front and have [ola, hello, hi]. On line 7, we remove the first element, which is "ola". On line 8, we look at the new first element ("hello") but don’t remove it. On lines 9 and 10, we remove each element in turn until no elements are left, printing hello and hi together**
+
+---
+
+4. Which of these statements compile? (Choose all that apply.)
+
+`A. HashSet< Number > hs = new HashSet< Integer >();`
+`B. HashSet< ? super ClassCastException > set = new`
+`HashSet<Exception>();`
+`C. List< > list = new ArrayList < String >();`
+`D. List<Object> values = new HashSet<Object>();`
+`E. List< Object > objects = new ArrayList< ? extends Object>();`
+`F. Map<String, ? extends Number> hm = new HashMap<String, Integer>();`
+
+**My Answer: B,F
+Correct Answer: B,F**
+
+**==Option A does not compile because the generic types are not compatible. We could say==**
+**==HashSet< ? extends Number> hs2 = new HashSet< Integer>()==;. Option B uses a lower bound, so it allows superclass generic types. Option C does not compile because the diamond operator is allowed only on the right side. Option D does not compile because a Set is not a List. ==Option E does not compile because upper bounds are not allowed when instantiating the type==. Finally, option F does compile because the upper bound is on the correct side of the =.**
+
+---
+
+5. What is the result of the following code?
+
+```java
+1: public record Hello<T>(T t) {
+2: public Hello(T t) { this.t = t; }
+3: private <T> void println(T message) {
+4: System.out.print(t + "-" + message);
+5: }
+6: public static void main(String[] args) {
+7: new Hello<String>("hi").println(1);
+8: new Hello("hola").println(true);
+9: } }
+```
+
+A. hi followed by a runtime exception
+B. hi-1hola- true
+C. The first compiler error is on line 1.
+D. The first compiler error is on line 3.
+E. The first compiler error is on line 8.
+F. The first compiler error is on another line.
+
+**My Answer: B**
+**Correct Answer: B**
+
+**The record compiles and runs without issue. Line 8 gives a compiler warning for not using generics but not a compiler error. Line 7 creates the Hello class with the generic type String. It also passes an int to the println() method, which gets autoboxed into an Integer. While the println() method takes a generic parameter of type T, it is not the same < T> defined for the class on line 1. Instead, it is a different T defined as part of the method declaration on line 3. Therefore, the String argument on line 7 applies only to the class. The method can take any object as a parameter, including autoboxed primitives. Line 8 creates the Hello class with the generic type Object since no type is specified for that instance. It passes a boolean to println(), which gets autoboxed into a Boolean. The result is that hi-1hola- true is printed, making option B correct.**
+
+---
+
+6. Which of the following can fill in the blank to print [7, 5, 3]? (Choose all that apply.)
+
+```JAVA
+8: public record Platypus(String name, int beakLength) {
+9: @Override public String toString() {return "" + beakLength;}
+10:
+11: public static void main(String[] args) {
+12: Platypus p1 = new Platypus("Paula", 3);
+13: Platypus p2 = new Platypus("Peter", 5);
+14: Platypus p3 = new Platypus("Peter", 7);
+15:
+16: List<Platypus> list = Arrays.asList(p1, p2, p3);
+17:
+18: Collections.sort(list, Comparator.comparing );
+19:
+20: System.out.println(list);
+21: }
+22: }
+```
+
+A.
+(Platypus::beakLength)
+B.
+(Platypus::beakLength).reversed()
+C.
+(Platypus::name)
+.thenComparing(Platypus::beakLength)
+D.
+(Platypus::name)
+.thenComparing(
+Comparator.comparing(Platypus::beakLength)
+.reversed())
+E.
+(Platypus::name)
+.thenComparingNumber(Platypus::beakLength)
+.reversed()
+F.
+(Platypus::name)
+.thenComparingInt(Platypus::beakLength)
+.reversed()
+G. None of the above
+
+**My Answer: B,C,F**
+**Correct Answer: B,F**
+
+**Option A is incorrect because it sorts in ascending order by beakLength. Similarly, option C is incorrect because it sorts by beakLength in ascending order within those matches that have the same name. Option E is incorrect because there is no thenComparingNumber() method.**
+
+**Option B is a correct answer, as it sorts by beakLength in descending order. Options D and F are trickier. First, notice that we can call either thenComparing() or thenComparingInt() because the former will simply autobox the int into an Integer. Then observe what reversed() applies to. Option D is incorrect because it sorts by name in ascending order and only reverses the beak length of those with the same name. Option F creates a comparator that sorts by name in ascending order and then by beak size in ascending order. Finally, it reverses the result. This is just what we want, so option F is correct.**
+
+---
+
+7. Which of the following method signatures are valid overrides of the hairy() method in the Alpaca class? (Choose all that apply.)
+
+```JAVA
+import java.util.*;
+public class Alpaca {
+public List<String> hairy(List<String> list) { return null; }
+}
+```
+
+`A. public List<String> hairy(List<CharSequence> list) { return null; }`
+`B. public List<String> hairy(ArrayList<String> list) { return null; }`
+`C. public List<String> hairy(List<Integer> list) { return null; }`
+`D. public List<CharSequence> hairy(List<String> list) { return null; }`
+`E. public Object hairy(List<String> list) { return null; }`
+`F. public ArrayList<String> hairy(List<String> list) { return null; }`
+
+**My Answer: F**
+**Correct Answer: B,F**
+
+**==A valid override of a method with generic arguments must have a return type that is covariant, with matching generic type parameters.== Options D and E are incorrect because the return type is too broad. ==Additionally, the generic arguments must have the same signature with the same generic types==. This eliminates options A and C. The remaining options are correct, making the answer options B and F.**
+
+---
+
+8. What is the result of the following program?
+
+```JAVA
+3: public class MyComparator implements Comparator<String> {
+4: public int compare(String a, String b) {
+5: return b.toLowerCase().compareTo(a.toLowerCase());
+6: }
+7: public static void main(String[] args) {
+8: String[] values = { "123", "Abb", "aab" };
+9: Arrays.sort(values, new MyComparator());
+10: for (var s: values)
+11: System.out.print(s + " ");
+12: }
+13: }
+```
+
+A. Abb aab 123
+B. aab Abb 123
+C. 123 Abb aab
+D. 123 aab Abb
+E. The code does not compile.
+F. A runtime exception is thrown.
+
+**My Answer: D**
+**Correct Answer: A**
+
+**The array is sorted using MyComparator, which sorts the elements in reverse alphabetical order in a case-insensitive fashion. Normally, numbers sort before letters. This code reverses that by calling the compareTo() method on b instead of a. Therefore, option A is correct.**
+
+---
+
+9.  Which of these statements can fill in the blank so that the Helper class compiles successfully? (Choose all that apply.)
+
+```JAVA
+2: public class Helper {
+3: public static <U extends Exception>
+4: void printException(U u) {
+5:
+6: System.out.println(u.getMessage());
+7: }
+8: public static void main(String[] args) {
+9: Helper. ?? ;
+10: } }
+```
+
+`A. printException(new FileNotFoundException("A"))`
+`B. printException(new Exception("B"))`
+`C. <Throwable>printException(new Exception("C"))`
+`D. <NullPointerException>printException(new NullPointerException ("D"))`
+`E. printException(new Throwable("E"))`
+
+**My Answer: A,B,D**
+**Correct Answer: A,B,D**
+
+**The generic type must be Exception or a subclass of Exception since this is an upper bound, making options A and B correct. Options C and E are wrong because Throwable is a superclass of Exception. Additionally, option D is correct despite the odd syntax by explicitly listing the type. You should still be able to recognize it as acceptable.**
+
+---
+
+10. Which of the following will compile when filling in the blank? (Choose all that apply.)
+
+```JAVA
+var list = List.of(1, 2, 3);
+var set = Set.of(1, 2, 3);
+var map = Map.of(1, 2, 3, 4);
+
+??.forEach(System.out::println);
+```
+
+A. list
+B. set
+C. map
+D. map.keys()
+E. map.keySet()
+F. map.values()
+G. map.valueSet()
+
+**My Answer: A,B,E,F**
+**Correct Answer: A,B,E,F**
+
+**The forEach() method works with a List or a Set. Therefore, options A and B are correct. Additionally, options E and F return a Set and can be used as well. Options D and G refer to methods that do not exist. Option C is tricky because a Map does have a forEach() method. However, it uses two lambda parameters rather than one. Since there is no matching System.out.println method, it does not compile.**
+
+---
+
+11. 
