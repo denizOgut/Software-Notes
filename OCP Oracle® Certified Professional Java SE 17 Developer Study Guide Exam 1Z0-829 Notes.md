@@ -22080,4 +22080,250 @@ G. map.valueSet()
 
 ---
 
-11. 
+11.  Which of these statements can fill in the blank so that the Wildcard class compiles successfully? (Choose all that apply.)
+
+```java
+3: public class Wildcard {
+4: public void showSize(List<?> list) {
+5: System.out.println(list.size());
+6: }
+7: public static void main(String[] args) {
+8: Wildcard card = new Wildcard();
+9: ;
+10: card.showSize(list);
+11: } }
+```
+
+`A. List<?> list = new HashSet <String>()`
+`B. ArrayList<? super Date> list = new ArrayList<Date>()`
+`C. List<?> list = new ArrayList<?>()`
+`D. List<Exception> list = new LinkedList<java.io.IOException>()`
+`E. ArrayList <? extends Number> list = new ArrayList <Integer>()`
+`F. None of the above`
+
+**My Answer: B,E**
+**Correct Answer: B,E**
+
+**The showSize() method can take any type of List since it uses an unbounded wildcard. Option A is incorrect because it is a Set and not a List. ==Option C is incorrect because the wildcard is not allowed to be on the right side of an assignment==. Option D is incorrect because the generic types are not compatible.**
+
+**Option B is correct because a lower-bounded wildcard allows that same type to be the generic. Option E is correct because Integer is a subclass of Number.**
+
+---
+
+12. What is the result of the following program?
+```java
+3: public record Sorted(int num, String text)
+4: implements Comparable<Sorted>, Comparator<Sorted> {
+5:
+6: public String toString() { return "" + num; }
+7: public int compareTo(Sorted s) {
+8: return text.compareTo(s.text);
+9: }
+10: public int compare(Sorted s1, Sorted s2) {
+11: return s1.num -s2. num;
+12: }
+13: public static void main(String[] args) {
+14: var s1 = new Sorted(88, "a");
+15: var s2 = new Sorted(55, "b");
+16: var t1 = new TreeSet<Sorted>();
+17: t1.add(s1); t1.add(s2);
+18: var t2 = new TreeSet<Sorted>(s1);
+19: t2.add(s1); t2.add(s2);
+20: System.out.println(t1 + " " + t2);
+21: } }
+```
+
+**My Answer: A**
+**Correct Answer: C**
+
+**This question is difficult because it defines both Comparable and Comparator on the same object. ==The t1 object doesn’t specify a Comparator, so it uses the Comparable object’s compareTo() method. This sorts by the text instance variable. The t2 object does specify a Comparator when calling the constructor, so it uses the compare() method, which sorts by the in==t. This gives us option C as the answer.**
+
+---
+
+13. What is the result of the following code? (Choose all that apply.)
+
+```JAVA
+Comparator<Integer> c1 = (o1, o2) -> o2 -o1;
+Comparator<Integer> c2 = Comparator.naturalOrder();
+Comparator<Integer> c3 = Comparator.reverseOrder();
+var list = Arrays.asList(5, 4, 7, 2);
+Collections.sort(list, );
+Collections.reverse(list);
+Collections.reverse(list);
+System.out.println(Collections.binarySearch(list, 2));
+```
+
+A. One or more of the comparators can fill in the blank so that the code prints 0.
+B. One or more of the comparators can fill in the blank so that the code prints 1.
+C. One or more of the comparators can fill in the blank so that the code prints 2.
+D. The result is undefined regardless of which comparator is used.
+E. A runtime exception is thrown regardless of which comparator is used.
+F. The code does not compile.
+
+**My Answer: A**
+**Correct Answer: A**
+
+**When using binarySearch(), the List must be sorted in the same order that the Comparator uses. Since the binarySearch() method does not specify a Comparator explicitly, the default sort order is used. Only c2 uses that sort order and correctly identifies that the value 2 is at index 0. Therefore, option A is correct**
+
+---
+
+14. Which of the following lines can be inserted to make the code compile? (Choose all that apply.)
+
+```JAVA
+class W {}
+class X extends W {}
+class Y extends X {}
+class Z<Y> {
+// INSERT CODE HERE
+}
+```
+
+A. W w1 = new W();
+B. W w2 = new X();
+C. W w3 = new Y();
+D. Y y1 = new W();
+E. Y y2 = new X();
+F. Y y1 = new Y();
+
+**My Answer: E,F**
+**Correct Answer: A,B**
+
+**Y is both a class and a type parameter. This means that within the class Z, when we refer to Y, it uses the type parameter. All of the choices that mention class Y are incorrect because it no longer means the class Y. Only options A and B are correct.**
+
+---
+
+15. Which options are true of the following code? (Choose all that apply.)
+```java
+3: ?? q = new LinkedList<>();
+4: q.add(10);
+5: q.add(12);
+6: q.remove(1);
+7: System.out.print(q);
+```
+
+A. If we fill in the blank with List< Integer >, the output is [10].
+B. If we fill in the blank with Queue< Integer >, the output is [10].
+C. If we fill in the blank with var, the output is [10].
+D. One or more of the scenarios does not compile.
+E. One or more of the scenarios throws a runtime exception.
+
+**My Answer: A,C**
+**Correct Answer: A,C**
+
+**A LinkedList implements both List and Queue. The List interface has a method to remove by index. Since this method exists, Java does not autobox to call the other method, making the output [10] and option A correct. Similarly, option C is correct because the method to remove an element by index is available on a LinkedList< Object> (which is what var represents here). By contrast, Queue has only the remove by object method, so Java does autobox there. Since the number 1 is not in the list, Java does not remove anything for the Queue, and the output is [10, 12].**
+
+---
+
+16. What is the result of the following code?
+
+```JAVA
+4: Map m = new HashMap();
+5: m.put(123, "456");
+6: m.put("abc", "def");
+7: System.out.println(m.contains("123"));
+```
+
+**My Answer: E**
+**Correct Answer: E**
+
+**This question looks like it is about generics, but it’s not. It is trying to see whether you noticed that Map does not have a contains() method. It has containsKey() and containsValue() instead, making option E the answer. If containsKey() were called, the answer would be false because 123 is an Integer key in the Map, rather than a String.**
+
+---
+
+17. What is the result of the following code? (Choose all that apply.)
+
+```JAVA
+48: var map = Map.of(1,2, 3, 6);
+49: var list = List.copyOf(map.entrySet());
+50:
+51: List<Integer> one = List.of(8, 16, 2);
+52: var copy = List.copyOf(one);
+53: var copyOfCopy = List.copyOf(copy);
+54: var thirdCopy = new ArrayList<>(copyOfCopy);
+55:
+56: list.replaceAll(x -> x * 2);
+57: one.replaceAll(x -> x * 2);
+58: thirdCopy.replaceAll(x -> x * 2);
+59:
+60: System.out.println(thirdCopy);
+```
+
+A. One line fails to compile.
+B. Two lines fail to compile.
+C. Three lines fail to compile.
+D. The code compiles but throws an exception at runtime.
+E. If any lines with compiler errors are removed, the code throws an exception at runtime.
+F. If any lines with compiler errors are removed, the code prints [16, 32, 4].
+G. The code compiles and prints [16, 32, 4] without any changes.
+
+**My Answer: B**
+**Correct Answer: A,E**
+
+**The key to this question is keeping track of the types. Line 48 is a Map<Integer, Integer>. Line 49 builds a List out of a Set of Entry objects, giving us List<Entry<Integer, Integer>>. This causes a compiler error on line 56 since we can’t multiply an Entry object by two.**
+**Lines 51–54 are all of type List< Integer>. The first three are immutable, and the one on line 54 is mutable. This means line 57 throws an UnsupportedOperationException since we attempt to modify the list. Line 58 would work if we could get to it. Since there is one compiler error and one runtime error, options A and E are correct.**
+
+---
+
+18. What code change is needed to make the method compile, assuming there is no class named T?
+
+`A. Add <T> after the public keyword.`
+`B. Add <T> after the static keyword.`
+`C. Add <T> after T.`
+`D. Add <?> after the public keyword.`
+`E. Add <?> after the static keyword.`
+`F. No change is required. The code already compiles.`
+
+**My Answer: B**
+**Correct Answer: B**
+
+When using generic types in a method, the generic specification goes before the return type and option B is correct.
+
+---
+
+19. What is the result of the following?
+
+```java
+var map = new HashMap<Integer, Integer>();
+map.put(1, 10);
+map.put(2, 20);
+map.put(3, null);
+map.merge(1, 3, (a,b) -> a + b);
+map.merge(3, 3, (a,b) -> a + b);
+System.out.println(map);
+```
+
+```java
+A. {1=10, 2=20}
+B. {1=10, 2=20, 3=null}
+C. {1=10, 2=20, 3=3}
+D. {1=13, 2=20}
+E. {1=13, 2=20, 3=null}
+F. {1=13, 2=20, 3=3}
+G. The code does not compile.
+H. An exception is thrown.
+```
+
+**My Answer: E**
+**Correct Answer: F**
+
+**The first call to merge() calls the mapping function and adds the numbers to get 13. It then updates the map. The second call to merge() sees that the map currently has a null value for that key. It does not call the mapping function but instead replaces it with the new value of 3. Therefore, option F is correct.**
+
+---
+
+20. Which of the following statements are true? (Choose all that apply.)
+
+A. Comparable is in the java.util package.
+B. Comparator is in the java.util package.
+C. compare() is in the Comparable interface.
+D. compare() is in the Comparator interface.
+E. compare() takes one method parameter.
+F. compare() takes two method parameters.
+
+**My Answer: B,D,F**
+**Correct Answer: B,D,F**
+
+**The java.lang.Comparable interface is implemented on the object to compare. It specifies the compareTo() method, which takes one parameter. The java.util.Comparator interface specifies the compare() method, which takes two parameters. This gives us options B, D, and F as the answers.**
+
+---
+
+# Chapter 10 - Streams #Chapter
