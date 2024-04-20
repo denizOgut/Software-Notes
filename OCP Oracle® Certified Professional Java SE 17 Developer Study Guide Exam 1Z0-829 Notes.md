@@ -22392,3 +22392,404 @@ F. compare() takes two method parameters.
 ---
 
 # Chapter 10 - Streams #Chapter
+
+## Returning an Optional
+
+How do we express this *we don’t know* or *not applicable* answer in Java? We use the ``Optional`` type. An ``Optional`` is created using a factory. You can either request an empty ``Optional`` or pass a value for the ``Optional`` to wrap. Think of an Optional as a box that might have something in it or might instead be empty.
+
+![[Pasted image 20240420223753.png]]
+
+### Creating an Optional
+
+```java
+10: public static Optional<Double> average(int... scores) {
+	11: if (scores.length == 0) return Optional.empty();
+	12: int sum = 0;
+	13: for (int score: scores) sum += score;
+	14: return Optional.of((double) sum / scores.length);
+15: }
+```
+
+Calling the method shows what is in our two boxes:
+
+```java
+System.out.println(average(90, 100)); // Optional[95.0]
+System.out.println(average()); // Optional.empty
+```
+
+Normally, we want to check whether a value is there and/or get it out of the box.
+
+```java
+Optional<Double> opt = average(90, 100);
+if (opt.isPresent())
+	System.out.println(opt.get()); // 95.0
+```
+
+What if we didn’t do the check, and the ``Optional`` was empty?
+
+```java
+Optional<Double> opt = average();
+System.out.println(opt.get()); // NoSuchElementException 
+```
+
+When creating an ``Optional``, it is common to want to use ``empty()`` when the value is ``null``. You can do this with an ``if`` statement or ternary operator. We use the ternary operator ``(? :)`` to simplify the code
+
+```java
+Optional o = (value == null) ? Optional.empty() : Optional.of(value);
+```
+
+Since this is such a common pattern, Java provides a factory method to do the same thing.
+
+```java
+Optional o = Optional.ofNullable(value);
+```
+
+![[Pasted image 20240420224239.png]]
+
+The other methods allow you to write code that uses an ``Optional`` in one line without having to use the ternary operator. This makes the code easier to read. **==Instead of using an ``if`` statement , we can specify a ``Consumer`` to be run when there is a value inside the ``Optional``. When there isn’t, the method simply skips running the ``Consumer``.==**
+
+```java
+Optional<Double> opt = average(90, 100);
+opt.ifPresent(System.out::println);
+```
+
+### Dealing with an Empty Optional
+
+The remaining methods allow you to specify what to do if a value isn’t present.
+
+```java
+30: Optional<Double> opt = average();
+31: System.out.println(opt.orElse(Double.NaN)); // NaN
+32: System.out.println(opt.orElseGet(() -> Math.random())); // 0.49775932295380165
+```
+
+```java
+30: Optional<Double> opt = average();
+31: System.out.println(opt.orElseThrow());
+```
+
+```text
+Exception in thread "main" java.util.NoSuchElementException:
+No value present
+at java.base/java.util.Optional.orElseThrow(Optional.java:382)
+```
+
+Without specifying a ``Supplier`` for the exception, Java will throw a ``NoSuchElementException``. Alternatively, we can have the code throw a custom exception if the ``Optional`` is empty.
+
+```java
+30: Optional<Double> opt = average();
+31: System.out.println(opt.orElseThrow(
+	32: () -> new IllegalStateException()));
+```
+
+```text
+Exception in thread "main" java.lang.IllegalStateException
+at optionals.Methods.lambda$orElse$1(Methods.java:31)
+at java.base/java.util.Optional.orElseThrow(Optional.java:408)
+```
+
+Notice that we do not write ``throw new IllegalStateException()``. The ``orElseThrow()`` method takes care of actually throwing the exception when we run it.
+
+```java
+Optional<Double> opt = average(90, 100);
+System.out.println(opt.orElse(Double.NaN));
+System.out.println(opt.orElseGet(() -> Math.random()));
+System.out.println(opt.orElseThrow());
+```
+
+It prints out 95.0 three times. Since the value does exist, there is no need to use the *or else* logic.
+
+---
+**Is ``Optional`` the Same as ``null``?**
+
+**An alternative to ``Optional`` is to return ``null``. There are a few shortcomings with this approach.**
+
+- **One is that there isn’t a clear way to express that ``null`` might be a special value. By contrast, returning an ``Optional`` is a clear statement in the API that there might not be a value.**
+- **Another advantage of ``Optional`` is that you can use a functional programming style with ``ifPresent()`` and the other methods rather than needing an if statement.**
+---
+
+## Using Streams
+
+### Understanding the Pipeline Flow
+
+Think of a stream pipeline as an assembly line in a factory. Another important feature of an assembly line is that each person touches each element to do their operation, and then that piece of data is gone. It doesn’t come back. **==With streams, the data isn’t generated up front—it is created when needed. This is an example of *lazy evaluation*, which delays execution until necessary.==**
+
+There are three parts to a stream pipeline
+
+-  ==**Source**: Where the stream comes from.==
+-  ==**Intermediate operations**: Transforms the stream into another one. There can be as few or as many intermediate operations as you’d like. Since streams use lazy evaluation, the intermediate operations do not run until the terminal operation runs.==
+-  ==**Terminal operation**: Produces a result. Since streams can be used only once, the stream is no longer valid after a terminal operation completes.==
+
+![[Pasted image 20240420230300.png]]
+
+Notice that the operations are unknown to us. When viewing the assembly line from the outside, you care only about what comes in and goes out. What happens in between is an implementation detail.
+
+![[Pasted image 20240420230330.png]]
+
+### Creating Stream Sources
+
+In Java, the streams are represented by the ``Stream<T>`` interface, defined in the ``java.util.stream`` package.
+#### Creating Finite Streams
+
+```java
+11: Stream<String> empty = Stream.empty(); // count = 0
+12: Stream<Integer> singleElement = Stream.of(1); // count = 1
+13: Stream<Integer> fromArray = Stream.of(1, 2, 3); // count = 3
+```
+
+Java also provides a convenient way of converting a ``Collection`` to a stream.
+
+```java
+14: var list = List.of("a", "b", "c");
+15: Stream<String> fromList = list.stream();
+```
+
+---
+
+**Creating a Parallel Stream**
+
+```java
+24: var list = List.of("a", "b", "c");
+25: Stream<String> fromListParallel = list.parallelStream();
+```
+
+**Using parallel streams is like setting up multiple tables of workers who can do the same task. Painting would be a lot faster if we could have five painters painting signs instead of just one. Just keep in mind some tasks cannot be done in parallel, such as putting the signs away in the order that they were created in the stream. Also be aware that there is a cost in coordinating the work, so for smaller streams, it might be faster to do it sequentially.**
+
+---
+
+#### Creating Infinite Streams
+
+```java
+17: Stream<Double> randoms = Stream.generate(Math::random);
+18: Stream<Integer> oddNumbers = Stream.iterate(1, n -> n + 2);
+```
+
+What if you wanted just odd numbers less than 100? There’s an overloaded version of ``iterate()`` that helps:
+
+```java
+19: Stream<Integer> oddNumberUnder100 = Stream.iterate(
+20: 1, // seed
+21: n -> n < 100, // Predicate to specify when done
+22: n -> n + 2); // UnaryOperator to get next value
+```
+
+Notice how they are separated by commas ``(,)`` just like in all other methods. The exam may try to trick you by using semicolons since it is similar  to a ``for`` loop.
+
+#### Reviewing Stream Creation Methods
+
+![[Pasted image 20240420231908.png]]
+
+### Using Common Terminal Operations
+
+**==You can perform a terminal operation without any intermediate operations but not the other way around.==**
+Reductions are a special type of terminal operation where all of the contents of the stream are combined into a single primitive or ``Object``.
+
+![[Pasted image 20240420232228.png]]
+
+#### Counting
+
+The ``count()`` method determines the number of elements in a finite stream. For an infinite stream, it never terminates. The ``count()`` method is a reduction because it looks at each element in the stream and returns a single value.
+
+```java
+public long count()
+
+Stream<String> s = Stream.of("monkey", "gorilla", "bonobo");
+System.out.println(s.count()); // 3
+```
+
+#### Finding the Minimum and Maximum
+
+The ``min()`` and ``max()`` methods allow you to pass a custom comparator and find the smallest or largest value in a finite stream according to that sort order. Like the ``count()`` method, ``min()`` and ``max()`` hang on an infinite stream because they cannot be sure that a smaller or larger value isn’t coming later in the stream. Both methods are reductions because they return a single value after looking at the entire stream.
+
+```java
+public Optional<T> min(Comparator<? super T> comparator)
+public Optional<T> max(Comparator<? super T> comparator)
+
+Stream<String> s = Stream.of("monkey", "ape", "bonobo");
+Optional<String> min = s.min((s1, s2) -> s1.length()-s2. length());
+min.ifPresent(System.out::println); // ape
+```
+
+Notice that the code returns an ``Optional`` rather than the value. This allows the method to specify that no minimum or maximum was found
+
+```java
+Optional<?> minEmpty = Stream.empty().min((s1, s2) -> 0);
+System.out.println(minEmpty.isPresent()); // false
+```
+
+Since the stream is empty, the comparator is never called, and no value is present in the ``Optional``.
+
+#### Finding a Value
+
+The ``findAny()`` and ``findFirst()`` methods return an element of the stream unless the stream is empty. If the stream is empty, they return an empty ``Optional``. Since Java generates only the amount of stream you need, the infinite stream needs to generate only one element. As its name implies, the ``findAny()`` method can return any element of the stream. the ``findAny()`` method is more likely to return a random element when working with parallel streams.
+
+These methods are terminal operations but not reductions. The reason is that they sometimes return without processing all of the elements. This means that they return a value based on the stream but do not reduce the entire stream into one value.
+
+```java
+public Optional<T> findAny()
+public Optional<T> findFirst()
+
+Stream<String> s = Stream.of("monkey", "gorilla", "bonobo");
+Stream<String> infinite = Stream.generate(() -> "chimp");
+s.findAny().ifPresent(System.out::println); // monkey (usually)
+infinite.findAny().ifPresent(System.out::println); // chimp
+```
+#### Matching
+
+The ``allMatch()``, ``anyMatch()``, and ``noneMatch()`` methods search a stream and return information about how the stream pertains to the predicate. These may or may not terminate for infinite streams. It depends on the data. Like the find methods, they are not reductions because they do not necessarily look at all of the elements
+
+```java
+public boolean anyMatch(Predicate <? super T> predicate)
+public boolean allMatch(Predicate <? super T> predicate)
+public boolean noneMatch(Predicate <? super T> predicate)
+
+var list = List.of("monkey", "2", "chimp");
+Stream<String> infinite = Stream.generate(() -> "chimp");
+Predicate<String> pred = x -> Character.isLetter(x.charAt(0));
+System.out.println(list.stream().anyMatch(pred)); // true
+System.out.println(list.stream().allMatch(pred)); // false
+System.out.println(list.stream().noneMatch(pred)); // false
+System.out.println(infinite.anyMatch(pred)); // true
+```
+
+we can reuse the same predicate, but we need a different stream each time.
+
+---
+
+**Remember that ``allMatch()``, ``anyMatch()``, and ``noneMatch()`` return a ``boolean``. By contrast, the find methods return an ``Optional`` because they return an element of the stream.** #TIP 
+
+---
+#### Iterating
+
+calling ``forEach()`` on an infinite stream does not terminate. Since there is no return value, it is not a reduction.
+
+```java
+public void forEach(Consumer<? super T> action)
+
+Stream<String> s = Stream.of("Monkey", "Gorilla", "Bonobo");
+s.forEach(System.out::print); // MonkeyGorillaBonobo
+```
+
+```java
+Stream<Integer> s = Stream.of(1);
+for (Integer i : s) {} // DOES NOT COMPILE
+```
+
+While ``forEach()`` sounds like a loop, it is really a terminal operator for streams. Streams cannot be used as the source in a for-each loop because they don’t implement the ``Iterable`` interface.
+### Reducing
+
+The ``reduce()`` method combines a stream into a single object. It is a reduction, which means it processes all elements.
+
+```java
+public T reduce(T identity, BinaryOperator<T> accumulator)
+public Optional<T> reduce(BinaryOperator<T> accumulator)
+public <U> U reduce(U identity, BiFunction<U,? super T,U> accumulator, BinaryOperator<U> combiner)
+```
+
+The most common way of doing a reduction is to start with an initial value and keep merging it with the next value.
+
+```java
+var array = new String[] { "w", "o", "l", "f" };
+var result = "";
+for (var s: array) result = result + s;
+System.out.println(result); // wolf
+```
+
+The *identity* is the initial value of the reduction, in this case an empty String. The *accumulator* combines the current result with the current value in the stream
+
+```java
+Stream<String> stream = Stream.of("w", "o", "l", "f");
+String word = stream.reduce("", (s, c) -> s + c); System.out.println(word); // wolf
+```
+
+```java
+Stream<String> stream = Stream.of("w", "o", "l", "f");
+String word = stream.reduce("", String::concat);
+System.out.println(word); // wolf
+```
+
+```java
+Stream<Integer> stream = Stream.of(3, 5, 6);
+System.out.println(stream.reduce(1, (a, b) -> a * b)); // 90
+```
+
+In many cases, the identity isn’t really necessary, so Java lets us omit it. When you don’t specify an identity, an ``Optional`` is returned because there might not be any data. There are three choices for what is in the ``Optional``:
+
+-  ==**If the stream is empty, an empty ``Optional`` is returned.**==
+-  ==**If the stream has one element, it is returned.**==
+-  ==**If the stream has multiple elements, the accumulator is applied to combine them.==**
+
+```java
+BinaryOperator<Integer> op = (a, b) -> a * b;
+Stream<Integer> empty = Stream.empty();
+Stream<Integer> oneElement = Stream.of(3);
+Stream<Integer> threeElements = Stream.of(3, 5, 6);
+
+empty.reduce(op).ifPresent(System.out::println); // no output
+oneElement.reduce(op).ifPresent(System.out::println); // 3
+threeElements.reduce(op).ifPresent(System.out::println); // 90
+```
+
+The third method signature is used when we are dealing with different types. It allows Java to create intermediate reductions and then combine them at the end.
+
+```java
+Stream<String> stream = Stream.of("w", "o", "l", "f!");
+int length = stream.reduce(0, (i, s) -> i+s.length(), (a, b) -> a+b);
+System.out.println(length); // 5
+```
+
+- The first parameter (0) is the value for the initializer. If we had an empty stream, this would be the answer.
+- The second parameter is the accumulator. handles mixed data types. In this example, the first argument, ``i`` , is an ``Integer``, while the second argument, ``s``, is a ``String``. It adds the length of the current ``String`` to our running total.
+- The third parameter is called the combiner, which combines any intermediate totals. In this case, ``a`` and ``b`` are both Integer values.
+
+The three-argument ``reduce()`` operation is useful when working with parallel streams because it allows the stream to be decomposed and reassembled by separate threads
+#### Collecting
+
+The ``collect()`` method is a special type of reduction called a mutable reduction. It is more efficient than a regular reduction because we use the same mutable object while accumulating. Common mutable objects include ``StringBuilder`` and ``ArrayList``.
+
+```java
+public <R> R collect(Supplier<R> supplier, BiConsumer<R, ? super T> accumulator, BiConsumer<R, R> combiner)
+
+public <R,A> R collect(Collector<? super T, A,R> collector)
+```
+
+```java
+Stream<String> stream = Stream.of("w", "o", "l", "f");
+StringBuilder word = stream.collect(
+	StringBuilder::new,
+	StringBuilder::append,
+	StringBuilder::append);
+System.out.println(word); // wolf
+```
+
+- The first parameter is the ``supplier``, which creates the object that will store the results as we collect data.
+- The second parameter is the accumulator, which is a ``BiConsumer`` that takes two parameters and doesn’t return anything.
+- The final parameter is the combiner, which is another ``BiConsumer``. It is responsible for taking two data collections and merging them. This is useful when we are processing in parallel. Two smaller collections are formed and then merged into one.
+
+```java
+Stream<String> stream = Stream.of("w", "o", "l", "f");
+TreeSet<String> set = stream.collect(
+	TreeSet::new,
+	TreeSet::add,
+	TreeSet::addAll);
+System.out.println(set); // [f, l, o, w]
+```
+
+The supplier creates an empty ``TreeSet``. The accumulator adds a single ``String`` from the Stream to the ``TreeSet``. The combiner adds all of the elements of one ``TreeSet`` to another in case the operations were done in parallel and need to be merged.
+
+Java provides a class with common collectors cleverly named ``Collectors``. This approach also makes the code easier to read because it is more expressive.
+
+```java
+Stream<String> stream = Stream.of("w", "o", "l", "f");
+TreeSet<String> set = stream.collect(Collectors.toCollection(TreeSet::new));
+System.out.println(set); // [f, l, o, w]
+
+//---
+
+Stream<String> stream = Stream.of("w", "o", "l", "f");
+Set<String> set = stream.collect(Collectors.toSet());
+System.out.println(set); // [f, w, l, o]
+```
+
+### Using Common Intermediate Operations
+
