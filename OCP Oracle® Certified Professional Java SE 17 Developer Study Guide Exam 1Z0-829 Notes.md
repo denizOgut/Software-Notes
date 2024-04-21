@@ -23501,3 +23501,37 @@ There are three ``Collectors`` in this code. Two of them are for ``joining()`` a
 
 ## Summary #OCP_Summary 
 
+**==An ``Optional<T>`` can be empty or store a value. You can check whether it contains a value with ``isPresent()`` and ``get()`` the value inside. You can return a different value with ``orElse(T t)`` or throw an exception with ``orElseThrow()``. There are even three methods that take functional interfaces as parameters: ``ifPresent(Consumer c)``, ``orElseGet(Supplier s)``, and ``orElseThrow(Supplier s)``. There are three optional types for primitives: ``OptionalDouble``, ``OptionalInt``, and ``OptionalLong``. These have the methods ``getAsDouble()``, ``getAsInt()``, and ``getAsLong()``, respectively.**==
+ 
+ ==**A stream pipeline has three parts. The source is required, and it creates the data in the stream. There can be zero or more intermediate operations, which aren’t executed until the terminal operation runs. The first stream class we covered was ``Stream<T>``, which takes a generic argument ``T``. The ``Stream<T>`` class includes many useful intermediate operations including ``filter()``, ``map()``, ``flatMap()``, and ``sorted()``. Examples of terminal operations include ``allMatch()``, ``count()``, and ``forEach()``.**==
+
+==**Besides the ``Stream<T>`` class, there are three primitive streams: ``DoubleStream``, ``IntStream``, and ``LongStream``. In addition to the usual ``Stream<T>`` methods, ``IntStream`` and ``LongStream`` have range() and ``rangeClosed()``. The call range(1, 10) on ``IntStream`` and ``LongStream`` creates a stream of the primitives from 1 to 9. By contrast, ``rangeClosed(1, 10)`` creates a stream of the primitives from 1 to 10. The primitive streams have math operations including ``average()``, ``max()``, and ``sum()``. They also have ``summaryStatistics()`` to get many statistics in one call.**==
+
+==**You can use a ``Collector`` to transform a stream into a traditional collection. You can even group fields to create a complex map in one line. Partitioning works the same way as grouping, except that the keys are always true and false. A partitioned map always has two keys, even if the value is empty for the key. A teeing collector allows you to combine the results of two other collectors.**==
+
+==**remember that streams are lazily evaluated. They take lambdas or method references as parameters, which execute later when the method is run.==**
+
+## Exam Essentials #Essential 
+
+**Write code that uses Optional**. Creating an ``Optional`` uses ``Optional.empty()`` or ``Optional.of()``. Retrieval frequently uses ``isPresent()`` and ``get()``. Alternatively, there are the functional ``ifPresent()`` and ``orElseGet()`` methods.
+
+**Recognize which operations cause a stream pipeline to execute**. Intermediate operations do not run until the terminal operation is encountered. If no terminal operation is in the pipeline, a ``Stream`` is returned but not executed. Examples of terminal operations include ``collect()``, ``forEach()``, ``min()``, and ``reduce()``.
+
+**Determine which terminal operations are reductions**. Reductions use all elements of the stream in determining the result. The reductions that you need to know are ``collect()``, ``count()``, ``max()``, ``min()``, and ``reduce()``. A mutable reduction collects into the same object as it goes. The ``collect()`` method is a mutable reduction.
+
+**Write code for common intermediate operations**. The ``filter()`` method returns a ``Stream<T>`` filtering on a ``Predicate<T>``. The ``map()`` method returns a ``Stream``, transforming each element of type ``T`` to another type ``R`` through a ``Function <T,R>``. The ``flatMap()`` method flattens nested streams into a single level and removes empty streams.
+
+**Compare primitive streams to ``Stream<T>``**. Primitive streams are useful for performing common operations on numeric types, including statistics like ``average()``, ``sum()``, and so on. There are three primitive stream classes: ``DoubleStream``, ``IntStream``, and ``LongStream``. There are also three primitive ``Optional`` classes: ``OptionalDouble``, ``OptionalInt``, and ``OptionalLong``. Aside from ``BooleanSupplier``, they all involve the double, int, or long primitives.
+
+**Convert primitive stream types to other primitive stream types**. Normally, when mapping, you just call the ``map()`` method. When changing the class used for the stream, a different method is needed. To convert to Stream, you use ``mapToObj()``. To convert to ``DoubleStream``, you use ``mapToDouble()``. To convert to ``IntStream``, you use ``mapToInt()``. To convert to ``LongStream``, you use ``mapToLong()``.
+
+**Use ``peek()`` to inspect the stream**. The ``peek()`` method is an intermediate operation often used for debugging purposes. It executes a lambda or method reference on the input and passes that same input through the pipeline to the next operator. It is useful for printing out what passes through a certain point in a stream.
+
+**Search a stream**. The ``findFirst()`` and ``findAny()`` methods return a single element from a stream in an Optional. **==The ``anyMatch()``, ``allMatch()``, and ``noneMatch()`` methods return a boolean. Be careful, because these three can hang if called on an infinite stream with some data.==** All of these methods are terminal operations.
+
+**Sort a stream**. The ``sorted()`` method is an intermediate operation that sorts a stream. There are two versions: the signature with zero parameters that sorts using the natural sort order, and the signature with one parameter that sorts using that ``Comparator`` as the sort order.
+
+**Compare ``groupingBy()`` and ``partitioningBy()``**. The ``groupingBy()`` method is a terminal operation that creates a Map. The keys and return types are determined by the parameters you pass. The values in the Map are a Collection for all the entries that map to that key. **==The ``partitioningBy()`` method also returns a Map. This time, the keys are true and false. The values are again a Collection of matches. If there are no matches for that boolean, the Collection is empty.==**
+
+## Review Questions
+
