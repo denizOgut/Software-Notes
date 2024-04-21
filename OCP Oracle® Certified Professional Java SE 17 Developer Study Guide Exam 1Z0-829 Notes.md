@@ -22793,3 +22793,238 @@ System.out.println(set); // [f, w, l, o]
 
 ### Using Common Intermediate Operations
 
+Unlike a terminal operation, an intermediate operation produces a stream as its result. An intermediate operation can also deal with an infinite stream simply by returning another infinite stream. Since elements are produced only as needed, this works fine.
+
+#### Filtering
+
+The ``filter()`` method returns a ``Stream`` with elements that match a given expression.
+
+```java
+public Stream<T> filter(Predicate<? super T> predicate)
+
+Stream<String> s = Stream.of("monkey", "gorilla", "bonobo");
+s.filter(x -> x.startsWith("m"))
+.forEach(System.out::print); // monkey
+```
+
+#### Removing Duplicates
+
+The ``distinct()`` method returns a stream with duplicate values removed. The duplicates do not need to be adjacent to be removed. Java calls ``equals()`` to determine whether the objects are equivalent.
+
+```java
+public Stream<T> distinct()
+
+Stream<String> s = Stream.of("duck", "duck", "duck", "goose");
+s.distinct()
+.forEach(System.out::print); // duckgoose
+```
+
+#### Restricting by Position
+
+The ``limit()`` and ``skip()`` methods can make a ``Stream`` smaller, or ``limit()`` could make a finite stream out of an infinite stream.
+
+```java
+public Stream<T> limit(long maxSize)
+public Stream<T> skip(long n)
+
+Stream<Integer> s = Stream.iterate(1, n -> n + 1);
+s.skip(5)
+.limit(2)
+.forEach(System.out::print); // 67
+```
+
+#### Mapping
+
+The ``map()`` method creates a one-to- one mapping from the elements in the stream to the elements of the next step in the stream.
+
+```java
+public <R> Stream<R> map(Function<? super T, ? extends R> mapper)
+
+Stream<String> s = Stream.of("monkey", "gorilla", "bonobo");
+s.map(String::length)
+.forEach(System.out::print); // 676
+```
+
+#### Using ``flatMap``
+
+The ``flatMap()`` method takes each element in the stream and makes any elements it contains top-level elements in a single stream. ==**Java 8 _``Stream.flatMap()``_ method is used to flatten a _``Stream``_ of collections to a _``Stream``_ of objects.** **flattening is referred to as merging multiple collections/arrays into one**.==
+
+```java
+public <R> Stream<R> flatMap( Function<? super T, ? extends Stream<? extends R>> mapper)
+```
+
+This gibberish basically says that it returns a Stream of the type that the function contains at a lower level.
+
+```java
+List<String> zero = List.of();
+var one = List.of("Bonobo");
+var two = List.of("Mama Gorilla", "Baby Gorilla");
+Stream<List<String>> animals = Stream.of(zero, one, two);
+animals.flatMap(m -> m.stream())
+.forEach(System.out::println); // Bonobo Mama Gorilla Baby Gorilla
+```
+
+```java
+Merging Lists into a Single ListList<Integer> list1 = Arrays.asList(1,2,3);
+List<Integer> list2 = Arrays.asList(4,5,6);
+List<Integer> list3 = Arrays.asList(7,8,9);
+List<List<Integer>> listOfLists = Arrays.asList(list1, list2, list3);
+List<Integer> listOfAllIntegers = listOfLists.stream()
+          .flatMap(x -> x.stream())
+          .collect(Collectors.toList());
+System.out.println(listOfAllIntegers); // Output[1, 2, 3, 4, 5, 6, 7, 8, 9]
+```
+
+---
+**Concatenating Streams**
+
+**While ``flatMap()`` is good for the general case, there is a more convenient way to concatenate two streams:**
+
+```java
+var one = Stream.of("Bonobo");
+var two = Stream.of("Mama Gorilla", "Baby Gorilla");
+Stream.concat(one, two)
+.forEach(System.out::println);
+```
+
+**The two streams are concatenated, and the terminal operation, ``forEach()``, is called.**
+
+---
+
+#### Sorting
+
+The ``sorted()`` method returns a stream with the elements sorted. Just like sorting arrays, Java uses natural ordering unless we specify a comparator
+
+```java
+public Stream<T> sorted()
+public Stream<T> sorted(Comparator<? super T> comparator)
+
+Stream<String> s = Stream.of("brown-", "bear-");
+s.sorted()
+.forEach(System.out::print); // bear-brown-
+
+
+Stream<String> s = Stream.of("brown bear-", "grizzly-");
+s.sorted(Comparator.reverseOrder())
+.forEach(System.out::print); // grizzly-brown bear-
+```
+
+```java
+Stream<String> s = Stream.of("brown bear-", "grizzly-");
+s.sorted(Comparator::reverseOrder); // DOES NOT COMPILE
+```
+
+the second ``sorted()`` method signature It takes a ``Comparator``, which is a functional interface that takes two parameters and returns an int. However, ``Comparator::reverseOrder`` doesn’t do that. Because ``reverseOrder()`` takes no arguments and returns a value, the method reference is equivalent to ``() -> Comparator.reverseOrder()``, which is really a ``Supplier<Comparator>``. This is not compatible with ``sorted()``.
+
+#### Taking a Peek
+
+The ``peek()`` method is useful for debugging because **==it allows us to perform a stream operation without changing the stream.==**
+
+```java
+public Stream<T> peek(Consumer<? super T> action)
+```
+
+Think of ``peek()`` as an intermediate version of ``forEach()`` that returns the original stream to you.
+
+The most common use for ``peek()`` is to output the contents of the stream as it goes by. Suppose that we made a typo and counted bears beginning with the letter g instead of b. We are puzzled why the count is 1 instead of 2. We can add a peek() method to find out why.
+
+```java
+var stream = Stream.of("black bear", "brown bear", "grizzly");
+long count = stream.filter(s -> s.startsWith("g"))
+.peek(System.out::println).count(); // grizzly
+System.out.println(count); // 1
+```
+
+### Putting Together the Pipeline
+
+Streams allow you to use chaining and express what you want to accomplish rather than how to do so.
+
+```java
+var list = List.of("Toby", "Anna", "Leroy", "Alex");
+List<String> filtered = new ArrayList<>();
+for (String name: list)
+if (name.length() == 4) filtered.add(name);
+	Collections.sort(filtered);
+var iter = filtered.iterator();
+if (iter.hasNext()) System.out.println(iter.next());
+if (iter.hasNext()) System.out.println(iter.next());
+```
+
+With streams, the equivalent code is as follows:
+
+```java
+var list = List.of("Toby", "Anna", "Leroy", "Alex");
+list.stream()
+	.filter(n -> n.length() == 4)
+	.sorted()
+	.limit(2)
+	.forEach(System.out::println);
+```
+
+![[Pasted image 20240421103816.png]]
+
+```java
+Stream.generate(() -> "Elsa")
+.filter(n -> n.length() == 4)
+.sorted()
+.limit(2)
+.forEach(System.out::println);
+```
+
+It hangs until you kill the program, or it throws an exception after running out of memory. The foreperson has instructed ``sorted()`` to wait until everything to sort is present. That never happens because there is an infinite stream.
+
+```java
+Stream.generate(() -> "Elsa")
+.filter(n -> n.length() == 4)
+.limit(2)
+.sorted()
+.forEach(System.out::println);
+```
+
+This one prints Elsa twice. The filter lets elements through, and ``limit()`` stops the earlier operations after two elements. Now ``sorted()`` can sort because we have a finite list.
+
+```java
+Stream.generate(() -> "Olaf Lazisson")
+.filter(n -> n.length() == 4)
+.limit(2)
+.sorted()
+.forEach(System.out::println);
+```
+
+This one hangs as well until we kill the program. The filter doesn’t allow anything through, so ``limit()`` never sees two elements. This means we have to keep waiting and hope that they show up.
+
+You can even chain two pipelines together.
+
+```java
+30: long count = Stream.of("goldfish", "finch")
+31: .filter(s -> s.length()> 5)
+32: .collect(Collectors.toList())
+33: .stream()
+34: .count();
+35: System.out.println(count); // 1
+```
+
+- Lines 30–32 are one pipeline, and lines 33 and 34 are another.
+- For the first pipeline, line 30 is the source, and line 32 is the terminal operation.
+- For the second pipeline, line 33 is the source, and line 34 is the terminal operation.
+
+---
+
+**On the exam, you might see long or complex pipelines as answer choices. If this happens, focus on the differences between the answers. Those will be your clues to the correct answer. This approach will also save you time by not having to study the whole pipeline on each option.** #TIP 
+
+---
+
+When you see chained pipelines, note where the source and terminal operations are. This will help you keep track of what is going on. You can even rewrite the code in your head to have a variable in between so it isn’t as long and complicated.
+
+```java
+List<String> helper = Stream.of("goldfish", "finch")
+.filter(s -> s.length()> 5)
+.collect(Collectors.toList());
+
+long count = helper.stream()
+.count();
+System.out.println(count);
+```
+
+## Working with Primitive Streams
+
