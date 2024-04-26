@@ -22791,6 +22791,116 @@ Set<String> set = stream.collect(Collectors.toSet());
 System.out.println(set); // [f, w, l, o]
 ```
 
+```java
+public class StreamCollectingExample {  
+  
+    public static void main(String[] args) {  
+  
+        collectingMethod1();  
+  
+        collectingMethod2();  
+  
+        collectingMethod3();  
+  
+        collectingMethod4();  
+  
+        collectingMethod5();  
+  
+        collectingMethod6();  
+  
+    }  
+  
+    private static void collectingMethod1() {  
+        System.out.println("### collectingMethod1 ###");  
+  
+        Stream<String> stream = Stream.of("w", "o", "l", "f");  
+        StringBuilder word = stream.collect(StringBuilder::new,  
+                StringBuilder::append,  
+                StringBuilder::append);  
+  
+        System.out.println(word); // wolf  
+    }  
+  
+    private static void collectingMethod2() {  
+        System.out.println("### collectingMethod2 ###");  
+  
+        Supplier<StringBuilder> supplier = () -> new StringBuilder();  
+        BiConsumer<StringBuilder, String> accumulator = (StringBuilder sb, String str) -> sb.append(str);  
+        BiConsumer<StringBuilder, StringBuilder> combiner = (StringBuilder sb, StringBuilder sb2) -> sb.append(sb2);  
+  
+        Stream<String> stream = Stream.of("w", "o", "l", "f");  
+        StringBuilder word = stream.collect(supplier,  
+                accumulator,  
+                combiner);  
+  
+        System.out.println(word); // wolf  
+    }  
+  
+    private static void collectingMethod3() {  
+        System.out.println("### collectingMethod3 ###");  
+  
+        Supplier<StringBuilder> supplier = () -> new StringBuilder();  
+        BiConsumer<StringBuilder, String> accumulator = (StringBuilder sb, String str) -> sb.append(str);  
+        BiConsumer<StringBuilder, StringBuilder> combiner = (StringBuilder sb, StringBuilder sb2) -> System.out.println("not triggered!");  
+  
+        // sequential stream - nothing to combine  
+  
+        Stream<String> stream = List.of("w", "o", "l", "f").stream();  
+        StringBuilder word = stream.collect(supplier,  
+                accumulator,  
+                combiner);  
+  
+        System.out.println(word); // wolf  
+    }  
+  
+    private static void collectingMethod4() {  
+        System.out.println("### collectingMethod4 ###");  
+  
+        Supplier<StringBuilder> supplier = () -> new StringBuilder();  
+        BiConsumer<StringBuilder, String> accumulator = (StringBuilder sb, String str) -> sb.append(str);  
+        BiConsumer<StringBuilder, StringBuilder> combiner = (StringBuilder sb, StringBuilder sb2) ->  
+        {  
+            System.out.println("triggered!");  
+            sb.append(sb2);  
+        };  
+  
+        // parallel stream - combiner is combining partial results  
+  
+        Stream<String> stream = List.of("w", "o", "l", "f").parallelStream();  
+        StringBuilder word = stream.collect(supplier,  
+                accumulator,  
+                combiner);  
+  
+        System.out.println(word); // wolf  
+    }  
+  
+  
+    private static void collectingMethod5() {  
+        System.out.println("### collectingMethod5 ###");  
+  
+        Stream<String> stream = Stream.of("w", "o", "l", "f");  
+        String word = stream.collect(String::new,  
+                String::concat,  
+                String::concat);  
+  
+        System.out.println(word); // empty  
+    }  
+  
+    private static void collectingMethod6() {  
+        System.out.println("### collectingMethod6 ###");  
+  
+        Supplier<String> supplier = () -> new String();  
+        BiConsumer<String, String> accumulator = (String str1, String str2) -> str1 = str1 + str2;  
+        BiConsumer<String, String> combiner = (String str1, String str2) -> str1 = str1 + str2;  
+  
+        Stream<String> stream = Stream.of("w", "o", "l", "f");  
+        String word = stream.collect(supplier, accumulator, combiner);  
+  
+        System.out.println(word); // empty  
+    }  
+  
+}
+```
 ### Using Common Intermediate Operations
 
 Unlike a terminal operation, an intermediate operation produces a stream as its result. An intermediate operation can also deal with an infinite stream simply by returning another infinite stream. Since elements are produced only as needed, this works fine.
@@ -23058,7 +23168,7 @@ System.out.println(avg.getAsDouble()); // 2.0
 
 ---
 
-When you see the word stream on the exam, pay attention to the case. With a capital ``S`` or in code, ``Stream`` is the name of a class that contains an ``Object`` type. With a lowercase s, a stream is a concept that might be a Stream, ``DoubleStream``, ``IntStream``, or ``LongStream``. #TIP
+**When you see the word stream on the exam, pay attention to the case. With a capital ``S`` or in code, ``Stream`` is the name of a class that contains an ``Object`` type. With a lowercase s, a stream is a concept that might be a Stream, ``DoubleStream``, ``IntStream``, or ``LongStream``.** #TIP
 
 ---
 
@@ -23203,6 +23313,38 @@ Here we asked Java to perform many calculations about the stream. Summary statis
 -  ==**``getMin()``**: Returns the smallest number (minimum) as a double, int, or long, depending on the type of the stream. If the stream is empty, returns the largest numeric value based on the type.==
 -  ==**``getMax()``**: Returns the largest number (maximum) as a double, int, or long depending on the type of the stream. If the stream is empty, returns the smallest numeric value based on the type==
 
+```java
+public class IntSummaryStatisticsExample2 {  
+    public static void main(String[] args) {  
+  
+        String limerick = "There was a young lady named Bright " +  
+                "who traveled much faster than light " +  
+                "She set out one day " +  
+                "in a relative way " +  
+                "and came back the previous night ";  
+  
+        IntSummaryStatistics wordStatistics =  
+                Pattern.compile(" ")  
+                        .splitAsStream(limerick)  
+                        .mapToInt(String::length)  
+                        .summaryStatistics();  
+  
+        System.out.printf("""  
+                        Number of words = %d  
+                        Sum of the length of the words = %d  
+                        Minimum word size = %d  
+                        Maximum word size %d  
+                        Average word size = %f  
+                        """,  
+                wordStatistics.getCount(),  // 28
+                wordStatistics.getSum(),  // 115
+                wordStatistics.getMin(),  // 1
+                wordStatistics.getMax(),  // 8
+                wordStatistics.getAverage()); // 4.107143 
+    }  
+}
+```
+
 ## Working with Advanced Stream Pipeline Concepts
 
 ### Linking Streams to the Underlying Data
@@ -23291,6 +23433,47 @@ newBag.tryAdvance(System.out::print); // 3
 ```
 
 this is an infinite stream. No problem! The ``Spliterator`` recognizes that the stream is infinite and doesn’t attempt to give you half. Instead, ``newBag`` contains a large number of elements. We get the first three since we call ``tryAdvance()`` three times. It would be a bad idea to call ``forEachRemaining()`` on an infinite stream!
+
+```java
+public class SpliteratorExample4 {  
+  
+    public static void main(String[] args) {  
+  
+        List<String> values = new ArrayList<>();  
+  
+        values.add("one");  
+        values.add("two");  
+        values.add("three");  
+        values.add("four");  
+        values.add("five");  
+        values.add("six");  
+        values.add("seven");  
+        values.add("eight");  
+        values.add("nine");  
+        values.add("ten");  
+        values.add("eleven");  
+  
+        Spliterator<String> spliterator = values.spliterator();  
+  
+        Spliterator<String> childSpliterator = spliterator.trySplit();  
+  
+        System.out.println("### childSpliterator ###");  
+        childSpliterator.forEachRemaining(System.out::println);  
+  
+        System.out.println("### otherChildSpliterator ###");  
+        Spliterator<String> otherChildSpliterator = spliterator.trySplit();  
+        otherChildSpliterator.forEachRemaining(System.out::println);  
+  
+  
+        System.out.println("### anotherChildSpliterator ###");  
+        Spliterator<String> anotherChildSpliterator = spliterator.trySplit();  
+        anotherChildSpliterator.forEachRemaining(System.out::println);  
+  
+  
+        System.out.println("### Spliterator ###");  
+        spliterator.forEachRemaining(System.out::println);  
+    }
+```
 
 ### Collecting Results
 
@@ -23439,7 +23622,7 @@ Collectors.partitioningBy(s -> s.length() <= 7));
 System.out.println(map); // {false=[], true=[lions, tigers, bears]}
 ```
 
-Notice that there are still two keys in the map—one for each boolean value. It so happens that one of the values is an empty list, but it is still there. As with ``groupingBy()``, we can change the type of List to something else.
+**==Notice that there are still two keys in the map—one for each boolean value.==** It so happens that one of the values is an empty list, but it is still there. As with ``groupingBy()``, we can change the type of List to something else.
 
 ```java
 var ohMy = Stream.of("lions", "tigers", "bears");
@@ -23515,7 +23698,7 @@ There are three ``Collectors`` in this code. Two of them are for ``joining()`` a
 
 **Write code that uses Optional**. Creating an ``Optional`` uses ``Optional.empty()`` or ``Optional.of()``. Retrieval frequently uses ``isPresent()`` and ``get()``. Alternatively, there are the functional ``ifPresent()`` and ``orElseGet()`` methods.
 
-**Recognize which operations cause a stream pipeline to execute**. Intermediate operations do not run until the terminal operation is encountered. If no terminal operation is in the pipeline, a ``Stream`` is returned but not executed. Examples of terminal operations include ``collect()``, ``forEach()``, ``min()``, and ``reduce()``.
+**Recognize which operations cause a stream pipeline to execute**. Intermediate operations do not run until the terminal operation is encountered. **==If no terminal operation is in the pipeline, a ``Stream`` is returned but not executed==**. Examples of terminal operations include ``collect()``, ``forEach()``, ``min()``, and ``reduce()``.
 
 **Determine which terminal operations are reductions**. Reductions use all elements of the stream in determining the result. The reductions that you need to know are ``collect()``, ``count()``, ``max()``, ``min()``, and ``reduce()``. A mutable reduction collects into the same object as it goes. The ``collect()`` method is a mutable reduction.
 
@@ -23535,3 +23718,607 @@ There are three ``Collectors`` in this code. Two of them are for ``joining()`` a
 
 ## Review Questions
 
+1. What could be the output of the following?
+
+```java
+var stream = Stream.iterate("", (s) -> s + "1"); 
+System.out.println(stream.limit(2).map(x -> x + "2"));
+```
+
+A. 12112
+B. 212
+C. 212112
+D. java.util.stream.ReferencePipeline$3@4517d9a3
+E. The code does not compile.
+F. An exception is thrown.
+G. The code hangs.
+
+**My Answer: D**
+**Correct Answer: D**
+
+**No terminal operation is called, so the stream never executes. The first line creates an infinite stream reference. If the stream were executed on the second line, it would get the first two elements from that infinite stream, "" and "1", and add an extra character, resulting in "2" and "12", respectively. Since the stream is not executed, the reference is printed instead, giving us option D.**
+
+---
+
+2. What could be the output of the following?
+
+```JAVA
+Predicate<String> predicate = s -> s.startsWith("g");
+var stream1 = Stream.generate(() -> "growl!");
+var stream2 = Stream.generate(() -> "growl!");
+var b1 = stream1.anyMatch(predicate);
+var b2 = stream2.allMatch(predicate);
+System.out.println(b1 + " " + b2);
+```
+
+A. true false
+B. true true
+C. java.util.stream.ReferencePipeline$3@4517d9a3
+D. The code does not compile.
+E. An exception is thrown.
+F. The code hangs.
+
+**My Answer: F**
+**Correct Answer: F**
+
+**Both streams created in this code snippet are infinite streams. The variable b1 is set to true since anyMatch() terminates. Even though the stream is infinite, Java finds a match on the first element and stops looking. However, when allMatch() runs, it needs to keep going until the end of the stream since it keeps finding matches. Since all elements continue to match, the program hangs, making option F the answer.**
+
+---
+
+3.  What could be the output of the following?
+
+```JAVA
+Predicate<String> predicate = s -> s.length()> 3;
+var stream = Stream.iterate("-", s -> ! s.isEmpty(), (s) -> s + s);
+var b1 = stream.noneMatch(predicate);
+var b2 = stream.anyMatch(predicate);
+System.out.println(b1 + " " + b2);
+```
+
+A. false false
+B. false true
+C. java.util.stream.ReferencePipeline$3@4517d9a3
+D. The code does not compile.
+E. An exception is thrown.
+F. The code hangs.
+
+**My Answer: D**
+**Correct Answer: E**
+
+**An infinite stream is generated where each element is twice as long as the previous one.**
+**While this code uses the three-parameter iterate() method, the condition is never false. The variable b1 is set to false because Java finds an element that matches when it gets to the element of length 4. However, the next line tries to operate on the same stream. ==Since streams can be used only once, this throws an exception that the “stream has already been operated upon or closed” and making option E the answer==. If two different streams were used, the result would be option B**
+
+---
+
+4. Which are true statements about terminal operations in a stream that runs successfully? (Choose all that apply.)
+
+A. At most one terminal operation can exist in a stream pipeline.
+B. Terminal operations are a required part of the stream pipeline in order to get a result.
+C. Terminal operations have Stream as the return type.
+D. The peek() method is an example of a terminal operation.
+E. The referenced Stream may be used after calling a terminal operation.
+
+**My Answer: A,B**
+**Correct Answer: A,B**
+
+**Terminal operations are the final step in a stream pipeline. Exactly one is required, because it triggers the execution of the entire stream pipeline. Therefore, options A and B are correct.**
+
+---
+
+5. Which of the following sets result to 8.0? (Choose all that apply.)
+
+A. 
+```java
+double result = LongStream.of(6L, 8L, 10L)
+    .mapToInt(x -> (int) x)
+    .collect(Collectors.groupingBy(x -> x))
+    .keySet()
+    .stream()
+    .collect(Collectors.averagingInt(x -> x));
+
+```
+
+B. 
+```JAVA
+double result = LongStream.of(6L, 8L, 10L)
+    .mapToInt(x -> x)
+    .boxed()
+    .collect(Collectors.groupingBy(x -> x))
+    .keySet()
+    .stream()
+    .collect(Collectors.averagingInt(x -> x));
+
+```
+
+C.
+```JAVA
+double result = LongStream.of(6L, 8L, 10L)
+    .mapToInt(x -> (int) x)
+    .boxed()
+    .collect(Collectors.groupingBy(x -> x))
+    .keySet()
+    .stream()
+    .collect(Collectors.averagingInt(x -> x));
+```
+
+D.
+
+```JAVA
+double result = LongStream.of(6L, 8L, 10L)
+    .mapToInt(x -> (int) x)
+    .collect(Collectors.groupingBy(x -> x, Collectors.toSet()))
+    .keySet()
+    .stream()
+    .collect(Collectors.averagingInt(x -> x));
+```
+
+E.
+```Java
+double result = LongStream.of(6L, 8L, 10L)
+    .mapToInt(x -> x)
+    .boxed()
+    .collect(Collectors.groupingBy(x -> x, Collectors.toSet()))
+    .keySet()
+    .stream()
+    .collect(Collectors.averagingInt(x -> x));
+```
+
+F.
+```JAVA
+double result = LongStream.of(6L, 8L, 10L)
+    .mapToInt(x -> (int) x)
+    .boxed()
+    .collect(Collectors.groupingBy(x -> x, Collectors.toSet()))
+    .keySet()
+    .stream()
+    .collect(Collectors.averagingInt(x -> x));
+```
+
+**My Answer: E,F**
+**Correct Answer: C,F**
+
+**Remember to look for the differences between options rather than studying each line. These options all have much in common. All of them start out with a LongStream and attempt to convert it to an IntStream. However, options B and E are incorrect because they do not cast the long to an int, resulting in a compiler error on the mapToInt() calls. the second difference. ==Options A and D are incorrect because they are missing boxed() before the collect() call. Since groupingBy() is creating a Collection, we need a nonprimitive Stream.== The final difference is that option F specifies the type of Collection. This is allowed, though, meaning both options C and F are correct.**
+
+---
+
+6. Which of the following can fill in the blank so that the code prints out false? (Choose all that apply.)
+
+```JAVA
+var s = Stream.generate(() -> "meow");
+var match = s. (String::isEmpty);
+System.out.println(match);
+```
+
+A. allMatch
+B. anyMatch
+C. findAny
+D. findFirst
+E. noneMatch
+F. None of the above
+
+**My Answer: F**
+**Correct Answer: A**
+
+**Option A is correct because it is safe to return false as soon as one element passes through the stream that doesn’t match.**
+
+---
+
+7. We have a method that returns a sorted list without changing the original. Which of the following can replace the method implementation to do the same with streams?
+
+```java
+private static List<String> sort(List<String> list) {
+var copy = new ArrayList<String>(list);
+Collections.sort(copy, (a, b) -> b.compareTo(a));
+return copy;
+}
+```
+
+A. 
+```JAVA
+return list.stream()
+    .sorted((a, b) -> b.compareTo(a))
+    .collect(Collectors.toList());
+
+```
+
+B.
+```JAVA
+return list.stream()
+    .compare((a, b) -> b.compareTo(a))
+    .sort();
+```
+
+C.
+```JAVA
+return list.stream()
+    .compareTo((a, b) -> b.compareTo(a))
+    .collect(Collectors.toList());
+```
+
+D.
+```JAVA
+return list.stream()
+    .compareTo((a, b) -> b.compareTo(a))
+    .sort();
+
+```
+
+E.
+```JAVA
+return list.stream()
+    .sorted((a, b) -> b.compareTo(a))
+    .collect();
+```
+
+F. 
+```JAVA
+return list.stream()
+    .sorted((a, b) -> b.compareTo(a))
+    .collect(Collectors.toList());
+```
+
+**My Answer: F**
+**Correct Answer: F**
+
+**There is no Stream< T > method called compare() or compareTo(), so options A through D can be eliminated. The sorted() method is correct to use in a stream pipeline to return a sorted Stream. The collect() method can be used to turn the stream into a List. The collect() method requires a collector be selected, making option E incorrect and option F correct.**
+
+---
+
+8. Which of the following are true given this declaration? (Choose all that apply.)
+```JAVA
+var is = IntStream.empty();
+```
+
+A. is.average() returns the type int.
+B. is.average() returns the type OptionalInt.
+C. is.findAny() returns the type int.
+D. is.findAny() returns the type OptionalInt.
+E. is.sum() returns the type int.
+F. is.sum() returns the type OptionalInt.
+
+**My Answer: D,E**
+**Correct Answer: D,E**
+
+**The average() method returns an OptionalDouble since averages of any type can result in a fraction. Therefore, options A and B are both incorrect. The findAny() method returns an OptionalInt because there might not be any elements to find. Therefore, option D is correct. The sum() method returns an int rather than an OptionalInt because the sum of an empty list is zero. Therefore, option E is correct.**
+
+---
+
+9. Which of the following can we add after line 6 for the code to run without error and not produce any output? (Choose all that apply.)
+
+```java
+4: var stream = LongStream.of(1, 2, 3);
+5: var opt = stream.map(n -> n * 10)
+6: ??.filter(n -> n < 5).findFirst();
+```
+
+A.
+```java
+if (opt.isPresent())
+    System.out.println(opt.get());
+```
+
+B.
+```JAVA
+if (opt.isPresent())
+    System.out.println(opt.getAsLong());
+```
+
+C.
+```JAVA
+opt.ifPresent(System.out.println);
+```
+
+D.
+```JAVA
+opt.ifPresent(System.out::println);
+```
+
+E. None of these; the code does not compile.
+F. None of these; line 6 throws an exception at runtime.
+
+**My Answer: B**
+**Correct Answer: B,D**
+
+**Options B and D both compile and run without error, although neither produces any output at runtime since the stream is empty.**
+
+---
+
+10. Given the four statements (L, M, N, O), select and order the ones that would complete the expression and cause the code to output 10 lines. (Choose all that apply.)
+
+```JAVA
+Stream.generate(() -> "1")
+L: .filter(x -> x.length()> 1)
+M: .forEach(System.out::println)
+N: .limit(10)
+O: .peek(System.out::println)
+```
+
+**My Answer: F**
+**Correct Answer: F**
+
+**Only one of the method calls, forEach(), is a terminal operation, so any answer in which M is not the last line will not execute the pipeline. Only option F is correct. It first limits the infinite stream to a finite stream of ten elements and then prints the result.**
+
+---
+
+11. What changes need to be made together for this code to print the string 12345? (Choose all that apply.)
+
+```JAVA
+Stream.iterate(1, x -> x++)
+.limit(5).map(x -> x)
+.collect(Collectors.joining());
+```
+
+A. Change Collectors.joining() to Collectors.joining(",").
+B. Change map(x -> x) to map(x -> "" + x).
+C. Change x -> x++ to x -> ++x.
+D. Add .forEach(System.out::print) after the call to collect().
+E. Wrap the entire line in a System.out.print statement.
+F. None of the above. The code already prints 12345.
+
+**My Answer: B**
+**Correct Answer: B,C,E**
+
+**As written, the code doesn’t compile because ==the Collectors.joining() expects to get a Stream < String>==. Option B fixes this, at which point nothing is output because the collector creates a String without outputting the result. Option E fixes this and causes the output to be 11111. Since the post-increment operator is used, the stream contains an infinite number of the character 1. Option C fixes this and causes the stream to contain increasing numbers.**
+
+---
+
+12. Which is true of the following code?
+
+```JAVA
+Set<String> birds = Set.of("oriole", "flamingo");
+Stream.concat(birds.stream(), birds.stream(), birds.stream())
+.sorted() // line X
+.distinct()
+.findAny()
+.ifPresent(System.out::println);
+```
+
+A. It is guaranteed to print flamingo as is and when line X is removed.
+B. It is guaranteed to print oriole as is and when line X is removed.
+C. It is guaranteed to print flamingo as is, but not when line X is removed.
+D. It is guaranteed to print oriole as is, but not when line X is removed.
+E. The output may vary as is.
+F. The code does not compile.
+G. It throws an exception because the same list is used as the source for multiple streams.
+
+**My Answer: F**
+**Correct Answer: F**
+
+**The code does not compile because ==Stream.concat() takes two parameters==, not the three provided.**
+
+---
+
+13. Which of the following is true?
+
+```JAVA
+List<Integer> x1 = List.of(1, 2, 3);
+List<Integer> x2 = List.of(4, 5, 6);
+List<Integer> x3 = List.of();
+Stream.of(x1, x2, x3).map(x -> x + 1)
+.flatMap(x -> x.stream())
+.forEach(System.out::print);
+```
+
+A. The code compiles and prints 123456.
+B. The code compiles and prints 234567.
+C. The code compiles but does not print anything.
+D. The code compiles but prints stream references.
+E. The code runs infinitely.
+F. The code does not compile.
+G. The code throws an exception.
+
+**My Answer: B**
+**Correct Answer: G**
+
+**If the map() and flatMap() calls were reversed, option B would be correct. In this case, the Stream created from the source is of type Stream< List>. Trying to use the addition operator (+) on a List is not supported in Java. Therefore, the code does not compile, and option F is correct.**
+
+---
+
+14. Which of the following are true? (Choose all that apply.)
+
+```JAVA
+4: Stream<Integer> s = Stream.of(1);
+5: IntStream is = s.boxed();
+6: DoubleStream ds = s.mapToDouble(x -> x);
+7: Stream<Integer> s2 = ds.mapToInt(x -> x);
+8: s2.forEach(System.out::print);
+```
+
+A. Line 4 causes a compiler error.
+B. Line 5 causes a compiler error.
+C. Line 6 causes a compiler error.
+D. Line 7 causes a compiler error.
+E. Line 8 causes a compiler error.
+F. The code compiles but throws an exception at runtime.
+G. The code compiles and prints 1.
+
+**My Answer: B**
+**Correct Answer: B,D**
+
+**Line 5 does not compile because boxed() is available only on primitive streams like IntStream, not Stream< Integer>. This makes option B one answer. Line 7 does not compile for two reasons making option D the second answer. First, converting from a double to an int would require an explicit cast. Also, mapToInt() returns an IntStream, so the data type of s2 is incorrect**
+
+---
+
+15. Given the generic type String, the partitioningBy() collector creates a ``Map<Boolean, List<String>>`` when passed to collect() by default. When a downstream collector is passed to partitioningBy(), which return types can be created? (Choose all that apply.)
+
+`A. Map<boolean, List<String>>`
+`B. Map<Boolean, List<String>>`
+`C. Map<Boolean, Map<String>>`
+`D. Map<Boolean, Set<String>>`
+`E. Map<Long, TreeSet<String>>`
+`F. None of the above`
+
+**My Answer: B,D**
+**Correct Answer: B,D**
+
+**a Map with a Boolean key and a value type that can be customized to any Collection.**
+
+---
+
+16. Which of the following statements are true about this code? (Choose all that apply.)
+```java
+20: Predicate<String> empty = String::isEmpty;
+21: Predicate<String> notEmpty = empty.negate();
+22:
+23: var result = Stream.generate(() -> "")
+24: .limit(10)
+25: .filter(notEmpty)
+26: .collect(Collectors.groupingBy(k -> k))
+27: .entrySet()
+28: .stream()
+29: .map(Entry::getValue)
+30: .flatMap(Collection::stream)
+31: .collect(Collectors.partitioningBy(notEmpty));
+32: System.out.println(result);
+```
+
+A. It outputs {}.
+B. It outputs {false=[], true=[]}.
+C. If we changed line 31 from partitioningBy(notEmpty) to
+groupingBy(n -> n), it would output {}.
+D. If we changed line 31 from partitioningBy(notEmpty) to
+groupingBy(n -> n), it would output {false=[], true=[]}.
+E. The code does not compile.
+F. The code compiles but does not terminate at runtime.
+
+**My Answer: A**
+**Correct Answer: B,C**
+
+**The partitioningBy() operation always returns a map with two Boolean keys, even if there are no corresponding values. Therefore, option B is correct if the code is kept as is. By contrast, groupingBy() returns only keys that are actually needed, making option C correct if the code is modified on line 31.**
+
+---
+17. What is the result of the following?
+
+```JAVA
+var s = DoubleStream.of(1.2, 2.4);
+s.peek(System.out::println).filter(x -> x> 2).count();
+```
+
+A. 1
+B. 2
+C. 2.4
+D. 1.2 and 2.4
+E. There is no output.
+F. The code does not compile.
+G. An exception is thrown
+
+**My Answer: A**
+**Correct Answer: D**
+
+**The terminal operation is count(). Since there is a terminal operation, the intermediate operations run. The peek() operation comes before the filter(), so both numbers are printed, making option D the answer.**
+
+---
+
+18. What is the output of the following?
+
+```JAVA
+11: public class Paging {
+12: record Sesame(String name, boolean human) {
+13: @Override public String toString() {
+14: return name();
+15: }
+16: }
+17: record Page(List<Sesame> list, long count) {}
+18:
+19: public static void main(String[] args) {
+20: var monsters = Stream.of(new Sesame("Elmo", false));
+21: var people = Stream.of(new Sesame("Abby", true));
+22: printPage(monsters, people);
+23: }
+24:
+25: private static void printPage(Stream<Sesame> monsters,
+26: Stream<Sesame> people) {
+27: Page page = Stream.concat(monsters, people)
+28: .collect(Collectors.teeing(
+29: Collectors.filtering(s -> s.name().startsWith("E"),
+30: Collectors.toList()),
+31: Collectors.counting(),
+32: (l, c) -> new Page(l, c)));
+33: System.out.println(page);
+34: } }
+```
+
+A. Page[list=[Abby], count=1]
+B. Page[list=[Abby], count=2]
+C. Page[list=[Elmo], count=1]
+D. Page[list=[Elmo], count=2]
+E. The code does not compile due to Stream.concat().
+F. The code does not compile due to Collectors.teeing().
+G. The code does not compile for another reason.
+
+**My Answer: F**
+**Correct Answer: D**
+
+**Line 29 filters by names starting with E, that rules out options A and B. Finally, line 31 counts the entire list, which is of size 2, giving us option D as the answer.**
+
+---
+
+19. What is the simplest way of rewriting this code?
+```java
+List<Integer> x = IntStream.range(1, 6)
+.mapToObj(i -> i)
+.collect(Collectors.toList());
+x.forEach(System.out::println);
+```
+
+A.
+``IntStream.range(1, 6);``
+B.
+`IntStream.range(1, 6)`
+`.forEach(System.out::println);`
+C.
+`IntStream.range(1, 6)`
+`.mapToObj(i -> i)`
+`.forEach(System.out::println);`
+D. None of the above is equivalent.
+E. The provided code does not compile.
+
+**My Answer: B**
+**Correct Answer: B**
+
+Both lists and streams have forEach() methods. There is no reason to collect into a list just to loop through it. 
+
+---
+
+20. Which of the following throw an exception when an Optional is empty? (Choose all that apply.)
+
+A. opt.orElse("");
+B. opt.orElseGet(() -> "");
+C. opt.orElseThrow();
+D. opt.orElseThrow(() -> throw new Exception());
+E. opt.orElseThrow(RuntimeException::new);
+F. opt.get();
+G. opt.get("");
+
+**My Answer: D,E,G**
+**Correct Answer: C,E,F**
+
+Options A and B compile and return an empty string without throwing an exception, using a String and Supplier parameter, respectively. Option G does not compile as the get() method does not take a parameter. Options C and F throw a NoSuchElementException. Option E throws a RuntimeException. Option D looks correct but will compile only if the throw is removed. Remember, the orElseThrow() should get a lambda expression or method reference that returns an exception, not one that throws an exception.
+
+---
+
+21. What is the output of the following?
+
+```JAVA
+var spliterator = Stream.generate(() -> "x").spliterator();
+
+spliterator.tryAdvance(System.out::print);
+var split = spliterator.trySplit();
+split.tryAdvance(System.out::print);
+```
+
+A. x
+B. xx
+C. A long list of x’s
+D. There is no output.
+E. The code does not compile.
+F. The code compiles but does not terminate at runtime.
+
+**My Answer: F**
+**Correct Answer: B**
+
+**The spliterator() method is a terminal operation since it returns a Spliterator rather than a Stream. The tryAdvance() method gets the first element and prints a single x. ==The trySplit() method takes a large number of elements from the stream. Since this is an infinite stream, it doesn’t attempt to take half==. Then tryAdvance() is called on the new split variable, and another x is printed. Since there are two values printed, option B is correct.**
+
+---
+
+# Chapter 11 - Exceptions and Localization #Chapter
