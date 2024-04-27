@@ -24322,3 +24322,365 @@ F. The code compiles but does not terminate at runtime.
 ---
 
 # Chapter 11 - Exceptions and Localization #Chapter
+
+## Understanding Exceptions
+
+A program can fail for just about any reason.
+
+-  The code tries to connect to a website, but the Internet connection is down.
+-  You made a coding mistake and tried to access an invalid index in an array.
+-  One method calls another with a value that the method doesn’t support.
+
+### The Role of Exceptions
+
+An exception is Java’s way of saying, “I give up. I don’t know what to do right now. You deal with it.” When you write a method, you can either deal with the exception or make it the calling code’s problem.
+**==These are the two approaches Java uses when dealing with exceptions. A method can handle the exception case itself or make it the caller’s responsibility.==**
+
+### Understanding Exception Types
+
+An exception is an event that alters program flow. Java has a ``Throwable`` class for all objects that represent these events.
+
+![[Pasted image 20240427221324.png]]
+
+#### Checked Exceptions
+
+**==A checked exception is an exception that must be declared or handled by the application code where it is thrown. In Java, checked exceptions all inherit ``Exception`` but not ``RuntimeException``.==**
+
+Java has a rule called the handle or declare rule. The handle or declare rule means that all checked exceptions that could be thrown within a method are either wrapped in compatible ``try`` and ``catch`` blocks or declared in the method signature. Because checked exceptions tend to be anticipated, Java enforces the rule that the programmer must do something to show that the exception was thought about
+
+```java
+void fall(int distance) throws IOException {
+	if(distance > 10) {
+		throw new IOException();
+	}
+}
+```
+
+The ``throw`` keyword tells Java that you want to throw an ``Exception``, while the ``throws`` keyword simply declares that the method might throw an ``Exception``. It also might not.
+How do you handle exception ? 
+
+```java
+void fall(int distance) {
+	try {
+		if(distance > 10) {
+			throw new IOException();
+		}
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+}
+```
+
+#### Unchecked Exceptions
+
+**==An unchecked exception is any exception that does not need to be declared or handled by the application code where it is thrown. Unchecked exceptions are often referred to as runtime exceptions==**
+
+A runtime exception is defined as the ``RuntimeException`` class and its subclasses. Runtime exceptions tend to be unexpected but not necessarily fatal. An unchecked exception can occur on nearly any line of code, as it is not required to be handled or declared. For example, a ``NullPointerException`` can be thrown in the body of the following method if the input reference is ``null``:
+
+```java
+void fall(String input) {
+	System.out.println(input.toLowerCase());
+}
+```
+
+The code will compile if you declare an unchecked exception. However, it is redundant.
+
+#### Error and Throwable
+
+``Error`` means something went so horribly wrong that your program should not attempt to recover from it.
+**==For the exam, the only thing you need to know about ``Throwable`` is that it’s the parent class of all exceptions, including the ``Error`` class.==**
+
+![[Pasted image 20240427222354.png]]
+
+### Throwing an Exception
+
+Any Java code can throw an exception; this includes code you write. You might encounter an exception that was made up for the exam. This is fine. On the exam, you will see two types of code that result in an exception. 
+- The first is code that’s wrong.
+
+```java
+String[] animals = new String[0];
+System.out.println(animals[0]); // ArrayIndexOutOfBoundsException
+```
+
+This code throws an ``ArrayIndexOutOfBoundsException`` since the array has no elements. That means **==questions about exceptions can be hidden in questions that appear to be about something else.==**
+
+- The second way for code to result in an exception is to explicitly request Java to throw one.
+
+```java
+throw new Exception();
+throw new Exception("Ow! I fell.");
+throw new RuntimeException();
+throw new RuntimeException("Ow! I fell.");
+```
+
+The ``throw`` keyword tells Java that you want some other part of the code to deal with the exception.
+
+---
+**``throw`` vs. ``throws``**
+
+**Anytime you see ``throw`` or ``throws`` on the exam, make sure the correct one is being used.** 
+- ==**The ``throw`` keyword is used as a statement inside a code block to ``throw`` a new exception or rethrow an existing exception,**==  
+- ==**the ``throws`` keyword is used only at the end of a method declaration to indicate what exceptions it supports.**==
+
+---
+
+Additionally, you should know that **==an ``Exception`` is an ``Object``. This means you can store it in an object reference, and this is legal:==**
+
+```java
+var e = new RuntimeException();
+throw e;
+```
+
+The exam might also try to trick you !!
+
+```java
+throw RuntimeException(); // DOES NOT COMPILE
+```
+
+The exception is never instantiated with the ``new`` keyword.
+
+```java
+3: try {
+	4: throw new RuntimeException();
+	5: throw new ArrayIndexOutOfBoundsException(); // DOES NOT COMPILE
+6: } catch (Exception e) {}
+```
+
+Since line 4 throws an exception, line 5 can never be reached during runtime. The compiler recognizes this and reports an unreachable code error.
+
+### Calling Methods That Throw Exceptions
+
+When you’re calling a method that throws an exception, the rules are the same as within a method
+
+```java
+class NoMoreCarrotsException extends Exception {}
+public class Bunny {
+	public static void main(String[] args) {
+		eatCarrot(); // DOES NOT COMPILE
+	}
+	private static void eatCarrot() throws NoMoreCarrotsException {}
+}
+```
+
+The problem is that ``NoMoreCarrotsException`` is a checked exception. **==Checked exceptions must be handled or declared.==**
+
+```java
+public static void main(String[] args) throws NoMoreCarrotsException {
+	eatCarrot();
+}
+public static void main(String[] args) {
+	try {
+		eatCarrot();
+	} catch (NoMoreCarrotsException e) {
+		System.out.print("sad rabbit");
+	}
+}
+```
+
+noticed that ``eatCarrot()`` didn’t throw an exception; it just declared that it could. This is enough for the compiler to require the caller to handle or declare the exception. The compiler is still on the lookout for unreachable code. Declaring an unused exception isn’t considered unreachable code. It gives the method the option to change the implementation to throw that exception in the future.
+
+```java
+public void bad() {
+	try {
+		eatCarrot();
+	} catch (NoMoreCarrotsException e) { // DOES NOT COMPILE
+		System.out.print("sad rabbit");
+	}
+}
+private void eatCarrot() {}
+```
+
+Java knows that ``eatCarrot()`` can’t ``throw`` a checked exception—which means there’s no way for the catch block in ``bad()`` to be reached.
+
+---
+**==When you see a checked exception declared inside a ``catch`` block on the exam, make sure the code in the associated ``try`` block is capable of throwing the exception or a subclass of the exception==. If not, the code is unreachable and does not compile. Remember that this rule does not extend to unchecked exceptions or exceptions declared in a method signature.**
+
+---
+
+### Overriding Methods with Exceptions
+
+**==An overridden method may not declare any new or broader checked exceptions than the method it inherits.==**
+
+```java
+class CanNotHopException extends Exception {}
+class Hopper {
+	public void hop() {}
+}
+class Bunny extends Hopper {
+	public void hop() throws CanNotHopException {} // DOES NOT COMPILE
+}
+```
+
+Java knows ``hop()`` isn’t allowed to throw any checked exceptions because the ``hop()`` method in the superclass ``Hopper`` doesn’t declare any. **==An overridden method in a subclass is allowed to declare fewer exceptions than the superclass or interface. This is legal because callers are already handling them.==**
+
+```java
+class Hopper {
+	public void hop() throws CanNotHopException {}
+}
+class Bunny extends Hopper {
+	public void hop() {} // This is fine
+}
+```
+
+An overridden method not declaring one of the exceptions thrown by the parent method is similar to the method declaring that it throws an exception it never actually throws. This is perfectly legal. Similarly, a class is allowed to declare a subclass of an exception type. The idea is the same. The superclass or interface has already taken care of a broader type.
+
+### Printing an Exception
+
+There are three ways to print an exception.
+
+- ==**let Java print it out,**== 
+- ==**print just the message,**== 
+- ==**print where the stack trace comes from==**
+
+```java
+5: public static void main(String[] args) {
+	6: try {
+		7: hop();
+	8: } catch (Exception e) {
+		9: System.out.println(e + "\n");
+		10: System.out.println(e.getMessage()+ "\n");
+		11: e.printStackTrace();
+	12: }
+13: }
+14: private static void hop() {
+		15: throw new RuntimeException("cannot hop");
+16: }
+```
+
+```text
+java.lang.RuntimeException: cannot hop
+cannot hop
+java.lang.RuntimeException: cannot hop
+at Handling.hop(Handling.java:15)
+at Handling.main(Handling.java:7)
+```
+
+The stack trace is usually the most helpful because it shows the hierarchy of method calls that were made to reach the line that threw the exception
+
+## Recognizing Exception Classes
+
+### ``RuntimeException`` Classes
+
+**==``RuntimeException`` and its subclasses are unchecked exceptions that don’t have to be handled or declared. They can be ``thrown`` by the programmer or the JVM.==**
+
+![[Pasted image 20240427224648.png]]
+
+#### ``ArithmeticException``
+
+Trying to divide an ``int`` by zero gives an undefined result. When this occurs, the JVM will throw an ``ArithmeticException``:
+
+```java
+int answer = 11 / 0;
+```
+
+```text
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+```
+
+#### ``ArrayIndexOutOfBoundsException``
+
+array indexes start with 0 and go up to 1 less than the length of the array—which means this code will throw an ``ArrayIndexOutOfBoundsException``:
+
+```java
+int[] countsOfMoose = new int[3];
+System.out.println(countsOfMoose[-1]);
+```
+```text
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException:
+Index -1
+out of bounds for length 3
+```
+
+#### ``ClassCastException``
+
+Java tries to protect you from impossible casts.
+
+```java
+String type = "moose";
+Integer number = (Integer) type; // DOES NOT COMPILE
+```
+
+More complicated code thwarts Java’s attempts to protect you
+
+```java
+String type = "moose";
+Object obj = type;
+Integer number = (Integer) obj; // ClassCastException
+```
+
+The compiler sees a cast from ``Object`` to ``Integer``. This could be okay. The compiler doesn’t realize there’s a ``String`` in that ``Object``.
+
+```text
+Exception in thread "main" java.lang.ClassCastException:
+java.base/java.lang.String
+cannot be cast to java.lang.base/java.lang.Integer
+```
+
+#### ``NullPointerException``
+
+Instance variables and methods must be called on a non-null reference. If the reference is ``null``, the JVM will throw a ``NullPointerException``.
+
+```java
+1: public class Frog {
+	2: public void hop(String name, Integer jump) {
+		3: System.out.print(name.toLowerCase() + " " + jump.intValue());
+	4: }
+	5:
+	6: public static void main(String[] args) {
+		7: new Frog().hop(null, 1);
+	8: } 
+}
+```
+
+```text
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke
+"String.toLowerCase()" because "<parameter1>" is null
+```
+
+**==The JVM now tells you the object reference that triggered the ``NullPointerException``! This new feature is called *Helpful ``NullPointerExceptions``*.==**
+
+#### ``IllegalArgumentException``
+
+``IllegalArgumentException`` is a way for your program to protect itself.
+
+```java
+public void setNumberEggs(int numberEggs) {
+	if (numberEggs < 0)
+		throw new IllegalArgumentException("# eggs must not be negative");
+	this.numberEggs = numberEggs;
+}
+```
+```text
+Exception in thread "main"
+java.lang.IllegalArgumentException: # eggs must not be negative
+```
+
+#### ``NumberFormatException``
+
+Java provides methods to convert strings to numbers. When these are passed an invalid value, they throw a ``NumberFormatException``. The idea is similar to ``IllegalArgumentException``. Since this is a common problem, Java gives it a separate class. In fact, **==``NumberFormatException`` is a subclass of ``IllegalArgumentException``.==**
+
+```java
+Integer.parseInt("abc");
+```
+```text
+Exception in thread "main"
+java.lang.NumberFormatException: For input string: "abc"
+```
+
+**==For the exam, you need to know that ``NumberFormatException`` is a subclass of ``IllegalArgumentException``.==**
+
+### Checked Exception Classes
+
+**==Checked exceptions have Exception in their hierarchy but not ``RuntimeException``. They must be handled or declared.==**
+ For the exam, you need to know that these are all checked exceptions that must be handled or declared. You also need to know that **==``FileNotFoundException`` and ``NotSerializableException`` are subclasses of ``IOException``.==**
+
+![[Pasted image 20240427232101.png]]
+
+### Error Classes
+
+Errors are unchecked exceptions that extend the ``Error`` class. They are thrown by the JVM and should not be handled or declared
+
+![[Pasted image 20240427232351.png]]
+
+## Handling Exceptions
+
