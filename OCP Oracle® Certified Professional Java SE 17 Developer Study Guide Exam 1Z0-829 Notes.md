@@ -24684,3 +24684,737 @@ Errors are unchecked exceptions that extend the ``Error`` class. They are thrown
 
 ## Handling Exceptions
 
+### Using ``try`` and ``catch`` Statements
+
+Java uses a ``try`` statement to separate the logic that might throw an exception from the logic to handle that exception.
+
+![[Pasted image 20240428114439.png]]
+
+The code in the ``try`` block is run normally. If any of the statements throws an exception that can be caught by the exception type listed in the ``catch`` block, the try block stops running, and execution goes to the ``catch`` statement. **==If none of the statements in the ``try`` block throws an exception that can be caught, the ``catch`` clause is not run. The curly braces are required for ``try`` and ``catch`` blocks.==**
+
+```JAVA
+3: void explore() {
+	4: try {
+		5: fall();
+		6: System.out.println("never get here");
+	7: } catch (RuntimeException e) {
+		8: getUp();
+	9: }
+		10: seeAnimals();
+	11: }
+12: void fall() { throw new RuntimeException(); }
+```
+
+invalid ``try`` statements that the exam might try to trick you with
+
+```java
+try // DOES NOT COMPILE
+	fall();
+catch (Exception e)
+	System.out.println("get up");
+```
+
+The problem is that the braces ``{}`` are missing. The ``try`` statements are like methods in that the curly braces are required even if there is only one statement inside the code blocks, while ``if`` statements and loops are special and allow you to omit the curly braces.
+
+```java
+try { // DOES NOT COMPILE
+	fall();
+}
+```
+
+This code doesn’t compile because the ``try`` block doesn’t have anything after it. Remember, **==the point of a ``try`` statement is for something to happen if an exception is thrown. Without another clause, the ``try`` statement is lonely==**. There is a special type of ``try`` statement that includes an implicit ``finally`` block
+
+### Chaining ``catch`` Blocks
+
+For the exam, you may be given exception classes and need to understand how they function. Here’s how to tackle them. 
+- ==**First, you must be able to recognize if the exception is a checked or an unchecked exception.**== 
+- ==**Second, you need to determine whether any of the exceptions are subclasses of the others.==**
+
+```java
+class AnimalsOutForAWalk extends RuntimeException {}
+class ExhibitClosed extends RuntimeException {}
+class ExhibitClosedForLunch extends ExhibitClosed {}
+```
+
+```java
+public void visitPorcupine() {
+	try {
+		seeAnimal();
+	} catch (AnimalsOutForAWalk e) { // first catch block
+		System.out.print("try back later");
+	} catch (ExhibitClosed e) { // second catch block
+		System.out.print("not today");
+	}
+}
+```
+
+A rule exists for the order of the ``catch`` blocks. Java looks at them in the order they appear. If it is impossible for one of the ``catch`` blocks to be executed, a compiler error about unreachable code occurs.
+
+```java
+public void visitMonkeys() {
+	try {
+		seeAnimal();
+	} catch (ExhibitClosedForLunch e) { // Subclass exception
+		System.out.print("try back later");
+	} catch (ExhibitClosed e) { // Superclass exception
+		System.out.print("not today");
+	}
+}
+```
+
+If the more specific ``ExhibitClosedForLunch`` exception is thrown, the first catch block runs. If not, Java checks whether the superclass ``ExhibitClosed`` exception is thrown and catches it.
+
+```java
+public void visitMonkeys() {
+	try {
+		seeAnimal();
+	} catch (ExhibitClosed e) {
+		System.out.print("not today");
+	} catch (ExhibitClosedForLunch e) { // DOES NOT COMPILE
+		System.out.print("try back later");
+	}
+}
+```
+
+If the more specific ``ExhibitClosedForLunch`` exception is thrown, the ``catch`` block for ``ExhibitClosed`` runs—which means there is no way for the second ``catch`` block to ever run. Java correctly tells you there is an unreachable ``catch`` block.
+
+```java
+public void visitSnakes() {
+	try {
+	} catch (IllegalArgumentException e) {
+	} catch (NumberFormatException e) { // DOES NOT COMPILE
+	}
+}
+```
+
+``NumberFormatException`` is a subclass of ``IllegalArgumentException``? This example is the reason why. Since ``NumberFormatException`` is a subclass, it will always be caught by the first ``catch`` block, making the second ``catch`` block unreachable code that does not compile
+
+**==To review multiple ``catch`` blocks, remember that at most one ``catch`` block will run, and it will be the first ``catch`` block that can handle the exception. Also, remember that an exception defined by the ``catch`` statement is only in scope for that ``catch`` block.==**
+
+```java
+public void visitManatees() {
+	try {
+	} catch (NumberFormatException e1) {
+		System.out.println(e1);
+	} catch (IllegalArgumentException e2) {
+		System.out.println(e1); // DOES NOT COMPILE
+	}
+}
+```
+
+### Applying a Multi-catch Block
+
+```java
+public static void main(String args[]) {
+	try {
+		System.out.println(Integer.parseInt(args[1]));
+	} catch (ArrayIndexOutOfBoundsException e) {
+		System.out.println("Missing or invalid input");
+	} catch (NumberFormatException e) {
+		System.out.println("Missing or invalid input");
+	}
+}
+```
+
+A multi-catch block allows multiple exception types to be caught by the same ``catch`` block
+
+```java
+public static void main(String[] args) {
+	try {
+		System.out.println(Integer.parseInt(args[1]));
+	} catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+		System.out.println("Missing or invalid input");
+	}
+}
+```
+
+If you wanted, you could still have a second ``catch`` block for Exception in case you want to handle other types of exceptions differently. 
+
+![[Pasted image 20240428121129.png]]
+
+Notice how there is only one variable name in the ``catch`` clause. Java is saying that the variable named e can be of type ``Exception1`` or ``Exception2``
+
+The exam might try to trick you with invalid syntax. **==Remember that the exceptions can be listed in any order within the catch clause. However, the variable name must appear only once and at the end.==**
+
+```java
+catch(Exception1 e | Exception2 e | Exception3 e) // DOES NOT COMPILE
+catch(Exception1 e1 | Exception2 e2 | Exception3 e3) // DOES NOT COMPILE
+catch(Exception1 | Exception2 | Exception3 e)
+```
+
+**==Java intends multi-catch to be used for exceptions that aren’t related, and it prevents you from specifying redundant types in a multi-catch.==**
+
+```java
+try {
+	throw new IOException();
+} catch (FileNotFoundException | IOException p) {} // DOES NOT COMPILE
+```
+```text
+The exception FileNotFoundException is already caught by the alternative
+IOException
+```
+
+The one difference between multi-catch blocks and chaining ``catch`` blocks is that order does not matter for a multi-catch block within a single catch expression.
+
+### Adding a ``finally`` Block
+
+The ``try`` statement also lets you run code at the end with a ``finally`` clause, regardless of whether an exception is thrown.
+
+**==There are two paths through code with both a ``catch`` and a ``finally``. If an exception is thrown, the ``finally`` block is run after the ``catch`` block. If no exception is thrown, the ``finally`` block is run after the ``try`` block completes.==**
+
+```java
+12: void explore() {
+	13: try {
+		14: seeAnimals();
+		15: fall();
+	16: } catch (Exception e) {
+		17: getHugFromDaddy();
+	18: } finally {
+		19: seeMoreAnimals();
+	20: }
+	21: goHome();
+22: }
+```
+
+![[Pasted image 20240428121807.png]]
+
+The ``finally`` block is executed, and execution continues after the ``try`` statement. The exam will try to trick you with missing clauses or clauses in the wrong order
+
+```java
+25: try { // DOES NOT COMPILE
+	26: fall();
+27: } finally {
+	28: System.out.println("all better");
+29: } catch (Exception e) {
+	30: System.out.println("get up");
+31: }
+32:
+33: try { // DOES NOT COMPILE
+	34: fall();
+35: }
+36:
+37: try {
+	38: fall();
+39: } finally {
+	40: System.out.println("all better");
+41: }
+```
+
+**==The ``catch`` block is not required if ``finally`` is present.==**
+
+```java
+public static void main(String[] unused) {
+	StringBuilder sb = new StringBuilder();
+try {
+	sb.append("t");
+} catch (Exception e) {
+	sb.append("c");
+} finally {
+	sb.append("f");
+}
+sb.append("a");
+System.out.print(sb.toString()); // tfa
+}
+```
+
+The ``try`` block is executed. Since no exception is thrown, Java goes straight to the ``finally`` block. Then the code after the ``try`` statement is run.
+
+There is one additional rule you should know for ``finally`` blocks. **==If a ``try`` statement with a ``finally`` block is entered, then the ``finally`` block will always be executed, regardless of whether the code completes successfully.==**
+
+```java
+12: int goHome() {
+	13: try {
+		14: // Optionally throw an exception here
+		15: System.out.print("1");
+		16: return -1;
+	17: } catch (Exception e) {
+		18: System.out.print("2");
+		19: return -2;
+	20: } finally {
+		21: System.out.print("3");
+		22: return -3;
+	23: }
+24: }
+```
+
+What is the return value of the ``goHome()`` method? In this case, it’s always -3. Because the ``finally`` block is executed shortly before the method completes, it interrupts the return statement from inside both the ``try`` and ``catch`` blocks.
+
+For the exam, you need to remember that a ``finally`` block will always be executed.
+
+```java
+31: } finally {
+	32: info.printDetails();
+	33: System.out.print("Exiting");
+	34: return "zoo";
+35: }
+```
+
+If info was ``null``, then the ``finally`` block would be executed, but it would stop on line 32 and throw a ``NullPointerException``. Lines 33 and 34 would not be executed.
+## Automating Resource Management
+
+Often, your application works with files, databases, and various connection objects. Commonly, these external data sources are referred to as resources. In many cases, you open a connection to the resource, whether it’s over the network or within a file system. You then read/write the data you want. Finally, you close the resource to indicate that you are done with it.
+For the exam, a resource is typically a file or database that requires some kind of stream or connection to read or write data.
+
+### Introducing Try-with-Resources
+
+```java
+4: public void readFile(String file) {
+	5: FileInputStream is = null;
+	6: try {
+		7: is = new FileInputStream("myfile.txt");
+		8: // Read file data
+	9: } catch (IOException e) {
+		10: e.printStackTrace();
+	11: } finally {
+		12: if(is != null) {
+			13: try {
+				14: is.close();
+			15: } catch (IOException e2) {
+				16: e2.printStackTrace();
+			17: }
+		18: }
+	19: }
+20: }
+```
+
+Half the lines of code in this method are just closing a resource. And the more resources you have, the longer code like this becomes.
+
+To solve this, Java includes the *try-with- resources* statement to automatically close all resources opened in a try clause. This feature is also known as automatic resource management, because Java automatically takes care of the closing.
+
+```java
+4: public void readFile(String file) {
+	5: try (FileInputStream is = new FileInputStream("myfile.txt")) {
+		6: // Read file data
+	7: } catch (IOException e) {
+		8: e.printStackTrace();
+	9: }
+10: }
+```
+
+by using a try-with- resources statement, we guarantee that as soon as a connection passes out of scope, Java will attempt to close it within the same method. Behind the scenes, the compiler replaces a try-with- resources block with a ``try`` and ``finally`` block. We refer to this “hidden” ``finally`` block as an implicit ``finally`` block since it is created and used by the compiler automatically.
+
+---
+
+**Unlike garbage collection, resources are not automatically closed when they go out of scope. Therefore, it is recommended that you close resources in the same block of code that opens them. By using a try-with- resources statement to open all your resources, this happens automatically.**
+
+---
+
+### Basics of Try-with- Resources
+
+![[Pasted image 20240428124109.png]]
+
+**==one or more resources can be opened in the ``try`` clause. When multiple resources are opened, they are closed in the reverse of the order in which they were created.==** Also, notice that **==parentheses are used to list those resources, and semicolons are used to separate the declarations.==** This works just like declaring multiple indexes in a for loop. a ``catch`` block is optional with a try-with- resources statement.
+
+```java
+4: public void readFile(String file) throws IOException {
+	5: try (FileInputStream is = new FileInputStream("myfile.txt")) {
+		6: // Read file data
+	7: }
+8: }
+```
+==**``try`` statement must have one or more ``catch`` blocks or a ``finally`` block. A try-with- resources statement differs from a ``try`` statement in that neither of these is required, although a developer may add both**==
+
+#### Constructing Try-with- Resources Statements
+
+Only classes that implement the ``AutoCloseable`` interface can be used in a try-with- resources statement.
+
+```java
+try (String reptile = "lizard") {}
+```
+Inheriting ``AutoCloseable`` requires implementing a compatible ``close()`` method.
+
+```java
+interface AutoCloseable {
+	public void close() throws Exception;
+}
+```
+
+the implemented version of ``close()`` can choose to throw ``Exception`` or a subclass or not throw any exceptions at all.
+
+```java
+public class MyFileClass implements AutoCloseable {
+	private final int num;
+	public MyFileClass(int num) { this.num = num; }
+	@Override public void close() {
+		System.out.println("Closing: " + num);
+	} 
+}
+```
+
+#### Declaring Resources
+
+While try-with- resources does support declaring multiple variables, each variable must be declared in a separate statement.
+
+```java
+try (MyFileClass is = new MyFileClass(1), // DOES NOT COMPILE
+	os = new MyFileClass(2)) {
+}
+try (MyFileClass ab = new MyFileClass(1), // DOES NOT COMPILE
+	MyFileClass cd = new MyFileClass(2)) {
+}
+```
+
+- The first example does not compile because it is missing the data type, and it uses a comma ``(,)`` instead of a semicolon ``(;)``.
+- The second example does not compile because it also uses a comma ``(,)`` instead of a semicolon ``(;)``. Each resource must include the data type and be separated by a semicolon ``(;)``.
+
+You can declare a resource using ``var`` as the data type in a try-with- resources statement, since resources are local variables.
+
+```java
+try (var f = new BufferedInputStream(new FileInputStream("it.txt"))) {
+	// Process file
+}
+```
+
+#### Scope of Try-with-Resources
+ 
+ The resources created in the try clause are in scope only within the ``try`` block. This is another way to remember that the implicit ``finally`` runs before any catch/finally blocks that you code yourself. The implicit close has run already, and the resource is no longer available.
+
+```java
+3: try (Scanner s = new Scanner(System.in)) {
+	4: s.nextLine();
+5: } catch(Exception e) {
+	6: s.nextInt(); // DOES NOT COMPILE
+7: } finally {
+	8: s.nextInt(); // DOES NOT COMPILE
+9: }
+```
+
+The problem is that ``Scanner`` has gone out of scope at the end of the ``try`` clause
+
+#### Following Order of Operations
+
+**==When working with try-with-  resources statements, it is important to know that resources are closed in the reverse of the order in which they are created.==**
+
+```java
+public static void main(String... xyz) {
+	try (MyFileClass bookReader = new MyFileClass(1);
+		MyFileClass movieReader = new MyFileClass(2)) {
+		System.out.println("Try Block");
+	throw new RuntimeException();
+	} catch (Exception e) {
+		System.out.println("Catch Block");
+	} finally {
+		System.out.println("Finally Block");
+	}
+}
+```
+```text
+Try Block
+Closing: 2
+Closing: 1
+Catch Block
+Finally Block
+```
+
+#### Applying Effectively Final
+
+While resources are often created in the try-with- resources statement, it is possible to declare them ahead of time, provided they are marked ``final`` or effectively final.
+
+```java
+11: public static void main(String... xyz) {
+	12: final var bookReader = new MyFileClass(4);
+	13: MyFileClass movieReader = new MyFileClass(5);
+	14: try (bookReader;
+	15: var tvReader = new MyFileClass(6);
+	16: movieReader) {
+		17: System.out.println("Try Block");
+	18: } finally {
+		19: System.out.println("Finally Block");
+	20: }
+21: }
+```
+
+- Line 12 declares a final variable ``bookReader``, while line 13 declares an effectively final variable ``movieReader``. Both of these resources can be used in a try-with- resources statement. ``movieReader`` is effectively final because it is a local variable that is assigned a value only once.
+- Lines 14 and 16 use the new syntax to declare resources in a try-with- resources statement, using just the variable name and separating the resources with a semicolon ``(;)``. Line 15 uses the normal syntax for declaring a new resource within the ``try`` clause.
+
+```text
+Try Block
+Closing: 5
+Closing: 6
+Closing: 4
+Finally Block
+```
+
+**==If you come across a question on the exam that uses a try-with- resources statement with a variable not declared in the try clause, make sure it is effectively final.==**
+
+```java
+31: var writer = Files.newBufferedWriter(path);
+32: try (writer) { // DOES NOT COMPILE
+33: writer.append("Welcome to the zoo!");
+34: }
+35: writer = null;
+```
+
+The ``writer`` variable is reassigned on line 35, resulting in the compiler not considering it effectively final. Since it is not an effectively final variable, it cannot be used in a try-with- resources statement on line 32.
+The other place the exam might try to trick you is accessing a resource after it has been closed.
+
+```java
+41: var writer = Files.newBufferedWriter(path);
+42: writer.append("This write is permitted but a really bad idea!");
+43: try (writer) {
+	44: writer.append("Welcome to the zoo!");
+45: }
+46: writer.append("This write will fail!"); // IOException
+```
+
+While it is possible to write to the resource before the try-with- resources statement, it is not afterward.
+
+### Understanding Suppressed Exceptions
+
+What happens if the ``close()`` method throws an exception?
+
+```java
+public class TurkeyCage implements AutoCloseable {
+	public void close() {
+		System.out.println("Close gate");
+	}
+	public static void main(String[] args) {
+		try (var t = new TurkeyCage()) {
+			System.out.println("Put turkeys in");
+		}
+	}
+}
+```
+
+```java
+1: public class JammedTurkeyCage implements AutoCloseable {
+	2: public void close() throws IllegalStateException {
+		3: throw new IllegalStateException("Cage door does not close");
+	4: }
+	5: public static void main(String[] args) {
+		6: try (JammedTurkeyCage t = new JammedTurkeyCage()) {
+			7: System.out.println("Put turkeys in");
+		8: } catch (IllegalStateException e) {
+			9: System.out.println("Caught: " + e.getMessage());
+		10: }
+	11: }
+12: }
+```
+
+The ``close()`` method is automatically called by try-with- resources. It throws an exception, which is caught by our catch block and prints the following:
+
+```text
+Caught: Cage door does not close
+```
+
+What happens if the ``try`` block also throws an exception? **==When multiple exceptions are thrown, all but the first are called suppressed exceptions. The idea is that Java treats the first exception as the primary one and tacks on any that come up while automatically closing.==**
+
+```java
+5: public static void main(String[] args) {
+	6: try (JammedTurkeyCage t = new JammedTurkeyCage()) {
+		7: throw new IllegalStateException("Turkeys ran off");
+	8: } catch (IllegalStateException e) {
+		9: System.out.println("Caught: " + e.getMessage());
+	10: for (Throwable t: e.getSuppressed())
+		11: System.out.println("Suppressed: "+t.getMessage());
+	12: }
+13: }
+```
+
+- Line 7 throws the primary exception. At this point, the try clause ends, and Java automatically calls the ``close()`` method.
+- Line 3 of ``JammedTurkeyCage`` throws an ``IllegalStateException``, which is added as a suppressed exception.
+- Then line 8 catches the primary exception.
+- Line 9 prints the message for the primary exception.
+- Lines 10 and 11 iterate through any suppressed exceptions and print them. The program prints the following:
+
+```text
+Caught: Turkeys ran off
+Suppressed: Cage door does not close
+```
+
+**==Keep in mind that the ``catch`` block looks for matches on the primary exception.==**
+
+```java
+5: public static void main(String[] args) {
+	6: try (JammedTurkeyCage t = new JammedTurkeyCage()) {
+		7: throw new RuntimeException("Turkeys ran off");
+	8: } catch (IllegalStateException e) {
+		9: System.out.println("caught: " + e.getMessage());
+	10: }
+11: }
+```
+
+- Line 7 again throws the primary exception. Java calls the ``close()`` method and adds a suppressed exception. 
+- Line 8 would catch the ``IllegalStateException``. However, we don’t have one of those. The primary exception is a ``RuntimeException``. Since this does not match the catch clause, the exception is thrown to the caller. Eventually, the ``main()`` method would output something like the following:
+
+```text
+Exception in thread "main" java.lang.RuntimeException: Turkeys ran off
+at JammedTurkeyCage.main(JammedTurkeyCage.java:7)
+Suppressed: java.lang.IllegalStateException:
+Cage door does not close
+at JammedTurkeyCage.close(JammedTurkeyCage.java:3)
+at JammedTurkeyCage.main(JammedTurkeyCage.java:8)
+```
+
+---
+
+**If more than two resources throw an exception, the first one to be thrown becomes the primary exception, and the rest are grouped as suppressed exceptions. And since resources are closed in the reverse of the order in which they are declared, the primary exception will be on the last declared resource that throws an exception.**
+
+---
+
+**==Keep in mind that suppressed exceptions apply only to exceptions thrown in the ``try`` clause==**. The following example does not throw a suppressed exception:
+
+```java
+5: public static void main(String[] args) {
+	6: try (JammedTurkeyCage t = new JammedTurkeyCage()) {
+		7: throw new IllegalStateException("Turkeys ran off");
+	8: } finally {
+		9: throw new RuntimeException("and we couldn't find them");
+	10: }
+11: }
+```
+
+## Formatting Values
+
+### Formatting Numbers
+
+the ``NumberFormat`` interface, which has two commonly used methods:
+
+```java
+public final String format(double number)
+public final String format(long number)
+```
+
+Since ``NumberFormat`` is an interface, we need the concrete ``DecimalFormat`` class to use it. It includes a constructor that takes a pattern ``String``:
+
+```java
+public DecimalFormat(String pattern)
+```
+
+![[Pasted image 20240428140003.png]]
+
+```java
+12: double d = 1234.567;
+13: NumberFormat f1 = new DecimalFormat("###,###,###.0");
+14: System.out.println(f1.format(d)); // 1,234.6
+15:
+16: NumberFormat f2 = new DecimalFormat("000,000,000.00000");
+17: System.out.println(f2.format(d)); // 000,001,234.56700
+18:
+19: NumberFormat f3 = new DecimalFormat("Your Balance $#,###,###.##");
+20: System.out.println(f3.format(d)); // Your Balance $1,234.57
+```
+
+- Line 14 displays the digits in the number, rounding to the nearest 10th after the decimal. The extra positions to the left are omitted because we used #.
+- Line 17 adds leading and trailing zeros to make the output the desired length.
+- Line 20 shows prefixing a non-formatting character along with rounding because fewer digits are printed than available. Notice that the commas are automatically removed if they are used between # symbols.
+
+### Formatting Dates and Times
+
+The date and time classes support many methods to get data out of them.
+
+```java
+LocalDate date = LocalDate.of(2022, Month.OCTOBER, 20);
+System.out.println(date.getDayOfWeek()); // THURSDAY
+System.out.println(date.getMonth()); // OCTOBER
+System.out.println(date.getYear()); // 2022
+System.out.println(date.getDayOfYear()); // 293
+```
+
+Java provides a class called ``DateTimeFormatter`` to display standard formats.
+
+```java
+LocalDate date = LocalDate.of(2022, Month.OCTOBER, 20);
+LocalTime time = LocalTime.of(11, 12, 34);
+LocalDateTime dt = LocalDateTime.of(date, time);
+
+System.out.println(date.format(DateTimeFormatter.ISO_LOCAL_DATE)); // 2022-10-20
+System.out.println(time.format(DateTimeFormatter.ISO_LOCAL_TIME)); // 11:12:34
+System.out.println(dt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)); // 2022-10- 20T11: 12:34
+```
+
+The ``DateTimeFormatter`` will throw an exception if it encounters an incompatible type.
+
+```java
+date.format(DateTimeFormatter.ISO_LOCAL_TIME); // RuntimeException
+time.format(DateTimeFormatter.ISO_LOCAL_DATE); // RuntimeException
+```
+
+### Customizing the Date/Time Format
+
+``DateTimeFormatter`` supports a custom format using a date format ``String``.
+
+```java
+var f = DateTimeFormatter.ofPattern("MMMM dd, yyyy 'at' hh:mm");
+System.out.println(dt.format(f)); // October 20, 2022 at 11:12
+```
+
+Java assigns each letter or symbol a specific date/time part. **==Case matters!==** sing m instead of M means it will return the minute of the hour, not the month of the year.
+ 
+ The number often dictates the format of the date/time part. Using M by itself outputs the minimum number of characters for a month, such as 1 for January, while using MM always outputs two digits, such as 01. Furthermore, using MMM prints the three-letter abbreviation, such as Jul for July, while MMMM prints the full month name.
+
+![[Pasted image 20240428141810.png]]
+
+```java
+var dt = LocalDateTime.of(2022, Month.OCTOBER, 20, 6, 15, 30);
+
+var formatter1 = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss");
+System.out.println(dt.format(formatter1)); // 10/20/2022 06:15:30
+
+var formatter2 = DateTimeFormatter.ofPattern("MM_yyyy_-dd");
+System.out.println(dt.format(formatter2)); // 10_2022_-20
+
+var formatter3 = DateTimeFormatter.ofPattern("h:mm z");
+System.out.println(dt.format(formatter3)); // DateTimeException
+```
+
+The third example throws an exception at runtime because the underlying ``LocalDateTime`` does not have a time zone specified. If ``ZonedDateTime`` were used instead, the code would complete successfully
+trying to format a month for a ``LocalTime`` or an hour for a ``LocalDate`` will result in a runtime exception.
+
+![[Pasted image 20240428141942.png]]
+
+#### Selecting a ``format()`` Method
+
+The date/time classes contain a ``format()`` method that will take a formatter, while the formatter classes contain a ``format()`` method that will take a date/time value.
+
+```java
+var dateTime = LocalDateTime.of(2022, Month.OCTOBER, 20, 6, 15, 30);
+var formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss");
+
+System.out.println(dateTime.format(formatter)); // 10/20/2022 06:15:30
+System.out.println(formatter.format(dateTime)); // 10/20/2022 06:15:30
+```
+
+#### Adding Custom Text Values
+
+What if you want your format to include some custom text values? If you just type them as part of the format String, the formatter will interpret each character as a date/time symbol.
+
+One way to address this would be to break the formatter into multiple smaller formatters and then concatenate the results.
+
+```java
+var dt = LocalDateTime.of(2022, Month.OCTOBER, 20, 6, 15, 30);
+
+var f1 = DateTimeFormatter.ofPattern("MMMM dd, yyyy ");
+var f2 = DateTimeFormatter.ofPattern(" hh:mm");
+System.out.println(dt.format(f1) + "at" + dt.format(f2));
+```
+
+While this works, it could become difficult if a lot of text values and date symbols are intermixed. Luckily, Java includes a much simpler solution. **==You can escape the text by surrounding it with a pair of single quotes ``(')``.==** Escaping text instructs the formatter to ignore the values inside the single quotes and just insert them as part of the final value.
+
+```java
+var f = DateTimeFormatter.ofPattern("MMMM dd, yyyy 'at' hh:mm");
+System.out.println(dt.format(f)); // October 20, 2022 at 06:15
+```
+
+But what if you need to display a single quote in the output, too? Java supports this by putting two single quotes next to each other.
+
+```java
+var g1 = DateTimeFormatter.ofPattern("MMMM dd', Party''s at' hh:mm");
+System.out.println(dt.format(g1)); // October 20, Party's at 06:15
+
+var g2 = DateTimeFormatter.ofPattern("'System format, hh:mm: 'hh:mm");
+System.out.println(dt.format(g2)); // System format, hh:mm: 06:15
+
+var g3 = DateTimeFormatter.ofPattern("'NEW! 'yyyy', yay!'");
+System.out.println(dt.format(g3)); // NEW! 2022, yay!
+```
+
+If you don’t escape the text values with single quotes, an exception will be thrown at runtime if the text cannot be interpreted as a date/time symbol.
+
+```java
+DateTimeFormatter.ofPattern("The time is hh:mm"); // Exception thrown
+```
+
+## Supporting Internationalization and Localization
+
+
