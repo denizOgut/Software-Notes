@@ -25663,4 +25663,218 @@ The code prints the same data three times. First it prints the language of the s
 
 ## Loading Properties with Resource Bundles
 
+A resource bundle contains the locale-specific objects to be used by a program. It is like a map with keys and values. The resource bundle is commonly stored in a properties file. A properties file is a text file in a specific format with key/value pairs.
 
+```java
+Locale us = new Locale("en", "US");
+Locale france = new Locale("fr", "FR");
+Locale englishCanada = new Locale("en", "CA");
+Locale frenchCanada = new Locale("fr", "CA");
+```
+
+properties files. It is conceptually similar to a ``Map<String,String>``, with each line representing a different key/value. The key and value are separated by an equal sign ``(=)`` or colon ``(:)``.
+
+### Creating a Resource Bundle
+
+**==If we don’t have a country-specific resource bundle, Java will use a language-specific one.==**
+
+```java
+Zoo_en.properties
+hello=Hello
+open=The zoo is open
+
+Zoo_fr.properties
+hello=Bonjour
+open=Le zoo est ouvert
+```
+
+The filenames match the name of our resource bundle, Zoo. They are then followed by an underscore ``(_)``, target locale, and ``.properties`` file extension.
+
+```java
+10: public static void printWelcomeMessage(Locale locale) {
+	11: var rb = ResourceBundle.getBundle("Zoo", locale);
+	12: System.out.println(rb.getString("hello")
+	13: + ", " + rb.getString("open"));
+14: }
+15: public static void main(String[] args) {
+	16: var us = new Locale("en", "US");
+	17: var france = new Locale("fr", "FR");
+	18: printWelcomeMessage(us); // Hello, The zoo is open
+	19: printWelcomeMessage(france); // Bonjour, Le zoo est ouvert
+20: }
+```
+
+Since a resource bundle contains key/value pairs, you can even loop through them to list all of the pairs. The ``ResourceBundle`` class provides a ``keySet()`` method to get a set of all keys.
+
+```java
+var us = new Locale("en", "US");
+ResourceBundle rb = ResourceBundle.getBundle("Zoo", us);
+rb.keySet().stream()
+	.map(k ->k + ": " + rb.getString(k))
+	.forEach(System.out::println);
+```
+
+### Picking a Resource Bundle
+
+There are two methods for obtaining a resource bundle that you should be familiar with for the exam.
+
+```java
+ResourceBundle.getBundle("name");
+ResourceBundle.getBundle("name", locale);
+```
+
+ The first uses the default locale. Either the exam tells you what to assume as the default locale, or it uses the second approach.
+
+Java handles the logic of picking the best available resource bundle for a given key. **==It tries to find the most specific value.==**
+
+![[Pasted image 20240503201144.png]]
+
+1. ==**Look for the resource bundle for the requested locale, followed by the one for the default locale.**==
+2. ==**For each locale, check the language/country, followed by just the language.**==
+3. ==**Use the default resource bundle if no matching locale can be found.==**
+
+---
+
+**When Java is searching for a matching resource bundle, it will first check for a resource bundle file with the matching class name.**
+
+---
+
+What is the maximum number of files that Java would need to consider in order to find the appropriate resource bundle with the following code?
+
+```java
+Locale.setDefault(new Locale("hi"));
+ResourceBundle rb = ResourceBundle.getBundle("Zoo", new Locale("en"));
+```
+
+1. `Zoo_en.properties`
+2. `Zoo_hi.properties`
+3. `Zoo.properties`
+
+The requested locale is en, so we start with that. Since the en locale does not contain a country, we move on to the default locale, hi. Again, there’s no country, so we end with the default bundle.
+
+### Selecting Resource Bundle Values
+
+**==Java isn’t required to get all of the keys from the same resource bundle. It can get them from any parent of the matching resource bundle.==**
+
+![[Pasted image 20240503201719.png]]
+
+Once a resource bundle has been selected, only properties along a single hierarchy will be used.
+Contrast this behavior with Table 11.11, in which the default en_US resource bundle is used if no other resource bundles are available. What does this mean, exactly? Assume the requested locale is fr_FR and the default is en_US. The JVM will provide data from en_US only if there is no matching fr_FR or fr resource bundle. If it finds a fr_FR or fr resource bundle, then only those bundles, along with the default bundle, will be used.
+
+```java
+Zoo.properties
+name=Vancouver Zoo
+
+Zoo_en.properties
+hello=Hello
+open=is open
+
+Zoo_en_US.properties
+name=The Zoo
+
+Zoo_en_CA.properties
+visitors=Canada visitors
+```
+
+```java
+11: Locale.setDefault(new Locale("en", "US"));
+12: Locale locale = new Locale("en", "CA");
+13: ResourceBundle rb = ResourceBundle.getBundle("Zoo", locale);
+14: System.out.print(rb.getString("hello"));
+15: System.out.print(". ");
+16: System.out.print(rb.getString("name"));
+17: System.out.print(" ");
+18: System.out.print(rb.getString("open"));
+19: System.out.print(" ");
+20: System.out.print(rb.getString("visitors"));
+```
+```text
+Hello. Vancouver Zoo is open Canada visitors
+```
+
+- The default locale is en_US, and the requested locale is ``en_CA``.
+- First, Java goes through the available resource bundles to find a match. It finds one right away with ``Zoo_en_CA.properties``. This means the default locale of en_US is irrelevant.
+- Line 14 doesn’t find a match for the key hello in ``Zoo_en_CA.properties``, so it goes up the hierarchy to ``Zoo_en.properties``.
+- Line 16 doesn’t find a match for name in either of the first two properties files, so it has to go all the way to the top of the hierarchy to ``Zoo.properties``.
+- Line 18 has the same experience as line 14, using ``Zoo_en.properties``.
+- Finally, line 20 has an easier job of it and finds a matching key in ``Zoo_en_CA.properties``.
+
+Even when the property wasn’t found in ``en_CA`` or ``en`` resource bundles, the program preferred using ``Zoo.properties`` (the default resource bundle) rather than ``Zoo_en_US.properties`` (the default locale).
+What if a property is not found in any resource bundle? Then an exception is thrown.
+
+### Formatting Messages
+
+The convention is to use a number inside braces such as {0}, {1}, etc. The number indicates the order in which the parameters will be passed. Although resource bundles don’t support this directly, the ``MessageFormat`` class does.
+
+```java
+helloByName=Hello, {0} and {1}
+```
+
+The second parameter to format() is a vararg, allowing you to specify any number of input values.
+
+```java
+String format = rb.getString("helloByName");
+System.out.print(MessageFormat.format(format, "Tammy", "Henry")); // Hello, Tammy and Henry
+```
+
+### Using the Properties Class
+
+```java
+import java.util.Properties;
+public class ZooOptions {
+	public static void main(String[] args) {
+		var props = new Properties();
+		props.setProperty("name", "Our zoo");
+		props.setProperty("open", "10am");
+	}
+}
+```
+
+The ``Properties`` class is commonly used in handling values that may not exist.
+
+```java
+System.out.println(props.getProperty("camel")); // null
+System.out.println(props.getProperty("camel", "Bob")); // Bob
+```
+
+If a key were passed that actually existed, both statements would print it. This is commonly referred to as providing a default, or a backup value, for a missing key.
+
+The ``Properties`` class also includes a get() method, but only ``getProperty()`` allows for a default value.
+
+```java
+props.get("open"); // 10am
+props.get("open", "The zoo will be open soon"); // DOES NOT COMPILE
+```
+
+## Summary #OCP_Summary
+
+**==Exceptions can be divided into two categories: checked and unchecked. In Java, checked exceptions inherit ``Exception`` but not ``RuntimeException`` and must be handled or declared. Unchecked exceptions inherit ``RuntimeException`` or ``Error`` and do not need to be handled or declared. It is considered a poor practice to catch an ``Error``.**==
+
+==**can create your own checked or unchecked exceptions by extending ``Exception`` or ``RuntimeException``, respectively. You can also define custom constructors and messages for your exceptions, which will show up in stack traces.**==
+
+==**Automatic resource management can be enabled by using a try-with-resources statement to ensure that the resources are properly closed. Resources are closed at the conclusion of the ``try`` block, in the reverse of the order in which they are declared. A suppressed exception occurs when more than one exception is thrown, often as part of a ``finally`` block or try-with-resources ``close()`` operation.**==
+
+==**Java includes a number of built-in classes to format numbers and dates. We reviewed how to create custom formatters for each. You should be able to read these custom formats when you encounter them on the exam.**==
+
+==**Localization involves creating programs that adapt to change. You can create a ``Locale`` class with a required lowercase language code and optional uppercase country code. For example, ``en`` and ``en_US`` are locales for English and U.S. English, respectively. You need to know how to format number and date/time values based on locale, including the new ``CompactNumberFormat`` class.**==
+
+==**A ``ResourceBundle`` allows specifying key/value pairs in a properties file. Java goes through candidate resource bundles from the most specific to the most general to find a match. If no matches are found for the requested locale, Java switches to the default locale and then finally the default resource bundle. Once a matching resource bundle is found, Java looks only in the hierarchy of that resource bundle to select values.==**
+
+## Exam Essentials #Essential
+
+**Understand the various types of exceptions**. All exceptions are subclasses of ``java.lang.Throwable``. Subclasses of ``java.lang.Error`` should never be caught. Only subclasses of j``ava.lang.Exception`` should be handled in application code.
+
+**Differentiate between checked and unchecked exceptions**. Unchecked exceptions do not need to be caught or handled and are subclasses of ``java.lang.RuntimeException`` or ``java.lang.Error``. All other subclasses of ``java.lang.Exception`` are checked exceptions and must be handled or declared.
+
+**Understand the flow of a try statement**. A ``try`` statement must have a ``catch`` or a ``finally`` block. Multiple catch blocks can be chained together, provided no superclass exception type appears in an earlier catch block than its subclass. **==A multi-catch expression may be used to handle multiple exceptions in the same catch block, provided one exception is not a subclass of another==**. The ``finally`` block runs last regardless of whether an exception is thrown.
+
+**Be able to follow the order of a try-with-resources statement.** A try-with-resources statement is a special type of try block in which one or more resources are declared and automatically closed in the reverse of the order in which they are declared. **==It can be used with or without a ``catch`` or ``finally`` block, with the implicit finally block always executed first==**.
+
+**Be able to write methods that declare exceptions**. Understand the difference between the ``throw`` and ``throws`` keywords and how to declare methods with exceptions. Know how to correctly override a method that declares exceptions.
+
+**Identify valid locale strings**. Know that **==the language code is lowercase and mandatory, while the country code is uppercase and optional==**. Be able to select a locale using a built-in constant, constructor, or builder class.
+
+**Format dates, numbers, and messages**. Be able to format dates, numbers, and messages into various ``String`` formats, and know how locale influences these formats. Know how the various number formatters (currency, percent, compact) differ. Be able to write a custom date or number formatter using symbols, including how to escape literal values.
+
+**Determine which resource bundle Java will use to look up a key**. Be able to create resource bundles for a set of locales using properties files. Know the search order that Java uses to select a resource bundle and how the default locale and default resource bundle are considered. Once a resource bundle is found, recognize the hierarchy used to select values.
+## Review Questions
