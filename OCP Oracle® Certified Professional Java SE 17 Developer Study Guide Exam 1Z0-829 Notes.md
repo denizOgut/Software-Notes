@@ -24356,7 +24356,7 @@ void fall(int distance) throws IOException {
 }
 ```
 
-The ``throw`` keyword tells Java that you want to throw an ``Exception``, while the ``throws`` keyword simply declares that the method might throw an ``Exception``. It also might not.
+**==The ``throw`` keyword tells Java that you want to throw an ``Exception``, while the ``throws`` keyword simply declares that the method might throw an ``Exception``. It also might not.==**
 How do you handle exception ? 
 
 ```java
@@ -24468,6 +24468,7 @@ The problem is that ``NoMoreCarrotsException`` is a checked exception. **==Check
 public static void main(String[] args) throws NoMoreCarrotsException {
 	eatCarrot();
 }
+
 public static void main(String[] args) {
 	try {
 		eatCarrot();
@@ -24503,9 +24504,11 @@ Java knows that ``eatCarrot()`` can’t ``throw`` a checked exception—which me
 
 ```java
 class CanNotHopException extends Exception {}
+
 class Hopper {
 	public void hop() {}
 }
+
 class Bunny extends Hopper {
 	public void hop() throws CanNotHopException {} // DOES NOT COMPILE
 }
@@ -24522,8 +24525,7 @@ class Bunny extends Hopper {
 }
 ```
 
-An overridden method not declaring one of the exceptions thrown by the parent method is similar to the method declaring that it throws an exception it never actually throws. This is perfectly legal. Similarly, a class is allowed to declare a subclass of an exception type. The idea is the same. The superclass or interface has already taken care of a broader type.
-
+**==An overridden method not declaring one of the exceptions thrown by the parent method is similar to the method declaring that it throws an exception it never actually throws. This is perfectly legal.==** Similarly, a class is allowed to declare a subclass of an exception type. The idea is the same. The superclass or interface has already taken care of a broader type.
 ### Printing an Exception
 
 There are three ways to print an exception.
@@ -24681,7 +24683,6 @@ java.lang.NumberFormatException: For input string: "abc"
 Errors are unchecked exceptions that extend the ``Error`` class. They are thrown by the JVM and should not be handled or declared
 
 ![[Pasted image 20240427232351.png]]
-
 ## Handling Exceptions
 
 ### Using ``try`` and ``catch`` Statements
@@ -24690,7 +24691,7 @@ Java uses a ``try`` statement to separate the logic that might throw an exceptio
 
 ![[Pasted image 20240428114439.png]]
 
-The code in the ``try`` block is run normally. If any of the statements throws an exception that can be caught by the exception type listed in the ``catch`` block, the try block stops running, and execution goes to the ``catch`` statement. **==If none of the statements in the ``try`` block throws an exception that can be caught, the ``catch`` clause is not run. The curly braces are required for ``try`` and ``catch`` blocks.==**
+The code in the ``try`` block is run normally. If any of the statements throws an exception that can be caught by the exception type listed in the ``catch`` block, the ``try`` block stops running, and execution goes to the ``catch`` statement. **==If none of the statements in the ``try`` block throws an exception that can be caught, the ``catch`` clause is not run. The curly braces are required for ``try`` and ``catch`` blocks.==**
 
 ```JAVA
 3: void explore() {
@@ -24701,7 +24702,7 @@ The code in the ``try`` block is run normally. If any of the statements throws a
 		8: getUp();
 	9: }
 		10: seeAnimals();
-	11: }
+11: }
 12: void fall() { throw new RuntimeException(); }
 ```
 
@@ -24748,7 +24749,7 @@ public void visitPorcupine() {
 }
 ```
 
-A rule exists for the order of the ``catch`` blocks. Java looks at them in the order they appear. If it is impossible for one of the ``catch`` blocks to be executed, a compiler error about unreachable code occurs.
+**==A rule exists for the order of the ``catch`` blocks. Java looks at them in the order they appear. If it is impossible for one of the ``catch`` blocks to be executed, a compiler error about unreachable code occurs.==**
 
 ```java
 public void visitMonkeys() {
@@ -24854,8 +24855,7 @@ The exception FileNotFoundException is already caught by the alternative
 IOException
 ```
 
-The one difference between multi-catch blocks and chaining ``catch`` blocks is that order does not matter for a multi-catch block within a single catch expression.
-
+**==The one difference between multi-catch blocks and chaining ``catch`` blocks is that order does not matter for a multi-catch block within a single catch expression.==**
 ### Adding a ``finally`` Block
 
 The ``try`` statement also lets you run code at the end with a ``finally`` clause, regardless of whether an exception is thrown.
@@ -24954,7 +24954,6 @@ If info was ``null``, then the ``finally`` block would be executed, but it would
 
 Often, your application works with files, databases, and various connection objects. Commonly, these external data sources are referred to as resources. In many cases, you open a connection to the resource, whether it’s over the network or within a file system. You then read/write the data you want. Finally, you close the resource to indicate that you are done with it.
 For the exam, a resource is typically a file or database that requires some kind of stream or connection to read or write data.
-
 ### Introducing Try-with-Resources
 
 ```java
@@ -24991,7 +24990,7 @@ To solve this, Java includes the *try-with- resources* statement to automaticall
 10: }
 ```
 
-by using a try-with- resources statement, we guarantee that as soon as a connection passes out of scope, Java will attempt to close it within the same method. Behind the scenes, the compiler replaces a try-with- resources block with a ``try`` and ``finally`` block. We refer to this “hidden” ``finally`` block as an implicit ``finally`` block since it is created and used by the compiler automatically.
+by using a try-with-resources statement, we guarantee that as soon as a connection passes out of scope, Java will attempt to close it within the same method. Behind the scenes, the compiler replaces a try-with-resources block with a ``try`` and ``finally`` block. We refer to this “hidden” ``finally`` block as an implicit ``finally`` block since it is created and used by the compiler automatically.
 
 ---
 
@@ -25013,7 +25012,6 @@ by using a try-with- resources statement, we guarantee that as soon as a connect
 8: }
 ```
 ==**``try`` statement must have one or more ``catch`` blocks or a ``finally`` block. A try-with- resources statement differs from a ``try`` statement in that neither of these is required, although a developer may add both**==
-
 #### Constructing Try-with- Resources Statements
 
 Only classes that implement the ``AutoCloseable`` interface can be used in a try-with- resources statement.
@@ -25055,7 +25053,7 @@ try (MyFileClass ab = new MyFileClass(1), // DOES NOT COMPILE
 ```
 
 - The first example does not compile because it is missing the data type, and it uses a comma ``(,)`` instead of a semicolon ``(;)``.
-- The second example does not compile because it also uses a comma ``(,)`` instead of a semicolon ``(;)``. Each resource must include the data type and be separated by a semicolon ``(;)``.
+- The second example does not compile because it also uses a comma ``(,)`` instead of a semicolon ``(;)``. **==Each resource must include the data type and be separated by a semicolon ``(;)``.==**
 
 You can declare a resource using ``var`` as the data type in a try-with- resources statement, since resources are local variables.
 
@@ -25064,10 +25062,9 @@ try (var f = new BufferedInputStream(new FileInputStream("it.txt"))) {
 	// Process file
 }
 ```
-
 #### Scope of Try-with-Resources
  
- The resources created in the try clause are in scope only within the ``try`` block. This is another way to remember that the implicit ``finally`` runs before any catch/finally blocks that you code yourself. The implicit close has run already, and the resource is no longer available.
+ **==The resources created in the try clause are in scope only within the ``try`` block. This is another way to remember that the implicit ``finally`` runs before any catch/finally blocks that you code yourself.==** The implicit close has run already, and the resource is no longer available.
 
 ```java
 3: try (Scanner s = new Scanner(System.in)) {
@@ -25080,7 +25077,6 @@ try (var f = new BufferedInputStream(new FileInputStream("it.txt"))) {
 ```
 
 The problem is that ``Scanner`` has gone out of scope at the end of the ``try`` clause
-
 #### Following Order of Operations
 
 **==When working with try-with-  resources statements, it is important to know that resources are closed in the reverse of the order in which they are created.==**
@@ -25105,10 +25101,9 @@ Closing: 1
 Catch Block
 Finally Block
 ```
-
 #### Applying Effectively Final
 
-While resources are often created in the try-with- resources statement, it is possible to declare them ahead of time, provided they are marked ``final`` or effectively final.
+While resources are often created in the try-with-resources statement, it is possible to declare them ahead of time, provided they are marked ``final`` or effectively final.
 
 ```java
 11: public static void main(String... xyz) {
@@ -25135,7 +25130,7 @@ Closing: 4
 Finally Block
 ```
 
-**==If you come across a question on the exam that uses a try-with- resources statement with a variable not declared in the try clause, make sure it is effectively final.==**
+**==If you come across a question on the exam that uses a try-with-resources statement with a variable not declared in the try clause, make sure it is effectively final.==**
 
 ```java
 31: var writer = Files.newBufferedWriter(path);
@@ -25145,7 +25140,7 @@ Finally Block
 35: writer = null;
 ```
 
-The ``writer`` variable is reassigned on line 35, resulting in the compiler not considering it effectively final. Since it is not an effectively final variable, it cannot be used in a try-with- resources statement on line 32.
+The ``writer`` variable is reassigned on line 35, resulting in the compiler not considering it effectively final. Since it is not an effectively final variable, it cannot be used in a try-with-resources statement on line 32.
 The other place the exam might try to trick you is accessing a resource after it has been closed.
 
 ```java
@@ -25158,7 +25153,6 @@ The other place the exam might try to trick you is accessing a resource after it
 ```
 
 While it is possible to write to the resource before the try-with- resources statement, it is not afterward.
-
 ### Understanding Suppressed Exceptions
 
 What happens if the ``close()`` method throws an exception?
@@ -25264,6 +25258,7 @@ at JammedTurkeyCage.main(JammedTurkeyCage.java:8)
 11: }
 ```
 
+==**exceptions thrown in `finally` block are suppressed if an exception is thrown in `try` block also**.==
 ## Formatting Values
 
 ### Formatting Numbers
@@ -25374,7 +25369,6 @@ var formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss");
 System.out.println(dateTime.format(formatter)); // 10/20/2022 06:15:30
 System.out.println(formatter.format(dateTime)); // 10/20/2022 06:15:30
 ```
-
 #### Adding Custom Text Values
 
 What if you want your format to include some custom text values? If you just type them as part of the format String, the formatter will interpret each character as a date/time symbol.
@@ -25443,7 +25437,7 @@ EN // Language must be lowercase
 
 ---
 
-Pay attention to uppercase/lowercase and the underscore. For example, if you see a locale expressed as es_CO, then you should know that the language is es and the country is CO, even if you didn’t know that they represent Spanish and Colombia, respectively
+**Pay attention to uppercase/lowercase and the underscore. For example, if you see a locale expressed as es_CO, then you should know that the language is es and the country is CO, even if you didn’t know that they represent Spanish and Colombia, respectively**
 
 ---
 
@@ -25673,7 +25667,6 @@ Locale frenchCanada = new Locale("fr", "CA");
 ```
 
 properties files. It is conceptually similar to a ``Map<String,String>``, with each line representing a different key/value. The key and value are separated by an equal sign ``(=)`` or colon ``(:)``.
-
 ### Creating a Resource Bundle
 
 **==If we don’t have a country-specific resource bundle, Java will use a language-specific one.==**
