@@ -48,7 +48,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#TIP",
+                "query": "tag:#Chapter",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -65,7 +65,8 @@
               "state": {}
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -147,7 +148,7 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "261bcb2c0cd0b648",
+  "active": "453c8930fe7176ef",
   "lastOpenFiles": [
     "JAVA APP - 2 NOTES.md",
     "Golang Notes.md",
