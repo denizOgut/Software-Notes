@@ -26577,3 +26577,432 @@ into the blank
 ---
 
 # Chapter 12 - Modules #Chapter 
+
+## Introducing Modules
+
+When you work on real programs, they are much bigger. A real project will consist of hundreds or thousands of classes grouped into packages. These packages are grouped into Java archive (JAR) files. A JAR is a ZIP file with some extra information, and the extension is ``.jar``.
+
+The Java Platform Module System (JPMS) groups code at a higher level. **==The main purpose of a module is to provide groups of related packages that offer developers a particular set of functionality. It’s like a JAR file, except a developer chooses which packages are accessible outside the module==**
+
+The Java Platform Module System includes the following:
+- ==**A format for module JAR files**==
+- ==**Partitioning of the JDK into modules**==
+- ==**Additional command-line options for Java tools==**
+
+### Exploring a Module
+
+==**A module is a group of one or more packages plus a special file called ``module-info. java``. The contents of this file are the module declaration**==
+
+![[Pasted image 20240508192201.png]]
+
+In Figure 12.1, notice that there are arrows between many of the modules. These represent dependencies, where one module relies on code in another.
+
+![[Pasted image 20240508192240.png]]
+
+### Benefits of Modules
+
+Modules look like another layer of things you need to know in order to program. While using modules is optional, it is important to understand the problems they are designed to solve:
+
+- ==**Better access control**: In addition to the levels of access control covered in Chapter 5, “Methods,” you can have packages that are only accessible to other packages in the module.==
+
+- ==**Clearer dependency management**: Since modules specify what they rely on, Java can complain about a missing JAR when starting up the program rather than when it is first accessed at runtime.==
+
+- ==**Custom Java builds**: You can create a Java runtime that has only the parts of the JDK that your program needs rather than the full one at over 150 MB.==
+
+- ==**Improved security**: Since you can omit parts of the JDK from your custom build, you don’t have to worry about vulnerabilities discovered in a part you don’t use.==
+
+- ==**Improved performance**: Another benefit of a smaller Java package is improved startup time and a lower memory requirement.==
+
+- ==**Unique package enforcement**: Since modules specify exposed packages, Java can ensure that each package comes from only one module and avoid confusion about what is being run.==
+
+## Creating and Running a Modular Program
+
+In this section, we create, build, and run the ``zoo.animal.feeding`` module. In addition to the `module-info.`
+`java` file, it has one package with one class inside.
+
+![[Pasted image 20240508192756.png]]
+
+### Creating the Files
+
+```java
+package zoo.animal.feeding;
+public class Task {
+	public static void main(String... args) {
+		System.out.println("All fed!");
+	}
+}
+```
+
+Next comes the ``module-info. java`` file. This is the simplest possible one:
+
+```java
+module zoo.animal.feeding {
+}
+```
+
+There are a few key differences between a module declaration and a regular Java class declaration:
+
+- ==**The ``module-info. java`` file must be in the root directory of your module. Regular Java classes should be in packages.**==
+- ==**The module declaration must use the keyword ``module`` instead of ``class``, ``interface``, or ``enum``.**==
+- ==**The module name follows the naming rules for package names. It often includes periods (.) in its name. Regular class and package names are not allowed to have dashes (-). Module names follow the same rule.==**
+
+The next step is to make sure the files are in the right directory structure.
+
+![[Pasted image 20240508193217.png]]
+
+In particular, ``feeding`` is the module directory, and the ``module-info. java`` file is directly under it. Just as with a regular JAR file, we also have the ``zoo.animal.feeding`` package with one subfolder per portion of the name. The ``Task`` class is in the appropriate subfolder for its package
+### Compiling Our First Module
+
+Before we can run modular code, we need to compile it.
+
+```java
+javac -- module- path mods -d feeding feeding/zoo/animal/feeding/*.java feeding/module-info.
+java
+```
+
+the ``-d`` option specifies the directory to place the class files in. The end of the command is a list of the .java files to compile. You can list the files individually or use a wildcard for all ``.java`` files in a subdirectory.
+
+The new part is ``module-path``. This option indicates the location of any custom module files. 
+
+---
+**What about the classpath?**
+
+**The classpath option has three possible forms: ``-cp``,`` class-path``, and ``-classpath``. You can still use these options. In fact, it is common to do so when writing nonmodular programs.**
+
+---
+
+Just like classpath, you can use an abbreviation in the command. The syntax ``module-path`` and ``-p`` are equivalent. That means we could have written many other commands in place of the previous command.
+
+```java
+javac -p mods -d feeding feeding/zoo/animal/feeding/*.java feeding/*.java
+
+javac -p mods -d feeding feeding/zoo/animal/feeding/*.java feeding/module-info.java
+
+javac -p mods -d feeding feeding/zoo/animal/feeding/Task.java feeding/module-info.java
+
+javac -p mods -d feeding feeding/zoo/animal/feeding/Task.java feeding/*.java
+```
+
+While you can use whichever you like best, be sure that you can recognize all valid forms for the exam.
+
+![[Pasted image 20240508193941.png]]
+
+### Running Our First Module
+
+Suppose there is a module named ``book.module.`` Inside that module is a package named ``com.sybex,`` which has a class named ``OCP`` with a ``main()`` method. **==Pay special attention to the ``book.module/com.sybex.OCP`` part. It is important to remember that you specify the module name followed by a slash ``(/)`` followed by the fully qualified class name.==**
+
+![[Pasted image 20240508194136.png]]
+
+In the following example, the package name and module name are the same. **==It is common for the module name to match either the full package name or the beginning of it.==**
+
+```java
+java --module-path feeding--module zoo.animal.feeding/zoo.animal.feeding.Task
+```
+
+a short form of ``--module`` as well. The short option is ``-m``
+
+```java
+java -p feeding -m zoo.animal.feeding/zoo.animal.feeding.Task
+```
+
+![[Pasted image 20240508194349.png]]
+
+### Packaging Our First Module
+
+A module isn’t much use if we can run it only in the folder it was created in. Our next step is to package it. Be sure to create a mods directory before running this command:
+
+```java
+jar -cvf mods/zoo.animal.feeding.jar -C feeding/ .
+```
+
+This represents how the module JAR will look to other code that wants to use it.
+
+let’s run the program again, but this time using the mods directory instead of the loose classes:
+
+```java
+java -p mods -m zoo.animal.feeding/zoo.animal.feeding.Task
+```
+
+Since the module path is used, a module JAR is being run.
+
+## Updating Our Example for Multiple Modules
+
+![[Pasted image 20240508195310.png]]
+
+### Updating the Feeding Module
+
+Since we will be having our other modules call code in the ``zoo.animal.feeding`` package, we need to declare this intent in the module declaration.
+
+The ``exports`` directive is used to indicate that a module intends for those packages to be used by Java code outside the module. As you might expect, without an exports directive, the module is only available to be run from the command line on its own. In the following example, we export one package:
+
+```java
+module zoo.animal.feeding {
+	exports zoo.animal.feeding;
+}
+```
+
+Recompiling and repackaging the module will update the ``module-info.class`` inside our ``zoo.animal.feeding.jar`` file.
+
+```java
+javac -p mods -d feeding feeding/zoo/animal/feeding/*.java feeding/module-info.java
+
+jar -cvf mods/zoo.animal.feeding.jar -C feeding/ .
+```
+
+### Creating a Care Module
+
+let’s create the ``zoo.animal.care`` module. This time, we are going to have two packages. The ``zoo.animal.care.medical`` package will have the classes and methods that are intended for use by other modules. The ``zoo.animal.care.details`` package is only going to be used by this module. It will not be exported from the module. Remember that all modules must have a ``module-info.java`` file.
+
+![[Pasted image 20240508195855.png]]
+
+The module contains two basic packages and classes in addition to the ``module-info. java`` file
+
+```java
+// HippoBirthday.java
+package zoo.animal.care.details;
+import zoo.animal.feeding.*;
+public class HippoBirthday {
+private Task task;
+}
+// Diet.java
+package zoo.animal.care.medical;
+public class Diet { }
+```
+
+This time the ``module-info.java`` file specifies three things:
+
+```java
+1: module zoo.animal.care {
+	2: exports zoo.animal.care.medical;
+	3: requires zoo.animal.feeding;
+4: }
+```
+
+- Line 1 specifies the name of the module. 
+- Line 2 lists the package we are exporting so it can be used by other modules.
+- On line 3, we see a new directive. **==The ``requires`` statement specifies that a module is needed==**. The ``zoo.animal.care`` module depends on the ``zoo.animal.feeding`` module.
+
+Next, we need to figure out the directory structure. We will create two packages. The first is ``zoo.animal.care.details`` and contains one class named ``HippoBirthday``. The second is ``zoo.animal.care.medical``, which contains one class named ``Diet``. **==The packages begin with the same prefix as the module name. This is intentional. You can think of it as if the module name “claims” the matching package and all sub-packages.==**
+
+```java
+javac -p mods -d care \
+    care/zoo/animal/care/details/*.java \
+    care/zoo/animal/care/medical/*.java \
+    care/module-info.java
+```
+
+Now that we have compiled code, it’s time to create the module JAR:
+
+```java
+jar -cvf mods/zoo.animal.care.jar -C care/ .
+```
+
+### Creating the Talks Module
+
+Figure 12.8, observe that the ``zoo.animal.talks`` module depends on two modules: ``zoo.animal.feeding`` and ``zoo.animal.care``. This means that there must be two requires statements in the ``module-info. java`` file.
+
+![[Pasted image 20240508201020.png]]
+
+![[Pasted image 20240508201037.png]]
+
+```java
+1: module zoo.animal.talks {
+	2: exports zoo.animal.talks.content;
+	3: exports zoo.animal.talks.media;
+	4: exports zoo.animal.talks.schedule;
+	5:
+	6: requires zoo.animal.feeding;
+	7: requires zoo.animal.care;
+8: }
+```
+
+- Line 1 shows the module name. 
+- Lines 2–4 allow other modules to reference all three packages. 
+- Lines 6 and 7 specify the two modules that this module depends on.
+
+```java
+// ElephantScript.java
+package zoo.animal.talks.content;
+public class ElephantScript { }
+// SeaLionScript.java
+package zoo.animal.talks.content;
+public class SeaLionScript { }
+// Announcement.java
+package zoo.animal.talks.media;
+public class Announcement {
+	public static void main(String[] args) {
+		System.out.println("We will be having talks");
+	}
+}
+
+// Signage.java
+package zoo.animal.talks.media;
+public class Signage { }
+// Weekday.java
+package zoo.animal.talks.schedule;
+public class Weekday { }
+// Weekend.java
+package zoo.animal.talks.schedule;
+public class Weekend {}
+```
+
+The following are the commands to compile and build the module:
+
+```java
+javac -p mods -d talks \
+    talks/zoo/animal/talks/content/*.java \
+    talks/zoo/animal/talks/media/*.java \
+    talks/zoo/animal/talks/schedule/*.java \
+    talks/module-info.java
+
+```
+
+### Creating the Staff Module
+
+![[Pasted image 20240508202109.png]]
+
+![[Pasted image 20240508202120.png]]
+
+There are three arrows in Figure 12.11 pointing from ``zoo.staff ``to other modules. These represent the three modules that are required. Since no packages are to be exposed from ``zoo.staff``, there are no exports statements.
+
+```java
+module zoo.staff {
+	requires zoo.animal.feeding;
+	requires zoo.animal.care;
+	requires zoo.animal.talks;
+}
+```
+
+```java
+package zoo.staff;
+public class Jobs { }
+```
+
+The following are the commands to compile and build the module:
+
+```java
+javac -p mods -d staff \
+    staff/zoo/staff/*.java \
+    staff/module-info.java
+
+jar -cvf mods/zoo.staff.jar -C staff/ .
+```
+
+## Diving into the Module Declaration
+
+### Exporting a Package
+
+It’s also possible to export a package to a specific module.
+
+```java
+module zoo.animal.talks {
+	exports zoo.animal.talks.content to zoo.staff;
+	exports zoo.animal.talks.media;
+	exports zoo.animal.talks.schedule;
+	requires zoo.animal.feeding;
+	requires zoo.animal.care;
+}
+```
+
+From the ``zoo.staff`` module, nothing has changed. However, no other modules would be allowed to access that package. It is important to consider future use when designing modules.
+
+---
+
+**Exported Types**
+
+**All ``public`` classes, interfaces, enums, and records are exported. Further, any ``public`` and ``protected`` fields and methods in those files are visible.** 
+
+**Fields and methods that are ``private`` are not visible because they are not accessible outside the class. Similarly, package fields and methods are not visible because they are not accessible outside the package.****
+
+---
+
+**==The ``exports`` directive essentially gives us more levels of access control.==**
+
+![[Pasted image 20240508203251.png]]
+
+### Requiring a Module Transitively
+
+**==``requires`` ``moduleName`` specifies that the current module depends on ``moduleName``. There’s also a ``requires`` ``transitive`` ``moduleName``, which means that any module that requires this module will also depend on ``moduleName``.==**
+
+![[Pasted image 20240508203411.png]]
+
+For example, ``zoo.animal.talks`` depends on ``zoo.animal.care``, which depends on ``zoo.animal.feeding``. That means the arrow between ``zoo.animal.talks`` and ``zoo.animal.feeding`` no longer appears in Figure 12.12
+
+The first module remains unchanged. We are exporting one package to any packages that use the module.
+
+```java
+module zoo.animal.feeding {
+	exports zoo.animal.feeding;
+}
+```
+
+The ``zoo.animal.care`` module is the first opportunity to improve things. Rather than forcing all remaining modules to explicitly specify ``zoo.animal.feeding``, the code uses ``requires transitive``.
+
+```java
+module zoo.animal.care {
+	exports zoo.animal.care.medical;
+	requires transitive zoo.animal.feeding;
+}
+```
+
+In the ``zoo.animal.talks`` module, we make a similar change and don’t force other modules to specify ``zoo.animal.care``.
+
+```java
+module zoo.animal.talks {
+	exports zoo.animal.talks.content to zoo.staff;
+	exports zoo.animal.talks.media;
+	exports zoo.animal.talks.schedule;
+	// no longer needed requires zoo.animal.feeding;
+	// no longer needed requires zoo.animal.care;
+	requires transitive zoo.animal.care;
+}
+```
+
+Finally, in the ``zoo.staff`` module, we can get rid of two requires statements.
+
+```java
+module zoo.staff {
+	// no longer needed requires zoo.animal.feeding;
+	// no longer needed requires zoo.animal.care;
+	requires zoo.animal.talks;
+}
+```
+
+The more modules you have, the greater the benefits of the ``requires transitive`` compound. It is also more convenient for the caller. If you were trying to work with this zoo, you could just require ``zoo.staff`` and have the remaining dependencies automatically inferred.
+
+#### Effects of ``requires transitive``
+
+Applying the ``transitive`` modifiers has the following effects:
+
+- **Module ``zoo.animal.talks`` can optionally declare that it requires the ``zoo.animal.feeding`` module, but it is not required.**
+- **Module ``zoo.animal.care`` cannot be compiled or executed without access to the ``zoo.animal.feeding`` module.**
+- **Module ``zoo.animal.talks`` cannot be compiled or executed without access to the ``zoo.animal.feeding`` module.**
+
+#### Duplicate ``requires`` Statements
+
+**==One place the exam might try to trick you is mixing ``requires`` and ``requires transitive``.==**
+
+```java
+module bad.module {
+	requires zoo.animal.talks;
+	requires transitive zoo.animal.talks;
+}
+```
+
+Java doesn’t allow you to repeat the same module in a ``requires`` clause. It is redundant and most likely an error in coding. Keep in mind that ``requires transitive`` is like ``requires`` plus some extra behavior.
+
+### Opening a Package
+
+Java allows callers to inspect and call code at runtime with a technique called reflection. This is a powerful approach that allows calling code that might not be available at compile time. It can even be used to subvert access control! The opens directive is used to enable reflection of a package within a module. You only need to be aware that the opens directive exists rather than understanding it in detail for the exam.
+Since reflection can be dangerous, the module system requires developers to explicitly allow reflection in the module declaration if they want calling modules to be allowed to use it.
+
+```java
+module zoo.animal.talks {
+	opens zoo.animal.talks.schedule;
+	opens zoo.animal.talks.media to zoo.staff;
+}
+```
+
+## Creating a Service
+
+
