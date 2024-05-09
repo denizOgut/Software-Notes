@@ -27005,4 +27005,456 @@ module zoo.animal.talks {
 
 ## Creating a Service
 
+A service is composed of an interface, any classes the interface references, and a way of looking up implementations of the interface. The implementations are not part of the service. In this example, the ``zoo.tours.api`` and ``zoo.tours.reservations`` modules make up the service since they consist of the interface and lookup functionality.
+
+![[Pasted image 20240509210456.png]]
+
+### Declaring the Service Provider Interface
+
+```java
+// Souvenir.java
+package zoo.tours.api;
+public record Souvenir(String description) { }
+```
+
+Next, the module contains a Java interface type. This ``interface`` is called the service provider interface because it specifies what behavior our service will have. In this case, it is a simple API with three methods.
+
+```java
+// Tour.java
+package zoo.tours.api;
+public interface Tour {
+	String name();
+	int length();
+	Souvenir getSouvenir();
+}
+```
+
+Since we are working with modules, we also need to create a ``module-info. java`` file so our module definition exports the package containing the interface. 
+
+```java
+// module-info.
+java
+module zoo.tours.api {
+	exports zoo.tours.api;
+}
+```
+
+compile and package this module.
+
+```java
+javac -d serviceProviderInterfaceModule \
+    serviceProviderInterfaceModule/zoo/tours/api/*.java \
+    serviceProviderInterfaceModule/module-info.java
+
+jar -cvf mods/zoo.tours.api.jar -C serviceProviderInterfaceModule/ .
+```
+
+### Creating a Service Locator
+
+To complete our service, we need a service locator. A service locator can find any classes that implement a service provider interface. Luckily, Java provides a ServiceLoader class to help with this task. You pass the service
+provider interface type to its ``load()`` method, and Java will return any implementation services it can find.
+
+```java
+// TourFinder.java
+package zoo.tours.reservations;
+
+import java.util.*;
+import zoo.tours.api.*;
+
+public class TourFinder {
+
+    public static Tour findSingleTour() {
+        ServiceLoader<Tour> loader = ServiceLoader.load(Tour.class);
+        for (Tour tour : loader)
+            return tour;
+        return null;
+    }
+
+    public static List<Tour> findAllTours() {
+        List<Tour> tours = new ArrayList<>();
+        ServiceLoader<Tour> loader = ServiceLoader.load(Tour.class);
+        for (Tour tour : loader)
+            tours.add(tour);
+        return tours;
+    }
+}
+```
+
+we provided two lookup methods. The first is a convenience method if you are expecting exactly one Tour to be returned. The other returns a List, which accommodates any number of service providers. At runtime, there may be many service providers (or none) that are found by the service locator.
+
+---
+
+**The ``ServiceLoader`` call is relatively expensive. If you are writing a real application, it is best to cache the result.**
+
+---
+
+Our module definition ``exports`` the package with the lookup class ``TourFinder``. It requires the service provider interface package. It also has the uses directive since it will be looking up a service.
+
+```java
+// module-info.
+java
+module zoo.tours.reservations {
+	exports zoo.tours.reservations;
+	requires zoo.tours.api;
+	uses zoo.tours.api.Tour;
+}
+```
+
+both ``requires`` and ``uses`` are needed, one for compilation and one for lookup.
+
+```java
+javac -p mods -d serviceLocatorModule \
+    serviceLocatorModule/zoo/tours/reservations/*.java \
+    serviceLocatorModule/module-info.java
+
+jar -cvf mods/zoo.tours.reservations.jar -C serviceLocatorModule/ .
+```
+
+---
+**Using ``ServiceLoader``**
+**There are two methods in ``ServiceLoader`` that you need to know for the exam.**
+
+```java
+public final class ServiceLoader<S> implements Iterable<S> {
+public static <S> ServiceLoader<S> load(Class<S> service) { ... }
+public Stream<Provider<S>> stream() { ... }
+// Additional methods
+}
+```
+
+**calling ``ServiceLoader.load()`` returns an object that you can loop through normally. However, requesting a ``Stream`` gives you a different type. The reason for this is that a ``Stream`` controls when elements are evaluated. Therefore, a ``ServiceLoader`` returns a ``Stream`` of Provider objects. You have to call ``get()`` to retrieve the value you wanted out of each Provider**
+
+```java
+ServiceLoader.load(Tour.class)
+	.stream()
+	.map(Provider::get)
+	.mapToInt(Tour::length)
+	.max()
+	.ifPresent(System.out::println);
+```
+
+---
+### Invoking from a Consumer
+
+Next up is to call the service locator by a consumer. A consumer (or client) refers to a module that obtains and uses a service. Once the consumer has acquired a service via the service locator, it is able to invoke the methods provided by the service provider interface.
+
+```java
+// Tourist.java
+package zoo.visitor;
+import java.util.*;
+import zoo.tours.api.*;
+import zoo.tours.reservations.*;
+public class Tourist {
+	public static void main(String[] args) {
+		Tour tour = TourFinder.findSingleTour();
+		System.out.println("Single tour: " + tour);
+		List<Tour> tours = TourFinder.findAllTours();
+		System.out.println("# tours: " + tours.size());
+	}
+}
+```
+
+```java
+// module-info.
+java
+module zoo.visitor {
+	requires zoo.tours.api;
+	requires zoo.tours.reservations;
+}
+```
+
+```java
+javac -p mods -d consumerModule \
+    consumerModule/zoo/visitor/*.java \
+    consumerModule/module-info.java
+
+jar -cvf mods/zoo.visitor.jar -C consumerModule/ .
+
+java -p mods -m zoo.visitor/zoo.visitor.Tourist
+
+```
+
+### Adding a Service Provider
+
+A service provider is the implementation of a service provider interface. at runtime it is possible to have multiple implementation classes or modules.
+
+Our service provider is the ``zoo.tours.agency`` package because we’ve outsourced the running of tours to a third party.
+
+```java
+// TourImpl.java
+package zoo.tours.agency;
+import zoo.tours.api.*;
+public class TourImpl implements Tour {
+	public String name() {
+		return "Behind the Scenes";
+	}
+	public int length() {
+		return 120;
+	}
+	public Souvenir getSouvenir() {
+		return new Souvenir("stuffed animal");
+	}
+}
+```
+
+we need a ``module-info. java`` file to create a module.
+
+```java
+// module-info.
+java
+module zoo.tours.agency {
+	requires zoo.tours.api;
+	provides zoo.tours.api.Tour with zoo.tours.agency.TourImpl;
+}
+```
+
+The module declaration requires the module containing the interface as a dependency.
+
+---
+
+**We have not exported the package containing the implementation. Instead, we have made the implementation available to a service provider using the interface.**
+
+---
+
+```java
+javac -p mods -d serviceProviderModule \
+    serviceProviderModule/zoo/tours/agency/*.java \
+    serviceProviderModule/module-info.java
+
+jar -cvf mods/zoo.tours.agency.jar -C serviceProviderModule/ .
+```
+
+```java
+java -p mods -m zoo.visitor/zoo.visitor.Tourist
+```
+```text
+Single tour: zoo.tours.agency.TourImpl@1936f0f5 # tours: 1
+```
+
+### Reviewing Directives and Services
+
+Table 12.4 summarizes what we’ve covered in the section about services. **==We recommend learning really well what is needed when each artifact is in a separate module. That is most likely what you will see on the exam and will ensure that you understand the concepts.==** Table 12.5 lists all the directives you need to know for the exam.
+
+![[Pasted image 20240509213224.png]]
+
+## Discovering Modules
+
+You do not need to know the output of the commands in this section. You do, however, need to know the syntax of the commands and what they do.
+
+### Identifying Built-in Modules
+
+**==The most important module to know is ``java.base``. It contains most of the packages you have been learning about for the exam. In fact, it is so important that you don’t even have to use the ``requires`` directive; it is available to all modular applications. Your ``module-info. java`` file will still compile if you explicitly require j``ava.base``. However, it is redundant, so it’s better to omit it.==**
+
+![[Pasted image 20240509213600.png]]
+
+For the exam, you need to know that module names begin with java for APIs you are likely to use and with jdk for APIs that are specific to the JDK.
+
+![[Pasted image 20240509213640.png]]
+
+![[Pasted image 20240509213657.png]]
+
+### Getting Details with java
+
+The java command has three module-related options. 
+- One describes a module, 
+- another lists the available modules, and 
+- the third shows the module resolution logic.
+
+#### Describing a Module
+
+```java
+module zoo.animal.feeding {
+	exports zoo.animal.feeding;
+}
+```
+
+The ``java`` command has an option to describe a module. The following two commands are equivalent:
+
+```java
+java -p mods -d zoo.animal.feeding
+java -p mods -- describe- module zoo.animal.feeding
+```
+
+Each prints information about the module. For example, it might print this:
+
+```java
+zoo.animal.feeding file:///absolutePath/mods/zoo.animal.feeding.jar
+exports zoo.animal.feeding
+requires java.base mandated
+```
+
+On the third line, we see requires ``java.base`` mandated. Now, wait a minute. The module declaration very clearly does not specify any modules that ``zoo.animal.feeding`` has as dependencies.
+
+**==Remember, the ``java.base`` module is special. It is automatically added as a dependency to all modules. This module has frequently used packages like ``java.util``. That’s what the mandated is about. You get ``java.base`` regardless of whether you asked for it. In classes, the`` java.lang`` package is automatically imported whether you type it or not. The`` java.base`` module works the same way. It is automatically available to all other modules==**
+
+#### Listing Available Modules
+
+The simplest form lists the modules that are part of the JDK.
+
+```java
+java --list-modules
+```
+
+When we ran it, the output went on for 70 lines and looked like this:
+
+```java
+java.base@17
+java.compiler@17
+java.datatransfer@17
+```
+
+This is a listing of all the modules that come with Java and their version numbers. More interestingly, you can use this command with custom code
+
+```java
+java -p mods -- list- modules
+```
+
+```java
+zoo.animal.care file:///absolutePath/mods/zoo.animal.care.jar
+zoo.animal.feeding file:///absolutePath/mods/zoo.animal.feeding.jar
+```
+
+Since these are custom modules, we get a location on the file system. If the project had a module version number, it would have both the version number and the file system path.
+
+#### Showing Module Resolution
+
+You can think of it as a way of debugging modules. It spits out a lot of output when the program starts up. Then it runs the program.
+
+```java
+java -- show- module- resolution -p feeding -m zoo.animal.feeding/zoo.animal.feeding.Task
+```
+
+```java
+root zoo.animal.feeding file:///absolutePath/feeding/
+java.base binds java.desktop jrt:/java.desktop
+java.base binds jdk.jartool jrt:/jdk.jartool
+...
+jdk.security.auth requires java.naming jrt:/java.naming
+jdk.security.auth requires java.security.jgss jrt:/java.security.jgss
+...
+All fed!
+```
+
+It starts by listing the root module. That’s the one we are running:``zoo.animal.feeding``. Then it lists many lines of packages included by the mandatory ``java.base`` module. After a while, it lists modules that have dependencies. Finally, it outputs the result of the program: ``All fed!``.
+### Describing with jar
+
+Like the java command, the ``jar`` command can describe a module.
+
+```java
+jar -f mods/zoo.animal.feeding.jar -d
+jar -- file mods/zoo.animal.feeding.jar -- describe- module
+```
+
+```java
+zoo.animal.feeding jar:file:///absolutePath/mods/zoo.animal.feeding.jar
+/!module-info.class
+exports zoo.animal.feeding
+requires java.base mandated
+```
+
+### Learning about Dependencies with ``jdeps``
+
+The ``jdeps`` command gives you information about dependencies within a module. Unlike describing a module, it looks at the code in addition to the module declaration. This tells you what dependencies are actually used rather than simply declared. Luckily, you are not expected to memorize all the options for the exam.
+
+```java
+// Animatronic.java
+package zoo.dinos;
+
+import java.time.*;
+import java.util.*;
+import sun.misc.Unsafe;
+
+public class Animatronic {
+    private List<String> names;
+    private LocalDate visitDate;
+
+    public Animatronic(List<String> names, LocalDate visitDate) {
+        this.names = names;
+        this.visitDate = visitDate;
+    }
+
+    public void unsafeMethod() {
+        Unsafe unsafe = Unsafe.getUnsafe();
+    }
+}
+```
+
+Now we can compile this file. You might have noticed that there is no ``module-info. java file``. That is because we aren’t creating a module. We are looking into what dependencies we will need when we do modularize this ``JAR``.
+
+```java
+javac zoo/dinos/*.java
+```
+
+Compiling works, but it gives you some warnings about ``Unsafe`` being an internal API.
+
+```java
+jar -cvf zoo.dino.jar .
+```
+
+We can run the ``jdeps`` command against this ``JAR`` to learn about its dependencies. On the first two lines, the command prints the modules that we would need to add with a ``requires`` directive to migrate to the module system. It also prints a table showing what packages are used and what modules they correspond to.
+
+```java
+zoo.dino.jar -> java.base, jdk.unsupported
+zoo.dinos -> java.lang, java.base, java.time, java.base, java.util, java.base, sun.misc (JDK internal API) (jdk.unsupported)
+
+```
+
+Note that ``java.base`` is always included. It also says which modules contain classes used by the JAR. If we run in summary mode, we only see just the first part where ``jdeps`` lists the modules.
+
+```java
+jdeps -s zoo.dino.jar
+jdeps -summary zoo.dino.jar
+
+zoo.dino.jar -> java.base
+zoo.dino.jar -> jdk.unsupported
+```
+
+For a real project, the dependency list could include dozens or even hundreds of packages. It’s useful to see the summary of just the modules. This approach also makes it easier to see whether ``jdk.unsupported`` is in the list.
+
+### Using the ``--jdk- internals`` Flag
+
+The ``jdeps`` command has an option to provide details about these unsupported APIs
+
+```java
+jdeps -- jdk- internals zoo.dino.jar
+zoo.dino.jar -> jdk.unsupported
+zoo.dinos.Animatronic -> sun.misc.Unsafe
+JDK internal API (jdk.unsupported)
+Warning: <omitted warning>
+JDK Internal API Suggested Replacement
+sun.misc.Unsafe See http://openjdk.java.net/jeps/260
+```
+
+**==The ``--jdk- internals`` option lists any classes you are using that call an internal API along with which API==**. At the end, it provides a table suggesting what you should do about it. If you wrote the code calling the internal API, this message is useful. If not, the message would be useful to the team that did write the code. You, on the other hand, might need to update or replace that JAR file entirely with one that fixes the issue. **==Note that ``-jdk internals`` is equivalent to ``-- jdk- internals``==**.
+### Using Module Files with ``jmod``
+
+The final command you need to know for the exam is ``jmod``. You might think a ``JMOD`` file is a Java module file. Not quite. Oracle recommends using ``JAR`` files for most modules. **==``JMOD`` files are recommended only when you have native libraries or something that can’t go inside a ``JAR`` file==**. This is unlikely to affect you in the real world.
+
+![[Pasted image 20240509222139.png]]
+
+### Creating Java Runtimes with ``jlink``
+
+One of the benefits of modules is being able to supply just the parts of Java you need.
+
+```java
+jlink -- module- path mods -- add- modules zoo.animal.talks -- output zooApp
+```
+
+- First we specify where to find the custom modules with ``-p`` or ``-- module- path``.
+- Then we specify our module names with ``-- add- modules``. This will include the dependencies it requires as long as they can be found.
+- Finally, we specify the folder name of our smaller JDK with ``--output``.
+
+The output directory contains the ``bin``, ``conf``, ``include``, ``legal``, ``lib``, and man directories along with a ``release`` file. These should look familiar as you find them in the full JDK as well. When we run this command and zip up the ``zooApp`` directory, the file is only 15 MB. This is an order of magnitude smaller than the full JDK. Where did this space savings come from? There are many modules in the JDK we don’t need. Additionally, development tools like javac don’t need to be in a runtime distribution.
+### Reviewing Command-Line Options
+
+![[Pasted image 20240509222603.png]]
+![[Pasted image 20240509222615.png]]
+
+![[Pasted image 20240509222638.png]]
+
+![[Pasted image 20240509222708.png]]
+
+![[Pasted image 20240509222723.png]]
+
+## Comparing Types of Modules
 
