@@ -27458,3 +27458,171 @@ The output directory contains the ``bin``, ``conf``, ``include``, ``legal``, ``l
 
 ## Comparing Types of Modules
 
+All the modules we’ve used so far in this chapter are called named modules. There are two other types of modules: automatic modules and unnamed modules.
+
+### Named Modules
+
+A named module is one containing a ``module-info. java`` file. To review, this file appears in the root of the JAR alongside one or more packages. Unless otherwise specified, a module is a named module. Named modules appear on the module path rather than the classpath.
+
+As a way of remembering this, a named module has the name inside the ``module-info. java`` file and is on the module path.
+### Automatic Modules
+
+An automatic module appears on the module path but does not contain a ``module-info. java`` file. It is simply a regular JAR file that is placed on the module path and gets treated as a module.
+
+As a way of remembering this, Java automatically determines the module name. The code referencing an automatic module treats it as if there is a ``module-info. java`` file present. It automatically exports all packages. It also determines the module name. How does it determine the module name,
+
+Every JAR file contains a special folder called ``META-INF`` and, within it, a text file called ``MANIFEST.MF``. It can be created automatically when the JAR is created or by hand by the JAR’s author. Getting back to modules, many Java libraries weren’t quite ready to modularize when the feature was introduced. The authors were encouraged to declare the name they intended to use for the module by adding a property named Automatic-Module- Name into their ``MANIFEST.MF`` file.
+
+Specifying a single property in the manifest allowed library providers to make things easier for applications that wanted to use their library in a modular application. You can think of it as a promise that when the library becomes a named module, it will use the specified module name. If the JAR file does not specify an automatic module name, Java will still allow you to use it in the module path. In this case, Java will determine the module name for you.
+
+Java determines the automatic module name by basing it on the filename of the JAR file. First Java will remove the extension ``.jar`` from the name. Then Java will remove the version from the end of the JAR filename. This is important because we want module names to be consistent. Having a different automatic module name every time you upgraded to a new version would not be good! After all, this would force you to change the module declaration of your nice, clean, modularized application every time you pulled in a later version of the holiday calendar JAR.
+
+Removing the version and extension gives us ``holiday-calendar``. This leaves us with a problem. Dashes (-) are not allowed in module names. Java solves this problem by converting any special characters in the name to dots (.). As a result, the module name is ``holiday.calendar``. Any characters other than letters and numbers are considered special characters in this replacement. Finally, any adjacent dots or leading/trailing dots are removed.
+
+-  ==**If the MANIFEST.MF specifies an Automatic-Module-Name, use that. Otherwise, proceed with the remaining rules.**==
+-  ==**Remove the file extension from the JAR name.**==
+-  ==**Remove any version information from the end of the name. A version is digits and dots with possible extra information at the end: for example, -1.0.0 or -1.0- RC.**==
+-  ==**Replace any remaining characters other than letters and numbers with dots.**==
+-  ==**Replace any sequences of dots with a single dot.**==
+-  ==**Remove the dot if it is the first or last character of the result.==**
+
+![[Pasted image 20240510203235.png]]
+
+### Unnamed Modules
+
+An unnamed module appears on the classpath. Like an automatic module, it is a regular JAR. Unlike an automatic module, it is on the classpath rather than the module path. This means an unnamed module is treated like old code and a second-class citizen to modules. An unnamed module does not usually contain a `module-info. java` file. If it happens to contain one, that file will be ignored since it is on the classpath.
+
+Unnamed modules do not export any packages to named or automatic modules. The unnamed module can read from any JARs on the classpath or module path. You can think of an unnamed module as code that works the way Java worked before modules.
+
+### Reviewing Module Types
+
+![[Pasted image 20240510203400.png]]
+
+## Migrating an Application
+
+Many applications were not designed to use the Java Platform Module System because they were written before it was created or chose not to use it. Ideally, they were at least designed with projects instead of as a big ball of mud
+### Determining the Order
+
+Before we can migrate our application to use modules, we need to know how the packages and libraries in the existing application are structured. Suppose we have a simple application with three JAR files, as shown in Figure 12.14. The dependencies between projects form a graph. Both of the representations in Figure 12.14 are equivalent. The arrows show the dependencies by pointing from the project that will require the dependency to the one that makes it available. In the language of modules, the arrow will go from ``requires`` to ``exports``.
+
+![[Pasted image 20240510204054.png]]
+
+The right side of the diagram makes it easier to identify the top and bottom that top-down and bottom-up migration refer to. Projects that do not have any dependencies are at the bottom. Projects that do have dependencies are at the top.
+
+![[Pasted image 20240510204144.png]]
+
+### Exploring a Bottom-Up Migration Strategy
+
+The easiest approach to migration is a bottom-up migration. This approach works best when you have the power to convert any JAR files that aren’t already modules. For a bottom-up migration, you follow these steps:
+
+1. ==**Pick the lowest-level project that has not yet been migrated. (Remember the way we ordered them by dependencies in the previous section?)**==
+2. ==**Add a module-info. java file to that project. Be sure to add any exports to expose any package used by higher-level JAR files. Also, add a requires directive for any modules this module depends on.**==
+3. ==**Move this newly migrated named module from the classpath to the module path.**==
+4. ==**Ensure that any projects that have not yet been migrated stay as unnamed modules onthe classpath.**==
+5. ==**Repeat with the next-lowest-level project until you are done.==**
+
+With a bottom-up migration, you are getting the lower-level projects in good shape. This makes it easier to migrate the top-level projects at the end. It also encourages care in what is exposed. During migration, you have a mix of named modules and unnamed modules. The named modules are the lower-level ones that have been migrated. They are on the module path and not allowed to access any unnamed modules
+
+![[Pasted image 20240510204319.png]]
+
+### Exploring a Top-Down Migration Strategy
+
+A top-down migration strategy is most useful when you don’t have control of every JAR file used by your application. For example, suppose another team owns one project. They are just too busy to migrate. You wouldn’t want this situation to hold up your entire migration. For a top-down migration, you follow these steps:
+
+1. ==**Place all projects on the module path.**==
+2. ==**Pick the highest-level project that has not yet been migrated.**==
+3. ==**Add a module-info. java file to that project to convert the automatic module into a named module. Again, remember to add any exports or requires directives. You can use the automatic module name of other modules when writing the requires directive since most of the projects on the module path do not have names yet.**==
+4. ==**Repeat with the next-highest-level project until you are done.==**
+
+![[Pasted image 20240510204443.png]]
+
+With a top-down migration, you are conceding that all of the lower-level dependencies are not ready but that you want to make the application itself a module. During migration, you have a mix of named modules and automatic modules. The named modules are the higher-level ones that have been migrated. They are on the module path and have access to the automatic modules. The automatic modules are also on the module path.
+
+![[Pasted image 20240510204517.png]]
+
+### Splitting a Big Project into Modules
+
+For the exam, you need to understand the basic process of splitting a big project into modules.
+Suppose you start with an application that has a number of packages. The first step is to break them into logical groupings and draw the dependencies between them.
+
+![[Pasted image 20240510204601.png]]
+
+There’s a problem with this decomposition. Do you see it? The Java Platform Module System does not allow for cyclic dependencies. A cyclic dependency, or circular dependency, is when two things directly or indirectly depend on each other. If the ``zoo.tickets.delivery`` module requires the ``zoo.tickets.discount`` module, ``zoo.tickets.discount`` is not allowed to require the ``zoo.tickets.delivery`` module. what can we do
+about it? A common technique is to introduce another module. That module contains the code that the other two modules share. 
+
+### Failing to Compile with a Cyclic Dependency
+
+It is extremely important to understand that Java will not allow you to compile modules that have circular dependencies
+
+![[Pasted image 20240510204748.png]]
+
+```java
+// Butterfly.java
+package zoo.butterfly;
+public class Butterfly {
+	private Caterpillar caterpillar;
+}
+// module-info.
+java
+module zoo.butterfly {
+	exports zoo.butterfly;
+	requires zoo.caterpillar;
+}
+```
+
+```java
+// Caterpillar.java
+package zoo.caterpillar;
+public class Caterpillar {
+	Butterfly emergeCocoon() {
+		// logic omitted
+	}
+}
+```
+```java
+// module-info.
+java
+module zoo.caterpillar {
+	exports zoo.caterpillar;
+	requires zoo.butterfly;
+}
+```
+
+This is our circular dependency problem at work. This is one of the advantages of the module system. It prevents you from writing code that has a cyclic dependency. Such code won’t even compile!
+
+---
+
+**Java will still allow you to have a cyclic dependency between packages within a module. It enforces that you do not have a cyclic dependency between modules.**
+
+---
+
+## Summary #OCP_Summary 
+
+**==The Java Platform Module System organizes code at a higher level than packages. Each module contains one or more packages and a ``module-info. java`` file. The`` java.base`` module is most common and is automatically supplied to all modules as a dependency.**==
+
+==**The process of compiling and running modules uses the -``-module- path``, also known as ``-p``. Running a module uses the ``-- module option``, also known as ``-m``. The class to run is specified in the format ``moduleName/className``.**==
+
+==**The module declaration file supports a number of directives. The ``exports`` directive specifies that a package should be accessible outside the module. It can optionally restrict that export to a specific package. The ``requires`` directive is used when a module depends on code in another module. Additionally, ``requires transitive`` can be used when all modules that require one module should always require another. The provides and uses directives are used when sharing and consuming a service. Finally, the opens directive is used to allow access via reflection.**==
+ 
+ ==**Both the java and jar commands can be used to describe the contents of a module. The java command can additionally list available modules and show module resolution. The ``jdeps`` command prints information about packages used in addition to module-level information. The ``jmod`` command is used when dealing with files that don’t meet the requirements for a JAR. The ``jlink`` command creates a smaller Java runtime image.**==
+
+==**There are three types of modules. Named modules contain a ``module-info. java`` file and are on the module path. They can read only from the module path. Automatic modules are also on the module path but have not yet been modularized. They might have an automatic module name set in the manifest. Unnamed modules are on the classpath.**==
+ 
+ ==**The two most common migration strategies are top-down and bottom-up migration. Top-down migration starts migrating the module with the most dependencies and places all other modules on the module path. Bottom-up migration starts migrating a module with no dependencies and moves one module to the module path at a time. Both of these strategies require ensuring that you do not have any cyclic dependencies since the Java Platform Module System will not allow cyclic dependencies to compile.==**
+
+## Exam Essentials #Essential 
+
+**Create module-info.java** files. Place the module-info. java file in the root directory of the module. Know how to code exports, requires, provides, and uses directives. Additionally, be familiar with the opens directive.
+
+**Use command-line operations with modules**. The java command can describe a module, list available modules, or show the module resolution. The jar command can describe a module similar to how the java command does. The ``jdeps`` command prints details about a module and packages. The ``jmod`` command provides various modes for working with JMOD files rather than JAR files. The ``jlink`` command creates custom Java images.
+
+**Identify the three types of modules**. Named modules are JARs that have been modularized. Unnamed modules have not been modularized. Automatic modules are in between. They are on the module path but do not have a ``module-info. java`` file
+
+**List built-in JDK modules**. The ``java.base`` module is available to all modules. There are about 20 other modules provided by the JDK that begin with java.* and about 30 that begin with ``jdk.*.``
+
+**Explain top-down and bottom-up migration**. A top-down migration places all JARs on the module path, making them automatic modules while migrating from top to bottom. A bottom-up migration leaves all JARs on the classpath, making them unnamed modules while migrating from bottom to top.
+
+**Differentiate the four main parts of a service**. A service provider interface declares the interface that a service must implement. The service locator looks up the service, and a consumer calls the service. Finally, a service provider implements the service.
+
+## Review Questions
+
