@@ -26687,6 +26687,13 @@ While you can use whichever you like best, be sure that you can recognize all va
 
 ![[Pasted image 20240508193941.png]]
 
+```java
+javac -d out --module-source-path src/main/java --module com.jenkov.mymodule
+
+"C:\Program Files\Java\jdk-9.0.4\bin\javac" -d out --module-source-path src/main/java --module com.jenkov.mymodule
+```
+
+**==The `--module-source-path` should point to the source root directory, not the module root directory. The source root directory is normally one level up from the module root directory.==**
 ### Running Our First Module
 
 Suppose there is a module named ``book.module.`` Inside that module is a package named ``com.sybex,`` which has a class named ``OCP`` with a ``main()`` method. **==Pay special attention to the ``book.module/com.sybex.OCP`` part. It is important to remember that you specify the module name followed by a slash ``(/)`` followed by the fully qualified class name.==**
@@ -26707,6 +26714,7 @@ java -p feeding -m zoo.animal.feeding/zoo.animal.feeding.Task
 
 ![[Pasted image 20240508194349.png]]
 
+**==The `--module` argument tells what module + main class to run==**
 ### Packaging Our First Module
 
 A module isn’t much use if we can run it only in the folder it was created in. Our next step is to package it. Be sure to create a mods directory before running this command:
@@ -26724,7 +26732,24 @@ java -p mods -m zoo.animal.feeding/zoo.animal.feeding.Task
 ```
 
 Since the module path is used, a module JAR is being run.
+ 
+ You can package a Java module inside a standard JAR file. You do so with the standard `jar` command that comes with the Java SDK. The package directory hierarchy must start at the root of the JAR file, just like for pre Java 9 JAR files. Additionally, a Java module JAR file contains a compiled version of the module descriptor at the root of the JAR file.
 
+```java
+jar -c --file=out-jar/com-jenkov-mymodule.jar -C out/com.jenkov.mymodule 
+```
+
+The `-c` argument tells `jar` to create a new JAR file.
+
+The `--file` argument tells the path of the output file - the created JAR file. **==Any directories you want the output JAR file to be under must already exist!==**
+
+Once you have packaged your Java module into a JAR file, you can run it just like running a normal module. Just include the module JAR file on the module path
+
+```java
+java --module-path out-jar -m com.jenkov.mymodule/com.jenkov.mymodule.Main
+```
+
+For this command to work the module JAR file must be located in the `out-jar` directory.
 ## Updating Our Example for Multiple Modules
 
 ![[Pasted image 20240508195310.png]]
@@ -26734,6 +26759,7 @@ Since the module path is used, a module JAR is being run.
 Since we will be having our other modules call code in the ``zoo.animal.feeding`` package, we need to declare this intent in the module declaration.
 
 The ``exports`` directive is used to indicate that a module intends for those packages to be used by Java code outside the module. As you might expect, without an exports directive, the module is only available to be run from the command line on its own. In the following example, we export one package:
+
 
 ```java
 module zoo.animal.feeding {
@@ -26749,6 +26775,7 @@ javac -p mods -d feeding feeding/zoo/animal/feeding/*.java feeding/module-info.j
 jar -cvf mods/zoo.animal.feeding.jar -C feeding/ .
 ```
 
+**==Please note, that only the listed package itself is exported. No "subpackages" of the exported package are exported. That means, that if the `mymodule` package contained a subpackage named `util` then the `com.jenkov.mymodule.util` package is *not* exported just because `com.jenkov.mymodule` is.==**
 ### Creating a Care Module
 
 let’s create the ``zoo.animal.care`` module. This time, we are going to have two packages. The ``zoo.animal.care.medical`` package will have the classes and methods that are intended for use by other modules. The ``zoo.animal.care.details`` package is only going to be used by this module. It will not be exported from the module. Remember that all modules must have a ``module-info.java`` file.
