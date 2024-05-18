@@ -1860,33 +1860,233 @@ An aspect is a piece of code that the Spring framework executes when you call sp
 
 3. **Modularity with Cross-Cutting Concerns**: AOP is a programming paradigm that increases modularity by allowing the separation of cross-cutting concerns. It adds additional behavior to existing code without modifying the code itself.
 
+## Spring AOP Architecture
+
+The core architecture of Spring AOP is based on _proxies_. When the application is initialized, an advised instance of a class is created as the result of a _``ProxyFactory``_ creating a proxy instance of that class with all the aspects woven into the proxy. 
+
+In runtime, Spring analyzes the crosscutting concerns defined for the beans in _``ApplicationContext``_ and generates proxy beans (which wrap the underlying target bean) dynamically. Instead of accessing the target bean directly, callers are injected with the proxied bean.
+
+Internally, Spring has two proxy implementations:
+
+- **JDK dynamic proxies**: when the target object to be advised implements an interface.
+- **CGLIB proxies**: when the advised target object doesn’t implement an interface. For example, it’s a concrete class.
+
+Note that the JDK dynamic proxy supports only the proxying of interfaces.
+
+Remember that **Spring AOP has some limitations**. Such as:
+
+- Final classes or methods cannot be proxied since they cannot be extended.
+- Also, due to the proxy implementation, Spring AOP only applies to public, non-static methods on Spring Beans.
+- If there is an internal method call from one method to another within the same class, the advice will never be executed for the internal method call.
+
 ## AOP Jargons
 
-- **Aspect**: Describes the logic or code that Spring should execute when a specific method is called.
+- **Joinpoint**: is a point of execution of the program, such as executing a method or handling an exception. **In Spring AOP, a joinpoint always represents a method execution.** Joinpoints define the points in your application at which you can insert additional logic using AOP.
 
-- **Advice**: Specifies when the Spring framework should execute the given aspect. It can be before, after, or around the method call.
+- **Advice**: is the code that is executed at a particular joinpoint. There are many types of advice, such as _before_, which executes before the joinpoint, and _after_, which executes after it.
 
-- **Pointcut**: Determines which method inside the application the framework needs to intercept and execute the given aspect.
+- **Aspect**: is the combination of advices and pointcuts encapsulated in a class.
 
-## AOP Components
+- **Pointcut**: is a predicate or expression that matches joinpoints.
 
-- **Join Point**: Defines the event that triggers the execution of an aspect, always a method call in Spring.
+- **Weaving**: is the process of inserting aspects into the application code at the appropriate point. AspectJ supports a weaving mechanism called _load-time weaving (LTW)_, in which it intercepts the underlying JVM class loader and provides weaving to the bytecode when it is being loaded by the class loader.
 
-- **Target Object**: The bean that declares the method or pointcut intercepted by an aspect.
+- **Target**: is the object whose execution flow is modified by an AOP process. Often you see the target object referred to as the _advised object_.
+
+- Spring uses the AspectJ pointcut expression language by default.
+
+
 
 ## Type of Advices in Spring AOP
 
-1. **@Before**: Runs before a matched method execution.
+- **Before advice**: Advice that executes before a join point, but which does not have the ability to prevent execution flow proceeding to the join point (unless it throws an exception).
 
-2. **@AfterReturning**: Runs when a matched method execution completes normally.
+- **After returning advice**: Advice to be executed after a join point completes normally: for example, if a method returns without throwing an exception.
 
-3. **@AfterThrowing**: Runs when a matched method execution exits by throwing an exception.
+- **After throwing advice**: Advice to be executed if a method exits by throwing an exception.
 
-4. **@After**: (Finally) advice runs no matter how a matched method execution exits.
+- **After advice**: Advice to be executed regardless of the means by which a join point exits (normal or exceptional return).
 
-5. **@Around**: Runs "around" a matched method execution, with the opportunity to do work both before and after the method runs.
+- **Around advice:** Advice that surrounds a join point such as a method invocation. This is the most powerful kind of advice. Around advice can perform custom behavior before and after the method invocation. It is also responsible for choosing whether to proceed to the join point or to shortcut the advised method execution by returning its own return value or throwing an exception.
 
-## Example Codes (To Be Added Later)
+## Spring AOP Pointcut Expression
+
+Spring AOP uses AspectJ-style expressions for defining pointcuts. The syntax involves combining various elements to precisely target specific join points.
+
+For example, use `_execution_()` to specify the method execution join points. The basic syntax is in the pattern ‘_``execution(modifiers? return_type method_name(param_type1, param_type2, …))``_‘. Consider the following example:
+
+```java
+execution(public void com.example.service.MyService.doSomething())
+```
+
+Use wildcards to match multiple elements, similar to regular expressions. For instance, `*` matches any sequence of characters, and `..` matches any number of parameters. Consider the following example:
+
+```java
+execution(* com.example.service.*.*(..))
+```
+
+Use `_within()_` to specify join points within a certain type or package. For example, the following expression matches all methods within the ‘_``com.example.service``_‘ package.
+
+```java
+within(com.example.service.*)
+```
+
+The most typical point-cut expressions are used to match the methods by their signatures.
+
+### Pointcut Expressions: Matching Specific Methods in a Class
+
+|Pointcut Expression|Description|
+|---|---|
+|execution(* com.example.EmployeeManager.*(..))|Match all methods in the specified package and class|
+|execution(* EmployeeManager.*(..))|Match all methods in the same package and specified class|
+|execution(public * EmployeeManager.*(..))|Match all public methods in _EmployeeManager_|
+|execution(public Employee EmployeeManager.*(..))|Match all public methods in EmployeeManager with return type _Employee_ object|
+|execution(public Employee EmployeeManager.*(Employee, ..))|Match all public methods in _EmployeeManager_ with return type _Employee_ and first parameter as _Employee_|
+|execution(public Employee EmployeeManager.*(Employee, Integer))|Match all public methods in _EmployeeManager_ with return type _Employee_ and the specified parameters|
+### Pointcut Expressions: Matching All Methods in a Class or Package
+
+|Pointcut Expression|Description|
+|---|---|
+|within(com.example.*)|Match all methods in all the classes inside package ‘_com.example.*_‘|
+|within(com.example..*)|Match all methods in all the classes inside package ‘_com.howtodoinjava_‘ and the classes inside all sub-packages as well|
+|within(com.example.EmployeeManagerl)|Match all methods within the specified class in the specified package|
+|within(EmployeeManager)|Match all methods within the specified class in the current package|
+|within(IEmployeeManager+)|Match all methods within all the implementations of the specified interface|
+### Pointcut Expressions: Matching Class Name Patterns
+
+|Pointcut Expression|Description|
+|---|---|
+|bean(*Manager)|Match all methods in bean whose name ends with ‘_Manager_‘|
+|bean(employeeManager)|Match all methods in specified bean with name ‘_employeeManager_‘|
+|bean(com.example.service.*)|Match all methods in all the beans in a specific Package|
+|bean(@MyCustomAnnotation *)|Match all methods in all the beans with a specific annotation|
+
+### Combining Pointcut Expressions
+
+In AspectJ, pointcut expressions can be combined with the operators `&& (and)`, `|| (or)`, and `! (not)`.
+The following matches all the methods in beans whose names ending with _Manager_ or _DAO_.
+
+Use `'||'` sign to combine both expressions.
+
+ ```java
+ bean(*Manager) || bean(*DAO) 
+```
+## Example Codes 
+
+### Maven
+
+Before writing any code, you will need to import _Spring AOP dependencies_ into your project.
+
+```xml
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-context</artifactId>
+    <version>6.1.1</version>
+</dependency>
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-context-support</artifactId>
+    <version>6.1.1</version>
+</dependency>
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-aop</artifactId>
+    <version>6.1.1</version>
+</dependency>
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjrt</artifactId>
+    <version>1.9.20.1</version>
+</dependency>
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.9.20.1</version>
+</dependency>
+```
+
+
+In a Spring Boot application, adding dependencies is rather easier.
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-aop</artifactId>
+</dependency>
+```
+
+### Enabling Spring AOP
+
+We can enable Spring AOP using the **_``@EnableAspectJAutoProxy``_** annotation on a configuration.
+
+```java
+@Configuration
+@EnableAspectJAutoProxy
+@ComponentScan
+public class AopConfig {
+ 
+}
+```
+
+### Define an Advice using Aspect and Pointcut Expression
+
+Each Aspect class should be annotated with **_@Aspect_** annotation. Within that class, we then specify Pointcuts and Advice. It should also be annotated with _@Component_ to be picked up by component scanning (or configured as a Spring bean in another way).
+
+```java
+@Aspect
+public class EmployeeCRUDAspect {
+      
+    @Before("execution(* EmployeeManager.getEmployeeById(..))")     //point-cut expression
+    public void logBeforeV1(JoinPoint joinPoint) {
+
+        System.out.println("EmployeeCRUDAspect.logBeforeV1() : " + joinPoint.getSignature().getName());
+    }
+}
+```
+
+### Advised Methods (Jointpoints)
+
+Write methods on which you want to execute advice and those match with point-cut expressions.
+
+```java
+@Component
+public class EmployeeManager {
+
+    public EmployeeDTO getEmployeeById(Integer employeeId) {
+        System.out.println("Method getEmployeeById() called");
+        return new EmployeeDTO();
+    }
+}
+```
+
+In the above example, `logBeforeV1()` will be executed **before** `getEmployeeById()` method because it matches the join-point expression.
+
+### Run the Application
+
+Run the application and watch the console.
+
+```java
+public class TestAOP
+{
+    @SuppressWarnings("resource")
+    public static void main(String[] args) {
+  
+        ApplicationContext context = new ClassPathXmlApplicationContext
+                  ("com/howtodoinjava/demo/aop/applicationContext.xml");
+ 
+        EmployeeManager manager = context.getBean(EmployeeManager.class);
+  
+        manager.getEmployeeById(1);
+    }
+}
+```
+
+Program output:
+
+```log
+EmployeeCRUDAspect.logBeforeV1() : getEmployeeById
+Method getEmployeeById() called
+```
 
 
 # SPRING WEB
