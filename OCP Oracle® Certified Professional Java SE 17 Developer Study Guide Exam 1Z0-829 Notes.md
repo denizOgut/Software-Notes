@@ -28067,3 +28067,488 @@ E. None of the above
 
 ---
 
+# Chapter 13 - Concurrency #Chapter 
+
+all operating systems support what is known as *multithreaded processing*. The idea behind multithreaded processing is to allow an application or group of applications to execute multiple tasks at the same time. This allows tasks waiting for other resources to give way to other processing requests.
+
+## Introducing Threads
+
+- ==**A thread is the smallest unit of execution that can be scheduled by the operating system**==
+- ==**A process is a group of associated threads that execute in the same shared environment.==**
+
+- It follows, then, that a single-threaded process is one that contains exactly one thread, whereas a multithreaded process supports more than one thread.
+
+- By shared environment, we mean that the threads in the same process share the same memory space and can communicate directly with one another.
+
+- A task is a single unit of work performed by a thread. **==A thread can complete multiple independent tasks but only one task at a time.==**
+
+![[Pasted image 20240520190758.png]]
+
+By shared memory we are generally referring to ``static`` variables as well as instance and local variables passed to a thread.  ``static`` methods and variables are defined on a single class object that all instances share. For example, if one thread updates the value of a ``static`` object, this information is immediately available for other threads within the process to read.
+### Understanding Thread Concurrency
+
+==**The property of executing multiple threads and processes at the same time is referred to as concurrency.**==
+How does the system decide what to execute when there are more threads available than CPUs? Operating systems use a *thread scheduler* to determine which threads should be currently executing. For example, a thread scheduler may employ a round-robin schedule in which each available thread receives an equal number of CPU cycles with which to execute, with threads visited in a circular order.
+
+---
+**The thread scheduler is a part of the operating system that manages the execution of threads. Its main job is to decide which thread should run at any given time, based on factors like thread priority and resource availability. The scheduler ensures that CPU time is efficiently distributed among all running threads, allowing for multitasking and optimal system performance.**
+
+---
+
+When a thread’s allotted time is complete but the thread has not finished processing, a *context switch* occurs. A **==context switch is the process of storing a thread’s current state and later restoring the state of the thread to continue execution==**. Be aware that a cost is often associated with a context switch due to lost time and having to reload a thread’s state. Intelligent thread schedulers do their best to minimize the number of context switches while keeping an application running smoothly.
+
+Finally, a thread can interrupt or supersede another thread if it has a higher thread priority than the other thread. A *thread priority* is a numeric value associated with a thread that is taken into consideration by the thread scheduler when determining which threads should currently be executing. In Java, thread priorities are specified as integer values.
+
+### Creating a Thread
+
+One of the most common ways to define a task for a thread is by using the ``Runnable`` instance. ``Runnable`` is a functional interface that takes no arguments and returns no data.
+
+```java
+@FunctionalInterface public interface Runnable {
+	void run();
+}
+```
+
+```java
+new Thread(() ->System.out.print("Hello")).start();
+System.out.print("World");
+```
+
+The first line creates a new ``Thread`` object and then starts it with the ``start()`` method. Does this code print ``HelloWorld`` or ``WorldHello``? The answer is that we don’t know. Depending on the thread priority/scheduler, either is possible. Remember that order of thread execution is not often guaranteed. The exam commonly presents questions in which multiple tasks are started at the same time, and you must determine the result.
+
+```java
+Runnable printRecords = () -> {
+	for (int i = 0; i < 3; i++)
+	System.out.println("Printing record: " + i);
+};
+```
+
+Given these instances, what is the output of the following?
+
+```java
+3: System.out.println("begin");
+4: new Thread(printInventory).start();
+5: new Thread(printRecords).start();
+6: new Thread(printInventory).start();
+7: System.out.println("end");
+```
+
+The answer is that it is unknown until runtime. The following is just one possible output:
+
+```java
+begin
+Printing record: 0
+Printing zoo inventory
+end
+Printing record: 1
+Printing zoo inventory
+Printing record: 2
+```
+
+This sample uses a total of four threads: the ``main()`` user thread and three additional threads created on lines 4–6. Each thread created on these lines is executed as an asynchronous task. By asynchronous, we mean that the thread executing the ``main()`` method does not wait for the results of each newly created thread before continuing. For example, lines 5 and 6 may be executed before the thread created on line 4 finishes. The opposite of this behavior is a synchronous task in which the program waits (or blocks) on line 4 for the thread to finish executing before moving on to the next line
+
+While the order of thread execution is indeterminate once the threads have been started, the order within a single thread is still linear. In particular, the ``for()`` loop is still ordered. Also, ``begin`` always appears before ``end``.
+
+---
+**Calling ``run()`` Instead of ``start()``**
+
+**==On the exam, be mindful of code that attempts to start a thread by calling ``run()`` instead of ``start()``. Calling ``run()`` on a ``Thread`` or a ``Runnable`` does not start a new thread==. While the following code snippets will compile, none will execute a task on a separate thread:**
+
+```java
+System.out.println("begin");
+new Thread(printInventory).run();
+new Thread(printRecords).run();
+new Thread(printInventory).run();
+System.out.println("end");
+```
+
+**Unlike the previous example, each line of this code will wait until the ``run()`` method is complete before moving on to the next line. Also unlike the previous program, the output for this code sample will be the same every time it is executed.**
+
+---
+
+More generally, we can create a ``Thread`` and its associated task one of two ways in Java:
+
+-  ==**Provide a ``Runnable`` object or lambda expression to the ``Thread`` constructor.**==
+-  ==**Create a class that ``extends`` ``Thread`` and overrides the ``run()`` method.==**
+
+Creating a class that extends ``Thread`` is relatively uncommon and should only be done under certain circumstances, such as if you need to overwrite other thread methods.
+
+### Distinguishing Thread Types
+
+All Java applications are multithreaded because they include system threads. system thread is created by the Java Virtual Machine (JVM) and runs in the background of the application. For example, garbage collection is managed by a system thread created by the JVM. Alternatively, a user-defined thread is one created by the application developer to accomplish a specific task. The majority of the programs we’ve presented so far have contained only one user-defined thread, which calls the ``main()`` method.
+
+System and user-defined threads can both be created as daemon threads. **==A daemon thread is one that will not prevent the JVM from exiting when the program finishes. A Java application terminates when the only threads that are running are daemon threads==**. For example, if garbage collection is the only thread left running, the JVM will automatically shut down.
+
+```java
+1: public class Zoo {
+	2: public static void pause() { // Defines the thread task
+		3: try {
+			4: Thread.sleep(10_000); // Wait for 10 seconds
+		5: } catch (InterruptedException e) {}
+			6: System.out.println("Thread finished!");
+		7: }
+		8:
+		9: public static void main(String[] unused) {
+			10: var job = new Thread(() -> pause()); // Create thread
+			11:
+			12: job.start(); // Start thread
+			13: System.out.println("Main method finished!");
+	14: } 
+}
+```
+
+The program will output two statements roughly 10 seconds apart:
+
+```java
+Main method finished!
+---10 second wait ---
+Thread finished!
+```
+
+Even though the ``main()`` method is done, the JVM will wait for the user thread to be done before ending the program. What if we change job to be a daemon thread by adding this to line 11?
+
+```java
+11: job.setDaemon(true);
+```
+
+The program will print the first statement and terminate without ever printing the second line.
+
+```java
+Main method finished!
+```
+
+For the exam, just remember that by default, user-defined threads are not daemons, and the program will wait for them to finish.
+
+### Managing a Thread’s Life Cycle
+
+![[Pasted image 20240520194402.png]]
+
+- Every thread is initialized with a ``NEW`` state.
+- As soon as ``start()`` is called, the thread is moved to a ``RUNNABLE`` state. Does that mean it is actually running? Not exactly: it may be running, or it may not be. **==The ``RUNNABLE`` state just means the thread is able to be run.==**
+- Once the work for the thread is completed or an uncaught exception is thrown, the thread state becomes ``TERMINATED``, and no more work is performed.
+
+**==While in a ``RUNNABLE`` state, the thread may transition to one of three states where it pauses its work: ``BLOCKED``, ``WAITING``, or ``TIMED_WAITING``.==**
+
+### Polling with Sleep
+
+Even though multithreaded programming allows you to execute multiple tasks at the same time, one thread often needs to wait for the results of another thread to proceed. One solution is to use polling. *Polling* is the process of intermittently checking data at some fixed interval.
+
+Let’s say you have a thread that modifies a shared ``static`` counter value, and your ``main()`` thread is waiting for the thread to reach 1 million:
+
+```java
+public class CheckResults {
+	private static int counter = 0;
+	public static void main(String[] args) {
+		new Thread(() -> {
+			for(int i = 0; i < 1_000_000; i++) counter++;
+		}).start();
+		while(counter < 1_000_000) {
+			System.out.println("Not reached yet");
+		}
+		System.out.println("Reached: "+counter);
+	}
+}
+```
+
+How many times does this program print ``Not reached yet``? The answer is, we don’t know! It could output 0, 10, or a million times. Using a ``while()`` loop to check for data without some kind of delay is considered a bad coding practice as it ties up CPU resources for no reason.
+
+We can improve this result by using the ``Thread.sleep()`` method to implement polling and sleep for 1,000 milliseconds, aka 1 second:
+
+```java
+public class CheckResultsWithSleep {
+    private static int counter = 0;
+
+    public static void main(String[] a) {
+        new Thread(() -> {
+            for (int i = 0; i < 1_000_000; i++) counter++;
+        }).start();
+
+        while (counter < 1_000_000) {
+            System.out.println("Not reached yet");
+            try {
+                Thread.sleep(1_000); // 1 SECOND
+            } catch (InterruptedException e) {
+                System.out.println("Interrupted!");
+            }
+        }
+
+        System.out.println("Reached: " + counter);
+    }
+}
+```
+
+While one second may seem like a small amount, we have now freed the CPU to do other work instead of checking the counter variable infinitely within a loop. Notice that the ``main()`` thread alternates between ``TIMED_WAITING`` and ``RUNNABLE`` when ``sleep()`` is entered and exited, respectively.
+
+How many times does the ``while()`` loop execute in this revised class? Still unknown! While polling does prevent the CPU from being overwhelmed with a potentially infinite loop, it does not guarantee when the loop will terminate. For example, the separate thread could be losing CPU time to a higher-priority process, resulting in multiple executions of the ``while()`` loop before it finishes.
+
+Another issue to be concerned about is the shared counter variable. What if one thread is reading the counter variable while another thread is writing it? The thread reading the shared variable may end up with an invalid or unexpected value.
+
+### Interrupting a Thread
+
+While our previous solution prevented the CPU from waiting endlessly on a ``while()`` loop, it did come at the cost of inserting one-second delays into our program. If the task takes 2.1 seconds to run, the program will use the full 3 seconds, wasting 0.9 seconds. One way to improve this program is to allow the thread to interrupt the ``main()`` thread when it’s done:
+
+```java
+public class CheckResultsWithSleepAndInterrupt {
+    private static int counter = 0;
+
+    public static void main(String[] a) {
+        final var mainThread = Thread.currentThread();
+        
+        new Thread(() -> {
+            for (int i = 0; i < 1_000_000; i++) counter++;
+            mainThread.interrupt();
+        }).start();
+
+        while (counter < 1_000_000) {
+            System.out.println("Not reached yet");
+            try {
+                Thread.sleep(1_000); // 1 SECOND
+            } catch (InterruptedException e) {
+                System.out.println("Interrupted!");
+            }
+        }
+
+        System.out.println("Reached: " + counter);
+    }
+}
+```
+
+This improved version includes both ``sleep()``, to avoid tying up the CPU, and ``interrupt()``, so the thread’s work ends without delaying the program. As before, our ``main()`` thread’s state alternates between ``TIMED_WAITING`` and ``RUNNABLE``. Calling ``interrupt()`` on a thread in the ``TIMED_WAITING`` or ``WAITING`` state causes the ``main()`` thread to become ``RUNNABLE`` again, triggering an ``InterruptedException``. The thread may also move to a ``BLOCKED`` state if it needs to reacquire resources when it wakes up.
+
+---
+**Calling ``interrupt()`` on a thread already in a ``RUNNABLE`` state doesn’t change the state. In fact, it only changes the behavior if the thread is periodically checking the ``Thread.isInterrupted()`` value state.**
+
+---
+
+## Creating Threads with the Concurrency API
+
+The Concurrency API includes the ``ExecutorService`` interface, which defines services that create and manage threads.  first obtain an instance of an ``ExecutorService`` interface, and then you send the service tasks to be processed. The framework includes numerous useful features, such as thread pooling and scheduling. It is recommended that you use this framework any time you need to create and execute a separate task, even if you need only a single thread.
+
+---
+
+**When writing multithreaded programs in practice, it is often better to use the ``Concurrency API`` (or some other multithreaded SDK) rather than work with Thread objects directly. The libraries are much more robust, and it is easier to handle complex interactions.** #TIP 
+
+---
+
+### Introducing the Single-Thread Executor
+
+Since ``ExecutorService`` is an interface, how do you obtain an instance of it? The Concurrency API includes the Executors factory class that can be used to create instances of the ``ExecutorService`` object.
+
+```java
+ExecutorService service = Executors.newSingleThreadExecutor();
+try {
+	System.out.println("begin");
+	service.execute(printInventory);
+	service.execute(printRecords);
+	service.execute(printInventory);
+	System.out.println("end");
+} finally {
+	service.shutdown();
+}
+```
+
+Unlike our earlier example, in which we had four threads (one ``main()`` and three new threads), we have only two threads (one ``main()`` and one new thread). This means that the output, while still unpredictable, will have less variation than before
+
+```text
+Printing zoo inventory
+Printing record: 0
+Printing record: 1
+end
+Printing record: 2
+Printing zoo inventory
+```
+
+Notice that the ``printRecords`` loop is no longer interrupted by other Runnable tasks sent to the thread executor. With a single-thread executor, tasks are guaranteed to be executed sequentially. Notice that the end text is output while our thread executor tasks are still running. This is because **==the ``main()`` method is still an independent thread from the ``ExecutorService``==**
+
+### Shutting Down a Thread Executor
+
+Once you have finished using a thread executor, it is important that you call the ``shutdown()`` method. **==A thread executor creates a non-daemon thread on the first task that is executed, so failing to call ``shutdown()`` will result in your application never terminating==**.
+
+**==The shutdown process for a thread executor involves first rejecting any new tasks submitted to the thread executor while continuing to execute any previously submitted tasks. During this time, calling ``isShutdown()`` will return true, while ``isTerminated()`` will return false.==** If a new task is submitted to the thread executor while it is shutting down, a ``RejectedExecutionException`` will be thrown. **==Once all active tasks have been completed, ``isShutdown()`` and ``isTerminated()`` will both return true.==**
+
+![[Pasted image 20240520201451.png]]
+
+**==For the exam, you should be aware that ``shutdown()`` does not stop any tasks that have already been submitted to the thread executor.==**
+
+What if you want to cancel all running and upcoming tasks? The ``ExecutorService`` provides a method called ``shutdownNow()``, which attempts to stop all running tasks and discards any that have not been started yet. It is not guaranteed to succeed because it is possible to create a thread that will never terminate, so any attempt to interrupt it may be ignored.
+
+---
+
+**Unfortunately, the ``ExecutorService`` interface does not extend the ``AutoCloseable`` interface, so you cannot use a try-with- resources statement. You can still use a ``finally`` block, While you are not required to use a ``finally`` block, it is considered a good practice to do so.** #TIP 
+
+---
+
+### Submitting Tasks
+
+can submit tasks to an ``ExecutorService`` instance multiple ways
+
+- **==The first method we presented, ``execute()``, is inherited from the ``Executor`` interface, which the ``ExecutorService`` interface extends. The ``execute()`` method takes a ``Runnable`` instance and completes the task asynchronously. Because the return type of the method is ``void``==**, it does not tell us anything about the result of the task. It is considered a *“fire-and- forget”* method, as once it is submitted, the results are not directly available to the calling thread.
+- Fortunately, the writers of Java added ``submit()`` methods to the ``ExecutorService`` interface, which, like ``execute()``, can be used to complete tasks asynchronously. **==Unlike ``execute()``, though, ``submit()`` returns a ``Future`` instance that can be used to determine whether the task is complete. It can also be used to return a generic result object after the task has been completed.==**
+
+**==In practice, using the ``submit()`` method is quite similar to using the ``execute()`` method, except that the ``submit()`` method returns a Future ``instance`` that can be used to determine whether the task has completed execution.==**
+
+![[Pasted image 20240520202540.png]]
+
+---
+**Submitting Tasks: ``execute()`` vs. ``submit()``**
+ 
+ **the ``execute()`` and ``submit()`` methods are nearly identical when applied to Runnable expressions. The ``submit()`` method has the obvious advantage of doing the same thing ``execute()`` does, but with a return object that can be used to track the result. Because of this advantage and the fact that ``execute()`` does not support Callable expressions, we tend to prefer ``submit()`` over execute(), even if we don’t store the Future reference.**
+
+**For the exam, you need to be familiar with both ``execute()`` and ``submit()``, but in your own code we recommend ``submit()`` over ``execute()`` whenever possible.**
+
+---
+### Waiting for Results
+
+How do we know when a task submitted to an ``ExecutorService`` is complete?
+
+```java
+Future<?> future = service.submit(() -> System.out.println("Hello"));
+```
+
+The ``Future`` type is actually an interface. For the exam, you don’t need to know any of the classes that implement ``Future``, just that a ``Future`` instance is returned by various API methods.
+
+![[Pasted image 20240520203811.png]]
+
+```java
+import java.util.concurrent.*;
+
+public class CheckResults {
+    private static int counter = 0;
+
+    public static void main(String[] unused) throws Exception {
+        ExecutorService service = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> result = service.submit(() -> {
+                for (int i = 0; i < 1_000_000; i++) counter++;
+            });
+            result.get(10, TimeUnit.SECONDS); // Returns null for Runnable
+            System.out.println("Reached!");
+        } catch (TimeoutException e) {
+            System.out.println("Not reached in time");
+        } finally {
+            service.shutdown();
+        }
+    }
+}
+```
+
+This example is similar to our earlier polling implementation, but it does not use the ``Thread`` class directly. In part, this is the essence of the Concurrency API: to do complex things with threads without having to manage threads directly. It also waits at most 10 seconds, throwing a ``TimeoutException`` on the call to ``result.get()`` if the task is not done.
+
+What is the return value of this task? As ``Future<V>`` is a generic interface, the type ``V`` is determined by the return type of the ``Runnable`` method. Since the return type of ``Runnable.run()`` is ``void``, the ``get()`` method always returns ``null`` when working with ``Runnable`` expressions.
+
+The ``Future.get()`` method can take an optional value and enum type ``java.util.concurrent.TimeUnit``.
+
+![[Pasted image 20240520204145.png]]
+
+#### Introducing Callable
+
+The ``java.util.concurrent.Callable`` functional interface is similar to ``Runnable`` except that its ``call()`` method returns a value and can throw a checked exception.
+
+```java
+@FunctionalInterface public interface Callable<V> {
+	V call() throws Exception;
+}
+```
+
+The ``Callable`` interface is often preferable over ``Runnable``, since it allows more details to be retrieved easily from the task after it is completed. as they are interchangeable in situations where the lambda does not
+throw an exception, and there is no return type. Luckily, the ``ExecutorService`` includes an overloaded version of the submit() method that takes a Callable object and returns a generic ``Future<T>`` instance.
+
+**==Unlike ``Runnable``, in which the ``get()`` methods always return ``null``, the ``get()`` methods on a ``Future`` instance return the matching generic type (which could also be a ``null`` value).==**
+
+```java
+var service = Executors.newSingleThreadExecutor();
+try {
+	Future<Integer> result = service.submit(() -> 30 + 11);
+	System.out.println(result.get()); // 41
+} finally {
+	service.shutdown();
+}
+```
+
+We could rewrite this example using ``Runnable``, some shared object, and an ``interrupt()`` or timed wait, but this implementation is a lot easier to code and understand. In essence, that’s the spirit of the Concurrency API, giving you the tools to write multithreaded code that is thread-safe, performant, and easy to follow.
+
+#### Waiting for All Tasks to Finish
+
+After submitting a set of tasks to a thread executor, it is common to wait for the results. One solution is to call ``get()`` on each ``Future`` object returned by the ``submit()`` method. If we don’t need the results of the tasks and are finished using our thread executor, there is a simpler approach.
+
+First, we shut down the thread executor using the ``shutdown()`` method. Next, we use the ``awaitTermination()`` method available for all thread executors. The method waits the specified time to complete all tasks, returning sooner if all tasks finish or an ``InterruptedException`` is detected.
+
+```java
+ExecutorService service = Executors.newSingleThreadExecutor();
+try {
+// Add tasks to the thread executor
+...
+} finally {
+	service.shutdown();
+}
+service.awaitTermination(1, TimeUnit.MINUTES);
+// Check whether all tasks are finished
+if(service.isTerminated()) System.out.println("Finished!");
+else System.out.println("At least one task is still running");
+```
+
+### Scheduling Tasks
+
+``ScheduledExecutorService``, which is a subinterface of ``ExecutorService``, can be used for just such a task. Like ``ExecutorService``, we obtain an instance of ``ScheduledExecutorService`` using a factory method in the ``Executors`` class,
+
+```java
+ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+```
+
+We could store an instance of ``ScheduledExecutorService`` in an ``ExecutorService`` variable, although doing so would mean we’d have to cast the object to call any scheduling methods.
+
+![[Pasted image 20240520205307.png]]
+
+In practice, these methods are among the most convenient in the Concurrency API, as they perform relatively complex tasks with a single line of code. The delay and period parameters rely on the ``TimeUnit`` argument to determine the format of the value, such as seconds or milliseconds.
+
+The first two ``schedule()`` methods in Table 13.4 take a Callable or Runnable, respectively; perform the task after some delay; and return a ``ScheduledFuture`` instance. The ``ScheduledFuture`` interface is identical to the ``Future`` interface, except that it includes a ``getDelay()`` method that returns the remaining delay
+
+```java
+ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+Runnable task1 = () -> System.out.println("Hello Zoo");
+Callable<String> task2 = () -> "Monkey";
+ScheduledFuture<?> r1 = service.schedule(task1, 10, TimeUnit.SECONDS);
+ScheduledFuture<?> r2 = service.schedule(task2, 8, TimeUnit.MINUTES)
+```
+
+---
+
+**While these tasks are scheduled in the future, the actual execution may be delayed. For example, there may be no threads available to perform the tasks, at which point they will just wait in the queue. Also, if the ``ScheduledExecutorService`` is shut down by the time the scheduled task execution time is reached, then these tasks will be discarded.**
+
+---
+
+The last two methods Conceptually, they are similar as they both perform the same task repeatedly after
+an initial delay. **==The difference is related to the timing of the process and when the next task starts==**.
+
+The ``scheduleAtFixedRate()`` method creates a new task and submits it to the executor every period, regardless of whether the previous task finished.
+
+```java
+service.scheduleAtFixedRate(command, 5, 1, TimeUnit.MINUTES);
+```
+
+The ``scheduleAtFixedRate()`` method is useful for tasks that need to be run at specific intervals, such as checking the health of the animals once a day. Even if it takes two hours to examine an animal on Monday, this doesn’t mean that Tuesday’s exam should start any later in the day.
+
+---
+
+**Bad things can happen with ``scheduleAtFixedRate()`` if each task consistently takes longer to run than the execution interval. Imagine if your boss came by your desk every minute and dropped off a piece of paper. Now imagine that it took you five minutes to read each piece of paper. Before long, you would be drowning in piles of paper. This is how an executor feels. Given enough time, the program would submit more tasks to the executor service than could fit in memory, causing the program to crash.**
+
+---
+
+On the other hand, the ``scheduleWithFixedDelay()`` method creates a new task only after the previous task has finished
+
+```java
+service.scheduleWithFixedDelay(task1, 0, 2, TimeUnit.MINUTES);
+```
+
+The ``scheduleWithFixedDelay()`` method is useful for processes that you want to happen repeatedly but whose specific time is unimportant.
+
+### Increasing Concurrency with Pools
+
+**==A thread pool is a group of pre-instantiated reusable threads that are available to perform a set of arbitrary tasks.==**
+
+![[Pasted image 20240520210646.png]]
+
+**==The difference between a single-thread and a pooled-thread executor is what happens when a task is already running. While a single-thread executor will wait for the thread to become available before running the next task, a pooled-thread executor can execute the next task concurrently. If the pool runs out of available threads, the task will be queued by the thread executor and wait to be completed.==**
+
+## Writing Thread-Safe Code
+
