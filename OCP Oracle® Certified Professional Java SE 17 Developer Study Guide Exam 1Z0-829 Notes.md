@@ -28552,3 +28552,474 @@ The ``scheduleWithFixedDelay()`` method is useful for processes that you want to
 
 ## Writing Thread-Safe Code
 
+Thread-safety is the property of an object that guarantees safe execution by multiple threads at the same time.
+
+### Understanding Thread-Safety
+
+```java
+1: import java.util.concurrent.*;
+2: public class SheepManager {
+	3: private int sheepCount = 0;
+	4: private void incrementAndReport() {
+		5: System.out.print((++sheepCount)+" ");
+	6: }
+	7: public static void main(String[] args) {
+			8: ExecutorService service = Executors.newFixedThreadPool(20);
+		9: try {
+			10: SheepManager manager = new SheepManager();
+		11: for(int i = 0; i < 10; i++)
+			12: service.submit(() -> manager.incrementAndReport());
+		13: } finally {
+			14: service.shutdown();
+		15: } 
+	} 
+}
+```
+
+What does this program output? The following are possible outputs of this program:
+
+```TEXT
+1 2 3 4 5 6 7 8 9 10
+1 9 8 7 3 6 6 2 4 5
+1 8 7 3 2 6 5 4 2 9
+```
+
+A problem occurs when two threads both execute the right side of the expression, reading the “old” value before either thread writes the “new” value of the variable. The two assignments become redundant; they both assign the same new value, with one thread overwriting the results of the other.
+
+![[Pasted image 20240521195628.png]]
+
+both threads read and write the same values, causing one of the two ``++sheepCount`` operations to be lost. Therefore, the increment operator ``++`` is not thread-safe. the unexpected result of two tasks executing at the same time is referred to as a ``race condition``.
+
+### Accessing Data with ``volatile``
+
+The ``volatile`` keyword is used to guarantee that access to data within memory is consistent.
+
+**==The ``volatile`` attribute ensures that only one thread is modifying a variable at one time and that data read among multiple threads is consistent.==** In this manner, we don’t interrupt one of our zoo workers in the middle of running. So, does volatile provide thread-safety? Not exactly.
+
+```java
+3: private volatile int sheepCount = 0;
+4: private void incrementAndReport() {
+	5: System.out.print((++sheepCount)+" ");
+6: }
+```
+
+this code is not thread-safe and could still result in numbers being missed:
+
+```text
+2 6 1 7 5 3 2 9 4 8
+```
+
+The reason this code is not thread-safe is that ``++sheepCount`` is still two distinct operations. Put another way, if the increment operator represents the expression ``sheepCount = sheepCount + 1``, then each read and write operation is thread-safe, but the combined operation is not.
+
+---
+
+**In practice, ``volatile`` is rarely used.**
+
+---
+
+### Protecting Data with Atomic Classes
+
+the increment operator ``++`` is not thread-safe, even when ``volatile`` is used. It is not thread-safe because the operation is not atomic, carrying out two tasks, read and write, that can be interrupted by other threads.
+
+**==Atomic is the property of an operation to be carried out as a single unit of execution without any interference from another thread==**. A thread-safe atomic version of the increment operator would perform the read and write of the variable as a single operation, not allowing any other threads to access the variable during the operation
+
+In this case, any thread trying to access the ``sheepCount`` variable while an atomic operation is in process will have to wait until the atomic operation on the variable is complete. Conceptually, this is like setting a rule for our zoo workers that there can be only one employee in the field at a time, although they may not each report their results in order.
+
+![[Pasted image 20240521202306.png]]
+
+Since accessing primitives and references is common in Java, the Concurrency API includes numerous useful classes in the ``java.util.concurrent.atomic`` package.
+
+![[Pasted image 20240521202335.png]]
+
+```java
+3: private AtomicInteger sheepCount = new AtomicInteger(0);
+4: private void incrementAndReport() {
+	5: System.out.print(sheepCount.incrementAndGet()+" ");
+6: }
+```
+
+![[Pasted image 20240521202637.png]]
+
+```java
+2 3 1 4 5 6 7 8 9 10
+1 4 3 2 5 6 7 8 9 10
+1 4 3 5 6 2 7 8 10 9
+```
+
+Unlike our previous sample output, the numbers 1 through 10 will always be printed, although the order is still not guaranteed. The key in this section is that using the atomic classes ensures that the data is consistent between workers and that no values are lost due to concurrent modifications.
+### Improving Access with ``synchronized`` Blocks
+
+While atomic classes are great at protecting a single variable, they aren’t particularly useful if you need to execute a series of commands or call a method.
+
+**==The most common technique is to use a monitor to synchronize access. A monitor, also called a lock, is a structure that supports mutual exclusion, which is the property that at most one thread is executing a particular segment of code at a given time.==** In Java, any ``Object`` can be used as a monitor, along with the ``synchronized`` keyword,
+
+```java
+var manager = new SheepManager();
+synchronized(manager) {
+	// Work to be completed by one thread at a time
+}
+```
+
+This example is referred to as a *synchronized block*. Each thread that arrives will first check if any threads are already running the block. If the lock is not available, the thread will transition to a ``BLOCKED`` state until it can “acquire the lock.” If the lock is available (or the thread already holds the lock), the single thread will enter the block, preventing all other threads from entering. Once the thread finishes executing the block, it will release the lock, allowing one of the waiting threads to proceed.
+
+---
+
+**==To synchronize access across multiple threads, each thread must have access to the same ``Object``. If each thread synchronizes on different objects, the code is not thread-safe.==**
+
+---
+
+```java
+11: for(int i = 0; i < 10; i++) {
+	12: synchronized(manager) {
+		13: service.submit(() -> manager.incrementAndReport());
+	14: }
+15: }
+```
+
+Does this solution fix the problem? No, it does not! We’ve synchronized the creation of the threads but not the execution of the threads. In this example, the threads would be created one at a time, but they might all still execute and perform their work simultaneously, resulting in the same type of output
+
+```java
+1: import java.util.concurrent.*;
+2: public class SheepManager {
+	3: private int sheepCount = 0;
+	4: private void incrementAndReport() {
+		5: synchronized(this) {
+			6: System.out.print((++sheepCount)+" ");
+		7: }
+	8: }
+	
+	9: public static void main(String[] args) {
+		10: ExecutorService service = Executors.newFixedThreadPool(20);
+		11: try {
+			12: var manager = new SheepManager();
+		13: for(int i = 0; i < 10; i++)
+			14: service.submit(() -> manager.incrementAndReport());
+		15: } finally {
+			16: service.shutdown();
+		17: } 
+	} 
+}
+```
+
+Although all threads are still created and executed at the same time, they each wait at the synchronized block for the worker to increment and report the result before entering. While it’s random which zoo worker will run out next, it is guaranteed that there will be at most one on the field and that the results will be reported in order. We could have synchronized on any object, as long as it was the same object.
+
+```java
+4: private final Object herd = new Object();
+5: private void incrementAndReport() {
+	6: synchronized(herd) {
+		7: System.out.print((++sheepCount)+" ");
+	8: }
+9: }
+```
+
+we didn’t need to make the ``herd`` variable ``final``, doing so ensures that it is not reassigned after threads start using it.
+
+#### Synchronizing on Methods
+
+Java provides a more convenient compiler enhancement for doing so. We can add the synchronized modifier to any instance method to synchronize automatically on the object itself.
+
+```java
+void sing() {
+	synchronized(this) {
+		System.out.print("La la la!");
+	}
+}
+synchronized void sing() {
+	System.out.print("La la la!");
+}
+```
+
+The first uses a ``synchronized`` block, whereas the second uses the ``synchronized`` method modifier
+
+We can also apply the ``synchronized`` modifier to ``static`` methods. **==What object is used as the monitor when we synchronize on a ``static`` method? The class object, of course!==**
+
+```java
+static void dance() {
+	synchronized(SheepManager.class) {
+		System.out.print("Time to dance!");
+	}
+}
+static synchronized void dance() {
+	System.out.print("Time to dance!");
+}
+```
+
+You can use ``static`` synchronization if you need to order thread access across all instances rather than a single instance.
+
+### Understanding the Lock Framework
+
+A ``synchronized`` block supports only a limited set of functionality. For example, what if we want to check whether a lock is available and, if it is not, perform some other task? Furthermore, if the lock is never available and we synchronize on it, we might wait forever.
+
+The Concurrency API includes the ``Lock`` interface, which is conceptually similar to using the ``synchronized`` keyword but with a lot more bells and whistles. **==Instead of synchronizing on any ``Object``, though, we can “lock” only on an object that implements the ``Lock`` interface.==**
+
+#### Applying a ``ReentrantLock``
+
+When you need to protect a piece of code from multithreaded processing, create an instance of ``Lock`` that all threads have access to. Each thread then calls ``lock()`` before it enters the protected code and calls ``unlock()`` before it exits the protected code.
+
+For contrast, the following shows two implementations, one with a ``synchronized`` block and one with a ``Lock`` instance. While longer, the Lock solution has a number of features not available to the ``synchronized`` block.
+
+```java
+// Implementation #1 with a synchronized block
+Object object = new Object();
+synchronized(object) {
+	// Protected code
+}
+
+// Implementation #2 with a Lock
+Lock lock = new ReentrantLock();
+try {
+	lock.lock();
+	// Protected code
+} finally {
+	lock.unlock();
+}
+```
+
+These two implementations are conceptually equivalent. The ``ReentrantLock`` class is a simple monitor that implements the ``Lock`` interface and supports mutual exclusion. In other words, at most one thread is allowed to hold a lock at any given time.
+
+---
+
+**==While certainly not required, it is a good practice to use a ``try/finally`` block with ``Lock`` instances. Doing so ensures that any acquired locks are properly released.==** #TIP 
+
+---
+
+The ``ReentrantLock`` class ensures that once a thread has called ``lock()`` and obtained the lock, all other threads that call ``lock()`` will wait until the first thread calls ``unlock()``. Which thread gets the lock next depends on the parameters used to create the ``Lock`` object.
+
+The ``ReentrantLock`` class includes a constructor that takes a single ``boolean`` and sets a “fairness” parameter. If the parameter is set to ``true``, the lock will usually be granted to each thread in the order in which it was requested. It is ``false`` by default when using the no-argument constructor. In practice, you should enable fairness only when ordering is absolutely required, as it could lead to a significant slowdown.
+
+```java
+Lock lock = new ReentrantLock();
+lock.unlock(); // IllegalMonitorStateException
+```
+
+#### Attempting to Acquire a Lock
+
+While the ``ReentrantLock`` class allows you to wait for a lock, it so far suffers from the same problem as a synchronized block. A thread could end up waiting forever to obtain a lock.
+
+![[Pasted image 20240521205159.png]]
+
+```java
+public static void printHello(Lock lock) {
+	try {
+		lock.lock();
+		System.out.println("Hello");
+	} finally {
+		lock.unlock();
+	} 
+}
+```
+
+##### ``tryLock()``
+
+The ``tryLock()`` method will attempt to acquire a lock and immediately return a boolean result indicating whether the lock was obtained. Unlike the ``lock()`` method, it does not wait if another thread already holds the lock. It returns immediately, regardless of whether a lock is available.
+
+```java
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class LockExample {
+    public static void main(String[] args) {
+        Lock lock = new ReentrantLock();
+        
+        new Thread(() -> printHello(lock)).start();
+        
+        if (lock.tryLock()) {
+            try {
+                System.out.println("Lock obtained, entering protected code");
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            System.out.println("Unable to acquire lock, doing something else");
+        }
+    }
+}
+```
+
+When you run this code, it could produce either the if or else message, depending on the order of execution. It will always print Hello, though, as the call to lock() in ``printHello()`` will wait indefinitely for the lock to become available.
+
+Like ``lock()``, the ``tryLock()`` method should be used with a ``try/finally`` block. Fortunately, you need to release the lock only if it was successfully acquired. For this reason, it is common to use the output of ``tryLock()`` in an if statement, so that ``unlock()`` is called only when the lock is obtained.
+
+---
+
+**It is imperative that your program always check the return value of the ``tryLock()`` method. It tells your program whether it is safe to proceed with the operation and whether the lock needs to be released later.**
+
+---
+##### ``tryLock(long,TimeUnit)``
+
+The ``Lock`` interface includes an overloaded version of ``tryLock(long,TimeUnit)`` that acts like a hybrid of ``lock()`` and ``tryLock()``. Like the other two methods, if a lock is available, it will immediately return with it. If a lock is unavailable, though, it will wait up to the specified time limit for the lock.
+
+```java
+Lock lock = new ReentrantLock();
+new Thread(() -> printHello(lock)).start();
+if(lock.tryLock(10,TimeUnit.SECONDS)) {
+	try {
+		System.out.println("Lock obtained, entering protected code");
+	} finally {
+		lock.unlock();
+	}
+} else {
+	System.out.println("Unable to acquire lock, doing something else");
+}
+```
+
+##### Acquiring the Same Lock Twice
+
+The ``ReentrantLock`` class maintains a counter of the number of times a lock has been successfully granted to a thread. **==To release the lock for other threads to use, ``unlock()`` must be called the same number of times the lock was granted==**
+
+```java
+Lock lock = new ReentrantLock();
+if(lock.tryLock()) {
+	try {
+		lock.lock();
+		System.out.println("Lock obtained, entering protected code");
+	} finally {
+		lock.unlock();
+	}
+}
+```
+
+The thread obtains the lock twice but releases it only once. You can verify this by spawning a new thread after this code runs that attempts to obtain a lock. The following prints ``false``:
+
+```java
+new Thread(() -> System.out.print(lock.tryLock())).start(); // false
+```
+
+==**It is critical that you release a lock the same number of times it is acquired! For calls with ``tryLock()``, you need to call ``unlock()`` only if the method returned true.**==
+
+#### Reviewing the ``Lock`` Framework
+
+the ``ReentrantLock`` class supports the same features as a synchronized block while adding a number of improvements:
+
+- ==**Ability to request a lock without blocking.**==
+- ==**Ability to request a lock while blocking for a specified amount of time.**==
+- ==**A lock can be created with a fairness property, in which the lock is granted to threads in the order in which it was requested.**==
+
+### Orchestrating Tasks with a ``CyclicBarrier``
+
+How to orchestrate complex tasks with many steps. To coordinate these tasks, we can use the ``CyclicBarrier`` class:
+
+```java
+import java.util.concurrent.*;
+
+public class LionPenManager {
+    private void removeLions() { 
+        System.out.println("Removing lions"); 
+    }
+
+    private void cleanPen() { 
+        System.out.println("Cleaning the pen"); 
+    }
+
+    private void addLions() { 
+        System.out.println("Adding lions"); 
+    }
+
+    public void performTask() {
+        removeLions();
+        cleanPen();
+        addLions();
+    }
+
+    public static void main(String[] args) {
+        var service = Executors.newFixedThreadPool(4);
+        try {
+            var manager = new LionPenManager();
+            for (int i = 0; i < 4; i++)
+                service.submit(() -> manager.performTask());
+        } finally {
+            service.shutdown();
+        }
+    }
+}
+```
+
+```text
+Removing lions
+Removing lions
+Cleaning the pen
+Adding lions
+Removing lions
+Cleaning the pen
+Adding lions
+Removing lions
+Cleaning the pen
+Adding lions
+Cleaning the pen
+Adding lions
+```
+
+Although the results are ordered within a single thread, the output is entirely random among multiple workers
+ 
+ We can improve these results by using the ``CyclicBarrier`` class. The ``CyclicBarrier`` takes in its constructors a limit value, indicating the number of threads to wait for. As each thread finishes, it calls the ``await()`` method on the cyclic barrier. Once the specified number of threads have each called ``await()``, the barrier is released, and all threads can continue.
+
+```java
+import java.util.concurrent.*;
+
+public class LionPenManager {
+    private void removeLions() { 
+        System.out.println("Removing lions"); 
+    }
+
+    private void cleanPen() { 
+        System.out.println("Cleaning the pen"); 
+    }
+
+    private void addLions() { 
+        System.out.println("Adding lions"); 
+    }
+
+    public void performTask(CyclicBarrier c1, CyclicBarrier c2) {
+        try {
+            removeLions();
+            c1.await();
+            cleanPen();
+            c2.await();
+            addLions();
+        } catch (InterruptedException | BrokenBarrierException e) {
+            // Handle checked exceptions here
+        }
+    }
+
+    public static void main(String[] args) {
+        var service = Executors.newFixedThreadPool(4);
+        try {
+            var manager = new LionPenManager();
+            var c1 = new CyclicBarrier(4);
+            var c2 = new CyclicBarrier(4, () -> System.out.println("*** Pen Cleaned!"));
+            for (int i = 0; i < 4; i++)
+                service.submit(() -> manager.performTask(c1, c2));
+        } finally {
+            service.shutdown();
+        }
+    }
+}
+```
+
+```text
+Removing lions
+Removing lions
+Removing lions
+Removing lions
+Cleaning the pen
+Cleaning the pen
+Cleaning the pen
+Cleaning the pen
+*** Pen Cleaned!
+Adding lions
+Adding lions
+Adding lions
+Adding lions
+```
+
+The ``CyclicBarrier`` class allows us to perform complex, multithreaded tasks while all threads stop and wait at logical barriers. This solution is superior to a single-threaded solution, as the individual tasks, such as removing the lions, can be completed in parallel by all four zoo workers.
+
+---
+
+**Reusing ``CyclicBarrier``**
+
+**After a ``CyclicBarrier`` limit is reached (aka the barrier is broken), all threads are released, and the number of threads waiting on the ``CyclicBarrier`` goes back to zero. At this point, the ``CyclicBarrier`` may be used again for a new set of waiting threads. For example, if our ``CyclicBarrier`` limit is 5 and we have 15 threads that call await(), the ``CyclicBarrier`` will be activated a total of three times.**
+
+---
+
+## Using Concurrent Collections
