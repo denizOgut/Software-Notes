@@ -28114,7 +28114,7 @@ new Thread(() ->System.out.print("Hello")).start();
 System.out.print("World");
 ```
 
-The first line creates a new ``Thread`` object and then starts it with the ``start()`` method. Does this code print ``HelloWorld`` or ``WorldHello``? The answer is that we don’t know. Depending on the thread priority/scheduler, either is possible. Remember that order of thread execution is not often guaranteed. The exam commonly presents questions in which multiple tasks are started at the same time, and you must determine the result.
+The first line creates a new ``Thread`` object and then starts it with the ``start()`` method. Does this code print ``HelloWorld`` or ``WorldHello``? The answer is that we don’t know. Depending on the thread priority/scheduler, either is possible. **==Remember that order of thread execution is not often guaranteed.==** The exam commonly presents questions in which multiple tasks are started at the same time, and you must determine the result.
 
 ```java
 Runnable printRecords = () -> {
@@ -28172,7 +28172,6 @@ More generally, we can create a ``Thread`` and its associated task one of two wa
 -  ==**Create a class that ``extends`` ``Thread`` and overrides the ``run()`` method.==**
 
 Creating a class that extends ``Thread`` is relatively uncommon and should only be done under certain circumstances, such as if you need to overwrite other thread methods.
-
 ### Distinguishing Thread Types
 
 All Java applications are multithreaded because they include system threads. system thread is created by the Java Virtual Machine (JVM) and runs in the background of the application. For example, garbage collection is managed by a system thread created by the JVM. Alternatively, a user-defined thread is one created by the application developer to accomplish a specific task. The majority of the programs we’ve presented so far have contained only one user-defined thread, which calls the ``main()`` method.
@@ -28217,8 +28216,7 @@ The program will print the first statement and terminate without ever printing t
 Main method finished!
 ```
 
-For the exam, just remember that by default, user-defined threads are not daemons, and the program will wait for them to finish.
-
+**==For the exam, just remember that by default, user-defined threads are not daemons, and the program will wait for them to finish.==**
 ### Managing a Thread’s Life Cycle
 
 ![[Pasted image 20240520194402.png]]
@@ -28279,7 +28277,7 @@ public class CheckResultsWithSleep {
 
 While one second may seem like a small amount, we have now freed the CPU to do other work instead of checking the counter variable infinitely within a loop. Notice that the ``main()`` thread alternates between ``TIMED_WAITING`` and ``RUNNABLE`` when ``sleep()`` is entered and exited, respectively.
 
-How many times does the ``while()`` loop execute in this revised class? Still unknown! While polling does prevent the CPU from being overwhelmed with a potentially infinite loop, it does not guarantee when the loop will terminate. For example, the separate thread could be losing CPU time to a higher-priority process, resulting in multiple executions of the ``while()`` loop before it finishes.
+How many times does the ``while()`` loop execute in this revised class? Still unknown! **==While polling does prevent the CPU from being overwhelmed with a potentially infinite loop, it does not guarantee when the loop will terminate==**. For example, the separate thread could be losing CPU time to a higher-priority process, resulting in multiple executions of the ``while()`` loop before it finishes.
 
 Another issue to be concerned about is the shared counter variable. What if one thread is reading the counter variable while another thread is writing it? The thread reading the shared variable may end up with an invalid or unexpected value.
 
@@ -28313,13 +28311,12 @@ public class CheckResultsWithSleepAndInterrupt {
 }
 ```
 
-This improved version includes both ``sleep()``, to avoid tying up the CPU, and ``interrupt()``, so the thread’s work ends without delaying the program. As before, our ``main()`` thread’s state alternates between ``TIMED_WAITING`` and ``RUNNABLE``. Calling ``interrupt()`` on a thread in the ``TIMED_WAITING`` or ``WAITING`` state causes the ``main()`` thread to become ``RUNNABLE`` again, triggering an ``InterruptedException``. The thread may also move to a ``BLOCKED`` state if it needs to reacquire resources when it wakes up.
+This improved version includes both ``sleep()``, to avoid tying up the CPU, and ``interrupt()``, so the thread’s work ends without delaying the program. As before, our ``main()`` thread’s state alternates between ``TIMED_WAITING`` and ``RUNNABLE``. **==Calling ``interrupt()`` on a thread in the ``TIMED_WAITING`` or ``WAITING`` state causes the ``main()`` thread to become ``RUNNABLE`` again, triggering an ``InterruptedException``.==** The thread may also move to a ``BLOCKED`` state if it needs to reacquire resources when it wakes up.
 
 ---
 **Calling ``interrupt()`` on a thread already in a ``RUNNABLE`` state doesn’t change the state. In fact, it only changes the behavior if the thread is periodically checking the ``Thread.isInterrupted()`` value state.**
 
 ---
-
 ## Creating Threads with the Concurrency API
 
 The Concurrency API includes the ``ExecutorService`` interface, which defines services that create and manage threads.  first obtain an instance of an ``ExecutorService`` interface, and then you send the service tasks to be processed. The framework includes numerous useful features, such as thread pooling and scheduling. It is recommended that you use this framework any time you need to create and execute a separate task, even if you need only a single thread.
@@ -28451,7 +28448,7 @@ The ``java.util.concurrent.Callable`` functional interface is similar to ``Runna
 ```
 
 The ``Callable`` interface is often preferable over ``Runnable``, since it allows more details to be retrieved easily from the task after it is completed. as they are interchangeable in situations where the lambda does not
-throw an exception, and there is no return type. Luckily, the ``ExecutorService`` includes an overloaded version of the submit() method that takes a Callable object and returns a generic ``Future<T>`` instance.
+throw an exception, and there is no return type. Luckily, the ``ExecutorService`` includes an overloaded version of the ``submit()`` method that takes a ``Callable`` object and returns a generic ``Future<T>`` instance.
 
 **==Unlike ``Runnable``, in which the ``get()`` methods always return ``null``, the ``get()`` methods on a ``Future`` instance return the matching generic type (which could also be a ``null`` value).==**
 
@@ -28466,7 +28463,6 @@ try {
 ```
 
 We could rewrite this example using ``Runnable``, some shared object, and an ``interrupt()`` or timed wait, but this implementation is a lot easier to code and understand. In essence, that’s the spirit of the Concurrency API, giving you the tools to write multithreaded code that is thread-safe, performant, and easy to follow.
-
 #### Waiting for All Tasks to Finish
 
 After submitting a set of tasks to a thread executor, it is common to wait for the results. One solution is to call ``get()`` on each ``Future`` object returned by the ``submit()`` method. If we don’t need the results of the tasks and are finished using our thread executor, there is a simpler approach.
@@ -28486,7 +28482,6 @@ service.awaitTermination(1, TimeUnit.MINUTES);
 if(service.isTerminated()) System.out.println("Finished!");
 else System.out.println("At least one task is still running");
 ```
-
 ### Scheduling Tasks
 
 ``ScheduledExecutorService``, which is a subinterface of ``ExecutorService``, can be used for just such a task. Like ``ExecutorService``, we obtain an instance of ``ScheduledExecutorService`` using a factory method in the ``Executors`` class,
@@ -28501,7 +28496,7 @@ We could store an instance of ``ScheduledExecutorService`` in an ``ExecutorServi
 
 In practice, these methods are among the most convenient in the Concurrency API, as they perform relatively complex tasks with a single line of code. The delay and period parameters rely on the ``TimeUnit`` argument to determine the format of the value, such as seconds or milliseconds.
 
-The first two ``schedule()`` methods in Table 13.4 take a Callable or Runnable, respectively; perform the task after some delay; and return a ``ScheduledFuture`` instance. The ``ScheduledFuture`` interface is identical to the ``Future`` interface, except that it includes a ``getDelay()`` method that returns the remaining delay
+The first two ``schedule()`` methods in Table 13.4 take a ``Callable`` or ``Runnable``, respectively; perform the task after some delay; and return a ``ScheduledFuture`` instance. The ``ScheduledFuture`` interface is identical to the ``Future`` interface, except that it includes a ``getDelay()`` method that returns the remaining delay
 
 ```java
 ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
@@ -28520,7 +28515,7 @@ ScheduledFuture<?> r2 = service.schedule(task2, 8, TimeUnit.MINUTES)
 The last two methods Conceptually, they are similar as they both perform the same task repeatedly after
 an initial delay. **==The difference is related to the timing of the process and when the next task starts==**.
 
-The ``scheduleAtFixedRate()`` method creates a new task and submits it to the executor every period, regardless of whether the previous task finished.
+**==The ``scheduleAtFixedRate()`` method creates a new task and submits it to the executor every period, regardless of whether the previous task finished==**.
 
 ```java
 service.scheduleAtFixedRate(command, 5, 1, TimeUnit.MINUTES);
@@ -28534,7 +28529,7 @@ The ``scheduleAtFixedRate()`` method is useful for tasks that need to be run at 
 
 ---
 
-On the other hand, the ``scheduleWithFixedDelay()`` method creates a new task only after the previous task has finished
+**==On the other hand, the ``scheduleWithFixedDelay()`` method creates a new task only after the previous task has finished==**
 
 ```java
 service.scheduleWithFixedDelay(task1, 0, 2, TimeUnit.MINUTES);
@@ -28589,12 +28584,11 @@ A problem occurs when two threads both execute the right side of the expression,
 ![[Pasted image 20240521195628.png]]
 
 both threads read and write the same values, causing one of the two ``++sheepCount`` operations to be lost. Therefore, the increment operator ``++`` is not thread-safe. the unexpected result of two tasks executing at the same time is referred to as a ``race condition``.
-
 ### Accessing Data with ``volatile``
 
 The ``volatile`` keyword is used to guarantee that access to data within memory is consistent.
 
-**==The ``volatile`` attribute ensures that only one thread is modifying a variable at one time and that data read among multiple threads is consistent.==** In this manner, we don’t interrupt one of our zoo workers in the middle of running. So, does volatile provide thread-safety? Not exactly.
+**==The ``volatile`` attribute ensures that only one thread is modifying a variable at one time and that data read among multiple threads is consistent.==** In this manner, we don’t interrupt one of our zoo workers in the middle of running. So, does ``volatile`` provide thread-safety? Not exactly.
 
 ```java
 3: private volatile int sheepCount = 0;
@@ -28616,7 +28610,6 @@ The reason this code is not thread-safe is that ``++sheepCount`` is still two di
 **In practice, ``volatile`` is rarely used.**
 
 ---
-
 ### Protecting Data with Atomic Classes
 
 the increment operator ``++`` is not thread-safe, even when ``volatile`` is used. It is not thread-safe because the operation is not atomic, carrying out two tasks, read and write, that can be interrupted by other threads.
@@ -28745,13 +28738,11 @@ static synchronized void dance() {
 ```
 
 You can use ``static`` synchronization if you need to order thread access across all instances rather than a single instance.
-
 ### Understanding the Lock Framework
 
 A ``synchronized`` block supports only a limited set of functionality. For example, what if we want to check whether a lock is available and, if it is not, perform some other task? Furthermore, if the lock is never available and we synchronize on it, we might wait forever.
 
 The Concurrency API includes the ``Lock`` interface, which is conceptually similar to using the ``synchronized`` keyword but with a lot more bells and whistles. **==Instead of synchronizing on any ``Object``, though, we can “lock” only on an object that implements the ``Lock`` interface.==**
-
 #### Applying a ``ReentrantLock``
 
 When you need to protect a piece of code from multithreaded processing, create an instance of ``Lock`` that all threads have access to. Each thread then calls ``lock()`` before it enters the protected code and calls ``unlock()`` before it exits the protected code.
@@ -29281,7 +29272,6 @@ Time: 5 seconds
 ```
 
 ---
-
 ### Processing Parallel Reductions
 
 A parallel reduction is a reduction operation applied to a parallel stream. The results for parallel reductions can differ from what you expect when working with serial streams.
