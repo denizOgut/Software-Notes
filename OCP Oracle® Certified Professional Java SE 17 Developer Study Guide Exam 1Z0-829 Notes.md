@@ -30052,3 +30052,494 @@ G. The code will not compile because of line o2.
 ---
 
 # Chapter 14 - I/O #Chapter 
+
+## Referencing Files and Directories
+
+###  Conceptualizing the File System
+
+Data is stored on persistent storage devices, such as hard disk drives and memory cards. A file within the storage device holds data. Files are organized into hierarchies using directories. A directory is a location that can contain files as well as other directories. When working with directories in Java, we often treat them like files.
+
+To interact with files, we need to connect to the file system. The file system is in charge of reading and writing data within a computer. Different operating systems use different file systems to manage their data.
+
+The JVM will automatically connect to the local file system, allowing you to perform the same operations across multiple platforms. Next, the root directory is the topmost directory in the file system, from which all files and directories inherit.
+
+A path is a representation of a file or directory within a file system. Each file system defines its own path separator character that is used between directory entries. The value to the left of a separator is the parent of the value to the right of the separator.
+
+----
+**Operating System File Separators**
+
+**Different operating systems vary in their format of pathnames. For example, Unix-based systems use the forward slash, ``/``, for paths, whereas Windows-based systems use the backslash, ``\``, character. That said, many programming languages and file systems support both types of slashes when writing path statements. Java offers a system property to retrieve the local separator character for the current environment:**
+
+```java
+System.out.print(System.getProperty("file.separator"));
+```
+
+
+---
+
+![[Pasted image 20240605101736.png]]
+
+We use both absolute and relative paths to the file or directory within the file system.
+- **==The absolute path of a file or directory is the full path from the root directory to the file or directory, including all subdirectories that contain the file or directory.**== 
+- ==**Alternatively, the relative path of a file or directory is the path from the current working directory to the file or directory==**
+
+Determining whether a path is relative or absolute is file-system dependent. To match the exam, we adopt the following conventions:
+
+-  ==**If a path starts with a forward slash (/), it is absolute, with / as the root directory, such as /bird/parrot.png.**==
+-  ==**If a path starts with a drive letter (c:), it is absolute, with the drive letter as the root directory, such as C:/bird/info.**==
+-  ==**Otherwise, it is a relative path, such as bird/parrot.png.==**
+
+![[Pasted image 20240605102051.png]]
+
+![[Pasted image 20240605102445.png]]
+
+**==A symbolic link is a special file within a file system that serves as a reference or pointer to another file or directory.==** For example, the following paths reference the same file:
+
+```java
+/fish/shark/swim.txt
+/zoo/user/favorite/swim.txt
+```
+
+In general, symbolic links are transparent to the user, as the operating system takes care of resolving the reference to the actual file. While the I/O APIs do not support symbolic links, NIO.2 includes full support for creating, detecting, and navigating symbolic links within the file system.
+
+### Creating a File or Path
+
+In order to do anything useful, you first need an object that represents the path to a particular file or directory on the file system. Using legacy I/O, this is the ``java.io.File`` class, whereas with NIO.2, it is the ``java.nio.file.Path`` interface. The ``File`` class and ``Path`` interface cannot read or write data within a file, although they are passed as a reference to other classes
+
+---
+
+**Remember, a ``File`` or ``Path`` can represent a file or a directory.** #TIP 
+
+---
+
+#### Creating a File
+
+The ``File`` class is created by calling its constructor
+
+```java
+File zooFile1 = new File("/home/tiger/data/stripes.txt");
+File zooFile2 = new File("/home/tiger", "data/stripes.txt");
+File parent = new File("/home/tiger");
+File zooFile3 = new File(parent, "data/stripes.txt");
+System.out.println(zooFile1.exists());
+```
+
+All three create a ``File`` object that points to the same location on disk. If we passed null as the parent to the final constructor, it would be ignored, and the method would behave the same way as the single ``String`` constructor.
+
+#### Creating a Path
+
+Since ``Path`` is an interface, we can’t create an instance directly. Java provides a number of classes and methods that you can use to obtain ``Path`` objects. 
+
+The simplest and most straightforward way to obtain a Path object is to use a static factory method defined on ``Path`` or ``Paths``.
+
+```java
+Path zooPath1 = Path.of("/home/tiger/data/stripes.txt");
+Path zooPath2 = Path.of("/home", "tiger", "data", "stripes.txt");
+
+Path zooPath3 = Paths.get("/home/tiger/data/stripes.txt");
+Path zooPath4 = Paths.get("/home", "tiger", "data", "stripes.txt");
+
+System.out.println(Files.exists(zooPath1));
+```
+
+Both methods allow passing a varargs parameter to pass additional path elements. The values are combined and automatically separated by the operating system–dependent file separator.
+
+there are two ways of doing the same thing here. The ``Path.of()`` method was introduced in Java 11 as a static method on the interface. The Paths factory class also provides a ``get()`` method to do the same thing. Note the s at the end of the ``Paths`` class to distinguish it from the ``Path`` interface.
+
+#### Switching between File and Path
+
+Since ``File`` and ``Path`` both reference locations on disk, it is helpful to be able to convert between them.
+
+```java
+File file = new File("rabbit");
+Path nowPath = file.toPath();
+File backToFile = nowPath.toFile();
+```
+
+When working with newer applications, you should rely on NIO.2’s ``Path`` interface, as it contains a lot more features.
+
+#### Obtaining a Path from the ``FileSystems`` Class
+
+NIO.2 makes extensive use of creating objects with factory classes. **==The ``FileSystems`` class creates instances of the abstract ``FileSystem`` class. The latter includes methods for working with the file system directly. Both ``Paths.get()`` and ``Path.of()`` are shortcuts for this ``FileSystem`` method.==**
+
+```java
+Path zooPath1 = FileSystems.getDefault() .getPath("/home/tiger/data/stripes.txt");
+Path zooPath2 = FileSystems.getDefault() .getPath("/home", "tiger", "data", "stripes.txt");
+```
+
+#### Reviewing I/O and NIO.2 Relationships
+
+The model for I/O is smaller, and you only need to understand the ``File`` class. In contrast, NIO.2 has more features and makes extensive use of the factory pattern. Many of your interactions with NIO.2 will require two
+types: an abstract class or interface and a factory or helper class.
+
+![[Pasted image 20240605104538.png]]
+
+**==In particular, keep an eye on whether the class name is singular or plural. Classes with plural names include methods to create or operate on class/interface instances with singular names==**. Remember, as a convenience a ``Path`` can also be created from the ``Path`` interface using the static factory ``of()`` method.
+
+---
+
+**==The ``java.io.File`` is the I/O class, while ``Files`` is an NIO.2 helper class. ``Files`` operates on ``Path`` instances, not ``java.io.File`` instances==. We know this is confusing, but they are from completely different APIs!**
+
+---
+
+![[Pasted image 20240605104803.png]]
+
+## Operating on File and Path
+
+### Using Shared Functionality
+
+Many operations can be done using both the I/O and NIO.2 libraries.
+
+![[Pasted image 20240607101202.png]]
+
+![[Pasted image 20240607101216.png]]
+![[Pasted image 20240607101237.png]]
+
+```java
+11: var file = new File("C:\\data\\zoo.txt");
+12: if (file.exists()) {
+		13: System.out.println("Absolute Path: " + file.getAbsolutePath());
+		14: System.out.println("Is Directory: " + file.isDirectory());
+		15: System.out.println("Parent Path: " + file.getParent());
+		16: if (file.isFile()) {
+			17: System.out.println("Size: " + file.length());
+			18: System.out.println("Last Modified: " + file.lastModified());
+		19: } else {
+			20: for (File subfile : file.listFiles()) {
+				21: System.out.println(" " + subfile.getName());
+			22: } 
+			} 
+		} 
+	}
+```
+
+```text
+Absolute Path: C:\data\zoo.txt
+Is Directory: false
+Parent Path: C:\data
+Size: 12382
+Last Modified: 1650610000000
+
+Absolute Path: C:\data
+Is Directory: true
+Parent Path: C:\
+employees.txt
+zoo.txt
+zoo-backup.txt
+```
+
+you see that the output of an I/O-based program is completely dependent on the directories and files available at runtime in the underlying file system. **==On the exam, you might see paths that look like files but are directories or vice versa. For example, /data/zoo.txt could be a file or a directory, even though it has a file extension. Don’t assume it is either unless the question tells you it is!==**
+
+```java
+25: public static void nio() throws IOException {
+	26: var path = Path.of("C:\\data\\zoo.txt");
+	27: if (Files.exists(path)) {
+			28: System.out.println("Absolute Path: " + path.toAbsolutePath());
+			29: System.out.println("Is Directory: " + Files.isDirectory(path));
+			30: System.out.println("Parent Path: " + path.getParent());
+			31: if (Files.isRegularFile(path)) {
+			32: System.out.println("Size: " + Files.size(path));
+			33: System.out.println("Last Modified: "
+			34: + Files.getLastModifiedTime(path));
+		35: } else {
+			36: try (Stream<Path> stream = Files.list(path)) {
+			37: stream.forEach(p ->
+			38: System.out.println(" " + p.getName()));
+		39: }
+		}
+	} 
+}
+```
+
+Most of this example is equivalent and replaces the I/O method calls in the previous tables with the NIO.2 versions. However, there are key differences.
+
+- First, line 25 declares a checked exception. More APIs in NIO.2 throw ``IOException`` than the I/O APIs did.
+- Second, lines 36–39 use a ``Stream`` and a lambda instead of a loop. Since streams use lazy evaluation, this means the method will load each path element as needed, rather than the entire directory at once.
+
+---
+
+**Closing the Stream**
+
+**in the last code sample, we put our ``Stream`` object inside a try-with- resources? The NIO.2 stream-based methods open a connection to the file system that must be properly closed; otherwise, a resource leak could ensue. A resource leak within the file system means the path may be locked from modification long after the process that used it is completed.**
+
+**If you assumed that a stream’s terminal operation would automatically close the underlying file resources, you’d be wrong. There was a lot of debate about this behavior when it was first presented; in short, requiring developers to close the stream won out.**
+
+**On the plus side, not all streams need to be closed: only those that open resources, like the ones found in NIO.2. For instance, you didn’t need to close any of the streams you worked with in Chapter 10, “Streams.”**
+
+**Finally, the exam doesn’t always properly close NIO.2 resources. To match the exam, we sometimes skip closing NIO.2 resources in review and practice questions. ==Always use try-with- resources statements with these NIO.2 methods in your own code==.**
+
+---
+
+### Handling Methods That Declare ``IOException``
+
+Many of the methods declare ``IOException``. Common causes of a method throwing this exception include the following:
+
+-  ==**Loss of communication to the underlying file system.**==
+-  ==**File or directory exists but cannot be accessed or modified.**==
+-  ==**File exists but cannot be overwritten.**==
+-  ==**File or directory is required but does not exist.==**
+
+As a rule of thumb, if a NIO.2 method declares an ``IOException``, it usually requires the paths it operates on to exist.
+
+### Providing NIO.2 Optional Parameters
+
+Many of the NIO.2 methods include a varargs that takes an optional list of values.
+
+![[Pasted image 20240607102753.png]]
+![[Pasted image 20240607102810.png]]
+
+```java
+Path path = Paths.get("schedule.xml");
+boolean exists = Files.exists(path, LinkOption.NOFOLLOW_LINKS);
+```
+
+The ``Files.exists()`` simply checks whether a file exists. But if the parameter is a symbolic link, the method checks whether the target of the symbolic link exists, instead. Providing ``LinkOption.NOFOLLOW_LINKS`` means the default behavior will be overridden, and the method will check whether the symbolic link itself exists. Note that some of the enums in Table 14.5 inherit an interface. That means some methods accept a variety of enum types
+
+### Interacting with NIO.2 Paths
+
+**==Just like ``String`` values, ``Path`` instances are immutable.==**
+
+```java
+Path p = Path.of("whale");
+p.resolve("krill");
+System.out.println(p); // whale
+```
+
+Many of the methods available in the ``Path`` interface transform the path value in some way and return a new ``Path`` object, allowing the methods to be chained.
+
+```java
+Path.of("/zoo/../home").getParent().normalize().toAbsolutePath();
+```
+
+#### Viewing the Path
+
+The ``Path`` interface contains three methods to retrieve basic information about the path representation. 
+-  The ``toString()`` method returns a ``String`` representation of the entire path. In fact, it is the only method in the Path interface to return a ``String``
+- The ``getNameCount()`` and ``getName()`` methods are often used together to retrieve the number of elements in the path and a reference to each element, respectively. **==These two methods do not include the root directory as part of the path==**.
+
+```java
+Path path = Paths.get("/land/hippo/harry.happy");
+System.out.println("The Path Name is: " + path);
+for(int i=0; i<path.getNameCount(); i++)
+	System.out.println(" Element " + i + " is: " + path.getName(i));
+```
+
+Notice that we didn’t call ``toString()`` explicitly on the second line. Remember, **==Java calls ``toString()`` on any Object as part of string concatenation.==**
+
+```text
+The Path Name is: /land/hippo/harry.happy
+Element 0 is: land
+Element 1 is: hippo
+Element 2 is: harry.happy
+```
+
+Even though this is an absolute path, the root element is not included in the list of names.
+
+```java
+var p = Path.of("/");
+System.out.print(p.getNameCount()); // 0
+System.out.print(p.getName(0)); // IllegalArgumentException
+```
+
+#### Creating Part of the Path
+
+The ``Path`` interface includes the ``subpath(``) method to select portions of a path. It takes two parameters: **==an inclusive ``beginIndex`` and an exclusive ``endIndex``==**
+
+```java
+var p = Paths.get("/mammal/omnivore/raccoon.image");
+System.out.println("Path is: " + p);
+for (int i = 0; i < p.getNameCount(); i++) {
+	System.out.println(" Element " + i + " is: " + p.getName(i));
+}
+System.out.println();
+System.out.println("subpath(0,3): " + p.subpath(0, 3));
+System.out.println("subpath(1,2): " + p.subpath(1, 2));
+System.out.println("subpath(1,3): " + p.subpath(1, 3));
+```
+
+```text
+Path is: /mammal/omnivore/raccoon.image
+Element 0 is: mammal
+Element 1 is: omnivore
+Element 2 is: raccoon.image
+subpath(0,3): mammal/omnivore/raccoon.image
+subpath(1,2): omnivore
+subpath(1,3): omnivore/raccoon.image
+```
+
+**==Like ``getNameCount()`` and ``getName()``, ``subpath()`` is zero-indexed and does not include the root. Also like ``getName()``, ``subpath()`` throws an exception if invalid indices are provided.==**
+
+```java
+var q = p.subpath(0, 4); // IllegalArgumentException
+var x = p.subpath(1, 1); // IllegalArgumentException
+```
+#### Accessing Path Elements
+
+The ``Path`` interface contains numerous methods for retrieving particular elements of a ``Path``, returned as ``Path`` objects themselves. 
+- ==**The ``getFileName()`` method returns the ``Path`` element of the current file or directory,**== 
+- ==**while ``getParent()`` returns the full path of the containing directory.**== 
+- ==**The ``getParent()`` method returns null if operated on the root path or at the top of a relative path.**== 
+- ==**The ``getRoot()`` method returns the root element of the file within the file system, or null if the path is a relative path.==**
+
+```java
+public void printPathInformation(Path path) {
+	System.out.println("Filename is: " + path.getFileName());
+	System.out.println(" Root is: " + path.getRoot());
+	Path currentParent = path;
+while((currentParent = currentParent.getParent()) != null)
+	System.out.println(" Current parent is: " + currentParent);
+	System.out.println();
+}
+```
+
+The ``while`` loop in the ``printPathInformation()`` method continues until ``getParent()`` returns null.
+
+```java
+printPathInformation(Path.of("zoo"));
+printPathInformation(Path.of("/zoo/armadillo/shells.txt"));
+printPathInformation(Path.of("./armadillo/../shells.txt"));
+```
+
+```text
+Filename is: zoo
+Root is: null
+
+Filename is: shells.txt
+Root is: /
+Current parent is: /zoo/armadillo
+Current parent is: /zoo
+Current parent is: /
+
+Filename is: shells.txt
+Root is: null
+Current parent is: ./armadillo/..
+Current parent is: ./armadillo
+Current parent is: .
+```
+
+in the first and last examples, the ``getParent()`` method does not traverse relative paths outside the current working directory. these methods do not resolve the path symbols and treat them as a distinct part of the path
+
+#### Resolving Paths
+
+Suppose you want to concatenate paths in a manner similar to how we concatenate strings. **==The ``resolve()`` method provides overloaded versions that let you pass either a ``Path`` or ``String`` parameter. The object on which the ``resolve()`` method is invoked becomes the basis of the new ``Path`` object, with the input argument being appended onto the ``Path``==**
+
+```java
+Path path1 = Path.of("/cats/../panther");
+Path path2 = Path.of("food");
+System.out.println(path1.resolve(path2));
+```
+```text
+/cats/../panther/food
+```
+
+Like the other methods ``resolve()`` does not clean up path symbols. In this example, the input argument to the ``resolve()`` method was a relative path, but what if it had been an absolute path?
+
+```java
+Path path3 = Path.of("/turkey/food");
+System.out.println(path3.resolve("/tiger/cage"));
+```
+```text
+/tiger/cage
+```
+
+**==Simply put, you cannot combine two absolute paths using ``resolve()``.==**
+
+---
+
+**On the exam, when you see ``resolve()``, think concatenation.** #TIP 
+
+---
+
+#### Relativizing a Path
+
+The Path interface includes a ``relativize()`` method for constructing the relative path from one Path to another, often using path symbols.
+
+```java
+var path1 = Path.of("fish.txt");
+var path2 = Path.of("friendly/birds.txt");
+System.out.println(path1.relativize(path2));
+System.out.println(path2.relativize(path1));
+```
+```text
+../friendly/birds.txt
+../../fish.txt
+```
+
+The idea is this: if you are pointed at a path in the file system, what steps would you need to take to reach the other path? For example, to get to fish.txt from friendly/birds.txt, you need to go up two levels (the file itself counts as one level) and then select fish.txt.
+**==If both path values are relative, the ``relativize()`` method computes the paths as if they are in the same current working directory. Alternatively, if both path values are absolute, the method computes the relative path from one absolute location to another, regardless of the current working directory.==**
+
+```java
+Path path3 = Paths.get("E:\\habitat");
+Path path4 = Paths.get("E:\\sanctuary\\raven\\poe.txt");
+System.out.println(path3.relativize(path4));
+System.out.println(path4.relativize(path3));
+```
+```text
+..\sanctuary\raven\poe.txt
+..\..\..\habitat
+```
+
+**==The ``relativize()`` method requires both paths to be absolute or relative and throws an exception if the types are mixed.==**
+
+```java
+Path path1 = Paths.get("/primate/chimpanzee");
+Path path2 = Paths.get("bananas.txt");
+path1.relativize(path2); // IllegalArgumentException
+```
+
+On Windows-based systems, it also requires that if absolute paths are used, both paths must have the same root directory or drive letter
+
+```java
+Path path3 = Paths.get("C:\\primate\\chimpanzee");
+Path path4 = Paths.get("D:\\storage\\bananas.txt");
+path3.relativize(path4); // IllegalArgumentException
+```
+
+#### Normalizing a Path
+
+Java provides the ``normalize()`` method to eliminate unnecessary redundancies in a path. 
+the path symbol ``..`` refers to the parent directory, while the path symbol ``.`` refers to the current directory.
+
+```java
+var p1 = Path.of("./armadillo/../shells.txt");
+System.out.println(p1.normalize()); // shells.txt
+
+var p2 = Path.of("/cats/../panther/food");
+System.out.println(p2.normalize()); // /panther/food
+
+var p3 = Path.of("../../fish.txt");
+System.out.println(p3.normalize()); // ../../fish.txt
+```
+
+The first two examples apply the path symbols to remove the redundancies, but what about the last one? That is as simplified as it can be. **==The ``normalize()`` method does not remove all of the path symbols, only the ones that can be reduced.==**
+
+```java
+var p1 = Paths.get("/pony/../weather.txt");
+var p2 = Paths.get("/weather.txt");
+System.out.println(p1.equals(p2)); // false
+System.out.println(p1.normalize().equals(p2.normalize())); // true
+```
+
+The ``equals()`` method returns true if two paths represent the same value.
+**==This is the primary function of the ``normalize()`` method: to allow us to better compare different paths.==**
+
+#### Retrieving the Real File System Path
+
+While working with theoretical paths is useful, sometimes you want to verify that the path exists within the file system using ``toRealPath()``. This method is similar to ``normalize()`` in that it eliminates any redundant path symbols. It is also similar to ``toAbsolutePath()``, in that it will join the path with the current working directory if the path is relative.
+
+Unlike those two methods, though, ``toRealPath()`` will throw an exception if the path does not exist. In addition, it will follow symbolic links, with an optional ``LinkOption`` varargs parameter to ignore them.
+
+```java
+System.out.println(Paths.get("/zebra/food.txt").toRealPath());
+System.out.println(Paths.get(".././food.txt").toRealPath());
+```
+```text
+/horse/food.txt
+```
+
+#### Reviewing NIO.2 Path APIs
+
+![[Pasted image 20240607111546.png]]
+
+### Creating, Moving, and Deleting Files and Directories
+
