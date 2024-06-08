@@ -30543,3 +30543,887 @@ System.out.println(Paths.get(".././food.txt").toRealPath());
 
 ### Creating, Moving, and Deleting Files and Directories
 
+#### Making Directories
+
+To create a directory, we use these ``Files`` methods:
+
+```java
+public static Path createDirectory(Path dir, FileAttribute<?>... attrs) throws IOException
+public static Path createDirectories(Path dir, FileAttribute<?>... attrs) throws IOException
+```
+
+The ``createDirectory()`` method will create a directory and throw an exception if it already exists or if the paths leading up to the directory do not exist. ==**The ``createDirectories()`` method creates the target directory along with any nonexistent parent directories leading up to the path. If all of the directories already exist**==, ``createDirectories()`` will simply complete without doing anything. This is useful in situations where you want to ensure a directory exists and create it if it does not
+
+```java
+Files.createDirectory(Path.of("/bison/field"));
+Files.createDirectories(Path.of("/bison/field/pasture/green"));
+```
+
+#### Copying Files
+
+The ``Files`` class provides a method for copying files and directories within the file system.
+
+```java
+public static Path copy(Path source, Path target, CopyOption... options) throws IOException
+```
+
+The method copies a file or directory from one location to another using ``Path`` objects.
+
+```java
+Files.copy(Paths.get("/panda/bamboo.txt"),
+Paths.get("/panda-save/bamboo.txt"));
+Files.copy(Paths.get("/turtle"), Paths.get("/turtleCopy"));
+```
+
+When directories are copied, the copy is shallow. 
+- ==**A shallow copy means that the files and subdirectories within the directory are not copied.**== 
+- ==**A deep copy means that the entire tree is copied, including all of its content and subdirectories.==**
+
+```java
+public void copyPath(Path source, Path target) {
+	try {
+		Files.copy(source, target);
+		if(Files.isDirectory(source))
+			try (Stream<Path> s = Files.list(source)) {
+				s.forEach(p ->copyPath(p,target.resolve(p.getFileName())));
+			} catch(IOException e) {
+				// Handle exception
+		}
+	}
+}
+```
+
+##### Copying and Replacing Files
+
+By default, if the target already exists, the ``copy()`` method will throw an exception. You can change this behavior by providing the ``StandardCopyOption`` enum value ``REPLACE_EXISTING`` to the method.
+
+```java
+Files.copy(Paths.get("book.txt"), Paths.get("movie.txt"), StandardCopyOption.REPLACE_EXISTING);
+```
+
+**==For the exam, you need to know that without the ``REPLACE_EXISTING`` option, this method will throw an exception if the file already exists.==**
+
+##### Copying Files with I/O Streams
+
+The Files class includes two ``copy()`` methods that operate with I/O streams.
+
+```java
+public static long copy(InputStream in, Path target, CopyOption... options) throws IOException
+public static long copy(Path source, OutputStream out) throws IOException
+```
+
+- The first method reads the contents of an I/O stream and writes the output to a file. 
+- The second method reads the contents of a file and writes the output to an I/O stream.
+
+```java
+try (var is = new FileInputStream("source-data. txt")) {
+	// Write I/O stream data to a file
+	Files.copy(is, Paths.get("/mammals/wolf.txt"));
+}
+Files.copy(Paths.get("/fish/clown.xsl"), System.out);
+```
+
+##### Copying Files into a Directory
+
+For the exam, it is important that you understand how the ``copy()`` method operates on both files and directories. For example, let’s say we have a file, food.txt, and a directory, /enclosure. Both the file and directory exist. What do you think is the result of executing the following process?
+
+```java
+var file = Paths.get("food.txt");
+var directory = Paths.get("/enclosure");
+Files.copy(file, directory);
+```
+
+It throws an exception. The command tries to create a new file named /enclosure. Since the path /enclosure already exists, an exception is thrown at runtime.
+
+On the other hand, if the directory did not exist, the process would create a new file with the contents of food.txt, but the file would be called /enclosure. Remember, we said files may not need to have extensions, and in this example, it matters. This behavior applies to both the ``copy()`` and ``move()`` method
+
+The correct way to copy the file into the directory is to do the following:
+
+```java
+var file = Paths.get("food.txt");
+var directory = Paths.get("/enclosure/food.txt");
+Files.copy(file, directory);
+```
+
+#### Moving or Renaming Paths with ``move()``
+
+The ``Files`` class provides a useful method for moving or renaming files and directories.
+
+```java
+public static Path move(Path source, Path target, CopyOption... options) throws IOException
+```
+
+```java
+Files.move(Path.of("C:\\zoo"), Path.of("C:\\zoo-new"));
+Files.move(Path.of("C:\\user\\addresses.txt"), Path.of("C:\\zoo-new\\ addresses2.txt"));
+```
+
+##### Similarities between ``move()`` and ``copy()``
+
+Like ``copy()``, ``move()`` requires ``REPLACE_EXISTING`` to overwrite the target if it exists; otherwise, it will throw an exception. Also like ``copy()``, ``move()`` will not put a file in a directory if the source is a file and the target is a directory. Instead, it will create a new file with the name of the directory.
+
+##### Performing an Atomic Move
+
+Another enum value that you need to know for the exam when working with the ``move()`` method is the ``StandardCopyOption`` value ``ATOMIC_MOVE``.
+
+An atomic move is one in which a file is moved within the file system as a single indivisible operation. Put another way, any process monitoring the file system never sees an incomplete or partially written file. If the file system does not support this feature, an ``AtomicMoveNotSupportedException`` will be thrown.
+**==Note that while ``ATOMIC_MOVE`` is available as a member of the ``StandardCopyOption`` type, it will likely throw an exception if passed to a ``copy()`` method.==**
+
+#### Deleting a File with ``delete()`` and ``deleteIfExists()``
+
+```java
+public static void delete(Path path) throws IOException
+public static boolean deleteIfExists(Path path) throws IOException
+```
+
+**==To delete a directory, it must be empty==**. Both of these methods throw an exception if operated on a nonempty directory. In addition, **==if the path is a symbolic link, the symbolic link will be deleted, not the path that the symbolic link points to==**
+
+The methods differ on how they handle a path that does not exist. The ``delete()`` method throws an exception if the path does not exist, while the ``deleteIfExists()`` method returns true if the delete was successful or false otherwise.
+
+```java
+Files.delete(Paths.get("/vulture/feathers.txt"));
+Files.deleteIfExists(Paths.get("/pigeon"));
+```
+
+### Comparing Files with ``isSameFile()`` and ``mismatch()``
+
+Since a path may include path symbols and symbolic links within a file system, the ``equals()`` method can’t be relied on to know if two ``Path`` instances refer to the same file. Luckily, there is the ``isSameFile()`` method. This method takes two ``Path`` objects as input, resolves all path symbols, and follows symbolic links. Despite the name, the method can also be used to determine whether two ``Path`` objects refer to the same directory.
+
+While most uses of ``isSameFile()`` will trigger an exception if the paths do not exist, there is a special case in which it does not. If the two path objects are equal in terms of equals(), the method will just return true without checking whether the file exists.
+
+![[Pasted image 20240607152227.png]]
+
+```java
+System.out.println(Files.isSameFile(Path.of("/animals/cobra"),Path.of("/animals/snake")));
+
+System.out.println(Files.isSameFile( Path.of("/animals/monkey/ears.png"),Path.of("/animals/wolf/ears.png")));
+```
+
+Since snake is a symbolic link to cobra, the first example outputs true. In the second example, the paths refer to different files, so false is printed.
+
+Sometimes you want to compare the contents of the file rather than whether it is physically the same file.
+The ``mismatch()`` method was introduced in Java 12 to help us out here. It takes two ``Path`` objects as input. The method returns -1 if the files are the same; otherwise, it returns the index of the first position in the file that differs.
+
+```java
+System.out.println(Files.mismatch( Path.of("/animals/monkey.txt"), Path.of("/animals/wolf.txt")));
+```
+
+```java
+System.out.println(Files.mismatch( Path.of("/animals/wolf.txt"), Path.of("/animals/monkey.txt")));
+```
+
+## Introducing I/O Streams
+
+The “I/O” refers to the nature of how data is accessed, either by reading the data from a resource (input) or by writing the data to a resource (output).
+
+### Understanding I/O Stream Fundamentals
+
+The contents of a file may be accessed or written via an I/O stream, which is a list of data elements presented sequentially. An I/O stream can be conceptually thought of as a long, nearly never-ending stream of water with data presented one wave at a time.
+
+![[Pasted image 20240608110359.png]]
+
+Each type of I/O stream segments data into a wave or block in a particular way. For example, some I/O stream classes read or write data as individual bytes. Other I/O stream classes read or write individual characters or strings of characters. On top of that, some I/O stream classes read or write larger groups of bytes or characters at a time, specifically those with the word Buffered in their name.
+
+Although I/O streams are commonly used with file I/O, they are more generally used to handle the reading/writing of any sequential data source
+
+---
+
+**I/O Streams Can Be Big**
+
+**When writing code where you don’t know what the I/O stream size will be at runtime, it may be helpful to visualize an I/O stream as being so large that all of the data contained in it could not possibly fit into memory. For example, a 1 TB file could not be stored entirely in memory by most computer systems (at the time this book is being written). The file can still be read and written by a program with very little memory, since the I/O stream allows the application to focus on only a small portion of the overall I/O stream at any given time.**
+
+---
+### Learning I/O Stream Nomenclature
+
+#### Storing Data as Bytes
+
+Data is stored in a file system (and memory) as a 0 or 1, called a bit. Since it’s really hard for humans to read/write data that is just 0s and 1s, they are grouped into a set of 8 bits, called a byte.
+
+#### Byte Streams vs. Character Streams
+
+The java.io API defines two sets of I/O stream classes for reading and writing I/O streams: byte I/O streams and character I/O streams.
+
+**Differences between Byte and Character I/O Streams**
+
+-  ==**Byte I/O streams read/write binary data (0s and 1s) and have class names that end  in ``InputStream`` or ``OutputStream``.**==
+-  ==**Character I/O streams read/write text data and have class names that end in ``Reader`` or ``Writer``.==**
+
+The API frequently includes similar classes for both byte and character I/O streams, such as ``FileInputStream`` and ``FileReader``. **==The difference between the two classes is based on how the bytes are read or written.==**
+
+It is important to remember that even though character I/O streams do not contain the word Stream in their class name, they are still I/O streams. **==The use of Reader/Writer in the name is just to distinguish them from byte streams.==**
+
+**==The byte I/O streams are primarily used to work with binary data, such as an image or executable file, while character I/O streams are used to work with text files.==**
+
+The character encoding determines how characters are encoded and stored in bytes in an I/O stream and later read back or decoded as characters. Although this may sound simple, Java supports a wide variety of character encodings, ranging from ones that may use one byte for Latin characters, UTF-8 and ASCII for example, to using two or more bytes per character, such as UTF-16
+
+---
+
+**Character Encoding in Java**
+
+In Java, the character encoding can be specified using the Charset class by passing a name value to the static ``Charset.forName()`` method, such as in the following examples:
+
+```java
+Charset usAsciiCharset = Charset.forName("US-ASCII");
+Charset utf8Charset = Charset.forName("UTF-8");
+Charset utf16Charset = Charset.forName("UTF-16");
+```
+
+---
+
+#### Input vs. Output Streams
+
+Most ``InputStream`` classes have a corresponding ``OutputStream`` class, and vice versa. It follows, then, that most ``Reader`` classes have a corresponding ``Writer`` class.
+ 
+ **==There are exceptions to this rule. For the exam, you should know that ``PrintWriter`` has no accompanying ``PrintReader`` class. Likewise, the ``PrintStream`` is an ``OutputStream`` that has no corresponding ``InputStream`` class. It also does not have Output in its name==**
+
+#### Low-Level vs. High-Level Streams
+
+- low-level stream connects directly with the source of the data, such as a file, an array, or a String. Low-level I/O streams process the raw data or resource and are accessed in a direct and unfiltered manner. For example, a ``FileInputStream`` is a class that reads file data one byte at a time.
+
+- high-level stream is built on top of another I/O stream using wrapping. Wrapping is the process by which an instance is passed to the constructor of another class, and operations on the resulting instance are filtered and applied to the original instance. For example, take a look at the ``FileReader`` and ``BufferedReader``
+
+```java
+try (var br = new BufferedReader(new FileReader("zoo-data.txt"))) {
+	System.out.println(br.readLine());
+}
+```
+
+``FileReader`` is the low-level I/O stream, whereas ``BufferedReader`` is the high-level I/O stream that takes a ``FileReader`` as input. Many operations on the high-level I/O stream pass through as operations to the underlying low-level I/O stream, such as ``read()`` or ``close()``. Other operations override or add new functionality to the low-level I/O stream methods. The high-level I/O stream may add new methods, such as ``readLine()``, as well as performance enhancements for reading and filtering the low-level data.
+
+```java
+try (var ois = new ObjectInputStream( new BufferedInputStream( new FileInputStream("zoo-data.txt")))) {
+	System.out.print(ois.readObject());
+}
+```
+
+In this example, the low-level ``FileInputStream`` interacts directly with the file, which is wrapped by a high-level ``BufferedInputStream`` to improve performance. Finally, the entire object is wrapped by another high-level ``ObjectInputStream``, which allows us to interpret the data as a Java object.
+
+#### Stream Base Classes
+
+**==The java.io library defines four abstract classes that are the parents of all I/O stream classes defined within the API: ``InputStream``, ``OutputStream``, ``Reader``, and ``Writer``==**. The constructors of high-level I/O streams often take a reference to the abstract class
+
+One common area where the exam likes to play tricks on you is mixing and matching I/O stream classes that are not compatible with each other.
+
+```java
+new BufferedInputStream(new FileReader("z.txt")); // DOES NOT COMPILE
+new BufferedWriter(new FileOutputStream("z.txt")); // DOES NOT COMPILE
+new ObjectInputStream( new FileOutputStream("z.txt")); // DOES NOT COMPILE
+new BufferedInputStream(new InputStream()); // DOES NOT COMPILE
+```
+
+- The third example does not compile because we are mixing an ``OutputStream`` with an ``InputStream``. Although it is possible to read data from an ``InputStream`` and write it to an ``OutputStream``, wrapping the I/O stream is not the way to do so. the data must be copied over.
+- the last example does not compile because ``InputStream`` is an abstract class, and therefore you cannot create an instance of it.
+
+#### Decoding I/O Class Names
+
+Pay close attention to the name of the I/O class on the exam, as decoding it often gives you context clues as to what the class does.
+
+![[Pasted image 20240608112540.png]]
+
+![[Pasted image 20240608112548.png]]
+![[Pasted image 20240608112608.png]]
+
+## Reading and Writing Files
+
+### Using I/O Streams
+ 
+ I/O streams are all about reading/writing data, so it shouldn’t be a surprise that the most important methods are ``read()`` and ``write()``. Both ``InputStream`` and ``Reader`` declare a ``read()`` method to read byte data from an I/O stream. Likewise, ``OutputStream`` and Writer both define a ``write()`` method to write a byte to the stream:
+ 
+```java
+void copyStream(InputStream in, OutputStream out) throws IOException {
+	int b;
+	while ((b = in.read()) != -1)
+	{
+		out.write(b);
+	}
+}
+void copyStream(Reader in, Writer out) throws IOException {
+	int b;
+	while ((b = in.read()) != -1)
+	{
+		out.write(b);
+	}
+}
+```
+
+reading and writing bytes, so why do the methods use int instead of byte? Remember, the byte data type has a range of 256 characters. They needed an extra value to indicate the end of an I/O stream. The authors of Java decided to use a larger data type, int, so that special values like -1 would indicate the end of an I/O stream. The output stream classes use int as well, to be consistent with the input stream classes.
+
+Reading and writing one byte at a time isn’t a particularly efficient way of doing this. Luckily, there are overloaded methods for reading and writing multiple bytes at a time. The offset and length values are applied to the array itself. For example, an offset of 3 and length of 5 indicates that the stream should read up to five bytes/characters of data and put them into the array starting with position 3
+
+```java
+10: void copyStream(InputStream in, OutputStream out) throws IOException {
+11: int batchSize = 1024;
+12: var buffer = new byte[batchSize];
+13: int lengthRead;
+14: while ((lengthRead = in.read(buffer, 0, batchSize)) > 0) {
+	15: out.write(buffer, 0, lengthRead);
+	16: out.flush();
+17: }
+```
+
+Instead of reading the data one byte at a time, we read and write up to 1024 bytes at a time on line 14. The return value ``lengthRead`` is critical for determining whether we are at the end of the stream and knowing how many bytes we should write into our output stream. 
+
+Unless our file happens to be a multiple of 1024 bytes, the last iteration of the while loop will write some value less than 1024 bytes. For example, if the buffer size is 1,024 bytes and the file size is 1,054 bytes, the last read will be only 30 bytes. If we ignored this return value and instead wrote 1,024 bytes, 994 bytes from the previous loop would be written to the end of the file.
+
+We also added a ``flush()`` method on line 16 to reduce the amount of data lost if the application terminates unexpectedly. **==When data is written to an output stream, the underlying operating system does not guarantee that the data will make it to the file system immediately. The ``flush()`` method requests that all accumulated data be written immediately to disk. It is not without cost, though==**. Each time it is used, it may cause a noticeable delay in the application, especially for large files. Unless the data that you are writing is extremely critical, the ``flush()`` method should be used only intermittently
+
+Equivalent methods exist on ``Reader`` and ``Writer``, but they use char rather than byte, making the equivalent ``copyStream()`` method very similar.
+
+```java
+26: void copyTextFile(File src, File dest) throws IOException {
+	27: try (var reader = new BufferedReader(new FileReader(src));
+		28: var writer = new BufferedWriter(new FileWriter(dest))) {
+		29: String line = null;
+		30: while ((line = reader.readLine()) != null) {
+			31: writer.write(line);
+			32: writer.newLine();
+		33: } 
+	} 
+}
+```
+
+**==The key is to choose the most useful high-level classes==**. In this case, we are dealing with a ``File``, so we want to use a ``FileReader`` and ``FileWriter``. Both classes have constructors that can take either a ``String`` representing the location or a ``File`` directly.
+
+If the source file does not exist, a ``FileNotFoundException``, which inherits ``IOException``, will be thrown. If the destination file already exists, this implementation will overwrite it. We can pass an optional boolean second parameter to ``FileWriter`` for an append flag if we want to change this behavior.
+
+We also chose to use a ``BufferedReader`` and ``BufferedWriter`` so we can read a whole line at a time. This gives us the benefits of reading batches of characters on line 30 without having to write custom logic. Line 31 writes out the whole line of data at once. Since reading a line strips the line breaks, we add those back on line 32. Lines 27 and 28 demonstrate chaining constructors. The try-with- resources constructor takes care of closing all the objects in the chain.
+
+We can do a little better than ``BufferedOutputStream`` and ``BufferedWriter`` by using a ``PrintStream`` and ``PrintWriter``. These classes contain four key methods. The ``print()`` and ``println()`` methods print data with and without a new line, respectively. There are also the ``format()`` and ``printf()`` methods, 
+
+```java
+void copyTextFile(File src, File dest) throws IOException {
+	try (var reader = new BufferedReader(new FileReader(src));
+		var writer = new PrintWriter(new FileWriter(dest))) {
+		String line = null;
+		while ((line = reader.readLine()) != null)
+			writer.println(line);
+		}
+}
+```
+
+**==The print stream classes have the distinction of being the only I/O stream classes we cover that do not have corresponding input stream classes==**. And unlike other ``OutputStream`` classes, ``PrintStream`` does not have Output in its name.
+
+Unlike the majority of the other I/O streams we’ve covered, t**==he methods in the print stream classes do not throw any checked exceptions==**. If they did, you would be required to catch a checked exception any time you called ``System.out.print()``!
+
+The line separator is \n or \r\n, depending on your operating system. The ``println()`` method takes care of this for you. If you need to get the character directly, either of the following will return it for you:
+
+```java
+System.getProperty("line.separator");
+System.lineSeparator();
+```
+
+### Enhancing with Files
+
+The NIO.2 APIs provide even easier ways to read and write a file using the ``Files`` class.
+
+```java
+private void copyPathAsString(Path input, Path output) throws IOException {
+    String string = Files.readString(input);
+    Files.writeString(output, string);
+}
+
+private void copyPathAsBytes(Path input, Path output) throws IOException {
+    byte[] bytes = Files.readAllBytes(input);
+    Files.write(output, bytes);
+}
+
+private void copyPathAsLines(Path input, Path output) throws IOException {
+    List<String> lines = Files.readAllLines(input);
+    Files.write(output, lines);
+}
+```
+
+That’s pretty concise! You can read a ``Path`` as a ``String``, a byte array, or a List. Be aware that the entire file is read at once for all three of these, thereby storing all of the contents of the file in memory at the same time. If the file is significantly large, you may trigger an ``OutOfMemoryError`` when trying to load all of it into memory. Luckily, there is an alternative.
+
+```java
+private void readLazily(Path path) throws IOException {
+	try (Stream<String> s = Files.lines(path)) {
+		s.forEach(System.out::println);
+	}
+}
+```
+
+Now the contents of the file are read and processed lazily, which means that only a small portion of the file is stored in memory at any given time.
+
+```java
+try (var s = Files.lines(path)) {
+	s.filter(f -> f.startsWith("WARN:"))
+	.map(f -> f.substring(5))
+	.forEach(System.out::println);
+}
+```
+
+This sample code searches a log for lines that start with WARN:, outputting the text that follows. Assuming that the input file sharks.log is as follows:
+
+```text
+INFO:Server starting
+DEBUG:Processes available = 10
+WARN:No database could be detected
+DEBUG:Processes available reset to 0
+WARN:Performing manual recovery
+INFO:Server successfully started
+```
+
+Then the sample output would be the following
+
+```text
+No database could be detected
+Performing manual recovery
+```
+
+---
+``Files.readAllLines()`` vs. ``Files.lines()``
+
+For the exam, you need to know the difference between ``readAllLines()`` and ``lines()``. Both of these examples compile and run:
+
+```java
+Files.readAllLines(Paths.get("birds.txt")).forEach(System.out::println);
+Files.lines(Paths.get("birds.txt")).forEach(System.out::println);
+```
+
+The first line reads the entire file into memory and performs a print operation on the result, while the second line lazily processes each line and prints it as it is read. The advantage of the second code snippet is that it does not require the entire file to be stored in memory at any time.
+
+You should also be aware of when they are mixing incompatible types on the exam
+
+```java
+Files.readAllLines(Paths.get("birds.txt"))
+	.filter(s ->s.length()> 2)
+	.forEach(System.out::println);
+```
+
+The ``readAllLines()`` method returns a List, not a ``Stream``, so the ``filter()`` method is not available
+
+---
+
+### Combining with ``newBufferedReader()`` and ``newBufferedWriter()``
+
+Sometimes you need to mix I/O streams and NIO.2. Conveniently, ``Files`` includes two convenience methods for getting I/O streams.
+
+```java
+private void copyPath(Path input, Path output) throws IOException {
+    try (var reader = Files.newBufferedReader(input);
+         var writer = Files.newBufferedWriter(output)) {
+        String line = null;
+        while ((line = reader.readLine()) != null) {
+            writer.write(line);
+            writer.newLine();
+        }
+    }
+}
+```
+
+You can wrap I/O stream constructors to produce the same effect, although it’s a lot easier to use the factory method. The first method, ``newBufferedReader()``, reads the file specified at the Path location using a ``BufferedReader`` object.
+
+### Reviewing Common Read and Write Methods
+
+![[Pasted image 20240608120203.png]]
+![[Pasted image 20240608120214.png]]
+![[Pasted image 20240608120233.png]]
+
+## Serializing Data
+
+Serialization is the process of converting an in-memory object to a byte stream. Likewise, deserialization is the process of converting from a byte stream into an object. Serialization often involves writing an object to a stored or transmittable format, while deserialization is the reciprocal process.
+
+![[Pasted image 20240608132812.png]]
+
+### Applying the Serializable Interface
+
+To serialize an object using the I/O API, the object must implement the ``java.io.Serializable`` interface. The ``Serializable`` interface is a marker interface, which means it does not have any methods. Any class can implement the ``Serializable`` interface since there are no required methods to implement.
+
+The purpose of using the ``Serializable`` interface is to inform any process attempting to serialize the object that you have taken the proper steps to make the object serializable. 
+
+```java
+import java.io.Serializable;
+public class Gorilla implements Serializable {
+	private static final long serialVersionUID = 1L;
+	private String name;
+	private int age;
+	private Boolean friendly;
+	private transient String favoriteFood;
+	// Constructors/Getters/Setters/toString() omitted
+}
+```
+
+Note that since ``Serializable`` is not part of the`` java.lang`` package, it must be imported or referenced with the package name. **==Any field that is marked ``transient`` will not be saved to an I/O stream when the class is serialized==**
+
+---
+
+**Maintaining a ``serialVersionUID``**
+
+**It’s a good practice to declare a ``static serialVersionUID`` variable in every class that implements ``Serializable``. The version is stored with each object as part of serialization. Then, every time the class structure changes, this value is updated or incremented**
+
+**Perhaps our ``Gorilla`` class receives a new instance member ``Double banana``, or maybe the ``age`` field is renamed. The idea is a class could have been serialized with an older version of the class and deserialized with a newer version of the class.**
+
+
+**The ``serialVersionUID`` helps inform the JVM that the stored data may not match the new class definition. If an older version of the class is encountered during deserialization, a ``java.io.InvalidClassException`` may be thrown. Alternatively, some APIs support converting data between versions.**
+
+---
+
+### Marking Data ``transient``
+
+The ``transient`` modifier can be used for sensitive data of the class, like a password. There are other objects it does not make sense to serialize, like the state of an in-memory Thread. If the object is part of a serializable object, we just mark it transient to ignore these select instance members.
+**==What happens to data marked transient on deserialization? It reverts to its default Java values, such as 0.0 for double, or null for an object==**
+
+---
+
+**Marking ``static`` fields ``transient`` has little effect on serialization. Other than the ``serialVersionUID``, only the instance members of a class are serialized.**
+
+---
+
+### Ensuring That a Class Is Serializable
+
+Since ``Serializable`` is a marker interface, you might think there are no rules to using it. Not quite! Any process attempting to serialize an object will throw a ``NotSerializableException`` if the class does not implement the Serializable interface properly.
+
+**How to Make a Class Serializable**
+-  ==**The class must be marked ``Serializable``.**==
+-  ==**Every instance member of the class must be serializable, marked ``transient``, or have a null value at the time of serialization==**
+
+**==Be careful with the second rule. For a class to be serializable, we must apply the second rule recursively.==**
+
+```java
+public class Cat implements Serializable {
+	private Tail tail = new Tail();
+}
+public class Tail implements Serializable {
+	private Fur fur = new Fur();
+}
+public class Fur {}
+```
+
+``Cat`` contains an instance of ``Tail``, and both of those classes are marked ``Serializable``, so no problems there. Unfortunately, ``Tail`` contains an instance of ``Fur`` that is not marked ``Serializable``.
+Either of the following changes fixes the problem and allows ``Cat`` to be serialized:
+
+```java
+public class Tail implements Serializable {
+	private transient Fur fur = new Fur();
+}
+public class Fur implements Serializable {}
+```
+
+We could also make our ``tail`` or ``fur`` instance members null, although this would make ``Cat`` serializable only for particular instances, rather than all instances.
+
+---
+
+**Serializing Records**
+**Do you think this record is serializable?**
+```java
+record Record(String name) {}
+```
+
+**It is not serializable because it does not implement Serializable. A record follows the same rules as other types of classes with respect to whether it can be serialized. Therefore, this one can be:**
+
+```java
+record Record(String name) implements Serializable {}
+```
+
+---
+
+### Storing Data with ``ObjectOutputStream`` and ``ObjectInputStream``
+
+The ``ObjectInputStream`` class is used to deserialize an object, while the ``ObjectOutputStream`` is used to serialize an object. They are high-level streams that operate on existing I/O streams. While both of these classes contain a number of methods for built-in data types like primitives, the two methods you need to know for the exam are the ones related to working with objects.
+
+```java
+// ObjectInputStream
+public Object readObject() throws IOException, ClassNotFoundException
+
+// ObjectOutputStream
+public void writeObject(Object obj) throws IOException
+```
+
+Note the parameters, return types, and exceptions thrown
+
+```java
+void saveToFile(List<Gorilla> gorillas, File dataFile) throws IOException {
+	try (var out = new ObjectOutputStream(
+		new BufferedOutputStream(
+		new FileOutputStream(dataFile)))) {
+		for (Gorilla gorilla : gorillas)
+			out.writeObject(gorilla);
+	}
+}
+
+```
+
+```java
+List<Gorilla> readFromFile(File dataFile) throws IOException, ClassNotFoundException {
+	var gorillas = new ArrayList<Gorilla>();
+	try (var in = new ObjectInputStream(
+		new BufferedInputStream(
+		new FileInputStream(dataFile)))) {
+		while (true) {
+		var object = in.readObject();
+		if (object instanceof Gorilla g)
+			gorillas.add(g);
+		}
+	} catch (EOFException e) {
+		// File end reached
+	}
+	return gorillas;
+}
+```
+
+When calling ``readObject()``, null and -1 do not have any special meaning, as someone might have serialized objects with those values. Unlike our earlier techniques for reading methods from an input stream, we need to use an infinite loop to process the data, which throws an ``EOFException`` when the end of the I/O stream is reached.
+
+Since the return type of ``readObject()`` is Object, we need to check the type before obtaining access to our Gorilla properties. Notice that ``readObject()`` declares a checked ``ClassNotFoundException`` since the class might not be available on deserialization.
+
+```java
+var gorillas = new ArrayList<Gorilla>();
+gorillas.add(new Gorilla("Grodd", 5, false));
+gorillas.add(new Gorilla("Ishmael", 8, true));
+File dataFile = new File("gorilla.data");
+
+saveToFile(gorillas, dataFile);
+var gorillasFromDisk = readFromFile(dataFile);
+System.out.print(gorillasFromDisk);
+```
+```text
+[[name=Grodd, age=5, friendly=false],
+[name=Ishmael, age=8, friendly=true]]
+```
+
+### Understanding the Deserialization Creation Process
+
+When you deserialize an object, the constructor of the serialized class, along with any instance initializers, is not called when the object is created. **==Java will call the no-arg constructor of the first non-serializable parent class it can find in the class hierarchy==**. In our Gorilla example, this would just be the no-arg constructor of Object.
+**==any ``static`` or ``transient`` fields are ignored. Values that are not provided will be given their default Java value, such as null for ``String``, or 0 for int values.==**
+
+```java
+import java.io.Serializable;
+
+public class Chimpanzee implements Serializable {
+    private static final long serialVersionUID = 2L;
+    private transient String name;
+    private transient int age = 10;
+    private static char type = 'C';
+
+    {
+        this.age = 14;
+    }
+
+    public Chimpanzee() {
+        this.name = "Unknown";
+        this.age = 12;
+        this.type = 'Q';
+    }
+
+    public Chimpanzee(String name, int age, char type) {
+        this.name = name;
+        this.age = age;
+        this.type = type;
+    }
+
+    // Getters/Setters/toString() omitted
+}
+```
+
+```java
+var chimpanzees = new ArrayList<Chimpanzee>();
+chimpanzees.add(new Chimpanzee("Ham", 2, 'A'));
+chimpanzees.add(new Chimpanzee("Enos", 4, 'B'));
+File dataFile = new File("chimpanzee.data");
+
+saveToFile(chimpanzees, dataFile);
+var chimpanzeesFromDisk = readFromFile(dataFile);
+System.out.println(chimpanzeesFromDisk);
+```
+
+none of the instance members are serialized to a file. The ``name`` and ``age`` variables are both marked transient, ``while`` the type variable is ``static``. 
+
+Even the no-arg constructor that sets the values ``[name=Unknown,age=12,type=Q]`` is ignored. The instance initializer that sets age to 14 is also not executed. 
+
+In this case, the name variable is initialized to null since that’s the default value for ``String`` in Java. Likewise, the age variable is initialized to 0. The program prints the following, assuming the ``toString()`` method is implemented:
+
+```text
+[[name=null,age=0,type=B],
+[name=null,age=0,type=B]]
+```
+
+the type variable? Since it’s ``static``, it will display whatever value was set last. If the data is serialized and deserialized within the same execution, it will display B, since that was the last ``Chimpanzee`` we created. On the other hand, if the program performs the deserialization and print on startup, it will print C, since that is the value the class is initialized with.
+
+**==For the exam, make sure you understand that the constructor and any instance initializations defined in the serialized class are ignored during the deserialization process. Java only calls the constructor of the first non-serializable parent class in the class hierarchy.==**
+
+```java
+public class BabyChimpanzee extends Chimpanzee {
+	private static final long serialVersionUID = 3L;
+	private String mother = "Mom";
+	public BabyChimpanzee() { super(); }
+	public BabyChimpanzee(String name, char type) {
+		super(name, 0, type);
+	}
+// Getters/Setters/toString() omitted
+}
+```
+
+## Interacting with Users
+
+### Printing Data to the User
+
+Java includes two ``PrintStream`` instances for providing information to the user: ``System.out`` and ``System.err``. While ``System.out`` should be old hat to you, ``System.err`` might be new to you. The syntax for calling and using ``System.err`` is the same as ``System.out`` but is used to report errors to the user in a separate I/O stream from the regular output information.
+
+```java
+try (var in = new FileInputStream("zoo.txt")) {
+	System.out.println("Found file!");
+} catch (FileNotFoundException e) {
+	System.err.println("File not found!");
+}
+```
+
+### Reading Input as an I/O Stream
+
+The ``System.in`` returns an ``InputStream`` and is used to retrieve text input from the user. It is commonly wrapped with a ``BufferedReader`` via an ``InputStreamReader`` to use the ``readLine()`` method.
+
+```java
+var reader = new BufferedReader(new InputStreamReader(System.in));
+String userInput = reader.readLine();
+System.out.println("You entered: " + userInput);
+```
+
+### Closing System Streams
+
+these are the only I/O streams in the entire chapter that we did not use a try-with- resources block on! Because these are ``static`` objects, the System streams are shared by the entire application. The JVM creates and opens them for us. They can be used in a try-with- resources statement or by calling ``close()``, **==although closing them is not recommended. Closing the System streams makes them permanently unavailable for all threads in the remainder of the program.==**
+
+```java
+try (var out = System.out) {}
+System.out.println("Hello");
+```
+
+The methods of ``PrintStream`` do not throw any checked exceptions and rely on the ``checkError()`` to report errors, so they fail silently.
+
+```java
+try (var err = System.err) {}
+System.err.println("Hello");
+```
+
+This one also prints nothing. Like ``System.out``, ``System.err`` is a ``PrintStream``. Even if it did throw an exception, we’d have a hard time seeing it since our I/O stream for reporting errors is closed!
+
+```java
+var reader = new BufferedReader(new InputStreamReader(System.in));
+try (reader) {}
+String data = reader.readLine(); // IOException
+```
+
+It prints an exception at runtime. Unlike the ``PrintStream`` class, most ``InputStream`` implementations will throw an exception if you try to operate on a closed I/O stream.
+
+### Acquiring Input with Console
+
+The`` java.io.Console`` class is specifically designed to handle user interactions. After all, ``System.in`` and ``System.out`` are just raw streams, whereas ``Console`` is a class with numerous methods centered around user input. 
+The Console class is a singleton because it is accessible only from a factory method and only one instance of it is created by the JVM.
+
+```java
+Console c = new Console(); // DOES NOT COMPILE
+```
+
+```java
+if (console != null) {
+	String userInput = console.readLine();
+	console.writer().println("You entered: " + userInput);
+} else {
+	System.err.println("Console not available");
+}
+```
+
+---
+
+**The ``Console`` object may not be available, depending on where the code is being called. If it is not available, ``System.console()`` returns null. It is imperative that you check for a null value before attempting to use a ``Console`` object!**
+
+---
+
+#### Obtaining Underlying I/O Streams
+
+The Console class includes access to two streams for reading and writing data.
+
+```java
+public Reader reader()
+public PrintWriter writer()
+```
+
+Accessing these classes is analogous to calling ``System.in`` and ``System.out`` directly, although they use character streams rather than byte streams. In this manner, they are more appropriate for handling text data.
+
+#### Formatting Console Data
+
+```java
+// PrintStream
+public PrintStream format(String format, Object... args)
+public PrintStream format(Locale loc, String format, Object... args)
+// PrintWriter
+public PrintWriter format(String format, Object... args)
+public PrintWriter format(Locale loc, String format, Object... args)
+```
+
+```java
+Console console = System.console();
+if (console == null) {
+	throw new RuntimeException("Console not available");
+} else {
+	console.writer().println("Welcome to Our Zoo!");
+	console.format("It has %d animals and employs %d people", 391, 25);
+	console.writer().println();
+	console.printf("The zoo spans %5.1f acres", 128.91);
+}
+```
+
+```text
+Welcome to Our Zoo!
+It has 391 animals and employs 25 people
+The zoo spans 128.9 acres.
+```
+
+---
+
+**Using ``Console`` with a ``Locale``**
+
+**Unlike the print stream classes, ``Console`` does not include an overloaded ``format()`` method that takes a ``Locale`` instance. Instead, ==Console relies on the system locale==. Of course, you could always use a specific ``Locale`` by retrieving the ``Writer`` object and passing your own ``Locale`` instance, such as in the following example:**
+
+```java
+Console console = System.console();
+console.writer().format(new Locale("fr", "CA"), "Hello World");
+```
+
+---
+
+#### Reading Console Data
+
+```java
+public String readLine()
+public String readLine(String fmt, Object... args)
+
+public char[] readPassword()
+public char[] readPassword(String fmt, Object... args)
+```
+
+The ``readPassword()`` methods are similar to the ``readLine()`` method, with two important differences:
+
+-  ==**The text the user types is not echoed back and displayed on the screen as they are typing.**==
+-  ==**The data is returned as a ``char[]`` instead of a ``String``.==**
+
+**==The second feature involves preventing passwords from entering the ``String`` pool.==**
+
+#### Reviewing Console Methods
+
+```java
+Console console = System.console();
+if (console == null) {
+    throw new RuntimeException("Console not available");
+} else {
+    String name = console.readLine("Please enter your name: ");
+    console.writer().format("Hi %s", name);
+    console.writer().println();
+    console.format("What is your address? ");
+    String address = console.readLine();
+    char[] password = console.readPassword("Enter a password between %d and %d characters: ", 5, 10);
+    char[] verify = console.readPassword("Enter the password again: ");
+    console.printf("Passwords " + (Arrays.equals(password, verify) ? "match" : "do not match"));
+}
+
+```
+
+```text
+Please enter your name: Max
+Hi Max
+What is your address? Spoonerville
+Enter a password between 5 and 10 characters:
+Enter the password again:
+Passwords match
+```
+
+## Working with Advanced APIs
+
