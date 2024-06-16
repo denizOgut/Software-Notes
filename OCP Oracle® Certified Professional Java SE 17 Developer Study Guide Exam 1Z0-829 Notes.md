@@ -32303,3 +32303,717 @@ G. PrintReader
 ---
 
 # Chapter - 15  JDBC #Chapter 
+
+## Introducing Relational Databases and SQL
+
+Data is information. A database is an organized collection of data. A relational database is a database that is organized into tables, which consist of rows and columns.
+There are two main ways to access a relational database from Java:
+
+-  ==**Java Database Connectivity (JDBC): Accesses data as rows and columns.**== 
+-  ==**Java Persistence API (JPA): Accesses data through Java objects using a concept called object-relational mapping (ORM). The idea is that you don’t have to write as much code, and you get your data in Java objects.==**
+
+A relational database is accessed through Structured Query Language (SQL). SQL is a programming language used to interact with database records. JDBC works by sending a SQL command to the database and then processing the response.
+
+In addition to relational databases, there is another type of database called a NoSQL database. These databases store their data in a format other than tables, such as key/value, document stores, and graph-based databases.
+
+### Identifying the Structure of a Relational Database
+
+![[Pasted image 20240616114636.png]]
+
+### Writing Basic SQL Statements
+
+The most important thing that you need to know about SQL for the exam is that there are four types of statements for working with the data in tables. They are referred to as CRUD (Create, Read, Update, Delete). The SQL keywords don’t match the acronym, so pay attention to the SQL keyword
+
+![[Pasted image 20240616114719.png]]
+
+Unlike Java, SQL keywords are case insensitive. Like Java primitive types, SQL has a number of data types.
+Most are self-explanatory, like INTEGER. There’s also DECIMAL, which functions a lot like a double in Java. The strangest one is VARCHAR, standing for “variable character,” which is like a String in Java. The variable part means that the database should use only as much space as it needs to store the value.
+
+## Introducing the Interfaces of JDBC
+
+For the exam, you need to know five key interfaces of JDBC. The interfaces are declared in the JDK.
+
+With JDBC, the concrete classes come from the JDBC driver. Each database has a different JAR file with these classes. For example, PostgreSQL’s JAR is called something like ``postgresql-9.4– 1201.jdbc4.jar``. MySQL’s JAR is called something like ``mysql-connector- java- 5.1.36. jar``. The exact name depends on the vendor and version of the driver JAR.
+
+With JDBC, you use only the interfaces in your code and never the implementation classes directly. In fact, they might not even be ``public`` classes.
+
+-  ==**``Driver``: Establishes a connection to the database**==
+-  ==**``Connection``: Sends commands to a database**==
+-  ==**``PreparedStatement``: Executes a SQL query**==
+-  ==**``CallableStatement``: Executes commands stored in the database**==
+-  ==**``ResultSet``: Reads the results of a query==**
+
+![[Pasted image 20240616115045.png]]
+
+```java
+public class MyFirstDatabaseConnection {
+	public static void main(String[] args) throws SQLException {
+	String url = "jdbc:hsqldb:file:zoo";
+		try (Connection conn = DriverManager.getConnection(url);
+			PreparedStatement ps = conn.prepareStatement(
+			"SELECT name FROM exhibits");
+			ResultSet rs = ps.executeQuery()) {
+			while (rs.next())
+				System.out.println(rs.getString(1));
+		} 
+	} 
+}
+```
+
+## Connecting to a Database
+
+The first step in doing anything with a database is connecting to it.
+### Building a JDBC URL
+
+To access a database, you need to know this information about it. Unlike web URLs, JDBC URLs have a variety of formats. They have three parts in common,
+
+- ==**The first piece is always the same. It is the protocol jdbc.**==
+- ==**The second part is the *subprotocol*, which is the name of the database, such as ``hsqldb``, ``mysql``, or ``postgres``.**==
+- ==**The third part is the subname, which is a database-specific format. Colons ``(:)`` separate the three parts.==**
+
+![[Pasted image 20240616120402.png]]
+
+```java
+jdbc:postgresql://localhost/zoo
+jdbc:oracle:thin:@123.123.123.123:1521:zoo
+jdbc:mysql://localhost:3306
+jdbc:mysql://localhost:3306/zoo?profileSQL=true
+```
+
+### Getting a Database Connection
+
+There are two main ways to get a ``Connection``: ``DriverManager`` and ``DataSource``. ``DriverManager`` is the one covered on the exam. A ``DataSource`` has more features than ``DriverManager``.
+
+The ``DriverManager`` class is in the JDK, as it is an API that comes with Java. It uses the factory pattern, which means that you call a static method to get a ``Connection`` rather than calling a constructor.
+
+```java
+import java.sql.*;
+public class TestConnect {
+	public static void main(String[] args) throws SQLException {
+		try (Connection conn = DriverManager.getConnection("jdbc:hsqldb:file:zoo")) {
+			System.out.println(conn);
+		} 
+	}
+}
+```
+
+e use a try-with- resources statement to ensure that database resources are closed. Assuming the program runs successfully, it prints something like this:
+
+```text
+org.hsqldb.jdbc.JDBCConnection@3dfc5fb8
+```
+
+Just notice that the class is not ``Connection``. It is a vendor implementation of ``Connection``.
+There is also a signature that takes a username and password.
+
+```java
+import java.sql.*;
+public class TestExternal {
+	public static void main(String[] args) throws SQLException {
+		try (Connection conn = DriverManager.getConnection(
+		"jdbc:postgresql://localhost:5432/ocp-book", "username","Password20182")) {
+			System.out.println(conn);
+		} 
+	} 
+}
+```
+
+to run this with the Postgres driver JAR, it would print something like this:
+
+```text
+org.postgresql.jdbc4.Jdbc4Connection@eed1f14
+```
+
+Again, notice that it is a driver-specific implementation class. 
+
+Unless the exam specifies a command line, you can assume that the correct JDBC driver JAR is in the classpath. The exam creators explicitly ask about the driver JAR if they want you to think about it. 
+
+The nice thing about the factory pattern is that it takes care of the logic of creating a class for you. You don’t need to know the name of the class that implements ``Connection``, and you don’t need to know how it is created. You are probably a bit curious, though. 
+
+``DriverManager`` looks through any drivers it can find to see whether they can handle the JDBC URL. If so, it creates a ``Connection`` using that ``Driver``. If not, it gives up and throws a ``SQLException``.
+
+## Working with a ``PreparedStatement``
+
+In Java, you have a choice of working with a ``Statement``, ``PreparedStatement``, or ``CallableStatement``.
+
+![[Pasted image 20240616121106.png]]
+
+What about Statement, you ask? It is an interface that both ``PreparedStatement`` and ``CallableStatement`` extend. A ``Statement`` and **==a ``PreparedStatement`` are similar to each other, except that a ``PreparedStatement`` takes parameters, while a ``Statement`` does not. A ``Statement`` just executes whatever SQL query you give it.==**
+
+``PreparedStatement`` is far superior for the following reasons:
+
+-  **Performance**: In most programs, you run similar queries multiple times. When you use ``PreparedStatement``, the database software often devises a plan to run the query well and remembers it.
+-  **Security**: You are protected against an attack called SQL injection when using a ``PreparedStatement`` correctly.
+- **Readability**: It’s nice not to have to deal with string concatenation in building a query string with lots of parameters.
+-  **Future use**: Even if your query is being run only once or doesn’t have any parameters, you should still use a ``PreparedStatement``. That way, future editors of the code won’t add a variable and have to remember to change to ``PreparedStatement`` then.
+
+### Obtaining a ``PreparedStatement``
+
+To run SQL, you need to tell a ``PreparedStatement`` about it. Getting a ``PreparedStatement`` from a ``Connection`` is easy
+
+```java
+try (PreparedStatement ps = conn.prepareStatement( "SELECT * FROM exhibits")) {
+	// work with ps
+}
+```
+
+An instance of a ``PreparedStatement`` represents a SQL statement that you want to run using the ``Connection``. **==It does not execute the query yet!==** Passing a SQL statement when creating the object is mandatory.
+
+```java
+try (var ps = conn.prepareStatement()) {} // DOES NOT COMPILE
+```
+
+The previous example does not compile, because SQL is not supplied at the time a ``PreparedStatement`` is requested.
+
+There are overloaded signatures that allow you to specify a ``ResultSet`` type and concurrency mode. On the exam, you only need to know how to use the default options, which process the results in order.
+### Executing a ``PreparedStatement``
+ 
+ The method for running SQL varies depending on what kind of SQL statement it is.
+
+#### Modifying Data with ``executeUpdate()``
+
+**==Those are SQL statements that begin with ``DELETE``, ``INSERT``, or ``UPDATE``. They typically use a method called ``executeUpdate()``==**. The name is a little tricky because the SQL UPDATE statement is not the only statement that uses this method.
+
+The method takes the SQL statement to run as a parameter. It returns the number of rows that were inserted, deleted, or changed.
+
+```java
+10: var insertSql = "INSERT INTO exhibits VALUES(10, 'Deer', 3)";
+11: var updateSql = "UPDATE exhibits SET name = '' " +
+12: "WHERE name = 'None'";
+13: var deleteSql = "DELETE FROM exhibits WHERE id = 10";
+14:
+15: try (var ps = conn.prepareStatement(insertSql)) {
+	16: int result = ps.executeUpdate();
+	17: System.out.println(result); // 1
+18: }
+19:
+20: try (var ps = conn.prepareStatement(updateSql)) {
+	21: int result = ps.executeUpdate();
+	22: System.out.println(result); // 0
+23: }
+24:
+25: try (var ps = conn.prepareStatement(deleteSql)) {
+	26: int result = ps.executeUpdate();
+	27: System.out.println(result); // 1
+28: }
+```
+
+#### Reading Data with ``executeQuery()``
+
+**==SQL statement that begins with ``SELECT``. This time, we use the ``executeQuery()`` method.==**
+
+```java
+30: var sql = "SELECT * FROM exhibits";
+31: try (var ps = conn.prepareStatement(sql);
+32: ResultSet rs = ps.executeQuery() ) {
+33:
+34: // work with rs
+35: }
+```
+
+#### Processing Data with ``execute()``
+
+There’s a third method called ``execute()`` that can run either a query or an update. It returns a ``boolean`` so that we know whether there is a ``ResultSet``. That way, we can call the proper method to get more detail.
+
+```java
+boolean isResultSet = ps.execute();
+if (isResultSet) {
+	try (ResultSet rs = ps.getResultSet()) {
+		System.out.println("ran a query");
+	}
+} else {
+	int result = ps.getUpdateCount();
+	System.out.println("ran an update");
+}
+```
+
+If the ``PreparedStatement`` refers to sql that is a ``SELECT``, the ``boolean`` is true, and we can get the ``ResultSet``. If it is not a ``SELECT``, we can get the number of rows updated.
+
+#### Using the Correct Method
+
+What do you think happens if we use the wrong method for a SQL statement?
+
+```java
+var sql = "SELECT * FROM names";
+try (var ps = conn.prepareStatement(sql)) {
+	var result = ps.executeUpdate();
+}
+```
+```text
+Exception in thread "main" java.sql.SQLException:
+statement does not generate a row count
+```
+
+We also get a ``SQLException`` when using ``executeQuery()`` with SQL that changes the database.
+
+```text
+Exception in thread "main" java.sql.SQLException:
+statement does not generate a result set
+```
+
+#### Reviewing ``PreparedStatement`` Methods
+
+![[Pasted image 20240616122543.png]]
+
+![[Pasted image 20240616122556.png]]
+
+### Working with Parameters
+
+```java
+public static void register(Connection conn) throws SQLException {
+	var sql = "INSERT INTO names VALUES(6, 1, 'Edith')";
+	try (var ps = conn.prepareStatement(sql)) {
+		ps.executeUpdate();
+	}
+}
+```
+
+Luckily, a ``PreparedStatement`` allows us to set parameters. Instead of specifying the three values in the SQL, we can use a question mark ``(?)``. A bind variable is a placeholder that lets you specify the actual values at runtime. A bind variable is like a parameter, and you will see bind variables referenced as both variables and parameters
+
+```java
+String sql = "INSERT INTO names VALUES(?, ?, ?)";
+```
+
+Bind variables make the SQL easier to read since you no longer need to use quotes around ``String`` values in the SQL
+
+```java
+4: public static void register(Connection conn, int key,
+	15: int type, String name) throws SQLException {
+	16:
+	17: String sql = "INSERT INTO names VALUES(?, ?, ?)";
+	18:
+	19: try (PreparedStatement ps = conn.prepareStatement(sql)) {
+		20: ps.setInt(1, key);
+		21: ps.setString(3, name);
+		22: ps.setInt(2, type);
+		23: ps.executeUpdate();
+	24: }
+25: }
+```
+
+**==Notice how the bind variables are counted starting with 1 rather than 0. This is really important,==**
+**==The rule is only that they are each set before the query is executed==**
+
+```java
+var sql = "INSERT INTO names VALUES(?, ?, ?)";
+try (var ps = conn.prepareStatement(sql)) {
+	ps.setInt(1, key);
+	ps.setInt(2, type);
+	// missing the set for parameter number 3
+	ps.executeUpdate();
+}
+```
+
+The code compiles, and you get a ``SQLException``
+
+```text
+Exception in thread "main" java.sql.SQLException: Parameter not set
+```
+
+What about if you try to set more values than you have as bind variables?
+
+```java
+var sql = "INSERT INTO names VALUES(?, ?)";
+try (var ps = conn.prepareStatement(sql)) {
+	ps.setInt(1, key);
+	ps.setInt(2, type);
+	ps.setString(3, name);
+	ps.executeUpdate();
+}
+```
+
+```text
+Exception in thread "main" java.sql.SQLException:
+row column count mismatch in statement [INSERT INTO names VALUES(?, ?)]
+```
+
+![[Pasted image 20240616124253.png]]
+
+The ``setNull()`` method takes an int parameter representing the column type in the database.
+Notice that the ``setObject()`` method works with any Java type. If you pass a primitive, it will be autoboxed into a wrapper type.
+
+```java
+String sql = "INSERT INTO names VALUES(?, ?, ?)";
+try (PreparedStatement ps = conn.prepareStatement(sql)) {
+	ps.setObject(1, key);
+	ps.setObject(2, type);
+	ps.setObject(3, name);
+	ps.executeUpdate();
+}
+```
+
+Java will handle the type conversion for you. It is still better to call the more specific setter methods since that will give you a compile-time error if you pass the wrong type instead of a runtime error.
+### Updating Multiple Records
+
+```java
+var sql = "INSERT INTO names VALUES(?, ?, ?)";
+try (var ps = conn.prepareStatement(sql)) {
+	ps.setInt(1, 20);
+	ps.setInt(2, 1);
+	ps.setString(3, "Ester");
+	ps.executeUpdate();
+	
+	ps.setInt(1, 21);
+	ps.setString(3, "Elias");
+	ps.executeUpdate();
+}
+```
+
+Note that we set all three parameters when adding Ester but only two for Elias. The ``PreparedStatement`` is smart enough to remember the parameters that were already set and retain them. You only have to set the ones that are different.
+
+## Getting Data from a ``ResultSet``
+
+### Reading a ``ResultSet``
+
+When working with a ``ResultSet``, most of the time, you will write a loop to look at each row.
+
+```java
+20: String sql = "SELECT id, name FROM exhibits";
+21: var idToNameMap = new HashMap<Integer, String>();
+22:
+23: try (var ps = conn.prepareStatement(sql);
+	24: ResultSet rs = ps.executeQuery()) {
+25:
+26: while (rs.next()) {
+	27: int id = rs.getInt("id");
+	28: String name = rs.getString("name");
+	29: idToNameMap.put(id, name);
+30: }
+	31: System.out.println(idToNameMap);
+32: }
+```
+
+Each time through the loop represents one row in the ``ResultSet``. A ``ResultSet`` has a cursor, which points to the current location in the data.
+
+![[Pasted image 20240616130126.png]]
+
+the “best way” to get data was with column names. There is another way to access the columns. You can use an index, counting from 1 instead of a column name.
+
+```java
+27: int id = rs.getInt(1);
+28: String name = rs.getString(2);
+```
+
+Notice how the columns are counted starting with 1 rather than 0. Just like with a ``PreparedStatement``, JDBC starts counting at 1 in a ``ResultSet``.
+
+Sometimes you want to get only one row from the table. **==When you want only one row, you use an ``if`` statement rather than a ``while`` loop.==**
+
+```java
+var sql = "SELECT count(*) FROM exhibits";
+try (var ps = conn.prepareStatement(sql);
+	var rs = ps.executeQuery()) {
+	if (rs.next()) {
+		int count = rs.getInt(1);
+		System.out.println(count);
+	}
+}
+```
+
+It is important to check that ``rs.next()`` returns true before trying to call a getter on the ``ResultSet``. If a query didn’t return any rows, it would throw a ``SQLException``, so the if statement checks that it is safe to call. Alternatively, you can use the column name.
+
+```java
+var count = rs.getInt("count");
+```
+
+```java
+var sql = "SELECT count(*) AS count FROM exhibits";
+try (var ps = conn.prepareStatement(sql);
+	var rs = ps.executeQuery()) {
+	if (rs.next()) {
+		var count = rs.getInt("total");
+		System.out.println(count);
+	}
+}
+```
+
+```text
+Exception in thread "main" java.sql.SQLException: Column not found: total
+```
+
+Attempting to access a column name or index that does not exist throws a ``SQLException``, as does getting data from a ``ResultSet`` when it isn’t pointing at a valid row. You need to be able to recognize such code.
+
+```java
+var sql = "SELECT * FROM exhibits where name='Not in table'";
+try (var ps = conn.prepareStatement(sql);
+var rs = ps.executeQuery()) {
+	rs.next();
+	rs.getInt(1); // SQLException
+}
+```
+
+Calling ``rs.next()`` works. It returns false. However, calling a getter afterward throws a ``SQLException`` because the result set cursor does not point to a valid position. If a match were returned, this code would have worked.
+
+```java
+var sql = "SELECT count(*) FROM exhibits";
+try (var ps = conn.prepareStatement(sql);
+var rs = ps.executeQuery()) {
+	rs.getInt(1); // SQLException
+}
+```
+
+Not calling ``rs.next()`` at all is a problem. The result set cursor is still pointing to a location before the first row, so the getter has nothing to point to.
+
+To sum up this section, it is important to remember the following:
+-  ==**Always use an if statement or while loop when calling ``rs.next()``.**==
+-  ==**Column indexes begin with 1.==**
+
+### Getting Data for a Column
+
+![[Pasted image 20240616131133.png]]
+
+The exam will not try to trick you by using a get method name that doesn’t exist for JDBC
+
+The ``getObject()`` method can return any type. For a primitive, it uses the wrapper class.
+
+```java
+16: var sql = "SELECT id, name FROM exhibits";
+17: try (var ps = conn.prepareStatement(sql);
+18: var rs = ps.executeQuery()) {
+19:
+20: while (rs.next()) {
+	21: Object idField = rs.getObject("id");
+	22: Object nameField = rs.getObject("name");
+	23: if (idField instanceof Integer id)
+		24: System.out.println(id);
+	25: if (nameField instanceof String name)
+		26: System.out.println(name);
+	27: }
+28: }
+```
+
+### Using Bind Variables
+
+We’ve been creating the ``PreparedStatement`` and ``ResultSet`` in the same try-with-resources statement. This doesn’t work if you have bind variables because they need to be set in between. Luckily, we can nest try-with- resources to handle this.
+
+```java
+30: var sql = "SELECT id FROM exhibits WHERE name = ?";
+31:
+32: try (var ps = conn.prepareStatement(sql)) {
+33: ps.setString(1, "Zebra");
+34:
+35: try (var rs = ps.executeQuery()) {
+		36: while (rs.next()) {
+			37: int id = rs.getInt("id");
+			38: System.out.println(id);
+		39: }
+	40: }
+41: }
+```
+
+## Calling a ``CallableStatement``
+
+In some situations, it is useful to store SQL queries in the database instead of packaging them with the Java code. This is particularly useful when there are many complex queries. A stored procedure is code that is compiled in advance and stored in the database. Stored procedures are commonly written in a database-specific variant of SQL, which varies among database software providers.
+
+Using a stored procedure reduces network round trips. It also allows database experts to own that part of the code. However, stored procedures are database-specific and introduce complexity into maintaining your application.
+
+![[Pasted image 20240616170003.png]]
+
+### Calling a Procedure without Parameters
+
+``read_e_names()`` stored procedure doesn’t take any parameters. It does return a ``ResultSet``
+
+```java
+12: String sql = "{call read_e_names()}";
+13: try (CallableStatement cs = conn.prepareCall(sql);
+	14: ResultSet rs = cs.executeQuery()) {
+	15:
+	16: while (rs.next()) {
+		17: System.out.println(rs.getString(3));
+	18: }
+19: }
+```
+
+**==A stored procedure is called by putting the word ``call`` and the procedure name in braces ``({})``.==**
+**==Here, we use the ``prepareCall()`` method instead.==**
+
+### Passing an ``IN`` Parameter
+
+A stored procedure that always returns the same thing is only somewhat useful. The
+``read_names_by_letter()`` stored procedure takes a parameter for the prefix or first letter of the stored procedure. An ``IN`` parameter is used for input.
+
+```java
+25: var sql = "{call read_names_by_letter(?)}";
+	26: try (var cs = conn.prepareCall(sql)) {
+		27: cs.setString("prefix", "Z");
+		28:
+		29: try (var rs = cs.executeQuery()) {
+			30: while (rs.next()) {
+				31: System.out.println(rs.getString(3));
+			32: }
+		33: }
+	34: }
+```
+
+Unlike with ``PreparedStatement``, we can use either the parameter number (starting with 1) or the parameter name. That means these two statements are equivalent:
+
+```java
+cs.setString(1, "Z");
+cs.setString("prefix", "Z");
+```
+
+### Returning an ``OUT`` Parameter
+
+Some stored procedures return other information. Luckily, stored procedures can have ``OUT`` parameters for output
+
+```java
+40: var sql = "{?= call magic_number(?) }";
+41: try (var cs = conn.prepareCall(sql)) {
+	42: cs.registerOutParameter(1, Types.INTEGER);
+	43: cs.execute();
+	44: System.out.println(cs.getInt("num"));
+45: }
+```
+
+- On line 40, we include two special characters ``(?=)`` to specify that the stored procedure has an output value. This is optional since we have the ``OUT`` parameter, but it does aid in readability.
+- On line 42, we register the ``OUT`` parameter. This is important. It allows JDBC to retrieve the value on line 44. **==Remember to always call ``registerOutParameter()`` for each ``OUT`` or ``INOUT`` parameter==**
+- On line 43, we call ``execute()`` instead of ``executeQuery()`` since we are not returning a ``ResultSet`` from our stored procedure.
+
+### Working with an ``INOUT`` Parameter
+
+Finally, it is possible to use the same parameter for both input and output.
+
+```java
+50: var sql = "{call double_number(?)}";
+51: try (var cs = conn.prepareCall(sql)) {
+	52: cs.setInt(1, 8);
+	53: cs.registerOutParameter(1, Types.INTEGER);
+	54: cs.execute();
+	55: System.out.println(cs.getInt("num"));
+56: }
+```
+
+For an ``IN`` parameter, line 52 is required since it sets the value. For an ``OUT`` parameter, line 53 is required to register it. Line 54 uses ``execute()`` again because we are not returning a ``ResultSet``.
+
+**==Remember that an ``INOUT`` parameter acts as both an ``IN`` parameter and an ``OUT`` parameter, so it has all the requirements of both.==**
+### Comparing Callable Statement Parameters
+
+![[Pasted image 20240616171102.png]]
+
+### Using Additional Options
+
+There are three ``ResultSet`` integer type values:
+
+-  ==**``ResultSet.TYPE_FORWARD_ONLY``: Can go through the ``ResultSet`` only one row at a time**==
+-  ==**``ResultSet.TYPE_SCROLL_INSENSITIVE``: Can go through the ``ResultSet`` in any order but will not see changes made to the underlying database table**==
+-  ==**``ResultSet.TYPE_SCROLL_SENSITIVE``: Can go through the ``ResultSet`` in any order and will see changes made to the underlying database table==**
+
+There are two ``ResultSet`` integer concurrency mode values:
+
+-  ==**``ResultSet.CONCUR_READ_ONLY``: The ``ResultSet`` cannot be updated.**==
+-  ==**``ResultSet.CONCUR_UPDATABLE``: The ``ResultSet`` can be updated.==**
+
+These options are integer values, not enum values, which means you pass both as additional parameters after the SQL.
+
+```java
+conn.prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+```
+
+---
+
+**If you see these options on the exam, pay attention to how they are used. Remember that type always comes first. Also, the methods that take type also take concurrency mode, so be wary of any question that only passes one option.**
+
+---
+
+## Controlling Data with Transactions
+
+- A commit is like saving a file. On the exam, changes commit automatically unless otherwise specified. 
+- A transaction is when one or more statements are grouped with the final results committed or rolled back.
+- Rollback is like closing a file without saving. All the changes from the start of the transaction are discarded.
+
+### Committing and Rolling Back
+
+```java
+public static void main(String[] args) throws SQLException {
+    try (Connection conn = DriverManager.getConnection("jdbc:hsqldb:file:zoo")) {
+        conn.setAutoCommit(false);
+
+        var elephantRowsUpdated = updateRow(conn, 5, "African Elephant");
+        var zebraRowsUpdated = updateRow(conn, -5, "Zebra");
+
+        if (!elephantRowsUpdated || !zebraRowsUpdated) {
+            conn.rollback();
+        } else {
+            String selectSql = """
+                SELECT COUNT(*)
+                FROM exhibits
+                WHERE num_acres <= 0""";
+            try (PreparedStatement ps = conn.prepareStatement(selectSql);
+                 ResultSet rs = ps.executeQuery()) {
+
+                rs.next();
+                int count = rs.getInt(1);
+                if (count == 0) {
+                    conn.commit();
+                } else {
+                    conn.rollback();
+                }
+            }
+        }
+    }
+}
+
+private static boolean updateRow(Connection conn, int numToAdd, String name) throws SQLException {
+    String updateSql = """
+        UPDATE exhibits
+        SET num_acres = num_acres + ?
+        WHERE name = ?""";
+    try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+        ps.setInt(1, numToAdd);
+        ps.setString(2, name);
+        return ps.executeUpdate() > 0;
+    }
+}
+```
+
+The first interesting thing in this example is , where we turn off autocommit mode and declare that we will handle transactions ourselves. Most databases support disabling autocommit mode. If a database does not, it will throw a ``SQLException`` .
+
+Assuming at least one row is updated, we check exhibits and make sure none of the rows contain an invalid ``num_acres`` value. If this were a real application, we would have more logic to make sure the amount of space makes sense. we decide whether to commit the transaction to the database or roll back all updates made to the exhibits table.
+
+---
+
+**Autocommit Edge Cases**
+
+**You need to know two edge cases for the exam. First, calling ``setAutoCommit(true)`` will automatically trigger a commit when you are not already in autocommit mode. After that, autocommit mode takes effect, and each statement is automatically committed.**
+
+**The other edge case is what happens if you have autocommit set to ``false`` and close your connection without rolling back or committing your changes. The answer is that the behavior is undefined. It may commit or roll back, depending solely on the driver. Don’t depend on this behavior; remember to commit or roll back at the end of a transaction!**
+
+
+---
+### Bookmarking with Savepoints
+
+You can use savepoints to have more control of the rollback point
+
+```java
+20: conn.setAutoCommit(false);
+21: Savepoint sp1 = conn.setSavepoint();
+22: // database code
+23: Savepoint sp2 = conn.setSavepoint("second savepoint");
+24: // database code
+25: conn.rollback(sp2);
+26: // database code
+27: conn.rollback(sp1);
+```
+
+- Line 20 is important. **==You can only use savepoints when you are controlling the transaction==**.
+
+**==Order matters==**. If we reversed lines 25 and 27, the code would throw an exception. Rolling back to sp1 gets rid of any changes made after that, which includes the second savepoint! Similarly, calling ``conn.rollback()`` on line 25 would void both savepoints, and line 27 would again throw an exception.
+
+### Reviewing Transaction APIs
+
+![[Pasted image 20240616172205.png]]
+## Closing Database Resources
+
+JDBC resources, such as a ``Connection``, are expensive to create. Not closing them creates a resource leak that will eventually slow your program.
+
+**==The resources need to be closed in a specific order. The ``ResultSet`` is closed first, followed by the ``PreparedStatement`` (or ``CallableStatement``) and then the ``Connection``.==**
+
+While it is a good habit to close all three resources, it isn’t strictly necessary. Closing a JDBC resource should close any resources that it created. In particular, the following are true:
+
+-  ==**Closing a ``Connection`` also closes ``PreparedStatement`` (or ``CallableStatement``) and ``ResultSet``.**==
+-  ==**Closing a ``PreparedStatement`` (or ``CallableStatement``) also closes the ``ResultSet``.==**
+
+
+
+## Summary #OCP_Summary 
+
