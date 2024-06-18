@@ -18,8 +18,21 @@
                 "source": false
               }
             }
+          },
+          {
+            "id": "7efc4b193b95ebb4",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Elasticsearch Notes.md",
+                "mode": "source",
+                "source": false
+              }
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -85,7 +98,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Elasticsearch Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +115,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Elasticsearch Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +138,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+                "file": "Elasticsearch Notes.md"
               }
             }
           }
@@ -147,10 +160,11 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "88752ee5c9607a13",
+  "active": "7efc4b193b95ebb4",
   "lastOpenFiles": [
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616114636.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Elasticsearch Notes.md",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616114636.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616172205.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616171102.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616170003.png",
@@ -160,7 +174,6 @@
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616122556.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616122543.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616121106.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616120402.png",
     "JAVA APP - 1 NOTES.md",
     "JAVA APP - 2 NOTES.md",
     "Golang Notes.md",
