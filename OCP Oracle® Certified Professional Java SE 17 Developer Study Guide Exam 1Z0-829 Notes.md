@@ -32659,7 +32659,7 @@ try (var ps = conn.prepareStatement(sql)) {
 }
 ```
 
-Note that we set all three parameters when adding Ester but only two for Elias. The ``PreparedStatement`` is smart enough to remember the parameters that were already set and retain them. You only have to set the ones that are different.
+Note that we set all three parameters when adding Ester but only two for Elias. **==The ``PreparedStatement`` is smart enough to remember the parameters that were already set and retain them. You only have to set the ones that are different.==**
 
 ## Getting Data from a ``ResultSet``
 
@@ -32974,9 +32974,9 @@ Assuming at least one row is updated, we check exhibits and make sure none of th
 
 **Autocommit Edge Cases**
 
-**You need to know two edge cases for the exam. First, calling ``setAutoCommit(true)`` will automatically trigger a commit when you are not already in autocommit mode. After that, autocommit mode takes effect, and each statement is automatically committed.**
+**You need to know two edge cases for the exam. First, ==calling ``setAutoCommit(true)`` will automatically trigger a commit when you are not already in autocommit mode. After that, autocommit mode takes effect, and each statement is automatically committed.==**
 
-**The other edge case is what happens if you have autocommit set to ``false`` and close your connection without rolling back or committing your changes. The answer is that the behavior is undefined. It may commit or roll back, depending solely on the driver. Don’t depend on this behavior; remember to commit or roll back at the end of a transaction!**
+**The other edge case is what happens ==if you have autocommit set to ``false`` and close your connection without rolling back or committing your changes. The answer is that the behavior is undefined. It may commit or roll back, depending solely on the driver==. Don’t depend on this behavior; remember to commit or roll back at the end of a transaction!**
 
 
 ---
@@ -33019,7 +33019,7 @@ While it is a good habit to close all three resources, it isn’t strictly neces
 
 **==There are four key SQL statements you should know for the exam, one for each of the CRUD operations: create (INSERT) a new row, read (SELECT) data, update (UPDATE) one or more rows, and delete (DELETE) one or more rows.**==
 
-==**For the exam, you should be familiar with five JDBC interfaces: Driver, ``Connection``, ``PreparedStatement``, ``CallableStatement``, and ``ResultSet``. The interfaces are part of the Java API. A database-specific JAR file provides the implementations.**==
+==**For the exam, you should be familiar with five JDBC interfaces: ``Driver``, ``Connection``, ``PreparedStatement``, ``CallableStatement``, and ``ResultSet``. The interfaces are part of the Java API. A database-specific JAR file provides the implementations.**==
 
 ==**To connect to a database, you need the JDBC URL. A JDBC URL has three parts separated by colons. The first part is jdbc. The second part is the name of the vendor/product. The third part varies by database, but it includes the location and/or name of the database. The location is either localhost or an IP address followed by an optional port. The ``DriverManager`` class provides a factory method called ``getConnection()`` to get a Connection implementation.**==
 
@@ -33048,3 +33048,464 @@ While it is a good habit to close all three resources, it isn’t strictly neces
 **Work with transactions**. When autocommit is false, the ``commit()`` and ``rollback()`` methods control the transaction. There is an overloaded rollback method taking a ``Savepoint`` to roll back to a specific point.
 
 **Identify when a resource should be closed**. If you’re closing all three resources, the ``ResultSet`` must be closed first, followed by the ``PreparedStatement``/ ``CallableStatement``, and the ``Connection``.
+
+## Review Questions
+
+1. Which interfaces or classes are in a database-specific JAR file? (Choose all that apply.)
+
+A. Driver
+B. Driver’s implementation
+C. Manager
+D. DriverManager’s implementation
+E. PreparedStatement
+F. PreparedStatement implementation
+
+**The Driver and PreparedStatement interfaces are part of the JDK, making options A and E incorrect. Option C is incorrect because we made it up. The concrete DriverManager class is also part of the JDK, making option D incorrect. Options B and F are correct since the implementation of these interfaces is part of the database-specific driver JAR file.**
+
+---
+
+2. Which of the following is a valid JDBC URL?
+
+A. jdbc:sybase:localhost:1234/db
+B. jdbc::sybase::localhost::/db
+C. jdbc::sybase:localhost::1234/db
+D. sybase:localhost:1234/db
+E. sybase::localhost::/db
+F. sybase::localhost::1234/db
+
+**A JDBC URL has three main parts separated by single colons, making options B, C, E, and F incorrect. The first part is always jdbc, making option D incorrect. Therefore, the correct answer is option A. Notice that you can get this right even if you’ve never heard of the Sybase database before.**
+
+---
+
+3. Which of the options can fill in the blank to make the code compile and run without error? (Choose all that apply.)
+
+```java
+var sql = """
+UPDATE habitat SET environment = null
+WHERE environment = ? """;
+try (var ps = conn.prepareStatement(sql)) {
+??
+ps.executeUpdate();
+}
+```
+
+A. ps.setString(0, "snow");
+B. ps.setString(1, "snow");
+C. ps.setString("environment", "snow");
+D. ps.setString(1, "snow"); ps.setString(1, "snow");
+E. ps.setString(1, "snow"); ps.setString(2, "snow");
+F. ps.setString("environment", "snow"); ps.setString("environment", "snow");
+
+**When setting parameters on a PreparedStatement, there are only options that take an index, making options C and F incorrect. The indexing starts with 1, making option A incorrect. This query has only one parameter, so option E is also incorrect. Option B is correct because it simply sets the parameter. Option D is also correct because it sets the parameter and then immediately overwrites it with the same value.**
+
+---
+
+4. Suppose that you have a table named animal with two rows. What is the result of the following code?
+
+```java
+6: var conn = new Connection(url, userName, password);
+7: var ps = conn.prepareStatement(
+8: "SELECT count(*) FROM animal");
+9: var rs = ps.executeQuery();
+10: if (rs.next()) System.out.println(rs.getInt(1));
+```
+
+A. 0
+B. 2
+C. There is a compiler error on line 6.
+D. There is a compiler error on line 10.
+E. There is a compiler error on another line.
+F. A runtime exception is thrown.
+
+**A Connection is created using a static method on DriverManager. It does not use a constructor. Therefore, option C is correct. If the Connection was created properly, the answer would be option B.**
+
+---
+
+5. Which option can fill in the blanks to make the code compile?
+
+```java
+boolean bool = ps. ();
+int num = ps. ();
+ResultSet rs = ps. ();
+```
+
+A. execute, executeQuery, executeUpdate
+B. execute, executeUpdate, executeQuery
+C. executeQuery, execute, executeUpdate
+D. executeQuery, executeUpdate, execute
+E. executeUpdate, execute, executeQuery
+F. executeUpdate, executeQuery, execute
+ 
+ **The first line has a return type of boolean, making it an execute() call. The second line returns the number of modified rows, making it an executeUpdate() call. The third line returns the results of a query, making it an executeQuery() call. Therefore, option B is the answer.**
+
+---
+
+6. Suppose there are two rows in the table before this code is run, and executeUpdate() runs without error. How many rows are in the table after the code completes?
+
+```java
+conn.setAutoCommit(true);
+String sql = "INSERT INTO games VALUES(3, Jenga);";
+try (PreparedStatement ps = conn.prepareStatement(sql,
+ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+ps.executeUpdate();
+}
+conn.rollback();
+```
+
+A. Two
+B. Three
+C. The code does not compile.
+D. The code throws an exception.
+
+**The first line enables autocommit mode. This is the default and means to commit immediately after each update. When the rollback() runs, there are no uncommitted statements, so there is nothing to roll back. This gives us the initial two rows in addition to the inserted one making option B correct. If setAutoCommit(false) were called, option A would be the answer. The ResultSet types are just there to mislead you. Any types are valid for executeUpdate() since no ResultSet is involved.**
+
+---
+
+7. Suppose that the table names has five rows and the following SQL statement updates all of them. What is the result of this code?
+
+```java
+public static void main(String[] args) throws SQLException {
+var sql = "UPDATE names SET name = 'Animal'";
+try (var conn = DriverManager.getConnection("jdbc:hsqldb:file:zoo");
+var ps = conn.prepareStatement(sql)) {
+var result = ps.executeUpdate();
+System.out.println(result);
+}
+}
+```
+
+A. 0
+B. 1
+C. 5
+D. The code does not compile.
+E. A SQLException is thrown.
+F. A different exception is thrown.
+
+**This code works as expected. It updates each of the five rows in the table and returns the number of rows updated. Therefore, option C is correct.**
+
+---
+
+8.  Suppose learn() is a stored procedure that takes one IN parameter. What is wrong with the following code? (Choose all that apply.)
+
+```java
+18: var sql = "call learn()";
+19: try (var cs = conn.prepareCall(sql)) {
+20: cs.setString(1, "java");
+21: try (var rs = cs.executeQuery()) {
+22: while (rs.next())
+23: System.out.println(rs.getString(3));
+24: }
+25: }
+```
+
+A. Line 18 is missing braces.
+B. Line 18 is missing a ?.
+C. Line 19 is not allowed to use var.
+D. Line 20 does not compile.
+E. Line 22 does not compile.
+F. Something else is wrong with the code.
+G. None of the above. This code is correct.
+
+**Option A is one of the answers because you are supposed to use braces ({}) for all SQL in a CallableStatement. Option B is the other answer because each parameter should be passed with a question mark (?). The rest of the code is correct. Note that your database might not behave the way that’s described here, but you still need to know this syntax for the exam.**
+
+---
+
+9. Suppose that the table enrichment has three rows with the animals bat, rat, and snake. How many lines does this code print?
+
+```java
+var sql = "SELECT toy FROM enrichment WHERE animal = ?";
+try (var ps = conn.prepareStatement(sql)) {
+try (var rs = ps.executeQuery()) {
+while (rs.next())
+System.out.println(rs.getString(1));
+}
+}
+```
+
+A. 0
+B. 1
+C. 3
+D. The code does not compile.
+E. A SQLException is thrown.
+F. A different exception is thrown.
+
+**This code declares a bind variable with ? but never assigns a value to it. The compiler does not enforce bind variables have values, so the code compiles, but produces a SQLException at runtime, making option E correct.**
+
+---
+
+10. Suppose that the table food has five rows, and this SQL statement updates all of them. What is the result of this code?
+
+```java
+public static void main(String[] args) {
+var sql = "UPDATE food SET amount = amount + 1";
+try (var conn = DriverManager.getConnection("jdbc:hsqldb:file:zoo");
+var ps = conn.prepareStatement(sql)) {
+var result = ps.executeUpdate();
+System.out.println(result);
+}
+}
+```
+
+A. 0
+B. 1
+C. 5
+D. The code does not compile.
+E. A SQLException is thrown.
+F. A different exception is thrown.
+
+**JDBC code throws a SQLException, which is a checked exception. The code does not handle or declare this exception, and therefore it doesn’t compile. Since the code doesn’t compile, option D is correct. If the exception were handled or declared, the answer would be option C.**
+
+---
+
+11. Suppose we have a JDBC program that calls a stored procedure, which returns a set of results. Which is the correct order in which to close database resources for this call?
+
+A. Connection, ResultSet, CallableStatement
+B. Connection, CallableStatement, ResultSet
+C. ResultSet, Connection, CallableStatement
+D. ResultSet, CallableStatement, Connection
+E. CallableStatement, Connection, ResultSet
+F. CallableStatement, ResultSet, Connection
+
+**JDBC resources should be closed in the reverse order from that in which they were opened. The order for opening is Connection, CallableStatement, and ResultSet. The order for closing is ResultSet, CallableStatement, and Connection, which is option D.**
+
+---
+
+12.  Suppose that the table counts has five rows with the numbers 1 to 5. How many lines does this code print? 
+
+```java
+var sql = "SELECT num FROM counts WHERE num> ?";
+try (var ps = conn.prepareStatement(sql,
+ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+ps.setInt(1, 3);
+try (var rs = ps.executeQuery()) {
+while (rs.next())
+System.out.println(rs.getObject(1));
+}
+ps.setInt(1, 100);
+try (var rs = ps.executeQuery()) {
+while (rs.next())
+System.out.println(rs.getObject(1));
+}
+}
+```
+
+A. 0
+B. 1
+C. 2
+D. 4
+E. The code does not compile.
+F. The code throws an exception.
+
+**This code calls the PreparedStatement twice. The first time, it gets the numbers greater than 3. Since there are two such numbers, it prints two lines. The second time, it gets the numbers greater than 100. There are no such numbers, so the ResultSet is empty. Two lines are printed in total, making option C correct. The ResultSet options are just there to trick you since only the default settings are used by the rest of the code.**
+
+---
+
+13. Which of the following can fill in the blank correctly? (Choose all that apply.)
+
+```java
+var rs = ps.executeQuery();
+if (rs.next())
+??
+```
+
+A. String s = rs.getString(0)
+B. String s = rs.getString(1)
+C. String s = rs.getObject(0)
+D. String s = rs.getObject(1)
+E. Object s = rs.getObject(0)
+F. Object s = rs.getObject(1)
+
+**In a ResultSet, columns are indexed starting with 1, not 0. Therefore, options A, C, and E are incorrect. There are methods to get the column as a String or Object. However, option D is incorrect because an Object cannot be assigned to a String without a cast.**
+
+---
+
+14. Suppose learn() is a stored procedure that takes one IN parameter and one OUT parameter. What is wrong with the following code? (Choose all that apply.)
+
+```java
+18: var sql = "{?= call learn(?)}";
+19: try (var cs = conn.prepareCall(sql)) {
+20: cs.setInt(1, 8);
+21: cs.execute();
+22: System.out.println(cs.getInt(1));
+23: }
+```
+
+A. Line 18 does not call the stored procedure properly.
+B. The parameter value is not set for input.
+C. The parameter is not registered for output.
+D. The code does not compile.
+E. Something else is wrong with the code.
+F. None of the above. This code is correct.
+
+**Since an OUT parameter is used, the code should call registerOutParameter(). Since this is missing, option C is correct.**
+
+---
+
+15. Which can fill in the blank and have the code run without error? (Choose all that apply.)
+
+```java
+17: conn.setAutoCommit(false);
+18:
+19: var larry = conn.setSavepoint();
+20: var curly = conn.setSavepoint();
+21: var moe = conn.setSavepoint();
+22: var shemp = conn.setSavepoint();
+23:
+24: ??;
+25:
+26: conn.rollback(curly);
+```
+
+A. conn.rollback(larry)
+B. conn.rollback(curly)
+C. conn.rollback(moe)
+D. conn.rollback(shemp)
+E. conn.rollback()
+F. The code does not compile.
+
+**Rolling back to a point invalidates any savepoints created after it. Options A and E are incorrect because they roll back to lines 19 and 17, respectively. Option B is incorrect because you cannot roll back to the same savepoint twice. Options C and D are the answers because those savepoints were created after curly**
+
+---
+
+16. Which of the following can fill in the blank? (Choose all that apply.)
+
+```java
+var sql = " ";
+try (var ps = conn.prepareStatement(sql)) {
+ps.setObject(3, "red");
+ps.setInt(2, 8);
+ps.setString(1, "ball");
+ps.executeUpdate();
+}
+```
+
+A. { call insert_toys(?, ?) }
+B. { call insert_toys(?, ?, ?) }
+C. { call insert_toys(?, ?, ?, ?) }
+D. INSERT INTO toys VALUES (?, ?)
+E. INSERT INTO toys VALUES (?, ?, ?)
+F. INSERT INTO toys VALUES (?, ?, ?, ?)
+
+**First, notice that this code uses a PreparedStatement. Options A, B, and C are incorrect because they are for a CallableStatement. Next, remember that the number of parameters must be an exact match, making option E correct. Remember that you will not be tested on SQL syntax. When you see a question that appears to be about SQL, think about what it might be trying to test you on.**
+
+---
+
+17. Suppose that the table counts has five rows with the numbers 1 to 5. How many lines does this code print?
+
+```java
+var sql = "SELECT num FROM counts WHERE num> ?";
+try (var ps = conn.prepareStatement(sql)) {
+ps.setInt(1, 3);
+try (var rs = ps.executeQuery()) {
+while (rs.next())
+System.out.println(rs.getObject(1));
+}
+try (var rs = ps.executeQuery()) {
+while (rs.next())
+System.out.println(rs.getObject(1));
+}
+}
+```
+
+A. 0
+B. 1
+C. 2
+D. 4
+E. The code does not compile.
+F. The code throws an exception.
+
+**This code calls the PreparedStatement twice. The first time, it gets the numbers greater than 3. Since there are two such numbers, it prints two lines. Since the parameter is not set between the first and second calls, the second attempt also prints two rows. Four lines are printed in total, making option D correct.**
+
+---
+
+18. There are currently 100 rows in the table species before inserting a new row. What is the output of the following code?
+
+```java
+String insert = "INSERT INTO species VALUES (3, 'Ant', .05)";
+String select = "SELECT count(*) FROM species";
+try (var ps = conn.prepareStatement(insert)) {
+ps.executeUpdate();
+}
+try (var ps = conn.prepareStatement(select)) {
+var rs = ps.executeQuery();
+System.out.println(rs.getInt(1));
+}
+```
+
+A. 100
+B. 101
+C. The code does not compile.
+D. A SQLException is thrown.
+E. A different exception is thrown.
+
+**Before accessing data from a ResultSet, the cursor needs to be positioned. The call to rs.next() is missing from this code causing a SQLException and option D to be correct.**
+
+---
+
+19. Which of the options can fill in the blank to make the code compile and run without error? (Choose all that apply.)
+
+```java
+var sql = "UPDATE habitat WHERE environment = ?";
+try (var ps = conn.prepareCall(sql)) {
+??
+ps.executeUpdate();
+}
+```
+
+A. ps.setString(0, "snow");
+B. ps.setString(1, "snow");
+C. ps.setString("environment", "snow");
+D. The code does not compile.
+E. The code throws an exception at runtime.
+ 
+ **This code should call prepareStatement() instead of prepareCall() since it is not executing a stored procedure. Since we are using var, it does compile. Java will happily create a CallableStatement for you. Since this compile safety is lost, the code will not cause issues until runtime. At that point, Java will complain that you are trying to execute SQL as if it were a stored procedure, making option E correct.**
+
+---
+
+20. Which is the first line containing a compiler error?
+
+```java
+25: String url = "jdbc:hsqldb:file:zoo";
+26: try (var conn = DriverManager.getConnection(url);
+27: var ps = conn.prepareStatement();
+28: var rs = ps.executeQuery("SELECT * FROM swings")) {
+29: while (rs.next()) {
+30: System.out.println(rs.getInteger(1));
+31: }
+32: }
+```
+
+
+A. Line 26
+B. Line 27
+C. Line 28
+D. Line 29
+E. Line 30
+F. None of the above
+
+**The prepareStatement() method requires SQL to be passed in. Since this parameteris omitted, line 27 does not compile, and option B is correct.**
+
+---
+
+21. Suppose conn is a valid connection object and the exhibits table is empty. Which are true? (Choose two.)
+
+```java
+try (conn) {
+conn.setAutoCommit(false);
+String sql = "INSERT INTO exhibits VALUES(3, 'Test', 2)";
+try (PreparedStatement ps = conn.prepareStatement(sql)) {
+ps.executeUpdate();
+}
+conn.setAutoCommit(true); // line W
+}
+```
+
+A. As written, the table will remain empty after this code.
+B. As written, the table will contain one row after this code.
+C. As written, the code will throw an exception.
+D. When line W is commented out, the table will remain empty after this code.
+E. When line W is commented out, the table will contain one row after this code.
+F. When line W is commented out, the code will throw an exception.
+
+**The code starts with autocommit off. As written, we turn autocommit mode back on and immediately commit the transaction. This is option B. When line W is commented out, the update gets lost, making option D the other answer.**
+
