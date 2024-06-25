@@ -30,9 +30,21 @@
                 "source": false
               }
             }
+          },
+          {
+            "id": "e554360c9f2a9ba0",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "RabbitMQ Notes.md",
+                "mode": "source",
+                "source": false
+              }
+            }
           }
         ],
-        "currentTab": 1
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -98,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Elasticsearch Notes.md",
+                "file": "RabbitMQ Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -115,7 +127,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Elasticsearch Notes.md",
+                "file": "RabbitMQ Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -138,7 +150,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Elasticsearch Notes.md"
+                "file": "RabbitMQ Notes.md"
               }
             }
           }
@@ -160,21 +172,23 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "7efc4b193b95ebb4",
+  "active": "e554360c9f2a9ba0",
   "lastOpenFiles": [
-    "Elastic ScreenShots/Pasted image 20240620220310.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "RabbitMQ Notes.md",
+    "RabbitMQ Screenshots",
+    "RabbitMQ Screenshots/Pasted image 20240625102518.png",
+    "RabbitMQ Screenshots/Pasted image 20240625102359.png",
+    "RabbitMQ Screenshots/Pasted image 20240625102247.png",
+    "RabbitMQ Screenshots/Pasted image 20240625101611.png",
+    "RabbitMQ Screenshots/Pasted image 20240625100001.png",
+    "RabbitMQ Screenshots/Pasted image 20240625095311.png",
+    "RabbitMQ Screenshots/Pasted image 20240625094940.png",
     "Elasticsearch Notes.md",
+    "Elastic ScreenShots/Pasted image 20240620220310.png",
     "Elastic ScreenShots",
     "Elastic ScreenShots/Pasted image 20240620234409.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616114636.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616172205.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616171102.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616170003.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616131133.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616130126.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616124253.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 ScreenShots/Pasted image 20240616122556.png",
     "JAVA APP - 1 NOTES.md",
     "JAVA APP - 2 NOTES.md",
     "Golang Notes.md",
