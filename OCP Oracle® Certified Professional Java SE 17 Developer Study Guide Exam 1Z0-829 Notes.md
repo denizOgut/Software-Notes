@@ -3471,7 +3471,6 @@ In this example, first decrement `cookies` to 3, then multiply the resulting val
 ```java
 Zoo animal receives: 9.0 reward points
 ```
-
 ### Operator Precedence
 
 In mathematics, certain operators can override other operators and be evaluated first. ==**Determining which operators are evaluated in what order is referred to as operator precedence.**== In this manner, Java more closely follows the rules for mathematics.
@@ -3515,7 +3514,7 @@ isAnimalAsleep = !isAnimalAsleep;
 System.out.print(isAnimalAsleep); // true
 ```
 
-For the exam, you also need to know about the **`bitwise complement operator (~)`**, which flips all of the 0s and 1s in a number. ==**It can only be applied to integer numeric types such as byte, short, char, int, and long.**==
+For the exam, you also need to know about the **`bitwise complement operator (~)`**, which flips all of the 0s and 1s in a number. ==**It can only be applied to integer numeric types such as ``byte``, ``short``, ``char``, ``int``, and ``long``.**==
 
 ```java
 int value = 3; // Stored as 0011
@@ -3556,7 +3555,6 @@ boolean peacock = !0; // DOES NOT COMPILE
  **Keep an eye out for questions on the exam that use numeric values (such as 0 or 1) with `boolean` expressions. Unlike in some other programming languages, in Java, 1 and `true` are not related in any way, just as 0 and `false` are not related.** #TIP 
 
 ---
-
 ### Increment and Decrement Operators
 
 ==**Increment and decrement operators, `++` and `--`, respectively, can be applied to numeric variables and have a high order of precedence compared to binary operators. In other words, they are often applied first in an expression.**==
@@ -3577,7 +3575,6 @@ System.out.println(parkAttendance); // 1
 System.out.println(parkAttendance--); // 1
 System.out.println(parkAttendance); // 0
 ```
-
 ## Working with Binary Arithmetic Operators
 
 operators that take two operands, called binary operators. Binary operators are by far the most common operators in the Java language.  Binary operators are often combined in complex expressions with other binary operators; therefore, operator precedence is very important in evaluating expressions containing binary operators.
@@ -3602,7 +3599,6 @@ int price = 10 + 12 -8;
 **All of the arithmetic operators may be applied to any Java primitives, with the exception of `boolean`.**
 
 ---
-
 ### Adding Parentheses
 
 *Unless overridden with parentheses* prior to presenting Table 2.1 on operator precedence. That’s because you can change the order of operation explicitly by wrapping parentheses around the sections you want evaluated first.
@@ -3637,7 +3633,6 @@ short robin = 3 + [(4 * 2) + 4]; // DOES NOT COMPILE
 ```
 
 This example does not compile because Java, unlike some other programming languages, does not allow brackets, [], to be used in place of parentheses.
-
 ### Division and Modulus Operators
 
 The modulus operator, sometimes called the remainder operator, is simply the remainder when two numbers are divided.
@@ -3695,7 +3690,7 @@ float y = 2.1;
 var z = x + y;
 ```
 
-This is actually a trick question, as ==**the second line does not compile! Floating-point literals are assumed to be double unless postfixed with an f, as in 2.1f.**== If the value of y was set properly to 2.1f, then the promotion would be similar to the previous example, with both operands being promoted to a `double`, and the result z would be a `double` value.
+This is actually a trick question, as ==**the second line does not compile! Floating-point literals are assumed to be double unless post-fixed with an f, as in 2.1f.**== If the value of y was set properly to 2.1f, then the promotion would be similar to the previous example, with both operands being promoted to a `double`, and the result z would be a `double` value.
 
 - What is the data type of x * y?
 ```java
@@ -3717,7 +3712,6 @@ var z = w * x / y;
 In this case, must apply all of the rules. First, w will automatically be promoted to `int` solely because it is a `short` and is being used in an arithmetic binary operation. The promoted w value will then be automatically promoted to a `float` so that it can be multiplied with x. The result of w * x will then be automatically promoted to a `double` so that it can be divided by y, resulting in a `double` value. 
 
 When working with arithmetic operators in Java, you should always be aware of the data type of variables, intermediate values, and resulting values. You should apply operator precedence and parentheses and work outward, promoting data types along the way.
-
 ## Assigning Values
 
 ### Assignment Operator
@@ -3735,7 +3729,6 @@ int herd = 1;
 | Operator     | Example         | Description                                      |
 |--------------|-----------------|--------------------------------------------------|
 | Assignment   | `int a = 50;`    | Assigns the value on the right to the variable on the left. |
-
 ### Casting Values
 
 Casting is a unary operation where one data type is explicitly interpreted as another data type. ==**Casting is optional and unnecessary when converting to a larger or widening data type, but it is required when converting to a smaller or narrowing data type.**== Without casting, the compiler will generate an error when trying to put a larger data type inside a smaller one.
@@ -3840,7 +3833,6 @@ short capybara = 1 + (short)(mouse * hamster); // DOES NOT COMPILE
 ```
 
 casting is performed successfully, but the resulting value is automatically promoted to int because it is used with the binary arithmetic operator `(+)`.
-
 ### Casting Values vs. Variables
 
 ==**the compiler doesn’t require casting when working with literal values that fit into the data type.**==
@@ -3886,7 +3878,7 @@ int sheep = 5;
 sheep = sheep * goat; // DOES NOT COMPILE
 ```
 
-We are trying to assign a long value to an int variable. This last line could be fixed with an explicit cast to (int), but there’s a better way using the compound assignment operator:
+We are trying to assign a ``long`` value to an ``int`` variable. This last line could be fixed with an explicit cast to (int), but there’s a better way using the compound assignment operator:
 
 ```java
 long goat = 10;
@@ -3895,7 +3887,6 @@ sheep *= goat;
 ```
 
 The compound operator will first cast sheep to a long, apply the multiplication of two long values, and then cast the result to an int. Unlike the previous example, in which the compiler reported an error, the compiler will automatically cast the resulting value to the data type of the value on the left side of the compound operator.
-
 ### Return Value of Assignment Operators
 
 One final thing to know about assignment operators is that ==**the result of an assignment is an expression in and of itself equal to the value of the assignment.**==
@@ -3907,7 +3898,7 @@ System.out.println(wolf); // 3
 System.out.println(coyote); // 3
 ```
 
-The key here is that `(wolf=3)` does two things. First, it sets the value of the variable wolf to be 3. Second, it returns a value of the assignment, which is also 3.
+The key here is that `(wolf=3)` does two things. First, it sets the value of the variable ``wolf`` to be 3. Second, it returns a value of the assignment, which is also 3.
 
 ```java
 boolean healthy = false;
@@ -3916,11 +3907,9 @@ System.out.print("Good!");
 ```
 
 While this may look like a test if healthy is true, it’s actually assigning healthy a value of true. The result of the assignment is the value of the assignment, which is true, resulting in this snippet printing Good!
-
 ## Comparing Values
 
-The last set of binary operators revolves around comparing values. They can be used to check if two values are the same, check if one numeric value is less than or greater than another, and perform Boolean arithmetic.
-
+The last set of binary operators revolves around comparing values. They can be used to check if two values are the same, check if one numeric value is less than or greater than another, and perform ``Boolean`` arithmetic.
 ## Equality Operators
 
 Determining equality in Java can be a nontrivial endeavor as there’s a semantic difference between “two objects are the same” and “two objects are equivalent.” It is further complicated by the fact that for numeric and boolean primitives, there is no such distinction.
@@ -3949,7 +3938,7 @@ System.out.println(polar); // true
 
 In this example, though, the expression is assigning the value of `true` to `bear`, and on assignment operators, the assignment itself has the value of the assignment. Therefore, polar is also assigned a value of `true`, and the output is `true`.
 
-==**For object comparison, the equality operator is applied to the references to the objects, not the objects they point to. Two references are equal if and only if they point to the same object or both point to null.**==
+==**For object comparison, the equality operator is applied to the references to the objects, not the objects they point to. Two references are equal if and only if they point to the same object or both point to ``null``.**==
 
 ```java
 var monday = new File("schedule.txt");
@@ -3961,12 +3950,11 @@ System.out.println(tuesday == wednesday); // true
 
 Even though all of the variables point to the same file information, only two references, `tuesday` and `wednesday`, are equal in terms of `==` since they point to the same object.
 
-==**In some languages, comparing null with any other value is always false, although this is not the case in Java.**==
+==**In some languages, comparing ``null`` with any other value is always false, although this is not the case in Java.**==
 
 ```java
 System.out.print(null == null); // true
 ```
-
 ### Relational Operators
 
 compare two expressions and return a `boolean` value. 
@@ -4019,11 +4007,11 @@ System.out.print(time);
 }
 ```
 
-It is common to use casting with instanceof when working with objects that can be various different types, since casting gives you access to fields available only in the more specific classes. **It is considered a good coding practice to use the instanceof operator prior to casting from one object to a narrower type.**
+It is common to use casting with instanceof when working with objects that can be various different types, since casting gives you access to fields available only in the more specific classes. **==It is considered a good coding practice to use the instanceof operator prior to casting from one object to a narrower type.==**
 
-**Invalid instanceof**
+**Invalid ``instanceof``**
 
-One area the exam might try to trip you up on is using `instanceof` with incompatible types. For example, `Number` cannot possibly hold a String value, so the following causes a compilation error:
+One area the exam might try to trip you up on is using `instanceof` with incompatible types. For example, `Number` cannot possibly hold a ``String`` value, so the following causes a compilation error:
 
 ```java
 public void openZoo(Number time) {
@@ -4032,7 +4020,7 @@ System.out.print(time);
 }
 ```
 
-**null and the instanceof operator**
+**``null`` and the ``instanceof`` operator**
 ==**calling instanceof on the null literal or a null reference always returns false.**==
 
 ```java
@@ -4040,7 +4028,6 @@ System.out.print(null instanceof Object); // false
 Object noObjectHere = null;
 System.out.print(noObjectHere instanceof String); // false
 ```
-
 ### Logical Operators
 
 The logical operators, `(&)`, `(|)`, and `(^)`, may be applied to both numeric and boolean data types;  ==**When they’re applied to boolean data types, they’re referred to as logical operators. Alternatively, when they’re applied to numeric data types, they’re referred to as bitwise operators**==, as they perform bitwise comparisons of the bits that compose the number. 
@@ -4065,7 +4052,6 @@ System.out.println(resting); // true
 System.out.println(asleep); // true
 System.out.println(awake); // false
 ```
-
 ### Conditional Operators
 
 | Operator          | Example    | Description                                                                      |
@@ -4081,7 +4067,6 @@ System.out.println(zooOpen); // true
 ```
 
 Since we know the left side is true, there’s no need to evaluate the right side, since no value of hour will ever make this code print `false`. In other words, hour could have been -10 or 892; the output would have been the same.
-
 ### Avoiding a `NullPointerException`
 
 A more common example of where conditional operators are used is checking for `null` objects before performing an operation.
@@ -4099,7 +4084,6 @@ if(duck!=null && duck.getAge()<5) {
 // Do something
 }
 ```
-
 ### Checking for Unperformed Side Effects
 
 ==**Be wary of short-circuit behavior on the exam, as questions are known to alter a variable on the right side of the expression that may never be reached. This is referred to as an unperformed side effect.**==
