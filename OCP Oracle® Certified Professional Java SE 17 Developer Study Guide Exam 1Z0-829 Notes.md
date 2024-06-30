@@ -4638,7 +4638,7 @@ patrons++;
 
 // Statement inside a block
 {
-patrons++;
+	patrons++;
 }
 ```
 
@@ -4647,11 +4647,11 @@ A statement or block often serves as the target of a decision-making statement.
 ```java
 // Single statement
 if(ticketsTaken > 1)
-patrons++;
+	patrons++;
 // Statement inside a block
 if(ticketsTaken > 1)
 {
-patrons++;
+	patrons++;
 }
 ```
 
@@ -4672,7 +4672,7 @@ if(hourOfDay < 11)
 
 if(hourOfDay < 11) {
 	System.out.println("Good Morning");
-morningGreetingCount++;
+	morningGreetingCount++;
 }
 ```
 
@@ -4691,7 +4691,6 @@ morningGreetingCount++;
 **in Java, unlike some other programming languages, tabs are just whitespace and are not evaluated as part of the execution. When you see a control flow statement in a question, be sure to trace the open and close braces of the block, ignoring any indentation you may come across.**
 
 ---
-
 ### The `else` Statement
 
 ```java
@@ -4731,12 +4730,11 @@ if(hourOfDay < 11) {
 ```java
 int hourOfDay = 1;
 if(hourOfDay) { // DOES NOT COMPILE
-...
+	...
 }
 ```
 
 ---
-
 ### Shortening Code with Pattern Matching
 
 Pattern matching is reduce the boilerplate in your code.  A lot of the newer enhancements to the Java language focus on reducing boilerplate code.
@@ -4750,7 +4748,7 @@ void compareIntegers(Number number) {
 }
 ```
 
-The cast is needed since the `compareTo()` method is defined on Integer, but not on Number. 
+The cast is needed since the `compareTo()` method is defined on ``Integer``, but not on ``Number``. 
 
 ```java
 void compareIntegers(Number number) {
@@ -4760,7 +4758,7 @@ void compareIntegers(Number number) {
 }
 ```
 
-==**The variable data in this example is referred to as the pattern variable**==. Notice that this code also avoids any potential `ClassCastException` because the cast operation is executed only if the implicit instanceof operator returns true.
+==**The variable data in this example is referred to as the pattern variable**==. Notice that this code also avoids any potential `ClassCastException` because the cast operation is executed only if the implicit ``instanceof`` operator returns true.
 
 ==**The pattern variables are those that store data from the target only if the predicate returns `true` which is `instanceof`**==
 
@@ -4785,18 +4783,16 @@ if(number instanceof final Integer data) {
 ```
 
 ---
-
 #### Pattern Variables and Expressions
 
 ```java
 void printIntegersGreaterThan5(Number number) {
 	if(number instanceof Integer data && data.compareTo(5)>0)
-	System.out.print(data);
+		System.out.print(data);
 }
 ```
 
 We can apply a number of filters, or patterns, so that the if statement is executed only in specific circumstances. ==**Notice that we’re using the pattern variable in an expression in the same line in which it is declared.**==
-
 #### Subtypes
 
 ==**The type of the pattern variable must be a subtype of the variable on the left side of the expression. It also cannot be the same type. This rule does not exist for traditional `instanceof` operator expressions**==, though
@@ -4862,12 +4858,9 @@ class Horse extends Animal implements Walkable {
 ```
 
 ---
-
 #### Flow Scoping
 
-The compiler applies flow scoping when working with pattern matching. ==**Flow scoping means the variable is only in scope when the compiler can definitively determine its type.**== 
-
-Flow scoping is unlike any other type of scoping in that it is not strictly hierarchical like instance, class, or local scoping. It is determined by the compiler based on the branching and flow of the program.
+The compiler applies flow scoping when working with pattern matching. ==**Flow scoping means the variable is only in scope when the compiler can definitively determine its type.**==  Flow scoping is unlike any other type of scoping in that it is not strictly hierarchical like instance, class, or local scoping. It is determined by the compiler based on the branching and flow of the program.
 
 ```java
 void printIntegersOrNumbersGreaterThan5(Number number) {
@@ -4876,7 +4869,7 @@ void printIntegersOrNumbersGreaterThan5(Number number) {
 }
 ```
 
-If the input does not inherit Integer, the data variable is undefined. Since the compiler cannot guarantee that data is an instance of Integer, data is not in scope, and the code does not compile. 
+If the input does not inherit ``Integer``, the data variable is undefined. Since the compiler cannot guarantee that data is an instance of ``Integer``, data is not in scope, and the code does not compile. 
 
 ```java
 void printIntegerTwice(Number number) {
@@ -4896,7 +4889,7 @@ System.out.print(data.intValue());
 }
 ```
 
-this code does compile! The method returns if the input does not inherit Integer. This means that when the last line of the method is reached, the input must inherit Integer, and therefore data stays in scope even after the if statement ends.
+**==this code does compile! The method returns if the input does not inherit ``Integer``. This means that when the last line of the method is reached, the input must inherit ``Integer``, and therefore data stays in scope even after the if statement ends.==**
 
 ---
 **Flow Scoping and else Branches**
@@ -4983,7 +4976,7 @@ code that is long, difficult to read, and often not fun to maintain
 
 ###  The `switch` Statement 
 
-A switch statement is a complex decision-making structure in which a single value is evaluated and flow is redirected to the first matching branch, known as a case statement. If no such case statement is found that matches the value, an optional default statement will be called. If no such default option is available, the entire switch statement will be skipped.
+A ``switch`` statement is a complex decision-making structure in which a single value is evaluated and flow is redirected to the first matching branch, known as a case statement. If no such case statement is found that matches the value, an optional default statement will be called. If no such default option is available, the entire switch statement will be skipped.
 
 ![[Pasted image 20240126183854.png]]
 
@@ -4996,8 +4989,8 @@ A switch statement is a complex decision-making structure in which a single valu
 
 ```java
 switch(animal) {
-case 1,2: System.out.print("Lion");
-case 3: System.out.print("Tiger");
+	case 1,2: System.out.print("Lion");
+	case 3: System.out.print("Tiger");
 }
 ```
 
@@ -5006,14 +4999,14 @@ case 3: System.out.print("Tiger");
 ```java
 int month = 5;
 switch month { // DOES NOT COMPILE
-case 1: System.out.print("January");
+	case 1: System.out.print("January");
 }
 
 switch(month) // DOES NOT COMPILE
-case 1: System.out.print("January");
+	case 1: System.out.print("January");
 
 switch(month) {
-case 1: 2: System.out.print("January"); // DOES NOT COMPILE
+	case 1: 2: System.out.print("January"); // DOES NOT COMPILE
 }
 ```
 
@@ -5028,32 +5021,33 @@ switch(month) {} // Perfectly Valid !!!
 
 ```java
 public void printDayOfWeek(int day) {
-switch(day) {
-case 0:
-System.out.print("Sunday");
-break;
-case 1:
-System.out.print("Monday");
-break;
-case 2:
-System.out.print("Tuesday");
-break;
-case 3:
-System.out.print("Wednesday");
-break;
-case 4:
-System.out.print("Thursday");
-break;
-case 5:
-System.out.print("Friday");
-break;
-case 6:
-System.out.print("Saturday");
-break;
-default:
-System.out.print("Invalid value");
-break;
-} }
+	switch(day) {
+	case 0:
+		System.out.print("Sunday");
+		break;
+	case 1:
+		System.out.print("Monday");
+		break;
+	case 2:
+		System.out.print("Tuesday");
+		break;
+	case 3:
+		System.out.print("Wednesday");
+		break;
+	case 4:
+		System.out.print("Thursday");
+		break;
+	case 5:
+		System.out.print("Friday");
+		break;
+	case 6:
+		System.out.print("Saturday");
+		break;
+	default:
+		System.out.print("Invalid value");
+		break;
+	} 
+}
 ```
 
 ### Exiting with `break` Statements
@@ -5081,7 +5075,6 @@ WinterSpringUnknownSummerFall
 **The exam creators are fond of ``switch`` examples that are missing ``break`` statements! When evaluating ``switch`` statements on the exam, always consider that multiple branches may be visited in a single execution.** #TIP 
 
 ---
-
 ### Selecting ``switch`` Data Types
 
 a switch statement has a target variable that is not evaluated until runtime. The type of this target can include select primitive data types (``int, byte, short, char``) and their associated wrapper classes (``Integer, Byte, Short, Character``)
@@ -5096,10 +5089,9 @@ The following all data types supported by switch statements
 - ==**``var`` (if the type resolves to one of the preceding types)**==
 
 ---
-**``boolean``, ``long``, ``float``, and ``double`` are excluded from switch statements, as are their associated ``Boolean``, ``Long``, ``Float``, and ``Double`` classes. The reasons are varied, such as boolean having too small a range of values and floating-point numbers having quite a wide range of values. For the exam, though, you just need to know that they are not permitted in switch statements.**
+**``boolean``, ``long``, ``float``, and ``double`` are excluded from ``switch`` statements, as are their associated ``Boolean``, ``Long``, ``Float``, and ``Double`` classes. The reasons are varied, such as boolean having too small a range of values and floating-point numbers having quite a wide range of values. For the exam, though, you just need to know that they are not permitted in switch statements.**
 
 ---
-
 ### Determining Acceptable Case Values
 
 Not just any variable or value can be used in a case statement. First, ==**the values in each case statement must be compile-time constant values of the same data type as the switch value. This means you can use only literals, enum constants, or final constant variables of the same data type.**== By final constant, we mean that the variable must be marked with the final modifier and initialized with a literal value in the same expression in which it is declared.
@@ -5122,58 +5114,57 @@ case 3 * 5 :
 
 - The ``bananas`` variable is marked ``final``, and its value is known at compile-time, so it is valid. 
 - The `apples` variable is not marked ``final``, even though its value is known, so it is not permitted.
-- The next two case statements, with values ``getCookies()`` and cookies, do not compile because methods are not evaluated until runtime, so they cannot be used as the value of a case statement, even if one of the values is stored in a final variable
+- The next two case statements, with values ``getCookies()`` and ``cookies``, do not compile because methods are not evaluated until runtime, so they cannot be used as the value of a case statement, even if one of the values is stored in a final variable
 - The last case statement, with value ``3 * 5``, does compile, as expressions are allowed as case values, provided the value can be resolved at compile-time.
 - ==**They also must be able to fit in the ``switch`` data type without an explicit cast.**==
-- ==**The data type for case statements must match the data type of the switch variable.**==
-
+- ==**The data type for case statements must match the data type of the ``switch`` variable.**==
 ### The ``switch`` Expression
 
 A ``switch`` expression is a much more compact form of a ``switch`` statement, ==**capable of returning a value**==.
-Because a switch expression is a compact form, there’s a lot going on. For starters, we can now assign the result of a switch expression to a variable result. ==**For this to work, all case and default branches must return a data type that is compatible with the assignment.**== The ``switch`` expression supports two types of branches: an expression and a block. Each has different syntactical rules on how it must be created.
+Because a ``switch`` expression is a compact form, there’s a lot going on. For starters, we can now assign the result of a ``switch`` expression to a variable result. ==**For this to work, all case and default branches must return a data type that is compatible with the assignment.**== The ``switch`` expression supports two types of branches: an expression and a block. Each has different syntactical rules on how it must be created.
 
 ![[Pasted image 20240126193026.png]]
 
-Like a traditional ``switch`` statement, a ``switch`` expression supports zero or many case branches and an optional default branch. Both also support the new feature that allows case values to be combined with a single case statement using commas. Unlike a traditional ``switch`` statement, though, ``switch`` expressions have special rules around when the default branch is required.
+Like a traditional ``switch`` statement, a ``switch`` expression supports zero or many case branches and an optional ``default`` branch. Both also support the new feature that allows case values to be combined with a single case statement using commas. Unlike a traditional ``switch`` statement, though, ``switch`` expressions have special rules around when the ``default`` branch is required.
 
 ---
 
-**that ``->`` is the arrow operator. While the arrow operator is commonly used in lambda expressions, when it is used in a switch expression, the case branches are not lambdas.**
+**that ``->`` is the arrow operator. While the arrow operator is commonly used in lambda expressions, when it is used in a ``switch`` expression, the case branches are not lambdas.**
 
 ---
 
 ```java
 public void printDayOfWeek(int day) {
-var result = switch(day) {
-case 0 -> "Sunday";
-case 1 -> "Monday";
-case 2 -> "Tuesday";
-case 3 -> "Wednesday";
-case 4 -> "Thursday";
-case 5 -> "Friday";
-case 6 -> "Saturday";
-default -> "Invalid value";
-};
-System.out.print(result);
+	var result = switch(day) {
+		case 0 -> "Sunday";
+		case 1 -> "Monday";
+		case 2 -> "Tuesday";
+		case 3 -> "Wednesday";
+		case 4 -> "Thursday";
+		case 5 -> "Friday";
+		case 6 -> "Saturday";
+		default -> "Invalid value";
+	};
+	System.out.print(result);
 }
 ```
 
-==**Notice that a semicolon is required after each switch expression.**== 
+==**Notice that a semicolon is required after each ``switch`` expression.**== 
 
 ```java
 var result = switch(bear) {
-case 30 -> "Grizzly"
-default -> "Panda"
+	case 30 -> "Grizzly"
+	default -> "Panda"
 }
 ```
 **Does not compile**
 
-Each case or default expression requires a semicolon as well as the assignment itself.
+Each case or ``default`` expression requires a semicolon as well as the assignment itself.
 
 ```java
 var result = switch(bear) {
-case 30 -> "Grizzly";
-default -> "Panda";
+	case 30 -> "Grizzly";
+	default -> "Panda";
 };
 ```
 
@@ -5181,12 +5172,13 @@ case statements can take multiple values, separated by commas.
 
 ```java
 public void printSeason(int month) {
-switch(month) {
-case 1, 2, 3 -> System.out.print("Winter");
-case 4, 5, 6 -> System.out.print("Spring");
-case 7, 8, 9 -> System.out.print("Summer");
-case 10, 11, 12 -> System.out.print("Fall");
-} }
+	switch(month) {
+		case 1, 2, 3 -> System.out.print("Winter");
+		case 4, 5, 6 -> System.out.print("Spring");
+		case 7, 8, 9 -> System.out.print("Summer");
+		case 10, 11, 12 -> System.out.print("Fall");
+	} 
+}
 ```
 
 ---
@@ -5200,24 +5192,22 @@ All of the previous rules around ``switch`` data types and case values still app
 1. ==**All of the branches of a ``switch`` expression that do not ``throw`` an exception must return a consistent data type (if the ``switch`` expression returns a value).**==
 2. ==**If the ``switch`` expression returns a value, then every branch that isn’t an expression must ``yield`` a value.**==
 3. ==**A default branch is required unless all cases are covered or no value is returned.**==
-
 #### Returning Consistent Data Types
 
 You can’t return incompatible or random data types.
 ```java
 int measurement = 10;
 int size = switch(measurement) {
-case 5 -> 1;
-case 10 -> (short)2;
-default -> 5;
-case 20 -> "3"; // DOES NOT COMPILE
-case 40 -> 4L; // DOES NOT COMPILE
-case 50 -> null; // DOES NOT COMPILE
+	case 5 -> 1;
+	case 10 -> (short)2;
+	default -> 5;
+	case 20 -> "3"; // DOES NOT COMPILE
+	case 40 -> 4L; // DOES NOT COMPILE
+	case 50 -> null; // DOES NOT COMPILE
 };
 ```
 
 Notice that the second case expression returns a ``short``, but that can be implicitly cast to an ``int``. In this manner, ==**the values have to be consistent with size, but they do not all have to be the same data type**.==
-
 #### Applying a case Block
 
 A ``switch`` expression supports both an expression and a block in the case and default branches. Like a regular block, a case block is one that is surrounded by braces ``({})``. It also includes a ``yield`` statement if the switch expression returns a value.
@@ -5226,13 +5216,13 @@ A ``switch`` expression supports both an expression and a block in the case and 
 int fish = 5;
 int length = 12;
 var name = switch(fish) {
-case 1 -> "Goldfish";
-case 2 -> {yield "Trout";}
-case 3 -> {
-if(length > 10) yield "Blobfish";
-else yield "Green";
-}
-default -> "Swordfish";
+	case 1 -> "Goldfish";
+	case 2 -> {yield "Trout";}
+	case 3 -> {
+		if(length > 10) yield "Blobfish";
+		else yield "Green";
+	}
+	default -> "Swordfish";
 };
 ```
 
@@ -5244,12 +5234,12 @@ The ``yield`` keyword is equivalent to a return statement within a ``switch`` ex
 10: int fish = 5;
 11: int length = 12;
 12: var name = switch(fish) {
-13: case 1 -> "Goldfish";
-14: case 2 -> {} // DOES NOT COMPILE
-15: case 3 -> {
-16: if(length > 10) yield "Blobfish";
-17: } // DOES NOT COMPILE
-18: default -> "Swordfish";
+	13: case 1 -> "Goldfish";
+	14: case 2 -> {} // DOES NOT COMPILE
+	15: case 3 -> {
+		16: if(length > 10) yield "Blobfish";
+	17: } // DOES NOT COMPILE
+	18: default -> "Swordfish";
 19: };
 ```
 
@@ -5259,7 +5249,7 @@ The ``yield`` keyword is equivalent to a return statement within a ``switch`` ex
 It does not matter that length is set to be 12; all branches must ``yield`` a value within the case block.
 
 ---
-**Watch Semicolons in switch Expressions**
+**Watch Semicolons in ``switch`` Expressions**
 **Unlike a regular ``switch`` statement, a ``switch`` expression can be used with the assignment operator and requires a semicolon when doing so. Furthermore, semicolons are required for case expressions but cannot be used with case blocks.**
 
 ```java
@@ -5271,23 +5261,22 @@ case 2 -> {yield "Trout";}; // DOES NOT COMPILE (extra semicolon)
 ```
 
 ---
-
 #### Covering All Possible Values
 
 The last rule about ``switch`` expressions is probably the one the exam is most likely to try to trick you on: a ``switch`` expression that returns a value must handle all possible input values. when it does not return a value, it is optional.
 
 ```java
 String type = switch(canis) { // DOES NOT COMPILE
-case 1 -> "dog";
-case 2 -> "wolf";
-case 3 -> "coyote";
+	case 1 -> "dog";
+	case 2 -> "wolf";
+	case 3 -> "coyote";
 };
 ```
 
-There’s no case branch to cover 5 (or 4, -1, 0, etc.), so should the ``switch`` expression return ``null``, the empty string, undefined, or some other value? When adding ``switch`` expressions to the Java language, the authors decided this behavior would be unsupported. Every switch expression must handle all possible values of the ``switch`` variable.
+There’s no case branch to cover 5 (or 4, -1, 0, etc.), so should the ``switch`` expression return ``null``, the empty string, undefined, or some other value? When adding ``switch`` expressions to the Java language, the authors decided this behavior would be unsupported. Every ``switch`` expression must handle all possible values of the ``switch`` variable.
 
 ==**there are two ways to address this:**==
-- ==**Add a default branch.**==
+- ==**Add a ``default`` branch.**==
 - ==**If the ``switch`` expression takes an ``enum`` value, add a case branch for every possible ``enum`` value.**==
 
 In practice, the first solution is the one most often used. For enums, the second solution works well when the number of enum values is relatively small.
@@ -5295,19 +5284,19 @@ In practice, the first solution is the one most often used. For enums, the secon
 ```java
 enum Season {WINTER, SPRING, SUMMER, FALL}
 String getWeather(Season value) {
-return switch(value) {
-case WINTER -> "Cold";
-case SPRING -> "Rainy";
-case SUMMER -> "Hot";
-case FALL -> "Warm";
-};
+	return switch(value) {
+		case WINTER -> "Cold";
+		case SPRING -> "Rainy";
+		case SUMMER -> "Hot";
+		case FALL -> "Warm";
+	};
 }
 ```
 
-Since all possible permutations of ``Season`` are covered, a default branch is not required in this ``switch`` expression.
+Since all possible permutations of ``Season`` are covered, a ``default`` branch is not required in this ``switch`` expression.
 
 ---
-**What happens if you use an ``enum`` with three values and later someone adds a fourth value? Any ``switch`` expressions that use the enum without a default branch will suddenly fail to compile. If this was done frequently, you might have a lot of code to fix! For this reason, consider including a default branch in every ``switch`` expression, even those that involve ``enum`` values.** #TIP 
+**What happens if you use an ``enum`` with three values and later someone adds a fourth value? Any ``switch`` expressions that use the enum without a default branch will suddenly fail to compile. If this was done frequently, you might have a lot of code to fix! For this reason, ==consider including a default branch in every ``switch`` expression, even those that involve ``enum`` values==.** #TIP 
 
 ---
 ## Writing `while` Loops
@@ -5332,26 +5321,25 @@ a ``while`` loop is similar to an ``if`` statement in that it is composed of a b
 ```java
 int roomInBelly = 5;
 public void eatCheese(int bitesOfCheese) {
-while (bitesOfCheese > 0 && roomInBelly > 0) {
-bitesOfCheese--;
-roomInBelly--;
-}
-System.out.println(bitesOfCheese+" pieces of cheese left");
+	while (bitesOfCheese > 0 && roomInBelly > 0) {
+		bitesOfCheese--;
+		roomInBelly--;
+	}
+	System.out.println(bitesOfCheese+" pieces of cheese left");
 }
 ```
 
-==**One thing to remember is that a while loop may terminate after its first evaluation of the ``boolean`` expression**==
+==**One thing to remember is that a ``while`` loop may terminate after its first evaluation of the ``boolean`` expression**==
 
 ```java
 int full = 5;
 while(full < 5) {
-System.out.println("Not full!");
-full++;
+	System.out.println("Not full!");
+	full++;
 }
 ```
 
 On the first iteration of the loop, the condition is reached, and the loop exits. imply put, the body of the loop may not execute at all or may execute many times.
-
 ### The ``do/while`` Statement
 
 ==**Unlike a ``while`` loop, though, a ``do/while`` loop guarantees that the statement or block will be executed at least once.**==
@@ -5359,13 +5347,12 @@ On the first iteration of the loop, the condition is reached, and the loop exits
 ```java
 int lizard = 0;
 do {
-lizard++;
+	lizard++;
 } while(false);
 System.out.println(lizard); // 1
 ```
 
 Java will execute the statement block first and then check the loop condition. Even though the loop exits right away, the statement block is still executed once, and the program prints 1.
-
 ### Infinite Loops
  
  ==**The single most important thing you should be aware of when you are using any repetition control structures is to make sure they always terminate!**== Failure to terminate a loop can lead to numerous problems in practice, including overflow exceptions, memory leaks, slow performance, and even bad data.
@@ -5374,13 +5361,12 @@ Java will execute the statement block first and then check the loop condition. E
 int pen = 2;
 int pigs = 5;
 while(pen < 10)
-pigs++;
+	pigs++;
 ```
 
 The result is that the loop will never end, creating what is commonly referred to as an infinite loop. An infinite loop is a loop whose termination condition is never reached during runtime.  
 
 Anytime you write a loop, you should examine it to determine whether the termination condition is always eventually met under some condition. make sure the loop condition, or the variables the condition is dependent on, are changing between executions. Then, ensure that the termination condition will be eventually reached in all circumstances.
-
 ## Constructing ``for`` Loops
 
 A basic ``for`` loop has the same conditional boolean expression and statement, or block of statements, as the ``while`` loops, as well as two new sections: an ***initialization block*** and an ***update statement.***
@@ -5391,7 +5377,7 @@ Variables declared in the initialization block of a for loop have limited scope 
 
 ```java
 for(int i=0; i < 10; i++)
-System.out.println("Value is: "+i);
+	System.out.println("Value is: "+i);
 System.out.println(i); // DOES NOT COMPILE
 ```
 
@@ -5400,13 +5386,13 @@ Alternatively, variables declared before the ``for`` loop and assigned a value i
 ```java
 int i;
 for(i=0; i < 10; i++)
-System.out.println("Value is: "+i);
+	System.out.println("Value is: "+i);
 System.out.println(i);
 ```
 
 ```java
 for(int i = 0; i < 5; i++) {
-System.out.print(i + " ");
+	System.out.print(i + " ");
 }
 ```
  
@@ -5415,7 +5401,6 @@ System.out.print(i + " ");
 ```text
 0 1 2 3 4
 ```
-
 #### Printing Elements in Reverse
 
 ```java
@@ -5430,7 +5415,6 @@ for (var counter = 4; counter >= 0; counter--)
 **For the exam, you are going to have to know how to read forward and backward ``for`` loops. When you see a ``for`` loop on the exam, pay close attention to the loop variable and operations if the decrement operator, ``--`` , is used. While incrementing from 0 in a ``for`` loop is often straightforward, decrementing tends to be less intuitive. In fact, if you do see a for loop with a decrement operator on the exam, you should assume they are trying to test your knowledge of loop operations.** 
 
 ---
-
 #### Working with ``for`` Loops
 
 **1. Creating an Infinite Loop**
@@ -5475,7 +5459,7 @@ for(long y = 0, int z = 4; x < 5; x++) // DOES NOT COMPILE
 	System.out.print(y + " ");
 ```
 
-The variables in the initialization block must all be of the same type. In the multiple-terms example, y and z were both long, so the code compiled without issue; but in this example, they have different types, so the code will not compile.
+**==The variables in the initialization block must all be of the same type==**. In the multiple-terms example, y and z were both long, so the code compiled without issue; but in this example, they have different types, so the code will not compile.
 
 **5. Using Loop Variables Outside the Loop**
 
@@ -5486,7 +5470,6 @@ System.out.print(x); // DOES NOT COMPILE
 ```
 
 If you notice, x is defined in the initialization block of the loop and then used after the loop terminates. Since x was only scoped for the loop, using it outside the loop will cause a compiler error.
-
 ### The ``for-each`` Loop
 
 The ``for-each`` loop is a specialized structure designed to iterate over arrays and various Collections Framework classes
@@ -5528,7 +5511,6 @@ for(int sloth : sloths) // DOES NOT COMPILE
 
 - The first ``for-each`` loop does not compile because ``String`` cannot be used on the right side of the statement.
 - The second example does not compile because the loop type on the left side of the statement is ``int`` and doesn’t match the expected type of ``String``.
-
 ## Controlling Flow with Branching
 
 ### Nested Loops
@@ -5538,10 +5520,10 @@ A nested loop is a loop that contains another loop, including ``while``, ``do/wh
 ```java
 int[][] myComplexArray = {{5,2,1,3},{3,9,8,9},{5,7,12,7}};
 for(int[] mySimpleArray : myComplexArray) {
-for(int i=0; i<mySimpleArray.length; i++) {
-System.out.print(mySimpleArray[i]+"\t");
-}
-System.out.println();
+	for(int i=0; i<mySimpleArray.length; i++) {
+		System.out.print(mySimpleArray[i]+"\t");
+	}
+	System.out.println();
 }
 ```
 
@@ -5556,11 +5538,11 @@ Nested loops can include ``while`` and ``do/while``
 ```java
 int hungryHippopotamus = 8;
 while(hungryHippopotamus>0) {
-do {
-hungryHippopotamus -=2;
-} while (hungryHippopotamus>5);
-hungryHippopotamus--;
-System.out.print(hungryHippopotamus+", ");
+	do {
+		hungryHippopotamus -=2;
+	} while (hungryHippopotamus>5);
+	hungryHippopotamus--;
+	System.out.print(hungryHippopotamus+", ");
 }
 ```
 
@@ -5579,15 +5561,14 @@ A label is an optional pointer to the head of a statement that allows the applic
 ```java
 int[][] myComplexArray = {{5,2,1,3},{3,9,8,9},{5,7,12,7}};
 OUTER_LOOP: for(int[] mySimpleArray : myComplexArray) {
-INNER_LOOP: for(int i=0; i<mySimpleArray.length; i++) {
-System.out.print(mySimpleArray[i]+"\t");
-}
-System.out.println();
+	INNER_LOOP: for(int i=0; i<mySimpleArray.length; i++) {
+		System.out.print(mySimpleArray[i]+"\t");
+	}
+	System.out.println();
 }
 ```
 
 Labels follow the same rules for formatting as identifiers. For readability, they are commonly expressed using uppercase letters in snake_case with underscores between words. When dealing with only one loop, labels do not add any value, they are extremely useful in nested structures.
-
 ### The ``break`` Statement
 
 ``break`` statement transfers the flow of control out to the enclosing statement. The same holds true for a ``break`` statement that appears inside of a ``while``, ``do/while``, or for loop, as it will end the loop early
@@ -5745,11 +5726,11 @@ Just remember that return statements can be used to exit loops quickly and can l
 ```java
 int checkDate = 0;
 while(checkDate<10) {
-checkDate++;
-if(checkDate>100) {
-break;
-checkDate++; // DOES NOT COMPILE
-}
+	checkDate++;
+	if(checkDate>100) {
+		break;
+		checkDate++; // DOES NOT COMPILE
+	}
 }
 ```
 
@@ -5774,7 +5755,6 @@ switch (hour) {
 ```
 
 One thing to remember is that it does not matter if the loop or decision structure actually visits the line of code. For example, the loop could execute zero or infinite times at runtime. Regardless of execution, the compiler will report an error if it finds any code it deems unreachable, in this case any statements immediately following a break, continue, or return statement.
-
 ### Reviewing Branching
 
 | Control Statement | Support Labels | Support Break | Support Continue | Support Yield |
