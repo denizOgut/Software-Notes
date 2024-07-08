@@ -6587,7 +6587,7 @@ String name = "Fluffy";
 String name = new String("Fluffy");
 ```
 
-Both give you a reference variable named name pointing to the String object *Fluffy*. String class is special and doesn’t need to be instantiated with ``new``.  Further, text blocks are another way of creating a String. To review, this text block is the same as the previous variables:
+Both give you a reference variable named name pointing to the ``String`` object *Fluffy*. ``String`` class is special and doesn’t need to be instantiated with ``new``.  Further, text blocks are another way of creating a ``String``. To review, this text block is the same as the previous variables:
 
 ```java
 String name = """
@@ -6597,7 +6597,7 @@ Fluffy""";
 Since a ``String`` is a sequence of characters, it implements the interface ``CharSequence``. This interface is a general way of representing several classes, including ``String`` and ``StringBuilder`` . 
 ### Concatenating
 
-Java combines the two String objects. Placing one String before the other String and combining them is called string *concatenation.* The exam creators like string concatenation because the ``+`` operator can be used in two ways within the same line of code.
+Java combines the two ``String`` objects. Placing one ``String`` before the other ``String`` and combining them is called string *concatenation.* The exam creators like string concatenation because the ``+`` operator can be used in two ways within the same line of code.
 
 1. ==**If both operands are numeric, ``+`` means numeric addition.**==
 2. ==**If either operand is a String, ``+`` means concatenation.**==
@@ -6626,8 +6626,7 @@ String four = "4";
 System.out.println(1 + 2 + three + four); // 64 type String
 ```
 
-just take it slow, remember the three rules, and be sure to check the variable types. 
-There is one more thing to know about concatenation, s += "2" means the same thing as s = s + "2".
+just take it slow, remember the three rules, and be sure to check the variable types.  There is one more thing to know about concatenation, ``s += "2"`` means the same thing as ``s = s + "2"``.
 
 ```java
 	4: var s = "1"; // s currently holds "1"
@@ -6669,7 +6668,7 @@ System.out.println(name.charAt(7)); // exception
 ```
 #### Finding an Index
 
-The method ``indexOf()`` looks at the characters in the string and finds the first index that matches the desired value. The ``indexOf`` method can work with an individual character or a whole String as input. It can also start from a requested position. char can be passed to an int parameter type.
+The method ``indexOf()`` looks at the characters in the string and finds the first index that matches the desired value. The ``indexOf`` method can work with an individual character or a whole ``String`` as input. It can also start from a requested position. char can be passed to an int parameter type.
 
 ```java
 public int indexOf(int ch)
@@ -6735,15 +6734,15 @@ System.out.println("Abc123".toLowerCase()); // abc123
 ==**These methods leave alone any characters other than letters. Also, remember that strings are immutable, so the original string stays the same.**==
 #### Checking for Equality
 
-- ==**The ``equals()`` method checks whether two String objects contain exactly the same characters in the same order.**== 
-- ==**The ``equalsIgnoreCase()`` method checks whether two String objects contain the same characters, with the exception that it ignores the characters’ case.**==
+- ==**The ``equals()`` method checks whether two ``String`` objects contain exactly the same characters in the same order.**== 
+- ==**The ``equalsIgnoreCase()`` method checks whether two ``String`` objects contain the same characters, with the exception that it ignores the characters’ case.**==
 
 ```java
 public boolean equals(Object obj)
 public boolean equalsIgnoreCase(String str)
 ```
 
-``equals()`` takes an Object rather than a String. This is because the method is the same for all objects. If you pass in something that isn’t a String, it will just return false. By contrast, the ``equalsIgnoreCase()`` method only applies to String objects, so it can take the more specific type as the parameter.
+``equals()`` takes an ``Object`` rather than a ``String``. This is because the method is the same for all objects. If you pass in something that isn’t a ``String``, it will just return false. By contrast, the ``equalsIgnoreCase()`` method only applies to String objects, so it can take the more specific type as the parameter.
 
 ```java
 System.out.println("abc".equals("ABC")); // false
@@ -6794,9 +6793,9 @@ System.out.println("abcabc".replace("a", "A")); // AbcAbc
 ```
 #### Removing Whitespace
  
- These methods remove blank space from the beginning and/or end of a String. ==**The`` strip()`` and ``trim()`` methods remove whitespace from the beginning and end of a String**==. In terms of the exam, whitespace consists of spaces along with the ``\t (tab)`` and ``\n (newline)`` characters. Other characters, such as ``\r (carriage return)``, are also included in what gets trimmed. **==The ``strip()`` method does everything that ``trim()`` does, but it supports Unicode.==**
+ These methods remove blank space from the beginning and/or end of a ``String``. ==**The`` strip()`` and ``trim()`` methods remove whitespace from the beginning and end of a ``String``**==. In terms of the exam, whitespace consists of spaces along with the ``\t (tab)`` and ``\n (newline)`` characters. Other characters, such as ``\r (carriage return)``, are also included in what gets trimmed. **==The ``strip()`` method does everything that ``trim()`` does, but it supports Unicode.==**
 
-Additionally, the ``stripLeading()`` method removes whitespace from the beginning of the String and leaves it at the end. The ``stripTrailing()`` method does the opposite. It removes whitespace from the end of the String and leaves it at the beginning.
+Additionally, the ``stripLeading()`` method removes whitespace from the beginning of the ``String`` and leaves it at the end. The ``stripTrailing()`` method does the opposite. It removes whitespace from the end of the ``String`` and leaves it at the beginning.
 
 ```java
 public String strip()
@@ -6908,7 +6907,6 @@ public class RemovingWhitespace {
         System.out.println(content.strip());  
     }}
 ```
-
 #### Working with Indentation
 
 ```java
@@ -6947,7 +6945,7 @@ normalized:Line 1
 Line 2  
 ```
 
-The ``stripIndent()`` method is useful when a String was built with concatenation rather than using a text block. ==**It gets rid of all incidental whitespace.**== This means that all non-blank lines are shifted left so the same number of whitespace characters are removed from each line and the first character that remains is not blank
+The ``stripIndent()`` method is useful when a ``String`` was built with concatenation rather than using a text block. ==**It gets rid of all incidental whitespace.**== This means that all non-blank lines are shifted left so the same number of whitespace characters are removed from each line and the first character that remains is not blank
 
 ```java
 public static void main(String args[]) {
@@ -7007,7 +7005,7 @@ Like ``indent()``, ``\r\n`` is turned into \n. However, ==**the ``stripIndent()`
 - Lines 10–16 create similar strings using a text block and a regular String, respectively. We say “similar” because concat has a whitespace character at the beginning of each line while block does not.
 - Line 17 counts the six characters in block, which are the three letters, the blank space before b, and the \n after a and b.
 - Line 18 counts the nine characters in concat, which are the three letters, one blank space before a, two blank spaces before b, one blank space before c, and the \n after a and b.
-- line 19, we ask Java to add a single blank space to each of the three lines in block. However, the output says we added 4 characters rather than 3 since the length went from 6 to 10 This mysterious additional character is thanks to the line termination normalization. ==**Since the text block doesn’t have a line break at the end, indent() adds one!**==
+- line 19, we ask Java to add a single blank space to each of the three lines in block. However, the output says we added 4 characters rather than 3 since the length went from 6 to 10 This mysterious additional character is thanks to the line termination normalization. ==**Since the text block doesn’t have a line break at the end,`` indent()`` adds one!**==
 - line 20, we remove one whitespace character from each of the three lines of concat. This gives a length of seven.
 - line 21, we ask Java to remove four whitespace characters from the same three lines. Since there are not four whitespace characters, Java does its best. The single space is removed before a and c. Both spaces are removed before b. The length of six should make sense here; we removed one more character here than on line 20.
 - line 22 uses the ``stripIndent()`` method. All of the lines have at least one whitespace character. Since they do not all have two whitespace characters, the method only gets rid of one character per line. Since no new line is added by ``stripIndent()``, the length is six, which is three less than the original nine.
@@ -7200,6 +7198,8 @@ public class WorkingWithIndentation {
 ```
 #### Translating Escapes
 
+> The `translateEscapes` method in Java changes special codes like `\n` (new line) and `\t` (tab) within a text into the actual characters they represent, making the text easier to read by processing these escape sequences.
+
 When we escape characters, we use a single backslash. For example, ``\t`` is a tab. If we don’t want this behavior, we add another backslash to escape the backslash, so ``\\t`` is the literal string ``\t``.
 ==**The ``translateEscapes()`` method takes these literals and turns them into the equivalent escaped character.**==
 
@@ -7289,7 +7289,7 @@ public static void main(String[] args) {
 
 Two of the methods take the format string as a parameter, and the other uses an instance for that value. One method takes a ``Locale``
 
-The method parameters are used to construct a formatted String in a single method call, rather than via a lot of format and concatenation operations. They return a reference to the instance they are called on so that operations can be chained together.
+The method parameters are used to construct a formatted ``String`` in a single method call, rather than via a lot of format and concatenation operations. They return a reference to the instance they are called on so that operations can be chained together.
 
 ```java
 public static String format(String format, Object args...)
@@ -7341,7 +7341,7 @@ var result = lowercase.replace('a', 'A'); // "AnimAl"
 System.out.println(result);
 ```
 
-Each time one is called, the returned value is put in a new variable. There are four String values along the way, and ``AnimAl`` is output.
+Each time one is called, the returned value is put in a new variable. There are four ``String`` values along the way, and ``AnimAl`` is output.
 ==**However, on the exam, there is a tendency to cram as much code as possible into a small space. You’ll see code using a technique called *method chaining.***==
 
 ```java
@@ -7369,7 +7369,7 @@ public static void main(String[] args) {
 13: System.out.println(alpha);
 ```
 
-==**because the ``String`` object is immutable, a new String object is assigned to alpha, and the ``""`` object becomes eligible for garbage collection.**==
+==**because the ``String`` object is immutable, a new ``String`` object is assigned to alpha, and the ``""`` object becomes eligible for garbage collection.**==
 
 The sequence of events continues, and after 26 iterations through the loop, a total of 27 objects are instantiated, most of which are immediately eligible for garbage collection. 
 
@@ -7382,11 +7382,11 @@ The ``StringBuilder`` class creates a ``String`` without storing all those inter
 18: System.out.println(alpha);
 ```
 
-This code reuses the same `StringBuilder` without creating an interim String each time.
+This code reuses the same `StringBuilder` without creating an interim ``String`` each time.
 ### Mutability and Chaining
 
-The exam will likely try to trick you with respect to String and StringBuilder being mutable.
-Chaining makes this even more interesting. **==When we chained String method calls, the result was a new String with the answer.==** Chaining StringBuilder methods doesn’t work this way. Instead, the **==StringBuilder changes its own state and returns a reference to itself.==**
+The exam will likely try to trick you with respect to ``String`` and ``StringBuilder`` being mutable.
+Chaining makes this even more interesting. **==When we chained ``String`` method calls, the result was a new ``String`` with the answer.==** Chaining ``StringBuilder`` methods doesn’t work this way. Instead, the **==StringBuilder changes its own state and returns a reference to itself.==**
 
 ```java
 4: StringBuilder sb = new StringBuilder("start");
@@ -7404,7 +7404,7 @@ Line 5 adds text to the end of sb. It also returns a reference to sb, which is i
 8: System.out.println("b=" + b);
 ```
 
-both print "abcdefg". ==**There’s only one ``StringBuilder`` object here. We know that because new StringBuilder() is called only once.**==
+both print "``abcdefg``". ==**There’s only one ``StringBuilder`` object here. We know that because ``new StringBuilder()`` is called only once.**==
 ### Creating a ``StringBuilder``
 
 ```java
@@ -7431,7 +7431,7 @@ System.out.println(sub + " " + len + " " + ch);
 **Notice that substring() returns a String rather than a StringBuilder. That is why sb is not changed.**
 #### Appending Values
 
-The ``append()`` method is by far the most frequently used method in StringBuilder. it adds the parameter to the StringBuilder and returns a reference to the current StringBuilder.
+The ``append()`` method is by far the most frequently used method in ``StringBuilder``. it adds the parameter to the ``StringBuilder`` and returns a reference to the current ``StringBuilder``.
 
 ```java
 public StringBuilder append(String str)
@@ -7447,7 +7447,7 @@ System.out.println(sb); // 1c-true
 can just call ``append()`` without having to convert your parameter to a String first.`
 #### Inserting Data
 
-The ``insert()`` method adds characters to the StringBuilder at the requested index and returns a reference to the current ``StringBuilder``
+The ``insert()`` method adds characters to the ``StringBuilder`` at the requested index and returns a reference to the current ``StringBuilder``
 
 ```java
 public StringBuilder insert(int offset, String str)
@@ -7478,7 +7478,7 @@ sb.deleteCharAt(5); // exception
 The ``delete()`` method is more flexible than some others when it comes to array indexes. If you specify a second parameter that is past the end of the StringBuilder, Java will just assume you meant the end.
 #### Replacing Portions
 
-**==The ``replace()`` method works differently for StringBuilder than it did for String==**
+**==The ``replace()`` method works differently for ``StringBuilder`` than it did for ``String``==**
 
 ```java
 public StringBuilder replace(int startIndex, int endIndex, String newString)
@@ -7498,7 +7498,9 @@ builder.replace(3, 100, "");
 System.out.println(builder);
 ```
 
-the method is first doing a logical delete. The ``replace()`` method allows specifying a second parameter that is past the end of the StringBuilder. That means only the first three characters remain.
+the method is first doing a logical delete. The ``replace()`` method allows specifying a second parameter that is past the end of the ``StringBuilder``. That means only the first three characters remain.
+
+**==the `replace()` method in `StringBuilder` uses start and end index positions to specify the part of the text to be replaced, whereas in `String`, it replaces all occurrences of a specified substring with another substring.==**
 #### Reversing
 
 The ``reverse()`` method does just what it sounds like: it reverses the characters in the sequences and returns a reference to the current ``StringBuilder``.
@@ -7542,7 +7544,7 @@ System.out.println(one == three); // true
 
 The one and two variables are both completely separate ``StringBuilder`` objects, giving us two objects. Therefore, the first print statement gives us ``false``.  The three variable is more interesting. Remember how ``StringBuilder`` methods like to return the current reference for chaining? This means one and three both point to the same object, and the second print statement gives us ``true``.
 
-``equals()`` uses logical equality rather than object equality for String objects:
+``equals()`` uses logical equality rather than object equality for ``String`` objects:
 
 ```java
 var x = "Hello World";
@@ -7550,10 +7552,10 @@ var z = " Hello World".trim();
 System.out.println(x.equals(z)); // true
 ```
 
-==**``equals()`` to check the values inside the String rather than the string reference itself.**==
+==**``equals()`` to check the values inside the ``String`` rather than the string reference itself.**==
 ==**If a class doesn’t have an ``equals()`` method, Java determines whether the references point to the same object, which is exactly what ``==`` does.**==
 
-**==StringBuilder did not implement equals(). If you call equals() on two StringBuilder instances, it will check reference equality==**. You can call ``toString()`` on StringBuilder to get a String to check for equality instead.
+**==``StringBuilder`` did not implement ``equals()``. If you call ``equals()`` on two ``StringBuilder`` instances, it will check reference equality==**. You can call ``toString()`` on ``StringBuilder`` to get a ``String`` to check for equality instead.
 
 the exam might try to trick you with a question like this.
 
@@ -7577,7 +7579,7 @@ var y = "Hello World";
 System.out.println(x == y); // true
 ```
 
-Remember that ==**a String is immutable and literals are pooled. The JVM created only one literal in memory. The x and y variables both point to the same location in memory**==; therefore, the statement outputs true
+Remember that ==**a ``String`` is immutable and literals are pooled. The JVM created only one literal in memory. The x and y variables both point to the same location in memory**==; therefore, the statement outputs true
 
 ```java
 var x = "Hello World";
@@ -7586,7 +7588,7 @@ System.out.println(x == z); // false
 System.out.println(x.equals(z)); // true
 ```
 
-we don’t have two of the same String literal. ==**Although x and z happen to evaluate to the same string, one is computed at runtime. Since it isn’t the same at compile-time, a new String object is created**==
+we don’t have two of the same ``String`` literal. ==**Although x and z happen to evaluate to the same string, one is computed at runtime. Since it isn’t the same at compile-time, a new ``String`` object is created**==
 
 ```java
 var singleString = "hello world";
@@ -7595,7 +7597,7 @@ concat += "world";
 System.out.println(singleString == concat); // false
 ```
 
-==**Calling ``+=`` is just like calling a method and results in a new String**==
+==**Calling ``+=`` is just like calling a method and results in a new ``String``**==
 
 ```java
 var x = "Hello World"; // String Pool
@@ -7763,7 +7765,7 @@ public class Names {
 }
 ```
 
-==**The code never instantiated the array, so it is just a reference variable to null**==
+==**The code never instantiated the array, so it is just a reference variable to ``null``**==
 
 ```java
 public class Names {
@@ -7771,7 +7773,7 @@ String names[] = new String[2];
 }
 ```
 
-Each of those two slots currently is null but has the potential to point to a String object.
+Each of those two slots currently is ``null`` but has the potential to point to a ``String`` object.
 
 ```java
 3: String[] strings = { "stringValue" };
@@ -7805,7 +7807,7 @@ var birds = new String[6];
 System.out.println(birds.length);
 ```
 
-Even though all six elements of the array are null, there are still six of them. ==**The length attribute does not consider what is in the array; it only considers how many slots have been allocated.**==
+Even though all six elements of the array are ``null``, there are still six of them. ==**The length attribute does not consider what is in the array; it only considers how many slots have been allocated.**==
 
 ```java
 5: var numbers = new int[10];
@@ -7852,7 +7854,7 @@ for (String s : strings)
 System.out.print(s + " "); // 10 100 9
 ```
 
-==**The problem is that String sorts in alphabetic order, and 1 sorts before 9. (Numbers sort before letters, and uppercase sorts before lowercase.)**==
+==**The problem is that ``String`` sorts in alphabetic order, and 1 sorts before 9. (Numbers sort before letters, and uppercase sorts before lowercase.)**==
 ### Searching
 Java also provides a convenient way to search, ==**but only if the array is already sorted.**==
 
@@ -7919,13 +7921,13 @@ how to compare arrays of different lengths:
 
 What does smaller means? 
 
--  ==**null is smaller than any other value.**==
+-  ==**``null`` is smaller than any other value.**==
 - ==**For numbers, normal numeric order applies.**==
 - ==**For strings, one is smaller if it is a prefix of another.**==
 - ==**For strings/characters, numbers are smaller than letters.**==
 - ==**For strings/characters, uppercase is smaller than lowercase.**==
 
-==**For strings/characters: null -> numbers -> uppercase -> lowercase**==
+==**For strings/characters: ``null`` -> numbers -> uppercase -> lowercase**==
 
 ```java
 public static void main(String[] args) {  
@@ -8054,8 +8056,8 @@ The most common operation on a multidimensional array is to loop through it.
 ```java
 var twoD = new int[3][2];
 for(int i = 0; i < twoD.length; i++) {
-for(int j = 0; j < twoD[i].length; j++)
-System.out.print(twoD[i][j] + " "); // print element
+	for(int j = 0; j < twoD[i].length; j++)
+		System.out.print(twoD[i][j] + " "); // print element
 System.out.println(); // time for a new row
 }
 ```
@@ -8064,12 +8066,11 @@ two loops here. The first uses index i and goes through the first subarray for t
 
 ```java
 for(int[] inner : twoD) {
-for(int num : inner)
-System.out.print(num + " ");
+	for(int num : inner)
+		System.out.print(num + " ");
 System.out.println();
 }
 ```
-
 ## Calculating with Math APIs
 
 Pay special attention to return types in math questions. They are an excellent opportunity for trickery!
@@ -8103,7 +8104,6 @@ long low = Math.round(123.45); // 123
 long high = Math.round(123.50); // 124
 int fromFloat = Math.round(123.45f); // 123
 ```
-
 ### Determining the Ceiling and Floor
 
 The ``ceil()`` method takes a double value. If it is a whole number, it returns the same value. If it has any fractional value, it rounds up to the next whole number. By contrast, the ``floor()`` method discards any values after the decimal.
@@ -8128,7 +8128,6 @@ public static double pow(double number, double exponent)
 ```java
 double squared = Math.pow(5, 2); // 25.0
 ```
-
 ### Generating Random Numbers
 
 The ``random()`` method ==**returns a value greater than or equal to 0 and less than 1**==
@@ -8253,7 +8252,7 @@ public static ZonedDateTime of(LocalDate date, LocalTime time, ZoneId zone)
 public static ZonedDateTime of(LocalDateTime dateTime, ZoneId zone)
 ```
 
-==**The date and time classes have private constructors along with static methods that return instances.**==
+==**The date and time classes have ``private`` constructors along with ``static`` methods that return instances.**==
 
 ```java
 var d = new LocalDate(); // DOES NOT COMPILE
@@ -8369,20 +8368,20 @@ public static void main(String[] args) {
 
 ```java
 public static void main(String[] args) {
-var start = LocalDate.of(2022, Month.JANUARY, 1);
-var end = LocalDate.of(2022, Month.MARCH, 30);
-performAnimalEnrichment(start, end);
+	var start = LocalDate.of(2022, Month.JANUARY, 1);
+	var end = LocalDate.of(2022, Month.MARCH, 30);
+	performAnimalEnrichment(start, end);
 }
 private static void performAnimalEnrichment(LocalDate start, LocalDate end) {
-var upTo = start;
-while (upTo.isBefore(end)) { // check if still before end
-System.out.println("give new toy: " + upTo);
-upTo = upTo.plusMonths(1); // add a month
-} }
+	var upTo = start;
+	while (upTo.isBefore(end)) { // check if still before end
+		System.out.println("give new toy: " + upTo);
+		upTo = upTo.plusMonths(1); // add a month
+	} 
+}
 ```
 
-This code works fine. It adds a month to the date until it hits the end date. The problem is that this method can’t be reused.
-Java has a ``Period`` class that we can pass in. This code does the same thing as the previous example:
+This code works fine. It adds a month to the date until it hits the end date. The problem is that this method can’t be reused. Java has a ``Period`` class that we can pass in. This code does the same thing as the previous example:
 
 ```java
 public static void main(String[] args) {
@@ -8469,7 +8468,6 @@ System.out.println(wrong); // P7D
 // var wrong = Period.ofYears(1);  
 // wrong = Period.ofWeeks(1);
 ```
-
 ### Working with Durations
 
 ``Period`` is a day or more of time. There is also ``Duration``, which is intended for smaller units of time. For ``Duration``, you can specify the number of days, hours, minutes, seconds, or nanoseconds. And yes, you could pass 365 days to make a year, but you really shouldn’t—that’s what Period is for.
@@ -8487,7 +8485,7 @@ var everyNano = Duration.ofNanos(1); // PT0.000000001S
 
 **==``Duration`` doesn’t have a factory method that takes multiple units like ``Period`` does==**. If you want something to happen every hour and a half, you specify 90 minutes.
 
-``Duration`` includes another more generic factory method. It takes a number and a ``TemporalUnit``. The idea is, say, something like “5 seconds.” However, ``TemporalUnit`` is an interface. At the moment, there is only one implementation named ``ChronoUnit``.
+**==``Duration`` includes another more generic factory method. It takes a number and a ``TemporalUnit``==**. The idea is, say, something like “5 seconds.” However, ==``TemporalUnit`` is an interface. At the moment, there is only one implementation named ``ChronoUnit``==.
 
 ```java
 var daily = Duration.of(1, ChronoUnit.DAYS);
@@ -8527,7 +8525,7 @@ System.out.println(truncated); // 03:12
 
 ---
 
-Using a ``Duration`` works the same way as using a Period. 
+Using a ``Duration`` works the same way as using a ``Period``. 
 
 ```java
 7: var date = LocalDate.of(2022, 1, 20);
@@ -9411,7 +9409,7 @@ public class Exercise {
 - The ``bike7()`` method does compile. Java allows the optional specifiers to appear before the access modifier.
 ### Return Type
 
-The next item in a method declaration is the return type. It must appear after any access modifiers or optional specifiers and before the method name. The return type might be an actual Java type such as ``String`` or int. If there is no return type, the ``void`` keyword is used.
+The next item in a method declaration is the **==return type. It must appear after any access modifiers or optional specifiers and before the method name==**. The return type might be an actual Java type such as ``String`` or ``int``. If there is no return type, the ``void`` keyword is used.
 
 ---
 
@@ -9585,9 +9583,8 @@ public class Lion {
 }
 ```
 
-In the ``Lion`` class, ``snack`` and ``dinnertime`` are local variables only accessible within their respective code blocks, while ``hunger`` is an instance variable and created in every object of the Lion class.
+In the ``Lion`` class, ``snack`` and ``dinnertime`` are local variables only accessible within their respective code blocks, while ``hunger`` is an instance variable and created in every object of the ``Lion`` class.
 all local variable references are destroyed after the block is executed, but the objects they point to may still be accessible.
-
 ### Local Variable Modifiers
 
 **==There’s only one modifier that can be applied to a local variable: ``final``==**.
@@ -9634,7 +9631,6 @@ The ``rest`` variable is a primitive, so it’s just a value that can’t be mod
 **marking a local variable ``final`` is often a good practice. For example, you may have a complex method in which a variable is referenced dozens of times. It would be really bad if someone came in and reassigned the variable in the middle of the method. Using the ``final`` attribute is like sending a message to other developers to leave the variable alone!**
 
 ---
-
 ### Effectively Final Variables
 
 An *effectively final* local variable is one that is not modified after it is assigned. This means that the value of a variable doesn’t change after it is set, regardless of whether it is explicitly marked as ``final``. If you aren’t sure whether a local variable is effectively final, just add the final keyword. If the code still compiles, the variable is effectively final.
@@ -9664,11 +9660,11 @@ In this example, name and wet are effectively final and can be updated with the 
 Like methods, instance variables can use access modifiers, such as ``private``, ``package``, ``protected``, and ``public``.
 Instance variables can also use optional specifiers
 
-|Modifier|Description|Chapter Covered|
-|---|---|---|
-|final|Specifies that the instance variable must be initialized with each instance of the class exactly once|Chapter 5|
-|volatile|Instructs the JVM that the value in this variable may be modified by other threads|Chapter 13|
-|transient|Used to indicate that an instance variable should not be serialized with the class|Out of scope|
+| Modifier      | Description                                                                                           | Chapter Covered |
+| ------------- | ----------------------------------------------------------------------------------------------------- | --------------- |
+| ``final``     | Specifies that the instance variable must be initialized with each instance of the class exactly once | Chapter 5       |
+| ``volatile``  | Instructs the JVM that the value in this variable may be modified by other threads                    | Chapter 13      |
+| ``transient`` | Used to indicate that an instance variable should not be serialized with the class                    | Out of scope    |
 If an instance variable is marked ``final``, then it must be assigned a value when it is declared or when the object is instantiated. Like a local final variable, it cannot be assigned a value more than once
 
 ```java
@@ -9766,25 +9762,26 @@ Accessing a varargs parameter is just like accessing an array. It uses array ind
 
 ```java
 16: public static void run(int... steps) {
-17: System.out.print(steps[1]);
+	17: System.out.print(steps[1]);
 18: }
 19: public static void main(String[] args) {
-20: run(11, 77); // 77
+	20: run(11, 77); // 77
 21: }
 ```
 ### Using Varargs with Other Method Parameters
 
 ```java
 1: public class DogWalker {
-2: public static void walkDog(int start, int... steps) {
-3: System.out.println(steps.length);
-4: }
-5: public static void main(String[] args) {
-6: walkDog(1); // 0
-7: walkDog(1, 2); // 1
-8: walkDog(1, 2, 3); // 2
-9: walkDog(1, new int[] {4, 5}); // 2
-10: } }
+	2: public static void walkDog(int start, int... steps) {
+		3: System.out.println(steps.length);
+	4: }
+	5: public static void main(String[] args) {
+		6: walkDog(1); // 0
+		7: walkDog(1, 2); // 1
+		8: walkDog(1, 2, 3); // 2
+		9: walkDog(1, new int[] {4, 5}); // 2
+	10: } 
+}
 ```
 
 Java will create an empty array if no parameters are passed for a vararg. However, it is still possible to pass ``null`` explicitly
@@ -9807,10 +9804,10 @@ Only code in the same class can call ``private`` methods or access ``private`` f
 ```java
 1: package pond.duck;
 2: public class FatherDuck {
-3: private String noise = "quack";
-4: private void quack() {
-5: System.out.print(noise); // private access is ok
-6: }
+	3: private String noise = "quack";
+	4: private void quack() {
+		5: System.out.print(noise); // private access is ok
+	6: }
 7: }
 ```
 
@@ -9819,11 +9816,11 @@ Only code in the same class can call ``private`` methods or access ``private`` f
 ```java
 1: package pond.duck;
 2: public class BadDuckling {
-3: public void makeNoise() {
-4: var duck = new FatherDuck();
-5: duck.quack(); // DOES NOT COMPILE
-6: System.out.print(duck.noise); // DOES NOT COMPILE
-7: }
+	3: public void makeNoise() {
+		4: var duck = new FatherDuck();
+		5: duck.quack(); // DOES NOT COMPILE
+		6: System.out.print(duck.noise); // DOES NOT COMPILE
+	7: }
 8: }
 ```
 
@@ -9905,7 +9902,7 @@ import pond.shore.Bird;
 public class Gosling extends Bird { // Gosling is a subclass of Bird
 	public void swim() {
 		floatInWater(); // protected access is ok
-	System.out.print(text); // protected access is ok
+		System.out.print(text); // protected access is ok
 	}
 	public static void main(String[] args) {
 		new Gosling().swim();
@@ -9913,9 +9910,9 @@ public class Gosling extends Bird { // Gosling is a subclass of Bird
 }
 ```
 
-This is a simple subclass. It extends the ``Bird`` class. Extending means creating a subclass that has access to any protected or public members of the parent class
+This is a simple subclass. It extends the ``Bird`` class. Extending means creating a subclass that has access to any ``protected`` or ``public`` members of the parent class
 
-Remember that protected also gives us access to everything that package access does. This means a class in the same package as ``Bird`` can access its protected members.
+Remember that ``protected`` also gives us access to everything that package access does. This means a class in the same package as ``Bird`` can access its protected members.
 
 ```java
 package pond.shore; // Same package as Bird
@@ -9942,7 +9939,7 @@ public class BirdWatcherFromAfar { // Not a subclass of Bird
 }
 ```
 
-``BirdWatcherFromAfar`` is not in the same package as ``Bird``, and it doesn’t inherit from ``Bird``. This means it is not allowed to access protected members of ``Bird``. Subclasses and classes in the same package are the only ones allowed to access protected members.
+``BirdWatcherFromAfar`` is not in the same package as ``Bird``, and it doesn’t inherit from ``Bird``. This means it is not allowed to access ``protected`` members of ``Bird``. Subclasses and classes in the same package are the only ones allowed to access protected members.
 
 ```java
 1: package pond.swan; // Different package than Bird
@@ -9965,9 +9962,9 @@ public class BirdWatcherFromAfar { // Not a subclass of Bird
 18: }
 ```
 
-``Swan`` is not in the same package as ``Bird`` but does extend it—which implies it has access to the protected members of Bird since it is a subclass. And it does. Lines 5 and 6 refer to protected members via inheriting them.
+``Swan`` is not in the same package as ``Bird`` but does extend it—which implies it has access to the ``protected`` members of ``Bird`` since it is a subclass. And it does. Lines 5 and 6 refer to protected members via inheriting them.
 
-Lines 10 and 11 also successfully use protected members of ``Bird``. This is allowed because these lines refer to a ``Swan`` object. ``Swan`` inherits from ``Bird``, so this is okay. It is sort of a two-phase check. The ``Swan`` class is allowed to use protected members of ``Bird``, and we are referring to a ``Swan`` object. Granted, it is a ``Swan`` object created on line 9 rather than an inherited one, but it is still a ``Swan`` object.
+Lines 10 and 11 also successfully use ``protected`` members of ``Bird``. This is allowed because these lines refer to a ``Swan`` object. ``Swan`` inherits from ``Bird``, so this is okay. It is sort of a two-phase check. The ``Swan`` class is allowed to use protected members of ``Bird``, and we are referring to a ``Swan`` object. Granted, it is a ``Swan`` object created on line 9 rather than an inherited one, but it is still a ``Swan`` object.
 
 Lines 15 and 16 do not compile a ``Bird`` reference is used rather than inheritance. It is created on line 14. ``Bird`` is in a different package, and this code isn’t inheriting from ``Bird``, so it doesn’t get to use protected members. the variable reference isn’t a ``Swan``. The code just happens to be in the ``Swan`` class.
 
@@ -9979,7 +9976,7 @@ Looking at it a different way, the protected rules apply under two scenarios:
 
 ---
 
-**==In Java, when a class extends another class, it inherits access to its protected members, allowing it to use them directly. When accessing these members through an object of the subclass, it's considered accessing them via inheritance, which is permitted. However, if you try to access protected members through a reference to the superclass, it won't compile because it's not considered inheritance and thus doesn't have access to those members.==** #TIP 
+**==In Java, when a class ``extends`` another class, it inherits access to its ``protected`` members, allowing it to use them directly. When accessing these members through an object of the subclass, it's considered accessing them via inheritance, which is permitted. However, if you try to access ``protected`` members through a reference to the superclass, it won't compile because it's not considered inheritance and thus doesn't have access to those members.==** #TIP 
 
 ---
 
@@ -10000,7 +9997,7 @@ public class Goose extends Bird {
 }
 ```
 
-The second method is a problem. Although the object happens to be a ``Goose``, it is stored in a ``Bird`` reference. We are not allowed to refer to members of the ``Bird`` class since we are not in the same package and the reference type of other is not a subclass of ``Goose``.
+The second method is a problem. **==Although the object happens to be a ``Goose``, it is stored in a ``Bird`` reference. We are not allowed to refer to members of the ``Bird`` class since we are not in the same package and the reference type of other is not a subclass of ``Goose``.==**
 
 ```java
 package pond.duck;
@@ -10014,7 +10011,7 @@ public class GooseWatcher {
 }
 ```
 
-This code doesn’t compile because we are not in the goose object. The ``floatInWater()`` method is declared in ``Bird``. ``GooseWatcher`` is not in the same package as ``Bird``, nor does it extend ``Bird``. ``Goose`` extends ``Bird``. That only lets ``Goose`` refer to ``floatInWater()``, not callers of ``Goose``.
+This code doesn’t compile because we are not in the goose object. The ``floatInWater()`` method is declared in ``Bird``. ``GooseWatcher`` is not in the same package as ``Bird``, nor does it extend ``Bird``. ``Goose`` ``extends`` ``Bird``. That only lets ``Goose`` refer to ``floatInWater()``, not callers of ``Goose``.
 
 ---
 
@@ -10169,7 +10166,7 @@ public static void third() { System.out.print(name); } // DOES NOT COMPILE
 
 All this does is move the problem. Now, ``third()`` is referring to an instance variable name. There are two ways we could fix this. 
 
-1. Add static to the name variable as well
+1. Add ``static`` to the name variable as well
 
 ```java
 public class MantaRay {
@@ -10326,7 +10323,6 @@ static {
 - Line 22 doesn’t compile because this is the second attempt.
 - Line 16 declares a ``final`` variable and initializes it at the same time. We are not allowed to assign it again, so line 21 doesn’t compile.
 - Line 17 declares **==a ``static final`` variable that never gets initialized==**. The compiler gives a compiler error because it knows that **==the ``static`` blocks are the only place the variable could possibly be initialized==**.
-
 ### ``static`` Imports
 
 ```java
@@ -10393,7 +10389,6 @@ public class StaticImportSameName {
   
     }
 ```
-
 ## Passing Data among Methods
 
 **==Java is a *pass-by-value* language. This means that a copy of the variable is made and the method receives that copy. Assignments made in the method do not affect the caller==**
@@ -10653,7 +10648,7 @@ public class Pelican {
 }
 ```
 
-- The first call passes a String and finds a direct match.
+- The first call passes a ``String`` and finds a direct match.
 - The second call looks for an int parameter list. When it doesn’t find one, it autoboxes to ``Integer``. Since it still doesn’t find a match, it goes to the ``Object`` one.
 
 ```java
@@ -10681,7 +10676,7 @@ The code is due for a promotion!
 
 - The first call to ``print()`` passes a ``String``.
 - ``Arrays.asList()`` can be used to create ``asList<Integer>`` object
-- The final call to print() passes a ``LocalDate``. That means the ``Object`` method signature is used.
+- The final call to ``print()`` passes a ``LocalDate``. That means the ``Object`` method signature is used.
 
 ### Primitives
 
@@ -10737,7 +10732,6 @@ public class Kiwi {
 ```
 
 These method overloads are valid. Java tries to use the most specific parameter list it can find. This is true for autoboxing as well as other matching types we talk about in this section. This means calling ``fly(3)`` will call the first method. **==When the primitive ``int`` version isn’t present, Java will autobox. However, when the primitive ``int`` version is provided, there is no reason for Java to do the extra work of autoboxing.==**
-
 ### Arrays
 
 ```java
@@ -10746,7 +10740,6 @@ public static void walk(Integer[] integers) {}
 ```
 
 this code does not autobox:
-
 ### Varargs
 
 Which method do you think is called if we pass an ``int[]``?
