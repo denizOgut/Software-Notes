@@ -49,7 +49,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "RabbitMQ Notes.md",
+                "file": "Java Concurrency in Practice - Notes.md",
                 "mode": "source",
                 "source": false
               }
@@ -122,7 +122,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "RabbitMQ Notes.md",
+                "file": "Java Concurrency in Practice - Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -139,7 +139,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "RabbitMQ Notes.md",
+                "file": "Java Concurrency in Practice - Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -162,7 +162,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "RabbitMQ Notes.md"
+                "file": "Java Concurrency in Practice - Notes.md"
               }
             }
           }
@@ -184,16 +184,17 @@
       "obsidian-excalidraw-plugin:Create new drawing": false
     }
   },
-  "active": "8d030ec88d92245f",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Java Concurrency in Practice - Notes.md",
+    "Java Concurrency in Practice Screenshots/Pasted image 20240709195919.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "RabbitMQ Notes.md",
+    "Java Concurrency in Practice - Notes.md",
     "Java Concurrency in Practice Screenshots/Pasted image 20240707085441.png",
     "Java Concurrency in Practice Screenshots",
     "Java Concurrency in Practice Screenshots/Pasted image 20240708200422.png",
     "Java Concurrency in Practice Screenshots/Pasted image 20240707105041.png",
     "DATABASE PROGRAMMING NOTES.md",
-    "RabbitMQ Notes.md",
     "RabbitMQ Screenshots",
     "RabbitMQ Screenshots/Pasted image 20240625102518.png",
     "RabbitMQ Screenshots/Pasted image 20240625102359.png",

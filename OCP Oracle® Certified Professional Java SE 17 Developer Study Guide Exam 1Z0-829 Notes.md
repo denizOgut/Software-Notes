@@ -11476,22 +11476,21 @@ By design, Java doesn’t support multiple inheritance in the language because m
 Part of what makes multiple inheritance complicated is determining which parent to inherit values from in case of a conflict. For example, if you have an object or method defined in all of the parents, which one does the child inherit? There is no natural ordering for parents in this example, which is why Java avoids these issues by disallowing multiple inheritance altogether.
 ### Inheriting Object
 
-In Java, all classes inherit from a single class: ``java.lang.Object``, or ``Object`` for short. Furthermore, Object is the only class that doesn’t have a parent class. The following two are equivalent:
+In Java, all classes inherit from a single class: ``java.lang.Object``, or ``Object`` for short. Furthermore, ``Object`` is the only class that doesn’t have a parent class. The following two are equivalent:
 
 ```java
 public class Zoo { }
 public class Zoo extends java.lang.Object { }
 ```
 
-**==The key is that when Java sees you define a class that doesn’t extend another class, the compiler automatically adds the syntax extends ``java.lang.Object`` to the class definition.==** The result is that every class gains access to any accessible methods in the Object class. For example, the ``toString()`` and ``equals()`` methods are available in Object; therefore, they are accessible in all classes. Without being overridden in a subclass, though, they may not be particularly useful.
+**==The key is that when Java sees you define a class that doesn’t extend another class, the compiler automatically adds the syntax extends ``java.lang.Object`` to the class definition.==** The result is that every class gains access to any accessible methods in the ``Object`` class. For example, the ``toString()`` and ``equals()`` methods are available in ``Object``; therefore, they are accessible in all classes. Without being overridden in a subclass, though, they may not be particularly useful.
 
-On the other hand, when you define a new class that extends an existing class, Java does not automatically extend the Object class. Since all classes inherit from Object, extending an existing class means the child already inherits from Object by definition.
+On the other hand, when you define a new class that extends an existing class, Java does not automatically extend the ``Object`` class. Since all classes inherit from ``Object``, extending an existing class means the child already inherits from Object by definition.
 
 						![[Pasted image 20240322194238.png]]
 
 
-Primitive types such as ``int`` and ``boolean`` do not inherit from Object, since they are not classes. Through autoboxing they can be assigned or passed as an instance of an associated wrapper class, which does inherit ``Object``.
-
+Primitive types such as ``int`` and ``boolean`` do not inherit from ``Object``, since they are not classes. Through autoboxing they can be assigned or passed as an instance of an associated wrapper class, which does inherit ``Object``.
 ## Creating Classes
 
 ### Extending a Class
@@ -11553,7 +11552,7 @@ class Bear {}
 class Fish {}
 ```
 
-Trying to declare a top-level class with ``protected`` or ``private`` class will lead to a compiler error,
+**==Trying to declare a top-level class with ``protected`` or ``private`` class will lead to a compiler error,==**
 
 ```java
 // ClownFish.java
@@ -11561,7 +11560,6 @@ protected class ClownFish{} // DOES NOT COMPILE
 // BlueTang.java
 private class BlueTang {} // DOES NOT COMPILE
 ```
-
 ### Accessing the ``this`` Reference
 
 What happens when a method parameter has the same name as an existing instance variable ?
@@ -11731,8 +11729,7 @@ Constructors are used when creating a new object. This process is called instant
 new Turtle(15)
 ```
 
-When Java sees the new keyword, it allocates memory for the new object. It then looks for a constructor with a matching signature and calls it.
-
+When Java sees the ``new`` keyword, it allocates memory for the new object. It then looks for a constructor with a matching signature and calls it.
 ### The Default Constructor
 
 Every class in Java has a constructor, whether you code one or not. If you don’t include any constructors in the class, Java will create one for you without any parameters. This Java-created constructor is called the default constructor and is added any time a class is declared without any constructors.
@@ -11786,7 +11783,7 @@ Line 6 does not compile. ``Rabbit4`` made the constructor ``private`` so that ot
 
 ---
 
-**Having only private constructors in a class tells the compiler not to provide a default no-argument constructor. It also prevents other classes from instantiating the class**
+**Having only ``private`` constructors in a class tells the compiler not to provide a default no-argument constructor. It also prevents other classes from instantiating the class**
 
 ---
 ###  Calling Overloaded Constructors with ``this()``
@@ -11839,7 +11836,7 @@ Now Java calls the constructor that takes two parameters, with ``weight`` and ``
 ---
 **``this`` vs. ``this()``** #TIP 
 
-**Despite using the same keyword, ``this`` and ``this()`` are very different. ==The first, this, refers to an instance of the class, while the second, this(), refers to a constructor call within the class==.**
+**Despite using the same keyword, ``this`` and ``this()`` are very different. ==The first, this, refers to an instance of the class, while the second, ``this()``, refers to a constructor call within the class==.**
 
 ---
 
@@ -11957,10 +11954,9 @@ public class Gorilla extends Animal {
 ```
 
 notice that the child constructors are not required to call matching parent constructors. Any valid parent constructor is acceptable as long as the appropriate input parameters to the parent constructor are provided.
-
 ### Understanding Compiler Enhancements
 
-the Java compiler automatically inserts a call to the no-argument constructor ``super()`` if you do not explicitly call ``this()`` or ``super()`` as the first line of a constructor.
+**==the Java compiler automatically inserts a call to the no-argument constructor ``super()`` if you do not explicitly call ``this()`` or ``super()`` as the first line of a constructor.==**
 
 ```java
 public class Donkey {}
@@ -12126,7 +12122,7 @@ public class MouseHouse {
 
 ---
 
-What about ``final`` instance variables when a constructor calls another constructor in the same class? In that case, you have to follow the flow carefully, making sure every ``final`` instance variable is assigned a value exactly once.
+What about ``final`` instance variables when a constructor calls another constructor in the same class? In that case, you have to follow the flow carefully, making sure **==every ``final`` instance variable is assigned a value exactly once.==**
 
 ```java
 public MouseHouse() {
@@ -12135,7 +12131,6 @@ public MouseHouse() {
 ```
 
 can assign a ``null`` value to ``final`` instance variables as long as they are explicitly set.
-
 ### Initializing Instances
 
 First, start at the lowest-level constructor where the ``new`` keyword is used. Remember, the first line of every constructor is a call to ``this()`` or ``super()``, and if omitted, the compiler will automatically insert a call to the parent no-argument constructor ``super()``. Then, progress upward and note the order of constructors. Finally, initialize each class starting with the superclass, processing each instance initializer and constructor in the reverse order in which it was called.
@@ -12313,7 +12308,6 @@ public class Kangaroo extends Marsupial {
 public static void main(String[] args) {
 	System.out.println(new Marsupial().getAverageWeight()); // 50.0
 	System.out.println(new Kangaroo().getAverageWeight()); // 70.0
-	}
 }
 ```
 
@@ -12341,24 +12335,26 @@ To override a method, you must follow a number of rules. The compiler performs t
 4. ==**If the method returns a value, it must be the same or a subtype of the method in the parent class, known as covariant return types.==**
 #### Rule #1: Method Signatures
 
-If two methods have the same name but different signatures, the methods are overloaded, not overridden. Overloaded methods are considered independent and do not share the same polymorphic properties as overridden methods.
+**==If two methods have the same name but different signatures, the methods are overloaded, not overridden.==** Overloaded methods are considered independent and do not share the same polymorphic properties as overridden methods.
 #### Rule #2: Access Modifiers
 
 ```java
 public class Camel {
 	public int getNumberOfHumps() {
-	return 1;
-	} }
+		return 1;
+	}
+}
 	public class BactrianCamel extends Camel {
 	private int getNumberOfHumps() { // DOES NOT COMPILE
-	return 2;
-} }
+		return 2;
+	} 
+}
 ```
 
 **==Java avoids these types of ambiguity problems by limiting overriding a method to access modifiers that are as accessible or more accessible than the version in the inherited method.==**
 #### Rule #3: Checked Exceptions
 
-Overriding a method cannot declare new checked exceptions or checked exceptions broader than the inherited method. In other words, you could end up with an object that is more restrictive than the reference type it is assigned to, resulting in a checked exception that is not handled or declared.
+**==Overriding a method cannot declare new checked exceptions or checked exceptions broader than the inherited method.==** In other words, you could end up with an object that is more restrictive than the reference type it is assigned to, resulting in a checked exception that is not handled or declared.
 
 ```java
 public class Reptile {
@@ -12424,7 +12420,6 @@ return 5;
 ```
 
 What if ``getSize()`` method was declared ``public`` in ``Beetle``? In this case, the method in ``RhinocerosBeetle`` would be an invalid override. The access modifier in ``RhinocerosBeetle`` is more restrictive, and the return types are not covariant.
-
 ### Hiding Static Methods
 
 **==A ``static`` method cannot be overridden because class objects do not inherit from each other in the same way as instance objects. On the other hand, they can be hidden. A hidden method occurs when a child class defines a static method with the same name and signature as an inherited ``static`` method defined in a parent class==**. Method hiding is similar to but not exactly the same as method overriding. The previous four rules for overriding a method must be followed when a method is hidden. In addition, a new fifth rule is added for hiding a method:
@@ -12482,7 +12477,6 @@ public class SunBear extends Bear {
 - ``sneeze()`` is marked ``static`` in the parent class but not in the child class. The compiler detects that you’re trying to override using an instance method. However, ``sneeze()`` is a ``static`` method that should be hidden, causing the compiler to generate an error
 - The second method, ``hibernate()``, does not compile for the opposite reason. The method is marked ``static`` in the child class but not in the parent class.
 - Finally, the ``laugh()`` method does not compile. Even though both versions of the method are marked ``static``, the version in ``SunBear`` has a more restrictive access modifier than the one it inherits, and it breaks the second rule for overriding methods
-
 ### Hiding Variables
 
 Java doesn’t allow variables to be overridden. Variables can be hidden, though. **==A hidden variable occurs when a child class defines a variable with the same name as an inherited variable defined in the parent class==**
@@ -12504,7 +12498,6 @@ public class Meerkat extends Carnivore {
 ```
 
 Both of these classes define a ``hasFur`` variable, but with different values. Even though only one object is created by the ``main()`` method, both variables exist independently of each other. The output changes depending on the reference variable used.
-
 ### Writing ``final`` Methods
 
 **==final methods cannot be overridden. By marking a method ``final``, you forbid a child class from replacing this method==**. This rule is in place both when you override a method and when you hide a method.
@@ -12606,7 +12599,6 @@ abstract class Alligator {
 ```
 
 An abstract class can be initialized, but only as part of the instantiation of a non-abstract subclass.
-
 ### Declaring Abstract Methods
 
 **==An abstract method is always declared without a body. It also includes a semicolon (;) after the method declaration.==** An abstract class can include all of the same members as a non-abstract class, including variables, ``static`` and instance methods, constructors, etc. n abstract class is not required to include any abstract methods.
@@ -12633,14 +12625,13 @@ abstract public class Tiger {
 }
 ```
 
-The ``abstract`` modifier cannot be placed after the class keyword in a class declaration or after the return type in a method declaration
+**==The ``abstract`` modifier cannot be placed after the ``class`` keyword in a class declaration or after the return type in a method declaration==**
 
 ```java
 public class abstract Bear { // DOES NOT COMPILE
 	public int abstract howl(); // DOES NOT COMPILE
 }
 ```
-
 ### Creating a Concrete Class
 
 A concrete class is a non-abstract class. **==The first concrete subclass that extends an abstract class is required to implement all inherited abstract methods==**. When you see a concrete class extending an abstract class on the exam, check to make sure that it implements all of the required abstract methods.
@@ -12739,11 +12730,10 @@ public abstract class Turtle {
 }
 ```
 
-- The first method, ``eat()``, does not compile because it is marked abstract but does not end with a semicolon (;).
-- The next two methods, ``swim()`` and ``getAge()``, do not compile because they are marked abstract, but they provide an implementation block enclosed in braces ``({})``.
-- The next method, ``sleep``, does not compile because it is missing parentheses, (), for method arguments.
+- The first method, ``eat()``, does not compile because it is marked ``abstract`` but does not end with a semicolon ``(;)``.
+- The next two methods, ``swim()`` and ``getAge()``, do not compile because they are marked ``abstract``, but they provide an implementation block enclosed in braces ``({})``.
+- The next method, ``sleep``, does not compile because it is missing parentheses, ``()``, for method arguments.
 - The last method, ``goInShell()``, does not compile because it is not marked ``abstract`` and therefore must provide a body enclosed in braces.
-
 #### ``abstract`` and ``final`` Modifiers
 
 If you mark something ``abstract``, you intend for someone else to extend or implement it. But if you mark something ``final``, you are preventing anyone from extending or implementing it. These concepts are in direct conflict with each other. Due to this incompatibility, **==Java does not permit a class or method to be marked both**==
@@ -12797,7 +12787,6 @@ abstract class Hippopotamus {
 	abstract static void swim(); // DOES NOT COMPILE
 }
 ```
-
 ## Creating Immutable Objects
 
 The immutable objects pattern is an object-oriented design pattern in which an object cannot be modified after it is created. Immutable objects are helpful when writing secure code because you don’t have to worry about the values changing. They also simplify code when dealing with concurrency since immutable objects can be easily shared between multiple threads.
@@ -12894,7 +12883,7 @@ The solution is to make a copy of the list object containing the same elements.
 ```java
 public Animal(List<String> favoriteFoods) {
 	if (favoriteFoods == null || favoriteFoods.size() == 0)
-	throw new RuntimeException("favoriteFoods is required");
+		throw new RuntimeException("favoriteFoods is required");
 	this.favoriteFoods = new ArrayList<String>(favoriteFoods);
 }
 ```
