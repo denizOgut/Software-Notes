@@ -366,3 +366,73 @@ public class RabbitMQJsonConsumer {
 }
 ```
 
+------------------------------
+
+**``application.yml``**
+
+```java
+spring:  
+  application:  
+    name:rabbitmq.producer  
+  
+  rabbitmq:  
+    host:localhost  
+    port:5672  
+    username:guest  
+    password:guest
+```
+
+**``RabbitmqConfig``**
+
+```java
+@Configuration  
+public class RabbitmqConfig {  
+    @Bean("objectMapper-1")  
+    ObjectMapper objectMapper() {  
+        return JsonMapper.builder().findAndAddModules().build();  
+    }  
+}
+```
+
+**``EmployeeJsonProducer``**
+
+```java
+@Component  
+@Data  
+@Slf4j  
+public class EmployeeJsonProducer {  
+  
+    private final RabbitTemplate rabbitTemplate;  
+    private final ObjectMapper objectMapper;  
+  
+    public void sendEmployee(Employee employee)  {  
+        try {  
+            var json = objectMapper.writeValueAsString(employee);  
+            log.info("Sending message: {}", json);  
+            rabbitTemplate.convertAndSend("course.employee", json);  
+        } catch (JsonProcessingException e) {  
+            throw new RuntimeException(e);  
+        }  
+    }  
+  
+}
+```
+
+**``EmployeeJsonConsumer``**
+
+```java
+@Component  
+@Slf4j  
+@Data  
+public class EmployeeJsonConsumer {  
+  
+    private final ObjectMapper objectMapper;  
+  
+    @RabbitListener(queues = "course.employee")  
+    public void receiveMessage(String message) throws JsonProcessingException {  
+        var employee = objectMapper.readValue(message, Employee.class);  
+        log.info("Consumer received: {}", employee);  
+    }  
+}
+```
+
