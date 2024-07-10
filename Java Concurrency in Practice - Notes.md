@@ -1720,3 +1720,240 @@ public class BoundedHashSet<T> {
 Another form of barrier is Exchanger, a two-party barrier in which the parties exchange data at the barrier point Exchangers are useful when the parties perform asymmetric activities, for example when one thread fills a buffer with data and the other thread consumes the data from the buffer; these threads could use an Exchanger to meet and exchange a full buffer for an empty one. When two threads exchange objects via an Exchanger, the exchange constitutes a safe publication of both objects to the other party . The timing of the exchange depends on the responsiveness requirements of the application. The simplest approach is that the filling task exchanges when the buffer is full, and the emptying task exchanges when the buffer is empty; this minimizes the number of exchanges but can delay processing of some data if the arrival rate of new data is unpredictable. Another approach would be that the filler exchanges when the buffer is full, but also when the buffer is partially filled and a certain amount of time has elapsed.
 ### 5.6 Building an efficient, scalable result cache
 
+Nearly every server application uses some form of caching. Reusing the results of a previous computation can reduce latency and increase throughput, at the cost of some additional memory usage. Like many other frequently reinvented wheels, caching often looks simpler than it is. A naïve cache implementation is likely to turn a performance bottleneck into a scalability bottleneck, even if it does improve single-threaded performance.
+
+```java
+public class CellularAutomata {
+    private final Board mainBoard;
+    private final CyclicBarrier barrier;
+    private final Worker[] workers;
+
+    public CellularAutomata(Board board) {
+        this.mainBoard = board;
+        int count = Runtime.getRuntime().availableProcessors();
+        this.barrier = new CyclicBarrier(count, new Runnable() {
+            public void run() {
+                mainBoard.commitNewValues();
+            }
+        });
+        this.workers = new Worker[count];
+        for (int i = 0; i < count; i++) {
+            workers[i] = new Worker(mainBoard.getSubBoard(count, i));
+        }
+    }
+
+    private class Worker implements Runnable {
+        private final Board board;
+
+        public Worker(Board board) {
+            this.board = board;
+        }
+
+        public void run() {
+            while (!board.hasConverged()) {
+                for (int x = 0; x < board.getMaxX(); x++) {
+                    for (int y = 0; y < board.getMaxY(); y++) {
+                        board.setNewValue(x, y, computeValue(x, y));
+                    }
+                }
+                try {
+                    barrier.await();
+                } catch (InterruptedException ex) {
+                    return;
+                } catch (BrokenBarrierException ex) {
+                    return;
+                }
+            }
+        }
+
+        private int computeValue(int x, int y) {
+            // Implementation for computing the new value
+            return 0;
+        }
+    }
+
+    public void start() {
+        for (int i = 0; i < workers.length; i++) {
+            new Thread(workers[i]).start();
+        }
+        mainBoard.waitForConvergence();
+    }
+}
+```
+
+```java
+public interface Computable<A, V> {
+    V compute(A arg) throws InterruptedException;
+}
+
+public class ExpensiveFunction implements Computable<String, BigInteger> {
+    public BigInteger compute(String arg) {
+        // after deep thought...
+        return new BigInteger(arg);
+    }
+}
+
+public class Memoizer1<A, V> implements Computable<A, V> {
+    @GuardedBy("this")
+    private final Map<A, V> cache = new HashMap<A, V>();
+    private final Computable<A, V> c;
+
+    public Memoizer1(Computable<A, V> c) {
+        this.c = c;
+    }
+
+    public synchronized V compute(A arg) throws InterruptedException {
+        V result = cache.get(arg);
+        if (result == null) {
+            result = c.compute(arg);
+            cache.put(arg, result);
+        }
+        return result;
+    }
+}
+```
+
+![[Pasted image 20240710100938.png]]
+
+```java
+public class Memoizer2<A, V> implements Computable<A, V> {
+	private final Map<A, V> cache = new ConcurrentHashMap<A, V>();
+	private final Computable<A, V> c;
+	public Memoizer2(Computable<A, V> c) { this.c = c; }
+	public V compute(A arg) throws InterruptedException {
+		V result = cache.get(arg);
+		if (result == null) {
+			result = c.compute(arg);
+			cache.put(arg, result);
+		}
+		return result;
+	}
+}
+```
+
+![[Pasted image 20240710101022.png]]
+
+```java
+public class Memoizer3<A, V> implements Computable<A, V> {
+    private final Map<A, Future<V>> cache = new ConcurrentHashMap<A, Future<V>>();
+    private final Computable<A, V> c;
+
+    public Memoizer3(Computable<A, V> c) {
+        this.c = c;
+    }
+
+    public V compute(final A arg) throws InterruptedException {
+        Future<V> f = cache.get(arg);
+        if (f == null) {
+            Callable<V> eval = new Callable<V>() {
+                public V call() throws InterruptedException {
+                    return c.compute(arg);
+                }
+            };
+            FutureTask<V> ft = new FutureTask<V>(eval);
+            f = ft;
+            cache.put(arg, ft);
+            ft.run(); // call to c.compute happens here
+        }
+        try {
+            return f.get();
+        } catch (ExecutionException e) {
+            throw launderThrowable(e.getCause());
+        }
+    }
+
+    private RuntimeException launderThrowable(Throwable t) {
+        if (t instanceof RuntimeException) return (RuntimeException) t;
+        if (t instanceof Error) throw (Error) t;
+        throw new IllegalStateException("Not unchecked", t);
+    }
+}
+```
+
+![[Pasted image 20240710101205.png]]
+
+```java
+public class Memoizer<A, V> implements Computable<A, V> {
+    private final ConcurrentMap<A, Future<V>> cache = new ConcurrentHashMap<A, Future<V>>();
+    private final Computable<A, V> c;
+
+    public Memoizer(Computable<A, V> c) {
+        this.c = c;
+    }
+
+    public V compute(final A arg) throws InterruptedException {
+        while (true) {
+            Future<V> f = cache.get(arg);
+            if (f == null) {
+                Callable<V> eval = new Callable<V>() {
+                    public V call() throws InterruptedException {
+                        return c.compute(arg);
+                    }
+                };
+                FutureTask<V> ft = new FutureTask<V>(eval);
+                f = cache.putIfAbsent(arg, ft);
+                if (f == null) {
+                    f = ft;
+                    ft.run();
+                }
+            }
+            try {
+                return f.get();
+            } catch (CancellationException e) {
+                cache.remove(arg, f);
+            } catch (ExecutionException e) {
+                throw launderThrowable(e.getCause());
+            }
+        }
+    }
+
+    private RuntimeException launderThrowable(Throwable t) {
+        if (t instanceof RuntimeException) return (RuntimeException) t;
+        if (t instanceof Error) throw (Error) t;
+        throw new IllegalStateException("Not unchecked", t);
+    }
+}
+```
+
+```java
+@ThreadSafe
+public class Factorizer implements Servlet {
+    private final Computable<BigInteger, BigInteger[]> c =
+        new Computable<BigInteger, BigInteger[]>() {
+            public BigInteger[] compute(BigInteger arg) {
+                return factor(arg);
+            }
+        };
+    private final Computable<BigInteger, BigInteger[]> cache
+        = new Memoizer<BigInteger, BigInteger[]>(c);
+
+    public void service(ServletRequest req, ServletResponse resp) {
+        try {
+            BigInteger i = extractFromRequest(req);
+            encodeIntoResponse(resp, cache.compute(i));
+        } catch (InterruptedException e) {
+            encodeError(resp, "factorization interrupted");
+        }
+    }
+}
+```
+
+
+## Summary of Part I
+
+**==• It’s the mutable state, stupid.**==
+	==**All concurrency issues boil down to coordinating access to mutable state. The less mutable state, the easier it is to ensure thread safety.**==
+==**• Make fields final unless they need to be mutable.**==
+==**• Immutable objects are automatically thread-safe.**==
+	==**Immutable objects simplify concurrent programming tremendously.**==
+	==**They are simpler and safer, and can be shared freely without locking or defensive copying.**==
+==**• Encapsulation makes it practical to manage the complexity.**==
+	==**You could write a thread-safe program with all data stored in global variables, but why would you want to? Encapsulating data within objects makes it easier to preserve their invariants; encapsulating synchronization within objects makes it easier to comply with their synchronization policy.**==
+==**• Guard each mutable variable with a lock.**==
+==**• Guard all variables in an invariant with the same lock.**==
+==**• Hold locks for the duration of compound actions.**==
+==**• A program that accesses a mutable variable from multiple threads without synchronization is a broken program.**==
+==**• Don’t rely on clever reasoning about why you don’t need to synchronize.**==
+==**• Include thread safety in the design process—or explicitly document that your class is not thread-safe.**==
+==**• Document your synchronization policy.==**
+

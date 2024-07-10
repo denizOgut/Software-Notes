@@ -42,21 +42,9 @@
                 "source": false
               }
             }
-          },
-          {
-            "id": "8d030ec88d92245f",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Java Concurrency in Practice - Notes.md",
-                "mode": "source",
-                "source": false
-              }
-            }
           }
         ],
-        "currentTab": 3
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -122,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Java Concurrency in Practice - Notes.md",
+                "file": "Java Concurrency in Practice Screenshots/Pasted image 20240710100938.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -139,7 +127,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Java Concurrency in Practice - Notes.md",
+                "file": "Java Concurrency in Practice Screenshots/Pasted image 20240710100938.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -162,7 +150,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Java Concurrency in Practice - Notes.md"
+                "file": "Java Concurrency in Practice Screenshots/Pasted image 20240710100938.png"
               }
             }
           }
@@ -186,10 +174,13 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Java Concurrency in Practice Screenshots/Pasted image 20240709195919.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-    "RabbitMQ Notes.md",
     "Java Concurrency in Practice - Notes.md",
+    "Java Concurrency in Practice Screenshots/Pasted image 20240710101205.png",
+    "Java Concurrency in Practice Screenshots/Pasted image 20240710101022.png",
+    "Java Concurrency in Practice Screenshots/Pasted image 20240710100938.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Java Concurrency in Practice Screenshots/Pasted image 20240709195919.png",
+    "RabbitMQ Notes.md",
     "Java Concurrency in Practice Screenshots/Pasted image 20240707085441.png",
     "Java Concurrency in Practice Screenshots",
     "Java Concurrency in Practice Screenshots/Pasted image 20240708200422.png",
@@ -199,10 +190,6 @@
     "RabbitMQ Screenshots/Pasted image 20240625102518.png",
     "RabbitMQ Screenshots/Pasted image 20240625102359.png",
     "RabbitMQ Screenshots/Pasted image 20240625102247.png",
-    "RabbitMQ Screenshots/Pasted image 20240625101611.png",
-    "RabbitMQ Screenshots/Pasted image 20240625100001.png",
-    "RabbitMQ Screenshots/Pasted image 20240625095311.png",
-    "RabbitMQ Screenshots/Pasted image 20240625094940.png",
     "Elasticsearch Notes.md",
     "Elastic ScreenShots",
     "JAVA APP - 1 NOTES.md",
