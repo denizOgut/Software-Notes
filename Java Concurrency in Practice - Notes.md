@@ -3236,3 +3236,511 @@ The garbage collector does a good job of reclaiming memory resources when they a
 
 **==End-of-lifecycle issues for tasks, threads, services, and applications can add complexity to their design and implementation. Java does not provide a preemptive mechanism for cancelling activities or terminating threads. Instead, it provides a cooperative interruption mechanism that can be used to facilitate cancellation, but it is up to you to construct protocols for cancellation and use them consistently. Using ``FutureTask`` and the Executor framework simplifies building cancellable tasks and services.==**
 
+
+## Applying Thread Pools
+
+### 8.1 Implicit couplings between tasks and execution policies
+
+the ``Executor`` framework decouples task submission from task execution. Like many attempts at decoupling complex processes, this was a bit of an overstatement. While the Executor framework offers substantial flexibility in specifying and modifying execution policies, not all tasks are compatible with all execution policies. Types of tasks that require specific execution policies include:
+
+**Dependent tasks**. The most well behaved tasks are independent: those that do not depend on the timing, results, or side effects of other tasks. When executing independent tasks in a thread pool, you can freely vary the pool size and configuration without affecting anything but performance. On the other hand, when you submit tasks that depend on other tasks to a thread pool, you implicitly create constraints on the execution policy that must be carefully managed to avoid liveness problems
+
+**Tasks that exploit thread confinement**. Single-threaded executors make stronger promises about concurrency than do arbitrary thread pools. They guarantee that tasks are not executed concurrently, which allows you to relax the thread safety of task code. Objects can be confined to the task thread, thus enabling tasks designed to run in that thread to access those objects without synchronization, even if those resources are not thread-safe. This forms an implicit coupling between the task and the execution policy—the tasks re-quire their executor to be single threaded. In this case, if you changed the Executor from a single-threaded one to a thread pool, thread safety could be lost.
+
+**Response-time-sensitive tasks**. GUI applications are sensitive to response time: users are annoyed at long delays between a button click and the corresponding visual feedback. Submitting a long-running task to a single-threaded executor, or submitting several long-running tasks to a thread pool with a small number of threads, may impair the responsiveness of the service managed by that Executor.
+
+**Tasks that use ``ThreadLocal``**. ``ThreadLocal`` allows each thread to have its own private “version” of a variable. However, executors are free to reuse threads as they see fit. The standard Executor implementations may reap idle threads when demand is low and add new ones when demand is high, and also replace a worker thread with a fresh one if an unchecked exception is thrown from a task. ThreadLocal makes sense to use in pool threads only if the thread-local value has a lifetime that is bounded by that of a task; Thread- Local should not be used in pool threads to communicate values between tasks.
+
+Thread pools work best when tasks are homogeneous and independent. Mixing long-running and short-running tasks risks “clogging” the pool unless it is very large; submitting tasks that depend on other tasks risks deadlock unless the pool is unbounded
+
+> **Some tasks have characteristics that require or preclude a specific execution policy. Tasks that depend on other tasks require that the thread pool be large enough that tasks are never queued or rejected; tasks that exploit thread confinement require sequential execution. Document these requirements so that future maintainers do not undermine safety or liveness by substituting an incompatible execution policy.**
+
+#### 8.1.1 Thread starvation deadlock
+
+If tasks that depend on other tasks execute in a thread pool, they can deadlock. In a single-threaded executor, a task that submits another task to the same executor and waits for its result will always deadlock. The second task sits on the work queue until the first task completes, but the first will not complete because it is waiting for the result of the second task. The same thing can happen in larger thread pools if all threads are executing tasks that are blocked waiting for other tasks still on the work queue. This is called thread starvation deadlock, and can occur whenever a pool task initiates an unbounded blocking wait for some resource or condition that can succeed only through the action of another pool task, such as waiting for the return value or side effect of another task, unless you can guarantee that the pool is large enough
+
+> **Whenever you submit to an Executor tasks that are not independent, be aware of the possibility of thread starvation deadlock, and document any pool sizing or configuration constraints in the code or configuration file where the Executor is configured.**
+
+```java
+public class ThreadDeadlock {
+	ExecutorService exec = Executors.newSingleThreadExecutor();
+	public class RenderPageTask implements Callable<String> {
+		public String call() throws Exception {
+		Future<String> header, footer;
+		header = exec.submit(new LoadFileTask("header.html"));
+		footer = exec.submit(new LoadFileTask("footer.html"));
+		String page = renderBody();
+		// Will deadlock -- task waiting for result of subtask
+			return header.get() + page + footer.get();
+		}
+	}
+}
+```
+
+#### 8.1.2 Long-running tasks
+
+Thread pools can have responsiveness problems if tasks can block for extended periods of time, even if deadlock is not a possibility. A thread pool can become clogged with long-running tasks, increasing the service time even for short tasks. If the pool size is too small relative to the expected steady-state number of long running tasks, eventually all the pool threads will be running long-running tasks and responsiveness will suffer.
+
+One technique that can mitigate the ill effects of long-running tasks is for tasks to use timed resource waits instead of unbounded waits. Most blocking methods in the platform libraries come in both untimed and timed versions, such ``asThread.join``, ``BlockingQueue.put``, ``CountDownLatch.await``, and ``Selector.select``. If the wait times out, you can mark the task as failed and abort it or requeue it for execution later.
+
+### 8.2 Sizing thread pools
+
+The ideal size for a thread pool depends on the types of tasks that will be submitted and the characteristics of the deployment system. Thread pool sizes should rarely be hard-coded; instead pool sizes should be provided by a configuration mechanism or computed dynamically by consulting ``Runtime.availableProcessors``.
+
+**==Sizing thread pools is not an exact science, but fortunately you need only avoid the extremes of “too big” and “too small”.==**
+
+To size a thread pool properly, you need to understand your computing environment, your resource budget, and the nature of your tasks. How many processors does the deployment system have? How much memory? Do tasks perform mostly computation, I/O, or some combination? Do they require a scarce resource, such as a JDBC connection? If you have different categories of tasks with very different behaviors, consider using multiple thread pools so each can be tuned according to its workload.
+### 8.3 Configuring ``ThreadPoolExecutor``
+
+``ThreadPoolExecutor`` provides the base implementation for the executors returned by the ``newCachedThreadPool``, ``newFixedThreadPool``, and ``newScheduled- ThreadExecutor`` factories in Executors. ``ThreadPoolExecutor`` is a flexible, robust pool implementation that allows a variety of customizations.
+
+```java
+public ThreadPoolExecutor(int corePoolSize,
+	int maximumPoolSize,
+	long keepAliveTime,
+	TimeUnit unit,
+	BlockingQueue<Runnable> workQueue,
+	ThreadFactory threadFactory,
+	RejectedExecutionHandler handler) { ... }
+```
+#### 8.3.1 Thread creation and teardown
+
+The core pool size, maximum pool size, and keep-alive time govern thread creation and teardown. The core size is the target size; the implementation attempts to maintain the pool at this size even when there are no tasks to execute, and will not create more threads than this unless the work queue is full. The maximum
+pool size is the upper bound on how many pool threads can be active at once. A thread that has been idle for longer than the keep-alive time becomes a candidate for reaping and can be terminated if the current pool size exceeds the core size.
+
+By tuning the core pool size and keep-alive times, you can encourage the pool to reclaim resources used by otherwise idle threads, making them available for more useful work.
+#### 8.3.2 Managing queued tasks
+
+Bounded thread pools limit the number of tasks that can be executed concurrently.
+it is still possible for the application to run out of resources under heavy load, just harder. If the arrival rate for new requests exceeds the rate at which they can be handled, requests will still queue up. With a thread pool, they wait in a queue of Runnables managed by the Executor instead of queueing up as threads contending for the CPU. Representing a waiting task with a Runnable and a list node is certainly a lot cheaper than with a thread, but the risk of resource exhaustion still remains if clients can throw requests at the server faster than it can handle them.
+
+``ThreadPoolExecutor`` allows you to supply a ``BlockingQueue`` to hold tasks awaiting execution. There are three basic approaches to task queueing: unbounded queue, bounded queue, and synchronous handoff. The choice of queue interacts with other configuration parameters such as pool size.
+
+The default for ``newFixedThreadPool`` and ``newSingleThreadExecutor`` is to use an unbounded ``LinkedBlockingQueue``. Tasks will queue up if all worker threads are busy, but the queue could grow without bound if the tasks keep arriving faster than they can be executed.
+
+A more stable resource management strategy is to use a bounded queue, such as an ``ArrayBlockingQueue`` or a bounded ``LinkedBlockingQueue`` or Priority- ``BlockingQueue``. Bounded queues help prevent resource exhaustion but introduce the question of what to do with new tasks when the queue is full.
+
+With a bounded work queue, the queue size and pool size must be tuned together. A large queue coupled with a small pool can help reduce memory usage, CPU usage, and context switching, at the cost of potentially constraining throughput.
+
+> **The `newCachedThreadPool` factory is a good default choice for an Executor, providing better queuing performance than a fixed thread pool.5 A fixed size thread pool is a good choice when you need to limit the number of concurrent tasks for resource-management purposes, as in a server application that accepts requests from network clients and would otherwise be vulnerable to overload.**
+
+#### 8.3.3 Saturation policies
+
+When a bounded work queue fills up, the saturation policy comes into play. The saturation policy for a ``ThreadPoolExecutor`` can be modified by calling ``setRejectedExecutionHandler``. Several implementations of
+``RejectedExecutionHandler`` are provided, each implementing a different saturation policy: ``AbortPolicy``, ``CallerRunsPolicy``, ``DiscardPolicy``, and ``DiscardOldestPolicy``
+
+The default policy, abort, causes execute to throw the unchecked ``Rejected-ExecutionException``; the caller can catch this exception and implement its own overflow handling as it sees fit. The discard policy silently discards the newly submitted task if it cannot be queued for execution; the discard-oldest policy discards the task that would otherwise be executed next and tries to resubmit the new task.
+
+The caller-runs policy implements a form of throttling that neither discards tasks nor throws an exception, but instead tries to slow down the flow of new tasks by pushing some of the work back to the caller. It executes the newly submitted task not in a pool thread, but in the thread that calls execute.
+
+Choosing a saturation policy or making other changes to the execution policy can be done when the Executor is created.
+
+```java
+ThreadPoolExecutor executor
+    = new ThreadPoolExecutor(N_THREADS, N_THREADS,
+        0L, TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<Runnable>(CAPACITY));
+executor.setRejectedExecutionHandler(
+    new ThreadPoolExecutor.CallerRunsPolicy());
+```
+
+#### 8.3.4 Thread factories
+
+Whenever a thread pool needs to create a thread, it does so through a thread factory The default thread factory creates a new, nondaemon thread with no special configuration. Specifying a thread factory allows you to customize the configuration of pool threads. ``ThreadFactory`` has a single method, ``newThread``, that is called whenever a thread pool needs to create a new thread.
+
+```java
+@ThreadSafe
+public class BoundedExecutor {
+    private final Executor exec;
+    private final Semaphore semaphore;
+
+    public BoundedExecutor(Executor exec, int bound) {
+        this.exec = exec;
+        this.semaphore = new Semaphore(bound);
+    }
+
+    public void submitTask(final Runnable command)
+            throws InterruptedException {
+        semaphore.acquire();
+        try {
+            exec.execute(new Runnable() {
+                public void run() {
+                    try {
+                        command.run();
+                    } finally {
+                        semaphore.release();
+                    }
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            semaphore.release();
+        }
+    }
+}
+```
+
+```java
+public interface ThreadFactory {
+	Thread newThread(Runnable r);
+}
+```
+
+```java
+public class MyThreadFactory implements ThreadFactory {
+    private final String poolName;
+
+    public MyThreadFactory(String poolName) {
+        this.poolName = poolName;
+    }
+
+    public Thread newThread(Runnable runnable) {
+        return new MyAppThread(runnable, poolName);
+    }
+}
+```
+
+#### 8.3.5 Customizing ``ThreadPoolExecutor`` after construction
+
+Most of the options passed to the ``ThreadPoolExecutor`` constructors can also be modified after construction via setters If the Executor is created through one of the factory methods in Executors (except ``newSingleThreadExecutor``), you can cast the result to ``ThreadPoolExecutor`` to access the setters
+
+Executors includes a factory method, ``unconfigurableExecutorService``, which takes an existing ``ExecutorService`` and wraps it with one exposing only the methods of ``ExecutorService`` so it cannot be further configured. Unlike the pooled implementations, ``newSingleThreadExecutor`` returns an ``ExecutorService`` wrapped in this manner, rather than a raw ``ThreadPoolExecutor``.
+
+```java
+public class MyAppThread extends Thread {
+    public static final String DEFAULT_NAME = "MyAppThread";
+    private static volatile boolean debugLifecycle = false;
+    private static final AtomicInteger created = new AtomicInteger();
+    private static final AtomicInteger alive = new AtomicInteger();
+    private static final Logger log = Logger.getAnonymousLogger();
+
+    public MyAppThread(Runnable r) {
+        this(r, DEFAULT_NAME);
+    }
+
+    public MyAppThread(Runnable runnable, String name) {
+        super(runnable, name + "-" + created.incrementAndGet());
+        setUncaughtExceptionHandler(
+            new Thread.UncaughtExceptionHandler() {
+                public void uncaughtException(Thread t, Throwable e) {
+                    log.log(Level.SEVERE, "UNCAUGHT in thread " + t.getName(), e);
+                }
+            }
+        );
+    }
+
+    public void run() {
+        // Copy debug flag to ensure consistent value throughout.
+        boolean debug = debugLifecycle;
+        if (debug) log.log(Level.FINE, "Created " + getName());
+        try {
+            alive.incrementAndGet();
+            super.run();
+        } finally {
+            alive.decrementAndGet();
+            if (debug) log.log(Level.FINE, "Exiting " + getName());
+        }
+    }
+
+    public static int getThreadsCreated() {
+        return created.get();
+    }
+
+    public static int getThreadsAlive() {
+        return alive.get();
+    }
+
+    public static boolean getDebug() {
+        return debugLifecycle;
+    }
+
+    public static void setDebug(boolean b) {
+        debugLifecycle = b;
+    }
+}
+```
+
+```java
+ExecutorService exec = Executors.newCachedThreadPool();
+if (exec instanceof ThreadPoolExecutor)
+	((ThreadPoolExecutor) exec).setCorePoolSize(10);
+else
+	throw new AssertionError("Oops, bad assumption");
+```
+
+### 8.4 Extending ``ThreadPoolExecutor``
+
+``ThreadPoolExecutor`` was designed for extension, providing several “hooks” for subclasses to override—``beforeExecute``, ``afterExecute``, and terminated—that can be used to extend the behavior of ``ThreadPoolExecutor``.
+
+The ``beforeExecute`` and ``afterExecute`` hooks are called in the thread that executes the task, and can be used for adding logging, timing, monitoring, or statistics gathering. The ``afterExecute`` hook is called whether the task completes by returning normally from run or by throwing an Exception. If ``beforeExecute`` throws a
+``RuntimeException``, the task is not executed and ``afterExecute`` is not called. The terminated hook is called when the thread pool completes the shutdown process, after all tasks have finished and all worker threads have shut down. It can be used to release resources allocated by the Executor during its lifecycle, perform notification or logging, or finalize statistics gathering.
+
+#### 8.4.1 Example: adding statistics to a thread pool
+
+```java
+public class TimingThreadPool extends ThreadPoolExecutor {
+    private final ThreadLocal<Long> startTime = new ThreadLocal<Long>();
+    private final Logger log = Logger.getLogger("TimingThreadPool");
+    private final AtomicLong numTasks = new AtomicLong();
+    private final AtomicLong totalTime = new AtomicLong();
+
+    protected void beforeExecute(Thread t, Runnable r) {
+        super.beforeExecute(t, r);
+        log.fine(String.format("Thread %s: start %s", t, r));
+        startTime.set(System.nanoTime());
+    }
+
+    protected void afterExecute(Runnable r, Throwable t) {
+        try {
+            long endTime = System.nanoTime();
+            long taskTime = endTime - startTime.get();
+            numTasks.incrementAndGet();
+            totalTime.addAndGet(taskTime);
+            log.fine(String.format("Thread %s: end %s, time=%dns", t, r, taskTime));
+        } finally {
+            super.afterExecute(r, t);
+        }
+    }
+
+    protected void terminated() {
+        try {
+            log.info(String.format("Terminated: avg time=%dns", totalTime.get() / numTasks.get()));
+        } finally {
+            super.terminated();
+        }
+    }
+}
+```
+
+### 8.5 Parallelizing recursive algorithms
+
+Loops whose bodies contain nontrivial computation or perform potentially blocking I/O are frequently good candidates for parallelization, as long as the iterations are independent.
+
+```java
+void processSequentially(List<Element> elements) {
+    for (Element e : elements) {
+        process(e);
+    }
+}
+
+void processInParallel(Executor exec, List<Element> elements) {
+    for (final Element e : elements) {
+        exec.execute(new Runnable() {
+            public void run() {
+                process(e);
+            }
+        });
+    }
+}
+```
+
+> **Sequential loop iterations are suitable for parallelization when each iteration is independent of the others and the work done in each iteration of the loop body is significant enough to offset the cost of managing a new task.**
+
+Loop parallelization can also be applied to some recursive designs; there are often sequential loops within the recursive algorithm that can be parallelized in the same manner The easier case is when each iteration does not require the results of the recursive iterations it invokes.
+
+```java
+public <T> void sequentialRecursive(List<Node<T>> nodes, Collection<T> results) {
+    for (Node<T> n : nodes) {
+        results.add(n.compute());
+        sequentialRecursive(n.getChildren(), results);
+    }
+}
+
+public <T> void parallelRecursive(final Executor exec, List<Node<T>> nodes, final Collection<T> results) {
+    for (final Node<T> n : nodes) {
+        exec.execute(new Runnable() {
+            public void run() {
+                results.add(n.compute());
+            }
+        });
+        parallelRecursive(exec, n.getChildren(), results);
+    }
+}
+```
+
+```java
+public <T> Collection<T> getParallelResults(List<Node<T>> nodes) throws InterruptedException {
+    ExecutorService exec = Executors.newCachedThreadPool();
+    Queue<T> resultQueue = new ConcurrentLinkedQueue<T>();
+    parallelRecursive(exec, nodes, resultQueue);
+    exec.shutdown();
+    exec.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+    return resultQueue;
+}
+```
+
+#### 8.5.1 Example: A puzzle framework
+
+```java
+public interface Puzzle<P, M> {
+	P initialPosition();
+	boolean isGoal(P position);
+	Set<M> legalMoves(P position);
+	P move(P position, M move);
+}
+```
+
+```java
+@Immutable
+static class Node<P, M> {
+    final P pos;
+    final M move;
+    final Node<P, M> prev;
+
+    Node(P pos, M move, Node<P, M> prev) {
+        this.pos = pos;
+        this.move = move;
+        this.prev = prev;
+    }
+
+    List<M> asMoveList() {
+        List<M> solution = new LinkedList<M>();
+        for (Node<P, M> n = this; n.move != null; n = n.prev) {
+            solution.add(0, n.move);
+        }
+        return solution;
+    }
+}
+```
+
+```java
+public class SequentialPuzzleSolver<P, M> {
+    private final Puzzle<P, M> puzzle;
+    private final Set<P> seen = new HashSet<P>();
+
+    public SequentialPuzzleSolver(Puzzle<P, M> puzzle) {
+        this.puzzle = puzzle;
+    }
+
+    public List<M> solve() {
+        P pos = puzzle.initialPosition();
+        return search(new Node<P, M>(pos, null, null));
+    }
+
+    private List<M> search(Node<P, M> node) {
+        if (!seen.contains(node.pos)) {
+            seen.add(node.pos);
+            if (puzzle.isGoal(node.pos))
+                return node.asMoveList();
+            for (M move : puzzle.legalMoves(node.pos)) {
+                P pos = puzzle.move(node.pos, move);
+                Node<P, M> child = new Node<P, M>(pos, move, node);
+                List<M> result = search(child);
+                if (result != null)
+                    return result;
+            }
+        }
+        return null;
+    }
+
+    static class Node<P, M> { /* Listing 8.14 */ }
+}
+```
+
+```java
+public class ConcurrentPuzzleSolver<P, M> {
+    private final Puzzle<P, M> puzzle;
+    private final ExecutorService exec;
+    private final ConcurrentMap<P, Boolean> seen;
+    final ValueLatch<Node<P, M>> solution = new ValueLatch<Node<P, M>>();
+
+    public ConcurrentPuzzleSolver(Puzzle<P, M> puzzle, ExecutorService exec) {
+        this.puzzle = puzzle;
+        this.exec = exec;
+        this.seen = new ConcurrentHashMap<P, Boolean>();
+    }
+
+    public List<M> solve() throws InterruptedException {
+        try {
+            P p = puzzle.initialPosition();
+            exec.execute(newTask(p, null, null));
+            // block until solution found
+            Node<P, M> solnNode = solution.getValue();
+            return (solnNode == null) ? null : solnNode.asMoveList();
+        } finally {
+            exec.shutdown();
+        }
+    }
+
+    protected Runnable newTask(P p, M m, Node<P, M> n) {
+        return new SolverTask(p, m, n);
+    }
+
+    class SolverTask extends Node<P, M> implements Runnable {
+        public SolverTask(P pos, M move, Node<P, M> prev) {
+            super(pos, move, prev);
+        }
+
+        public void run() {
+            if (solution.isSet() || seen.putIfAbsent(pos, true) != null)
+                return; // already solved or seen this position
+            if (puzzle.isGoal(pos))
+                solution.setValue(this);
+            else
+                for (M m : puzzle.legalMoves(pos))
+                    exec.execute(newTask(puzzle.move(pos, m), m, this));
+        }
+    }
+}
+```
+
+```java
+@ThreadSafe
+public class ValueLatch<T> {
+    @GuardedBy("this") private T value = null;
+    private final CountDownLatch done = new CountDownLatch(1);
+
+    public boolean isSet() {
+        return (done.getCount() == 0);
+    }
+
+    public synchronized void setValue(T newValue) {
+        if (!isSet()) {
+            value = newValue;
+            done.countDown();
+        }
+    }
+
+    public T getValue() throws InterruptedException {
+        done.await();
+        synchronized (this) {
+            return value;
+        }
+    }
+}
+```
+
+```java
+public class PuzzleSolver<P, M> extends ConcurrentPuzzleSolver<P, M> {
+    private final AtomicInteger taskCount = new AtomicInteger(0);
+
+    protected Runnable newTask(P p, M m, Node<P, M> n) {
+        return new CountingSolverTask(p, m, n);
+    }
+
+    class CountingSolverTask extends SolverTask {
+        CountingSolverTask(P pos, M move, Node<P, M> prev) {
+            super(pos, move, prev);
+            taskCount.incrementAndGet();
+        }
+
+        public void run() {
+            try {
+                super.run();
+            } finally {
+                if (taskCount.decrementAndGet() == 0) {
+                    solution.setValue(null);
+                }
+            }
+        }
+    }
+}
+```
+
+#### Summary
+
+**==The Executor framework is a powerful and flexible framework for concurrently executing tasks. It offers a number of tuning options, such as policies for creating and tearing down threads, handling queued tasks, and what to do with excess tasks, and provides several hooks for extending its behavior. As in most powerful frameworks, however, there are combinations of settings that do not work well together; some types of tasks require specific execution policies, and some combinations of tuning parameters may produce strange results.==**
+
+# Chapter 3
+
+## Avoiding Liveness Hazards
+
