@@ -1957,3 +1957,1282 @@ public class Factorizer implements Servlet {
 ==**• Include thread safety in the design process—or explicitly document that your class is not thread-safe.**==
 ==**• Document your synchronization policy.==**
 
+# Chapter 2 Structuring Concurrent Applications
+
+## Task Execution
+
+Most concurrent applications are organized around the execution of tasks: abstract, discrete units of work. Dividing the work of an application into tasks simplifies program organization, facilitates error recovery by providing natural transaction boundaries, and promotes concurrency by providing a natural structure for parallelizing work.
+
+### 6.1 Executing tasks in threads
+
+The first step in organizing a program around task execution is identifying sensible task boundaries. Ideally, tasks are independent activities: work that doesn’t depend on the state, result, or side effects of other tasks. Independence facilitates concurrency, as independent tasks can be executed in parallel if there are adequate processing resources
+
+#### 6.1.1 Executing tasks sequentially
+
+There are a number of possible policies for scheduling tasks within an application, some of which exploit the potential for concurrency better than others. The simplest is to execute tasks sequentially in a single thread.
+
+```java
+class SingleThreadWebServer {
+	public static void main(String[] args) throws IOException {
+	ServerSocket socket = new ServerSocket(80);
+		while (true) {
+			Socket connection = socket.accept();
+			handleRequest(connection);
+		}
+	}
+}
+```
+
+``SingleThreadedWebServer`` is simple and theoretically correct, but would perform poorly in production because it can handle only one request at a time. The main thread alternates between accepting connections and processing the associated request. While the server is handling a request, new connections must wait until it finishes the current request and calls ``accept`` again.
+
+In a single-threaded server, blocking not only delays completing the current request, but prevents pending requests from being processed at all. If one request blocks for an unusually long time, users might think the server is unavailable because it appears unresponsive. At the same time, resource utilization is poor, since the CPU sits idle while the single thread waits for its I/O to complete.
+
+#### 6.1.2 Explicitly creating threads for tasks
+
+A more responsive approach is to create a new thread for servicing each request,
+
+```java
+class ThreadPerTaskWebServer {
+    public static void main(String[] args) throws IOException {
+        ServerSocket socket = new ServerSocket(80);
+        while (true) {
+            final Socket connection = socket.accept();
+            Runnable task = new Runnable() {
+                public void run() {
+                    handleRequest(connection);
+                }
+            };
+            new Thread(task).start();
+        }
+    }
+}
+```
+
+The difference is that for each connection, the main loop creates a new thread to process the request instead of processing it within the main thread. This has three main consequences:
+
+- Task processing is offloaded from the main thread, enabling the main loop to resume waiting for the next incoming connection more quickly. This enables new connections to be accepted before previous requests complete, improving responsiveness.
+
+- Tasks can be processed in parallel, enabling multiple requests to be serviced simultaneously. This may improve throughput if there are multiple processors, or if tasks need to block for any reason such as I/O completion, lock acquisition, or resource availability.
+
+- Task-handling code must be thread-safe, because it may be invoked concurrently for multiple tasks.
+
+As long as the request arrival rate does not exceed the server’s capacity to handle requests, this approach offers better responsiveness and throughput.
+
+#### 6.1.3 Disadvantages of unbounded thread creation
+
+**Thread lifecycle overhead**. Thread creation and teardown are not free. The actual overhead varies across platforms, but thread creation takes time, introducing latency into request processing, and requires some processing activity by the JVM and OS. If requests are frequent and lightweight, as in most server applications, creating a new thread for each request can consume significant computing resources.
+
+**Resource consumption**. Active threads consume system resources, especially memory. When there are more runnable threads than available processors, threads sit idle. Having many idle threads can tie up a lot of memory, putting pressure on the garbage collector, and having many threads competing for the CPUs can impose other performance costs as well. If you have enough threads to keep all the CPUs busy, creating more threads won’t help and may even hurt.
+
+**Stability**. There is a limit on how many threads can be created. The limit varies by platform and is affected by factors including JVM invocation parameters, the requested stack size in the Thread constructor, and limits on threads placed by the underlying operating system.2 When you hit this limit, the most likely result is an ``OutOfMemoryError``. Trying to recover from such an error is very risky; it is far easier to structure your program to avoid hitting this limit.
+
+
+Up to a certain point, more threads can improve throughput, but beyond that point creating more threads just slows down your application, and creating one thread too many can cause your entire application to crash horribly. The way to stay out of danger is to place some bound on how many threads your application creates, and to test your application thoroughly to ensure that, even when this bound is reached, it does not run out of resources.
+
+Like other concurrency hazards, unbounded thread creation may appear to work just fine during prototyping and development, with problems surfacing only when the application is deployed and under heavy load. So a malicious user, or enough ordinary users, can make your web server crash if the traffic load ever reaches a certain threshold.
+### 6.2 The ``Executor`` framework
+
+Tasks are logical units of work, and threads are a mechanism by which tasks can run asynchronously.
+
+Both have serious limitations: the sequential approach suffers from poor responsiveness and throughput, and the thread-per-task approach suffers from poor resource management.
+
+Thread pools offer the same benefit for thread management, and ``java.util.concurrent`` provides a flexible thread pool implementation as part of the ``Executor`` framework. The primary abstraction for task execution in the Java class libraries is not ``Thread``, but ``Executor``
+
+```java
+public interface Executor {
+	void execute(Runnable command);
+}
+```
+
+``Executor`` may be a simple interface, but it forms the basis for a flexible and powerful framework for asynchronous task execution that supports a wide variety of task execution policies. It provides a standard means of decoupling task submission from task execution, describing tasks with ``Runnable``. The ``Executor`` implementations also provide lifecycle support and hooks for adding statistics gathering, application management, and monitoring.
+
+Executor is based on the producer-consumer pattern, where activities that submit tasks are the producers (producing units of work to be done) and the threads that execute tasks are the consumers (consuming those units of work). ==**Using an Executor is usually the easiest path to implementing a producer-consumer design in your application.**==
+
+#### 6.2.1 Example: web server using ``Executor``
+
+```java
+class TaskExecutionWebServer {
+    private static final int NTHREADS = 100;
+    private static final Executor exec = Executors.newFixedThreadPool(NTHREADS);
+
+    public static void main(String[] args) throws IOException {
+        ServerSocket socket = new ServerSocket(80);
+        while (true) {
+            final Socket connection = socket.accept();
+            Runnable task = new Runnable() {
+                public void run() {
+                    handleRequest(connection);
+                }
+            };
+            exec.execute(task);
+        }
+    }
+}
+```
+
+```java
+public class ThreadPerTaskExecutor implements Executor {
+	public void execute(Runnable r) {
+		new Thread(r).start();
+	};
+}
+```
+
+```java
+public class WithinThreadExecutor implements Executor {
+	public void execute(Runnable r) {
+		r.run();
+	};
+}
+```
+#### 6.2.2 Execution policies
+
+**==An execution policy specifies the “what, where, when, and how” of task execution, including:**==
+
+==**• In what thread will tasks be executed?**==
+==**• In what order should tasks be executed (FIFO, LIFO, priority order)?**==
+==**• How many tasks may execute concurrently?**==
+==**• How many tasks may be queued pending execution?**==
+==**• If a task has to be rejected because the system is overloaded, which task should be selected as the victim, and how should the application be notified?**==
+==**• What actions should be taken before or after executing a task?==**
+
+> **Whenever you see code of the form: ``new Thread(runnable).start()`` and you think you might at some point want a more flexible execution policy, seriously consider replacing it with the use of an ``Executor``.**
+
+
+#### 6.2.3 Thread pools
+
+A thread pool, as its name suggests, manages a homogeneous pool of worker threads. A thread pool is tightly bound to a work queue holding tasks waiting to be executed. Worker threads have a simple life: request the next task from the work queue, execute it, and go back to waiting for another task.
+
+Executing tasks in pool threads has a number of advantages over the thread per-task approach. Reusing an existing thread instead of creating a new one amortizes thread creation and teardown costs over multiple requests. As an added bonus, since the worker thread often already exists at the time the request arrives, the latency associated with thread creation does not delay task execution, thus improving responsiveness.
+
+The class library provides a flexible thread pool implementation along with some useful predefined configurations. You can create a thread pool by calling one of the static factory methods in ``Executors``:
+
+**``newFixedThreadPool``**. A fixed-size thread pool creates threads as tasks are submitted, up to the maximum pool size, and then attempts to keep the pool size constant (adding new threads if a thread dies due to an unexpected Exception).
+
+**``newCachedThreadPool``**. A cached thread pool has more flexibility to reap idle threads when the current size of the pool exceeds the demand for processing, and to add new threads when demand increases, but places no bounds on the size of the pool.
+
+**``newSingleThreadExecutor``**. A single-threaded executor creates a single worker thread to process tasks, replacing it if it dies unexpectedly. Tasks are guaranteed to be processed sequentially according to the order imposed by the task queue (FIFO, LIFO, priority order).
+
+**``newScheduledThreadPool``**. A fixed-size thread pool that supports delayed and periodic task execution, similar to Timer.
+
+The ``newFixedThreadPool`` and ``newCachedThreadPool`` factories return instances of the general-purpose ``ThreadPoolExecutor``, which can also be used directly to construct more specialized executor
+
+The web server in ``TaskExecutionWebServer`` uses an ``Executor`` with a bounded pool of worker threads. Submitting a task with execute adds the task to the work queue, and the worker threads repeatedly dequeue tasks from the work queue and execute them.
+
+And using an ``Executor`` opens the door to all sorts of additional opportunities for tuning, management, monitoring, logging, error reporting, and other possibilities that would have been far more difficult to add without a task execution framework.
+
+#### 6.2.4 ``Executor`` lifecycle
+
+An ``Executor`` implementation is likely to create threads for processing tasks. But the JVM can’t exit until all the (nondaemon) threads have terminated, so failing to shut down an ``Executor`` could prevent the JVM from exiting.
+
+In shutting down an application, t**==here is a spectrum from graceful shutdown (finish what you’ve started but don’t accept any new work) to abrupt shutdown (turn off the power to the machine room), and various points in between==**.
+
+To address the issue of execution service lifecycle, the ``ExecutorService`` interface extends Executor, adding a number of methods for lifecycle management
+
+```java
+public interface ExecutorService extends Executor {
+	void shutdown();
+	List<Runnable> shutdownNow();
+	boolean isShutdown();
+	boolean isTerminated();
+	boolean awaitTermination(long timeout, TimeUnit unit)
+	throws InterruptedException;
+	// ... additional convenience methods for task submission
+}
+```
+
+The lifecycle implied by ``ExecutorService`` has three states—running, shutting down, and terminated. ``ExecutorServices`` are initially created in the running state. The shutdown method initiates a graceful shutdown: no new tasks are accepted but previously submitted tasks are allowed to complete—including those that have not yet begun execution. The ``shutdownNow`` method initiates an abrupt shutdown: it attempts to cancel outstanding tasks and does not start any tasks that are queued but not begun.
+
+Tasks submitted to an ``ExecutorService`` after it has been shut down are handled by the rejected execution handler which might silently discard the task or might cause execute to throw the unchecked ``RejectedExecutionException``. Once all tasks have completed, the ``ExecutorService`` transitions to the terminated state.
+
+**==It is common to follow shutdown immediately by ``awaitTermination``, creating the effect of synchronously shutting down the ``ExecutorService``.==**
+
+```java
+class LifecycleWebServer {
+    private final ExecutorService exec = ...;
+
+    public void start() throws IOException {
+        ServerSocket socket = new ServerSocket(80);
+        while (!exec.isShutdown()) {
+            try {
+                final Socket conn = socket.accept();
+                exec.execute(new Runnable() {
+                    public void run() {
+                        handleRequest(conn);
+                    }
+                });
+            } catch (RejectedExecutionException e) {
+                if (!exec.isShutdown())
+                    log("task submission rejected", e);
+            }
+        }
+    }
+
+    public void stop() {
+        exec.shutdown();
+    }
+
+    void handleRequest(Socket connection) {
+        Request req = readRequest(connection);
+        if (isShutdownRequest(req))
+            stop();
+        else
+            dispatchRequest(req);
+    }
+}
+```
+
+#### 6.2.5 Delayed and periodic tasks
+
+A ``Timer`` creates only a single thread for executing timer tasks. If a timer task takes too long to run, the timing accuracy of other ``TimerTasks`` can suffer. If a recurring ``TimerTask`` is scheduled to run every 10 ms and another Timer- Task takes 40 ms to run, the recurring task either (depending on whether it was scheduled at fixed rate or fixed delay) gets called four times in rapid succession after the long-running task completes, or “misses” four invocations completely. Scheduled thread pools address this limitation by letting you provide multiple threads for executing deferred and periodic tasks.
+
+Another problem with ``Timer`` is that it behaves poorly if a ``TimerTask`` throws an unchecked exception. The Timer thread doesn’t catch the exception, so an unchecked exception thrown from a ``TimerTask`` terminates the timer thread. Timer also doesn’t resurrect the thread in this situation; instead, it erroneously assumes the entire Timer was cancelled. In this case, ``TimerTasks`` that are already scheduled but not yet executed are never run, and new tasks cannot be scheduled.
+
+### 6.3 Finding exploitable parallelism
+
+The Executor framework makes it easy to specify an execution policy, but in order to use an Executor, you have to be able to describe your task as a Runnable. In most server applications, there is an obvious task boundary: a single client request. 
+
+```java
+public class OutOfTime {
+    public static void main(String[] args) throws Exception {
+        Timer timer = new Timer();
+        timer.schedule(new ThrowTask(), 1);
+        SECONDS.sleep(1);
+        timer.schedule(new ThrowTask(), 1);
+        SECONDS.sleep(5);
+    }
+
+    static class ThrowTask extends TimerTask {
+        public void run() {
+            throw new RuntimeException();
+        }
+    }
+}
+```
+
+#### 6.3.1 Example: sequential page renderer
+
+```java
+public class SingleThreadRenderer {
+    void renderPage(CharSequence source) {
+        renderText(source);
+        List<ImageData> imageData = new ArrayList<ImageData>();
+        for (ImageInfo imageInfo : scanForImageInfo(source))
+            imageData.add(imageInfo.downloadImage());
+        for (ImageData data : imageData)
+            renderImage(data);
+    }
+}
+```
+
+#### 6.3.2 Result-bearing tasks: ``Callable`` and ``Future``
+
+The ``Executor`` framework uses ``Runnable`` as its basic task representation. ``Runnable`` is a fairly limiting abstraction; run cannot return a value or throw checked exceptions,
+
+Many tasks are effectively deferred computations—executing a database query, fetching a resource over the network, or computing a complicated function. For these types of tasks, ``Callable`` is a better abstraction: it expects that the main entry point, call, will return a value and anticipates that it might throw an exception. ``Executors`` includes several utility methods for wrapping other types of tasks, including ``Runnable`` and ``java.security.PrivilegedAction``, with a ``Callable``.
+
+``Runnable`` and ``Callable`` describe abstract computational tasks. Tasks are usually finite: they have a clear starting point and they eventually terminate. **==The lifecycle of a task executed by an ``Executor`` has four phases: created, submitted, started, and completed==**. Since tasks can take a long time to run, we also want to be able to cancel a task. In the Executor framework, tasks that have been submitted but not yet started can always be cancelled, and tasks that have started can sometimes be cancelled if they are responsive to interruption. Cancelling a task that has already completed has no effect.
+
+``Future`` represents the lifecycle of a task and provides methods to test whether the task has completed or been cancelled, retrieve its result, and cancel the task. Implicit in the specification of Future is that task lifecycle can only move forwards, not backwards—just like the ``ExecutorService`` lifecycle. Once a task is completed, it stays in that state forever.
+
+The behavior of get varies depending on the task state (not yet started, running, completed). It returns immediately or throws an Exception if the task has already completed, but if not it blocks until the task completes. If the task completes by throwing an exception, get rethrows it wrapped in an Execution-Exception; if it was cancelled, get throws ``CancellationException``. If get throws ``ExecutionException``, the underlying exception can be retrieved with ``getCause``. 
+
+There are several ways to create a ``Future`` to describe a task. The submit methods in ``ExecutorService`` all return a Future, so that you can submit a ``Runnable`` or a ``Callable`` to an executor and get back a Future that can be used to retrieve the result or cancel the task. You can also explicitly instantiate a ``FutureTask`` for a given ``Runnable`` or ``Callable``.
+
+```java
+public interface Callable<V> {
+    V call() throws Exception;
+}
+
+public interface Future<V> {
+    boolean cancel(boolean mayInterruptIfRunning);
+    boolean isCancelled();
+    boolean isDone();
+    V get() throws InterruptedException, ExecutionException, CancellationException;
+    V get(long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, CancellationException, TimeoutException;
+}
+```
+
+```java
+protected <T> RunnableFuture<T> newTaskFor(Callable<T> task) {
+	return new FutureTask<T>(task);
+}
+```
+
+Submitting a ``Runnable`` or ``Callable`` to an ``Executor`` constitutes a safe publication  of the Runnable or Callable from the submitting thread to the thread that will eventually execute the task
+#### 6.3.4 Limitations of parallelizing heterogeneous tasks
+
+Two people can divide the work of cleaning the dinner dishes fairly effectively: one person washes while the other dries. However, assigning a different type of task to each worker does not scale well; if several more people show up, it is not obvious how they can help without getting in the way or significantly restructuring the division of labor. Without finding finer-grained parallelism among similar tasks, this approach will yield diminishing returns.
+
+A further problem with dividing heterogeneous tasks among multiple workers is that the tasks may have disparate sizes. If you divide tasks A and B between two workers but A takes ten times as long as B, you’ve only speeded up the total process by 9%. Finally, dividing a task among multiple workers always involves some amount of coordination overhead; for the division to be worthwhile, this overhead must be more than compensated by productivity improvements due to parallelism.
+
+```java
+public class FutureRenderer {
+    private final ExecutorService executor = ...;
+
+    void renderPage(CharSequence source) {
+        final List<ImageInfo> imageInfos = scanForImageInfo(source);
+        Callable<List<ImageData>> task = new Callable<List<ImageData>>() {
+            public List<ImageData> call() {
+                List<ImageData> result = new ArrayList<ImageData>();
+                for (ImageInfo imageInfo : imageInfos)
+                    result.add(imageInfo.downloadImage());
+                return result;
+            }
+        };
+        Future<List<ImageData>> future = executor.submit(task);
+        renderText(source);
+        try {
+            List<ImageData> imageData = future.get();
+            for (ImageData data : imageData)
+                renderImage(data);
+        } catch (InterruptedException e) {
+            // Re-assert the thread’s interrupted status
+            Thread.currentThread().interrupt();
+            // We don’t need the result, so cancel the task too
+            future.cancel(true);
+        } catch (ExecutionException e) {
+            throw launderThrowable(e.getCause());
+        }
+    }
+}
+```
+
+> **The real performance payoff of dividing a program’s workload into tasks comes when there are a large number of independent, homogeneous tasks that can be processed concurrently.**
+
+#### 6.3.5 CompletionService: ``Executor`` meets ``BlockingQueue``
+
+If you have a batch of computations to submit to an ``Executor`` and you want to retrieve their results as they become available is a better way: a completion service. 
+
+CompletionService combines the functionality of an Executor and a ``BlockingQueue``. You can submit Callable tasks to it for execution and use the queue like methods take and poll to retrieve completed results, packaged as Futures, as they become available. ``ExecutorCompletionService`` implements Completion- Service, delegating the computation to an ``Executor``.
+
+The implementation of ``ExecutorCompletionService`` is quite straightforward. The constructor creates a ``BlockingQueue`` to hold the completed results. Future- Task has a done method that is called when the computation completes. When a task is submitted, it is wrapped with a ``QueueingFuture``, a subclass of ``FutureTask`` that overrides done to place the result on the ``BlockingQueue``
+
+```java
+private class QueueingFuture<V> extends FutureTask<V> {
+	QueueingFuture(Callable<V> c) { super(c); }
+	QueueingFuture(Runnable t, V r) { super(t, r); }
+	protected void done() {
+		completionQueue.add(this);
+	}
+}
+```
+
+#### 6.3.6 Example: page renderer with ``CompletionService``
+
+```java
+public class Renderer {
+    private final ExecutorService executor;
+
+    Renderer(ExecutorService executor) {
+        this.executor = executor;
+    }
+
+    void renderPage(CharSequence source) {
+        List<ImageInfo> info = scanForImageInfo(source);
+        CompletionService<ImageData> completionService =
+            new ExecutorCompletionService<ImageData>(executor);
+
+        for (final ImageInfo imageInfo : info) {
+            completionService.submit(new Callable<ImageData>() {
+                public ImageData call() {
+                    return imageInfo.downloadImage();
+                }
+            });
+        }
+
+        renderText(source);
+
+        try {
+            for (int t = 0, n = info.size(); t < n; t++) {
+                Future<ImageData> f = completionService.take();
+                ImageData imageData = f.get();
+                renderImage(imageData);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            throw launderThrowable(e.getCause());
+        }
+    }
+}
+```
+
+#### 6.3.7 Placing time limits on tasks
+
+Sometimes, if an activity does not complete within a certain amount of time, the result is no longer needed and the activity can be abandoned.
+
+The primary challenge in executing tasks within a time budget is making sure that you don’t wait longer than the time budget to get an answer or find out that one is not forthcoming. The timed version of ``Future.get`` supports this requirement: it returns as soon as the result is ready, but throws ``TimeoutException`` if the result is not ready within the timeout period.
+
+A secondary problem when using timed tasks is to stop them when they run out of time, so they do not waste computing resources by continuing to compute a result that will not be used. This can be accomplished by having the task strictly manage its own time budget and abort if it runs out of time, or by cancelling the task if the timeout expires.
+
+#### 6.3.8 Example: a travel reservations portal
+
+```java
+Page renderPageWithAd() throws InterruptedException {
+    long endNanos = System.nanoTime() + TIME_BUDGET;
+    Future<Ad> f = exec.submit(new FetchAdTask());
+
+    // Render the page while waiting for the ad
+    Page page = renderPageBody();
+    Ad ad;
+
+    try {
+        // Only wait for the remaining time budget
+        long timeLeft = endNanos - System.nanoTime();
+        ad = f.get(timeLeft, NANOSECONDS);
+    } catch (ExecutionException e) {
+        ad = DEFAULT_AD;
+    } catch (TimeoutException e) {
+        ad = DEFAULT_AD;
+        f.cancel(true);
+    }
+
+    page.setAd(ad);
+    return page;
+}
+```
+
+#### Summary
+
+**==Structuring applications around the execution of tasks can simplify development and facilitate concurrency. The Executor framework permits you to decouple task submission from execution policy and supports a rich variety of execution policies; whenever you find yourself creating threads to perform tasks, consider using an Executor instead. To maximize the benefit of decomposing an application into tasks, you must identify sensible task boundaries. In some applications, the obvious task boundaries work well, whereas in others some analysis may be required to uncover finer-grained exploitable parallelism.==**
+
+### Cancellation and Shutdown
+
+**==Java does not provide any mechanism for safely forcing a thread to stop what it is doing. Instead, it provides interruption, a cooperative mechanism that lets one thread ask another to stop what it is doing.==**
+
+The cooperative approach is required because we rarely want a task, thread, or service to stop immediately, since that could leave shared data structures in an inconsistent state.
+
+End-of-lifecycle issues can complicate the design and implementation of tasks, services, and applications, and this important element of program design is too often ignored. Dealing well with failure, shutdown, and cancellation is one of the characteristics that distinguishes a well-behaved application from one that merely works.
+
+### 7.1 Task cancellation
+
+An activity is cancellable if external code can move it to completion before its normal completion. There are a number of reasons why you might want to cancel an activity:
+
+**User-requested cancellation**. The user clicked on the “cancel” button in a GUI application, or requested cancellation through a management interface such as JMX (Java Management Extensions).
+
+**Time-limited activities**. An application searches a problem space for a finite amount of time and chooses the best solution found within that time. When the timer expires, any tasks still searching are cancelled.
+
+**Application events**. An application searches a problem space by decomposing it so that different tasks search different regions of the problem space. When one task finds a solution, all other tasks still searching are cancelled.
+
+**Errors**. A web crawler searches for relevant pages, storing pages or summary data to disk. When a crawler task encounters an error (for example, the disk is full), other crawling tasks are cancelled, possibly recording their current state so that they can be restarted later.
+
+**Shutdown**. When an application or service is shut down, something must be done about work that is currently being processed or queued for processing. In a graceful shutdown, tasks currently in progress might be allowed to complete; in a more immediate shutdown, currently executing tasks might be cancelled.
+
+There is no safe way to preemptively stop a thread in Java, and therefore no safe way to preemptively stop a task. There are only cooperative mechanisms, by which the task and the code requesting cancellation follow an agreed-upon protocol.
+
+> **An agreed-upon protocol in concurrency is a set of rules or procedures that ensure multiple processes or threads can access shared resources or perform tasks without conflicts or inconsistencies.**
+
+A task that wants to be cancellable must have a cancellation policy that specifies the “how”, “when”, and “what” of cancellation—how other code can request cancellation, when the task checks whether cancellation has been requested, and what actions the task takes in response to a cancellation request.
+
+```java
+@ThreadSafe
+public class PrimeGenerator implements Runnable {
+    @GuardedBy("this")
+    private final List<BigInteger> primes = new ArrayList<BigInteger>();
+    private volatile boolean cancelled;
+
+    public void run() {
+        BigInteger p = BigInteger.ONE;
+        while (!cancelled) {
+            p = p.nextProbablePrime();
+            synchronized (this) {
+                primes.add(p);
+            }
+        }
+    }
+
+    public void cancel() {
+        cancelled = true;
+    }
+
+    public synchronized List<BigInteger> get() {
+        return new ArrayList<BigInteger>(primes);
+    }
+}
+```
+
+```java
+List<BigInteger> aSecondOfPrimes() throws InterruptedException {
+    PrimeGenerator generator = new PrimeGenerator();
+    new Thread(generator).start();
+    try {
+        SECONDS.sleep(1);
+    } finally {
+        generator.cancel();
+    }
+    return generator.get();
+}
+```
+
+#### 7.1.1 Interruption
+
+The cancellation mechanism in ``PrimeGenerator`` will eventually cause the prime-seeking task to exit, but it might take a while. If, however, a task that uses this approach calls a blocking method such as ``BlockingQueue.put``, we could have a more serious problem—the task might never check the cancellation flag and therefore might never terminate.
+
+certain blocking library methods support interruption. **==Thread interruption is a cooperative mechanism for a thread to signal another thread that it should, at its convenience and if it feels like it, stop what it is doing and do something else.==**
+
+> **There is nothing in the API or language specification that ties interruption to any specific cancellation semantics, but in practice, using interruption for anything but cancellation is fragile and difficult to sustain in larger applications.**
+
+
+There is nothing in the API or language specification that ties interruption to any specific cancellation semantics, but in practice, using interruption for anything but cancellation is fragile and difficult to sustain in larger applications. Each thread has a boolean interrupted status; interrupting a thread sets its interrupted status to true. Thread contains methods for interrupting a thread and querying the interrupted status of a thread. The interrupt method interrupts the target thread, and ``isInterrupted`` returns the interrupted status of the target thread. The poorly named static interrupted method clears the interrupted status of the current thread and returns its previous value; this is the only way to clear the interrupted status.
+
+Blocking library methods like ``Thread.sleep`` and ``Object.wait`` try to detect when a thread has been interrupted and return early. They respond to interruption by clearing the interrupted status and throwing ``InterruptedException``, indicating that the blocking operation completed early due to interruption. The JVM makes no guarantees on how quickly a blocking method will detect interruption, but in practice this happens reasonably quickly.
+
+```java
+class BrokenPrimeProducer extends Thread {
+    private final BlockingQueue<BigInteger> queue;
+    private volatile boolean cancelled = false;
+
+    BrokenPrimeProducer(BlockingQueue<BigInteger> queue) {
+        this.queue = queue;
+    }
+
+    public void run() {
+        try {
+            BigInteger p = BigInteger.ONE;
+            while (!cancelled)
+                queue.put(p = p.nextProbablePrime());
+        } catch (InterruptedException consumed) { }
+    }
+
+    public void cancel() {
+        cancelled = true;
+    }
+}
+
+void consumePrimes() throws InterruptedException {
+    BlockingQueue<BigInteger> primes = ...;
+    BrokenPrimeProducer producer = new BrokenPrimeProducer(primes);
+    producer.start();
+    try {
+        while (needMorePrimes())
+            consume(primes.take());
+    } finally {
+        producer.cancel();
+    }
+}
+```
+
+```java
+public class Thread {
+	public void interrupt() { ... }
+	public boolean isInterrupted() { ... }
+	public static boolean interrupted() { ... }
+	...
+}
+```
+
+If a thread is interrupted when it is not blocked, its interrupted status is set, and it is up to the activity being cancelled to poll the interrupted status to detect interruption. In this way interruption is “sticky”—if it doesn’t trigger an ``InterruptedException``, evidence of interruption persists until someone deliberately clears the interrupted status.
+
+> **Calling interrupt does not necessarily stop the target thread from doing what it is doing; it merely delivers the message that interruption has been requested.**
+
+A good way to think about interruption is that it does not actually interrupt a running thread; it just requests that the thread interrupt itself at the next convenient opportunity. (These opportunities are called cancellation points.) Some methods, such as wait, sleep, and join, take such requests seriously, throwing an exception when they receive an interrupt request or encounter an already set interrupt status upon entry
+
+**==The static interrupted method should be used with caution, because it clears the current thread’s interrupted status. If you call interrupted and it returns true, unless you are planning to swallow the interruption, you should do something with it—either throw ``InterruptedException`` or restore the interrupted status by calling interrupt again==**
+
+> **Interruption is usually the most sensible way to implement cancellation.**
+
+```java
+class PrimeProducer extends Thread {
+    private final BlockingQueue<BigInteger> queue;
+
+    PrimeProducer(BlockingQueue<BigInteger> queue) {
+        this.queue = queue;
+    }
+
+    public void run() {
+        try {
+            BigInteger p = BigInteger.ONE;
+            while (!Thread.currentThread().isInterrupted())
+                queue.put(p = p.nextProbablePrime());
+        } catch (InterruptedException consumed) {
+            /* Allow thread to exit */
+        }
+    }
+
+    public void cancel() {
+        interrupt();
+    }
+}
+```
+
+#### 7.1.2 Interruption policies
+
+Just as tasks should have a cancellation policy, threads should have an interruption policy. An interruption policy determines how a thread interprets an interruption request
+
+**==The most sensible interruption policy is some form of thread-level or service-level cancellation: exit as quickly as practical, cleaning up if necessary, and possibly notifying some owning entity that the thread is exiting==**. It is possible to establish other interruption policies, such as pausing or resuming a service, but threads or thread pools with nonstandard interruption policies may need to be restricted to tasks that have been written with an awareness of the policy. 
+
+**==It is important to distinguish between how tasks and threads should react to interruption. A single interrupt request may have more than one desired recipient— interrupting a worker thread in a thread pool can mean both “cancel the current task” and “shut down the worker thread”.==**
+
+Tasks do not execute in threads they own; they borrow threads owned by a service such as a thread pool. Code that doesn’t own the thread (for a thread pool, any code outside of the thread pool implementation) should be careful to preserve the interrupted status so that the owning code can eventually act on it, even if the “guest” code acts on the interruption as well.
+
+This is why most blocking library methods simply throw ``InterruptedException`` in response to an interrupt. They will never execute in a thread they own
+
+A task needn’t necessarily drop everything when it detects an interruption request—it can choose to postpone it until a more opportune time by remembering that it was interrupted, finishing the task it was performing, and then throwing ``InterruptedException`` or otherwise indicating interruption. This technique can protect data structures from corruption when an activity is interrupted in the middle of an update.
+
+A task should not assume anything about the interruption policy of its executing thread unless it is explicitly designed to run within a service that has a specific interruption policy. Whether a task interprets interruption as cancellation or takes some other action on interruption, it should take care to preserve the executing thread’s interruption status.
+
+```java
+Thread.currentThread().interrupt();
+```
+
+A thread should be interrupted only by its owner; the owner can encapsulate knowledge of the thread’s interruption policy in an appropriate cancellation mechanism such as a shutdown method.
+
+> **Because each thread has its own interruption policy, you should not interrupt a thread unless you know what interruption means to that thread.**
+
+#### 7.1.3 Responding to interruption
+
+when you call an interruptible blocking method such as ``Thread.sleep`` or ``BlockingQueue.put``, there are two practical strategies for handling ``InterruptedException``:
+
+**==• Propagate the exception (possibly after some task-specific cleanup), making your method an interruptible blocking method, too; or**==
+
+==**• Restore the interruption status so that code higher up on the call stack can deal with it.==**
+
+```java
+BlockingQueue<Task> queue;
+...
+public Task getNextTask() throws InterruptedException {
+	return queue.take();
+}
+```
+
+The standard way to do this is to restore the interrupted status by calling interrupt again. What you should not do is swallow the ``InterruptedException`` by catching it and doing nothing in the catch block, unless your code is actually implementing the interruption policy for a thread.
+
+> **Only code that implements a thread’s interruption policy may swallow an interruption request. General-purpose task and library code should never swallow interruption requests.**
+
+Activities that do not support cancellation but still call interruptible blocking methods will have to call them in a loop, retrying when interruption is detected. In this case, they should save the interruption status locally and restore it just before returning,  rather than immediately upon catching ``InterruptedException``. Setting the interrupted status too early could result in an infinite loop, because most interruptible blocking methods check the interrupted status on entry and throw ``InterruptedException`` immediately if it is set.
+
+If your code does not call interruptible blocking methods, it can still be made responsive to interruption by polling the current thread’s interrupted status throughout the task code. Choosing a polling frequency is a tradeoff between efficiency and responsiveness. If you have high responsiveness requirements, you cannot call potentially long-running methods that are not themselves responsive to interruption, potentially restricting your options for calling library code.
+
+Cancellation can involve state other than the interruption status; interruption can be used to get the thread’s attention, and information stored elsewhere by the interrupting thread can be used to provide further instructions for the interrupted thread.
+
+```java
+public Task getNextTask(BlockingQueue<Task> queue) {
+    boolean interrupted = false;
+    try {
+        while (true) {
+            try {
+                return queue.take();
+            } catch (InterruptedException e) {
+                interrupted = true;
+                // fall through and retry
+            }
+        }
+    } finally {
+        if (interrupted)
+            Thread.currentThread().interrupt();
+    }
+}
+```
+
+#### 7.1.5 Cancellation via ``Future``
+
+```java
+public static void timedRun(final Runnable r, long timeout, TimeUnit unit) throws InterruptedException {
+    class RethrowableTask implements Runnable {
+        private volatile Throwable t;
+
+        public void run() {
+            try { 
+                r.run(); 
+            } catch (Throwable t) { 
+                this.t = t; 
+            }
+        }
+
+        void rethrow() {
+            if (t != null)
+                throw launderThrowable(t);
+        }
+    }
+
+    RethrowableTask task = new RethrowableTask();
+    final Thread taskThread = new Thread(task);
+    taskThread.start();
+    cancelExec.schedule(new Runnable() {
+        public void run() { 
+            taskThread.interrupt(); 
+        }
+    }, timeout, unit);
+    taskThread.join(unit.toMillis(timeout));
+    task.rethrow();
+}
+```
+
+``ExecutorService.submit`` returns a Future describing the task. Future has a cancel method that takes a boolean argument, ``mayInterruptIfRunning``, and returns a value indicating whether the cancellation attempt was successful. 
+
+When ``mayInterruptIfRunning`` is true and the task is currently running in some thread, then that thread is interrupted. Setting this argument to false means “don’t run this task if it hasn’t started yet”, and should be used for tasks that are not designed to handle interruption.
+
+Since you shouldn’t interrupt a thread unless you know its interruption policy, when is it OK to call cancel with an argument of true? The task execution threads created by the standard Executor implementations implement an interruption policy that lets tasks be cancelled using interruption, so it is safe to set ``mayInterruptIfRunning`` when cancelling tasks through their Futures when they are running in a standard Executor.
+
+```java
+public static void timedRun(Runnable r, long timeout, TimeUnit unit) throws InterruptedException {
+    Future<?> task = taskExec.submit(r);
+    try {
+        task.get(timeout, unit);
+    } catch (TimeoutException e) {
+        // task will be cancelled below
+    } catch (ExecutionException e) {
+        // exception thrown in task; rethrow
+        throw launderThrowable(e.getCause());
+    } finally {
+        // Harmless if task already completed
+        task.cancel(true); // interrupt if running
+    }
+}
+```
+
+> **When `Future.get` throws `InterruptedException` or `TimeoutException` and you know that the result is no longer needed by the program, cancel the task with `Future.cancel`.**
+
+#### 7.1.6 Dealing with non-interruptible blocking
+
+Many blocking library methods respond to interruption by returning early and throwing ``InterruptedException``, which makes it easier to build tasks that are responsive to cancellation. However, not all blocking methods or blocking mechanisms are responsive to interruption; if a thread is blocked performing synchronous socket I/O or waiting to acquire an intrinsic lock, interruption has no effect other than setting the thread’s interrupted status. why the thread is blocked.
+
+**``Synchronous socket I/O in java.io``.** The common form of blocking I/O in server applications is reading or writing to a socket. Unfortunately, the read and write methods in ``InputStream`` and ``OutputStream`` are not responsive to interruption, but closing the underlying socket makes any threads blocked in read or write throw a ``SocketException``. 
+
+**``Synchronous I/O in java.nio``**. Interrupting a thread waiting on an ``InterruptibleChannel`` causes it to throw ``ClosedByInterruptException`` and close the channel (and also causes all other threads blocked on the channel to throw ``ClosedByInterruptException``). Closing an ``InterruptibleChannel`` causes threads blocked on channel operations to throw ``AsynchronousCloseException``. Most standard Channels implement ``InterruptibleChannel``. 
+
+**Asynchronous I/O with Selector**. If a thread is blocked in ``Selector.select`` (in ``java.nio.channels``), calling close or wakeup causes it to return prematurely. 
+
+**Lock acquisition**. If a thread is blocked waiting for an intrinsic lock, there is nothing you can do to stop it short of ensuring that it eventually acquires the lock and makes enough progress that you can get its attention some other way. However, the explicit Lock classes offer the ``lockInterruptibly`` method, which allows you to wait for a lock and still be responsive to interrupts
+
+#### 7.1.7 Encapsulating nonstandard cancellation with ``newTaskFor``
+
+```java
+public class ReaderThread extends Thread {
+    private final Socket socket;
+    private final InputStream in;
+
+    public ReaderThread(Socket socket) throws IOException {
+        this.socket = socket;
+        this.in = socket.getInputStream();
+    }
+
+    public void interrupt() {
+        try {
+            socket.close();
+        } catch (IOException ignored) { }
+        finally {
+            super.interrupt();
+        }
+    }
+
+    public void run() {
+        try {
+            byte[] buf = new byte[BUFSZ];
+            while (true) {
+                int count = in.read(buf);
+                if (count < 0)
+                    break;
+                else if (count > 0)
+                    processBuffer(buf, count);
+            }
+        } catch (IOException e) { /* Allow thread to exit */ }
+    }
+}
+```
+
+### 7.2 Stopping a thread-based service
+
+Applications commonly create services that own threads, such as thread pools, and the lifetime of these services is usually longer than that of the method that creates them. If the application is to shut down gracefully, the threads owned by these services need to be terminated. Since there is no preemptive way to stop a thread, they must instead be persuaded to shut down on their own.
+
+The thread API has no formal concept of thread ownership: a thread is represented with a Thread object that can be freely shared like any other object. However, it makes sense to think of a thread as having an owner, and this is usually the class that created the thread. So a thread pool owns its worker threads, and if those threads need to be interrupted, the thread pool should take care of it.
+
+thread ownership is not transitive: the application may own the service and the service may own the worker threads, but the application doesn’t own the worker threads and therefore should not attempt to stop them directly. Instead, the service should provide lifecycle methods for shutting itself down that also shut down the owned threads; then the application can shut down the service, and the service can shut down the threads. Executor- Service provides the ``shutdown`` and ``shutdownNow`` methods; other thread-owning services should provide a similar shutdown mechanism.
+
+> **Provide lifecycle methods whenever a thread-owning service has a lifetime longer than that of the method that created it.**
+
+#### 7.2.1 Example: a logging service
+
+```java
+public interface CancellableTask<T> extends Callable<T> {
+    void cancel();
+    RunnableFuture<T> newTask();
+}
+
+@ThreadSafe
+public class CancellingExecutor extends ThreadPoolExecutor {
+    // Constructor and other methods ...
+
+    @Override
+    protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
+        if (callable instanceof CancellableTask)
+            return ((CancellableTask<T>) callable).newTask();
+        else
+            return super.newTaskFor(callable);
+    }
+}
+
+public abstract class SocketUsingTask<T> implements CancellableTask<T> {
+    @GuardedBy("this")
+    private Socket socket;
+
+    protected synchronized void setSocket(Socket s) {
+        socket = s;
+    }
+
+    public synchronized void cancel() {
+        try {
+            if (socket != null)
+                socket.close();
+        } catch (IOException ignored) { }
+    }
+
+    public RunnableFuture<T> newTask() {
+        return new FutureTask<T>(this) {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                try {
+                    SocketUsingTask.this.cancel();
+                } finally {
+                    return super.cancel(mayInterruptIfRunning);
+                }
+            }
+        };
+    }
+}
+```
+
+```java
+public class LogWriter {
+    private final BlockingQueue<String> queue;
+    private final LoggerThread logger;
+
+    public LogWriter(Writer writer) {
+        this.queue = new LinkedBlockingQueue<String>(CAPACITY);
+        this.logger = new LoggerThread(writer);
+    }
+
+    public void start() {
+        logger.start();
+    }
+
+    public void log(String msg) throws InterruptedException {
+        queue.put(msg);
+    }
+
+    private class LoggerThread extends Thread {
+        private final PrintWriter writer;
+
+        public LoggerThread(Writer writer) {
+            this.writer = new PrintWriter(writer);
+        }
+
+        public void run() {
+            try {
+                while (true)
+                    writer.println(queue.take());
+            } catch (InterruptedException ignored) {
+            } finally {
+                writer.close();
+            }
+        }
+    }
+}
+```
+
+simply making the logger thread exit is not a very satisfying shutdown mechanism. Such an abrupt shutdown discards log messages that might be waiting to be written to the log, but, more importantly, threads blocked in log because the queue is full will never become unblocked. Cancelling a producer-consumer activity requires cancelling both the producers and the consumers. Interrupting the logger thread deals with the consumer, but because the producers in this case are not dedicated threads, cancelling them is harder.
+
+Another approach to shutting down ``LogWriter`` would be to set a “shutdown requested” flag to prevent further messages from being submitted. The consumer could then drain the queue upon being notified that shutdown has been requested, writing out any pending messages and unblocking any producers blocked in log. However, this approach has race conditions that make it unreliable. The implementation of log is a check-then-act sequence: producers could observe that the service has not yet been shut down but still queue messages after the shutdown, again with the risk that the producer might get blocked in log and never become unblocked. There are tricks that reduce the likelihood of this
+
+```java
+public void log(String msg) throws InterruptedException {
+	if (!shutdownRequested)
+		queue.put(msg);
+	else
+		throw new IllegalStateException("logger is shut down");
+}
+```
+
+The way to provide reliable shutdown for ``LogWriter`` is to fix the race condition, which means making the submission of a new log message atomic.
+
+#### 7.2.2 ``ExecutorService`` shutdown
+
+``ExecutorService`` offers two ways to shut down: graceful shutdown with shutdown, and abrupt shutdown with ``shutdownNow``. In an abrupt shutdown, ``shutdownNow`` returns the list of tasks that had not yet started after attempting to cancel all actively executing tasks.
+
+```java
+public class LogService {
+    private final BlockingQueue<String> queue;
+    private final LoggerThread loggerThread;
+    private final PrintWriter writer;
+
+    @GuardedBy("this")
+    private boolean isShutdown;
+
+    @GuardedBy("this")
+    private int reservations;
+
+    public LogService(Writer writer) {
+        this.queue = new LinkedBlockingQueue<String>(CAPACITY);
+        this.loggerThread = new LoggerThread();
+        this.writer = new PrintWriter(writer);
+    }
+
+    public void start() {
+        loggerThread.start();
+    }
+
+    public void stop() {
+        synchronized (this) {
+            isShutdown = true;
+        }
+        loggerThread.interrupt();
+    }
+
+    public void log(String msg) throws InterruptedException {
+        synchronized (this) {
+            if (isShutdown)
+                throw new IllegalStateException("LogService is shut down");
+            ++reservations;
+        }
+        queue.put(msg);
+    }
+
+    private class LoggerThread extends Thread {
+        public void run() {
+            try {
+                while (true) {
+                    try {
+                        synchronized (LogService.this) {
+                            if (isShutdown && reservations == 0)
+                                break;
+                        }
+                        String msg = queue.take();
+                        synchronized (LogService.this) {
+                            --reservations;
+                        }
+                        writer.println(msg);
+                    } catch (InterruptedException e) {
+                        // retry
+                    }
+                }
+            } finally {
+                writer.close();
+            }
+        }
+    }
+}
+```
+
+The two different termination options offer a tradeoff between safety and responsiveness: abrupt termination is faster but riskier because tasks may be interrupted in the middle of execution, and normal termination is slower but safer because the ``ExecutorService`` does not shut down until all queued tasks are processed.
+
+```java
+public class LogService {
+    private final ExecutorService exec = Executors.newSingleThreadExecutor();
+    private final PrintWriter writer;
+
+    public LogService(Writer writer) {
+        this.writer = new PrintWriter(writer);
+    }
+
+    public void start() {
+        // Implementation for starting the service (if needed)
+    }
+
+    public void stop() throws InterruptedException {
+        try {
+            exec.shutdown();
+            exec.awaitTermination(TIMEOUT, UNIT);
+        } finally {
+            writer.close();
+        }
+    }
+
+    public void log(String msg) {
+        try {
+            exec.execute(new WriteTask(msg));
+        } catch (RejectedExecutionException ignored) {
+            // Log or handle rejection if necessary
+        }
+    }
+
+    private class WriteTask implements Runnable {
+        private final String msg;
+
+        public WriteTask(String msg) {
+            this.msg = msg;
+        }
+
+        public void run() {
+            writer.println(msg);
+        }
+    }
+}
+```
+
+#### 7.2.3 Poison pills
+
+Another way to convince a producer-consumer service to shut down is with a poison pill: a recognizable object placed on the queue that means “when you get this, stop.” With a FIFO queue, poison pills ensure that consumers finish the work on their queue before shutting down, since any work submitted prior to submitting the poison pill will be retrieved before the pill; producers should not submit any work after putting a poison pill on the queue.
+
+```java
+public class IndexingService {
+    private static final File POISON = new File("");
+    private final IndexerThread consumer = new IndexerThread();
+    private final CrawlerThread producer = new CrawlerThread();
+    private final BlockingQueue<File> queue;
+    private final FileFilter fileFilter;
+    private final File root;
+
+    class CrawlerThread extends Thread { /* Listing 7.18 */ }
+
+    class IndexerThread extends Thread { /* Listing 7.19 */ }
+
+    public void start() {
+        producer.start();
+        consumer.start();
+    }
+
+    public void stop() {
+        producer.interrupt();
+    }
+
+    public void awaitTermination() throws InterruptedException {
+        consumer.join();
+    }
+}
+```
+
+Poison pills work only when the number of producers and consumers is known. The approach in ``IndexingService`` can be extended to multiple producers by having each producer place a pill on the queue and having the consumer stop only when it receives ``Nproducers`` pills. It can be extended to multiple consumers by having each producer place ``Nconsumers`` pills on the queue, though this can get unwieldy with large numbers of producers and consumers. Poison pills work reliably only with unbounded queues.
+
+#### 7.2.4 Example: a one-shot execution service
+
+If a method needs to process a batch of tasks and does not return until all the tasks are finished, it can simplify service lifecycle management by using a private Executor whose lifetime is bounded by that method.
+
+```java
+public class CrawlerThread extends Thread {
+    public void run() {
+        try {
+            crawl(root);
+        } catch (InterruptedException e) { /* fall through */ }
+        finally {
+            while (true) {
+                try {
+                    queue.put(POISON);
+                    break;
+                } catch (InterruptedException e1) { /* retry */ }
+            }
+        }
+    }
+
+    private void crawl(File root) throws InterruptedException {
+        ...
+    }
+}
+```
+
+```java
+public class IndexerThread extends Thread {
+    public void run() {
+        try {
+            while (true) {
+                File file = queue.take();
+                if (file == POISON)
+                    break;
+                else
+                    indexFile(file);
+            }
+        } catch (InterruptedException consumed) { }
+    }
+}
+```
+
+
+```java
+boolean checkMail(Set<String> hosts, long timeout, TimeUnit unit)
+        throws InterruptedException {
+    ExecutorService exec = Executors.newCachedThreadPool();
+    final AtomicBoolean hasNewMail = new AtomicBoolean(false);
+    try {
+        for (final String host : hosts)
+            exec.execute(new Runnable() {
+                public void run() {
+                    if (checkMail(host))
+                        hasNewMail.set(true);
+                }
+            });
+    } finally {
+        exec.shutdown();
+        exec.awaitTermination(timeout, unit);
+    }
+    return hasNewMail.get();
+}
+```
+
+#### 7.2.5 Limitations of ``shutdownNow``
+
+there is no general way to find out which tasks started but did not complete. This means that there is no way of knowing the state of the tasks in progress at shutdown time unless the tasks themselves perform some sort of checkpointing. To know which tasks have not completed, you need to know not only which tasks didn’t start, but also which tasks were in progress when the executor was shut down.
+
+```java
+public class TrackingExecutor extends AbstractExecutorService {
+    private final ExecutorService exec;
+    private final Set<Runnable> tasksCancelledAtShutdown =
+        Collections.synchronizedSet(new HashSet<Runnable>());
+
+    public List<Runnable> getCancelledTasks() {
+        if (!exec.isTerminated())
+            throw new IllegalStateException(...);
+        return new ArrayList<Runnable>(tasksCancelledAtShutdown);
+    }
+
+    public void execute(final Runnable runnable) {
+        exec.execute(new Runnable() {
+            public void run() {
+                try {
+                    runnable.run();
+                } finally {
+                    if (isShutdown() && Thread.currentThread().isInterrupted())
+                        tasksCancelledAtShutdown.add(runnable);
+                }
+            }
+        });
+    }
+
+    // delegate other ExecutorService methods to exec
+}
+```
+
+```java
+public abstract class WebCrawler {
+    private volatile TrackingExecutor exec;
+    @GuardedBy("this")
+    private final Set<URL> urlsToCrawl = new HashSet<URL>();
+
+    public synchronized void start() {
+        exec = new TrackingExecutor(Executors.newCachedThreadPool());
+        for (URL url : urlsToCrawl)
+            submitCrawlTask(url);
+        urlsToCrawl.clear();
+    }
+
+    public synchronized void stop() throws InterruptedException {
+        try {
+            saveUncrawled(exec.shutdownNow());
+            if (exec.awaitTermination(TIMEOUT, UNIT))
+                saveUncrawled(exec.getCancelledTasks());
+        } finally {
+            exec = null;
+        }
+    }
+
+    protected abstract List<URL> processPage(URL url);
+
+    private void saveUncrawled(List<Runnable> uncrawled) {
+        for (Runnable task : uncrawled)
+            urlsToCrawl.add(((CrawlTask) task).getPage());
+    }
+
+    private void submitCrawlTask(URL u) {
+        exec.execute(new CrawlTask(u));
+    }
+
+    private class CrawlTask implements Runnable {
+        private final URL url;
+
+        public CrawlTask(URL url) {
+            this.url = url;
+        }
+
+        public void run() {
+            for (URL link : processPage(url)) {
+                if (Thread.currentThread().isInterrupted())
+                    return;
+                submitCrawlTask(link);
+            }
+        }
+
+        public URL getPage() {
+            return url;
+        }
+    }
+}
+```
+
+### 7.3 Handling abnormal thread termination
+
+Failure of a thread in a concurrent application is not always so obvious. The stack trace may be printed on the console, but no one may be watching the console. Also, when a thread fails, the application may appear to continue to work, so its failure could go unnoticed. Fortunately, there are means of both detecting and preventing threads from “leaking” from an application.
+
+The leading cause of premature thread death is ``RuntimeException``. Because these exceptions indicate a programming error or other unrecoverable problem, they are generally not caught. Instead they propagate all the way up the stack, at which point the default behavior is to print a stack trace on the console and let the thread terminate. 
+
+The consequences of abnormal thread death range from benign to disastrous, depending on the thread’s role in the application.
+
+The less familiar you are with the code being called, the more skeptical you should be about its behavior. Task-processing threads such as the worker threads in a thread pool or the Swing event dispatch thread spend their whole life calling unknown code through an abstraction barrier like Runnable, and these threads should be very skeptical that the code they call will be well behaved. It would be very bad if a service like the Swing event thread failed just because some poorly written event handler threw a ``NullPointerException``. Accordingly, these facilities should call tasks within a try-catch block that catches unchecked exceptions, or within a try-finally block to ensure that if the thread exits abnormally the framework is informed of this and can take corrective action.
+
+```java
+public void run() {
+    Throwable thrown = null;
+    try {
+        while (!isInterrupted())
+            runTask(getTaskFromWorkQueue());
+    } catch (Throwable e) {
+        thrown = e;
+    } finally {
+        threadExited(this, thrown);
+    }
+}
+```
+#### 7.3.1 Uncaught exception handlers
+
+The Thread API also provides the ``UncaughtExceptionHandler`` facility, which lets you detect when a thread dies due to an uncaught exception. The two approaches are complementary: taken together, they provide defense-in depth against thread leakage.
+
+When a thread exits due to an uncaught exception, the JVM reports this event to an application-provided ``UncaughtExceptionHandler`` ; if no handler exists, the default behavior is to print the stack trace to ``System.err``.
+
+```java
+public interface UncaughtExceptionHandler {
+	void uncaughtException(Thread t, Throwable e);
+}
+```
+
+```java
+public class UEHLogger implements Thread.UncaughtExceptionHandler {
+    public void uncaughtException(Thread t, Throwable e) {
+        Logger logger = Logger.getAnonymousLogger();
+        logger.log(Level.SEVERE,
+                   "Thread terminated with exception: " + t.getName(),
+                   e);
+    }
+}
+```
+
+> **In long-running applications, always use uncaught exception handlers for all threads that at least log the exception.**
+
+To set an ``UncaughtExceptionHandler`` for pool threads, provide a ``ThreadFactory`` to the ``ThreadPoolExecutor`` constructor.
+
+The standard thread pools allow an uncaught task exception to terminate the pool thread, but use a try-finally block to be notified when this happens so the thread can be replaced. Without an uncaught exception handler or other failure notification mechanism, tasks can appear to fail silently, which can be very confusing. If you want to be notified when a task fails due to an exception so that you can take some task-specific recovery action, either wrap the task with a Runnable or Callable that catches the exception or override the ``afterExecute`` hook in ``ThreadPoolExecutor``.
+### 7.4 JVM shutdown
+
+The JVM can shut down in either an orderly or abrupt manner. An orderly shutdown is initiated when the last “normal” (nondaemon) thread terminates, someone calls ``System.exit``, or by other platform-specific means (such as sending a SIGINT or hitting Ctrl-C). While this is the standard and preferred way for the JVM to shut down, it can also be shut down abruptly by calling ``Runtime.halt`` or by killing the JVM process through the operating system (such as sending a SIGKILL).
+####  7.4.1 Shutdown hooks
+
+In an orderly shutdown, the JVM first starts all registered shutdown hooks. Shutdown hooks are unstarted threads that are registered with ``Runtime.addShutdownHook``. The JVM makes no guarantees on the order in which shutdown hooks are started. If any application threads (daemon or nondaemon) are still running at shutdown time, they continue to run concurrently with the shutdown process. When all shutdown hooks have completed, the JVM may choose to run finalizers if ``runFinalizersOnExit`` is true, and then halts. The JVM makes no attempt to stop or interrupt any application threads that are still running at shutdown time; they are abruptly terminated when the JVM eventually halts. If the shutdown hooks or finalizers don’t complete, then the orderly shutdown process “hangs” and the JVM must be shut down abruptly. In an abrupt shutdown, the JVM is not required to do anything other than halt the JVM; shutdown hooks will not run. Shutdown hooks should be thread-safe: they must use synchronization when accessing shared data and should be careful to avoid deadlock, just like any other concurrent code. Further, they should not make assumptions about the state of the application or about why the JVM is shutting down, and must therefore be coded extremely defensively. Finally, they should exit as quickly as possible, since their existence delays JVM termination at a time when the user may be expecting the JVM to terminate quickly.
+
+```java
+public void start() {
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+        public void run() {
+            try {
+                LogService.this.stop();
+            } catch (InterruptedException ignored) {
+                // Handle interruption if needed
+            }
+        }
+    });
+}
+```
+
+#### 7.4.2 Daemon threads
+
+Threads are divided into two types: normal threads and daemon threads. When the JVM starts up, all the threads it creates are daemon threads, except the main thread. When a new thread is created, it inherits the daemon status of the thread that created it, so by default any threads created by the main thread are also normal threads. Normal threads and daemon threads differ only in what happens when they exit. When a thread exits, the JVM performs an inventory of running threads, and if the only threads that are left are daemon threads, it initiates an orderly shutdown. When the JVM halts, any remaining daemon threads are abandoned— finally blocks are not executed, stacks are not unwound—the JVM just exits. Daemon threads should be used sparingly—few processing activities can be safely abandoned at any time with no cleanup. In particular, it is dangerous to use daemon threads for tasks that might perform any sort of I/O. Daemon threads are best saved for “housekeeping” tasks, such as a background thread that periodically removes expired entries from an in-memory cache.
+
+> **Daemon threads are not a good substitute for properly managing the lifecycle of services within an application.**
+
+#### 7.4.3 Finalizers
+
+The garbage collector does a good job of reclaiming memory resources when they are no longer needed, but some resources, such as file or socket handles, must be explicitly returned to the operating system when no longer needed. To assist in this, the garbage collector treats objects that have a nontrivial finalize method specially: after they are reclaimed by the collector, finalize is called so that persistent resources can be released
+
+> **Avoid finalizers.**
+
+#### Summary
+
+**==End-of-lifecycle issues for tasks, threads, services, and applications can add complexity to their design and implementation. Java does not provide a preemptive mechanism for cancelling activities or terminating threads. Instead, it provides a cooperative interruption mechanism that can be used to facilitate cancellation, but it is up to you to construct protocols for cancellation and use them consistently. Using ``FutureTask`` and the Executor framework simplifies building cancellable tasks and services.==**
+
