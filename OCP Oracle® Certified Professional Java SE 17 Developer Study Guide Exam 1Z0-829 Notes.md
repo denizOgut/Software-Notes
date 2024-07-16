@@ -13701,11 +13701,10 @@ H. None of the above
 
 # Chapter 7 - Beyond Classes #Chapter
 
-Java file may have at most one ``public`` top-level type, and it must match the name of the file. This applies to classes, enums, records, and so on. a top-level type can only be declared with ``public`` or package access.
+Java file may have at most one ``public`` top-level type, and it must match the name of the file. This applies to classes, enums, records, and so on. **==a top-level type can only be declared with ``public`` or package access.==**
 ## Implementing Interfaces
 
 a class may implement any number of interfaces. An interface is an abstract data type that declares a list of abstract methods that any class implementing the interface must provide.
-
 ### Declaring and Using an Interface
 
 In Java, an interface is defined with the ``interface`` keyword, analogous to the ``class`` keyword used when defining a class
@@ -13732,7 +13731,7 @@ public final interface WalksOnEightLegs {} // DOES NOT COMPILE
 ```
 
 - The first example doesn’t compile, as ``WalksOnTwoLegs`` is an interface and cannot be instantiated.
-- The second example, ``WalksOnEightLegs``, doesn’t compile because **==interfaces cannot be marked as ``final``==** for the same reason that abstract classes cannot be marked as final. 
+- The second example, ``WalksOnEightLegs``, doesn’t compile because **==interfaces cannot be marked as ``final``==** for the same reason that **==abstract classes cannot be marked as ``final``==**. 
 
 ```java
 public interface Climb {
@@ -13745,7 +13744,6 @@ public interface Climb {
 The ``FieldMouse`` class declares that it implements the ``Climb`` interface and includes an overridden version of ``getSpeed()`` inherited from the ``Climb`` interface. The method signature of ``getSpeed()`` matches exactly, and the return type is covariant, since a ``Float`` can be implicitly cast to a ``Number``. The access modifier of the interface method is implicitly ``public`` in Climb, although the concrete class ``FieldMouse`` must explicitly declare it.
 
 **==If any of the interfaces define abstract methods, then the concrete class is required to override them.==**
-
 ### Extending an Interface
 
 Like a class, an interface can extend another interface using the ``extends`` keyword.
@@ -13772,7 +13770,6 @@ public interface HasBigEyes extends Nocturnal, CanFly {}
 ```
 
 Extending two interfaces is permitted because interfaces are not initialized as part of a class hierarchy. Unlike abstract classes, they do not contain constructors and are not part of instance initialization. Interfaces simply define a set of rules and methods that a class implementing them must follow.
-
 ### Inheriting an Interface
 
 Like an abstract class, when a concrete class inherits an interface, all of the inherited abstract methods must be implemented.
@@ -13802,7 +13799,6 @@ public class Cheetah extends CanRun {} // DOES NOT COMPILE
 public class Hyena {}
 public interface HasFur extends Hyena {} // DOES NOT COMPILE
 ```
-
 #### Inheriting Duplicate Abstract Methods
 
 Java supports inheriting two abstract methods that have compatible method declarations.
@@ -13902,10 +13898,9 @@ What About ``protected`` or Package Interface Members?
 **Alongside ``public`` methods, interfaces now support ``private`` methods. ==They do not support protected access, though, as a class cannot extend an interface. They also do not support package access, although more likely for syntax reasons and backward compatibility==. Since interface methods without an access modifier have been considered implicitly public, changing this behavior to package access would break many existing programs!**
 
 ---
-
 #### Writing a ``default`` Interface Method
 
-A default method is a method defined in an interface with the ``default`` keyword and includes a method body. It may be optionally overridden by a class implementing the interface.
+A ``default`` method is a method defined in an interface **==with the ``default`` keyword and includes a method body.==** It may be optionally overridden by a class implementing the interface.
 
 One use of ``default`` methods is for backward compatibility. You can add a new ``default`` method to an interface without the need to modify all of the existing classes that implement the interface. The older classes will just use the default implementation of the method defined in the interface
 
@@ -13991,7 +13986,6 @@ public class Cat implements Walk, Run {
 ```
 
 we **==use the ``super`` keyword to show that we are following instance inheritance, not class inheritance==**. Note that calling ``Walk.getSpeed()`` or ``Walk.this.getSpeed()`` would not have worked.
-
 #### Declaring ``static`` Interface Methods
 
 **Static Interface Method Definition Rules**
@@ -14058,13 +14052,12 @@ public interface Schedule {
 }
 ```
 
-The difference between a ``non-static private`` method and a ``static`` one is analogous to the difference between an instance and static method declared within a class. In particular, it’s all about what methods each can be called from.
+The difference between a ``non-static private`` method and a ``static`` one is analogous to the difference between an instance and ``static`` method declared within a class. In particular, it’s all about what methods each can be called from.
 
 **Private Interface Method Definition Rules**
 1. ==**A ``private`` interface method must be marked with the private modifier and include a method body.**==
 2. ==**A ``private`` ``static`` interface method may be called by any method within the interface definition.**==
 3. ==**A ``private`` interface method may only be called by ``default`` and other ``private non-static`` methods within the interface definition.**==
-
 #### Calling Abstract Methods
 
 ``default`` and ``private non-static`` methods can access ``abstract`` methods declared in the interface. This is the primary reason we associate these methods with instance membership. When they are invoked, there is an instance of the interface.
@@ -14080,7 +14073,6 @@ public interface ZooRenovation {
 ```
 
 both ``projectName()`` and ``status()`` have the same modifiers (``abstract`` and ``public`` are implicit) and can be called by the default method ``printStatus()``.
-
 ### Reviewing Interface Members
 
 ![[Pasted image 20240330182307.png]]
@@ -14155,7 +14147,6 @@ You can’t compare an ``int`` and an enum value directly anyway since an enum i
 ```java
 if ( Season.SUMMER == 2) {} // DOES NOT COMPILE
 ```
-
 #### Calling the ``valueOf()`` Method
 
 Another useful feature is retrieving an enum value from a ``String`` using the ``valueOf()`` method. **==The ``String`` passed in must match the enum value exactly, though.==**
@@ -14166,7 +14157,6 @@ Season t = Season.valueOf("summer"); // IllegalArgumentException
 ```
 
 **==Each enum value is created once when the enum is first loaded. Once the enum has been loaded, it retrieves the single enum value with the matching name==**.
-
 ### Using Enums in ``switch`` Statements
 
 ```java
@@ -14332,7 +14322,6 @@ public enum Season implements Weather {
 **==the list of values came first. This was not an accident. Whether the enum is simple or complex, the list of values always comes first.==**
 
 ---
-
 ## Sealing Classes
 
 A sealed class is a class that restricts which other classes may **==directly==** extend it
@@ -14366,7 +14355,6 @@ public final class MyWolf extends Wolf {} // DOES NOT COMPILE
 ---
 
 Declaring a sealed class with the ``sealed`` modifier is the easy part. Most of the time, if you see a question on the exam about sealed classes, they are testing your knowledge of whether the subclass ``extends`` the ``sealed`` class properly
-
 ### Compiling Sealed Classes
 
 ```java
@@ -14390,7 +14378,6 @@ public final class Emperor {} // Does Not Extends Penguin Class
 ### Specifying the Subclass Modifier
 
 **==Every class that directly extends a sealed class must specify exactly one of the following three modifiers: ``final``, ``sealed``, or ``non-sealed``.==**
-
 #### A ``final`` Subclass
 
 ```java
@@ -14398,7 +14385,6 @@ public sealed class Antelope permits Gazelle {}
 public final class Gazelle extends Antelope {}
 public class George extends Gazelle {} // DOES NOT COMPILE
 ```
-
 #### A ``sealed`` Subclass
 
 ```java
@@ -14410,7 +14396,6 @@ public final class Zebra extends Equine {}
 The ``sealed`` modifier applied to the subclass ``Equine`` means the same kind of rules that we applied to the parent class ``Mammal`` must be present. Namely, ``Equine`` defines its own list of permitted subclasses.
 
 Despite allowing indirect subclasses not named in ``Mammal``, the list of classes that can inherit ``Mammal`` is still fixed. If you have a reference to a ``Mammal`` object, it must be a ``Mammal``, ``Equine``, or ``Zebra``.
-
 #### A ``non-sealed`` Subclass
 
 The ``non-sealed`` modifier is used to open a sealed parent class to potentially unknown subclasses.
@@ -14421,7 +14406,6 @@ public non-sealed class Timber extends Wolf {}
 public class MyWolf extends Timber {}
 public class MyFurryWolf extends MyWolf {}
 ```
-
 ### Omitting the ``permits`` Clause
 
 ```java
@@ -14471,7 +14455,6 @@ public sealed class Snake permits Snake.Cobra {
 ---
 
 ![[Pasted image 20240330231930.png]]
-
 ### Sealing Interfaces
 
 Besides classes, interfaces can also be sealed. The idea is analogous to classes, and many of the same rules apply. For example, the ``sealed`` interface must appear in the same package or named module as the classes or interfaces that directly extend or implement it. **==One distinct feature of a ``sealed`` interface is that the ``permits`` list can apply to a class that implements the interface or an interface that extends the interface==**.
@@ -14487,7 +14470,6 @@ public non-sealed interface Floats extends Swims {}
 ```
 
 **==Interfaces are implicitly ``abstract`` and cannot be marked ``final``. For this reason, interfaces that ``extend`` a ``sealed`` interface can only be marked ``sealed`` or ``non-sealed``. They cannot be marked ``final``.==**
-
 ### Reviewing Sealed Class Rules
 
 **Sealed Class Rules**
@@ -14496,7 +14478,6 @@ public non-sealed interface Floats extends Swims {}
 - ==**Direct subclasses of ``sealed`` classes must be marked ``final``, ``sealed``, or ``non-sealed``.**==
 - ==**The permits clause is optional if the ``sealed`` class and its direct subclasses are declared within the same file or the subclasses are nested within the ``sealed`` class.**==
 - ==**Interfaces can be ``sealed`` to limit the classes that implement them or the interfaces that extend them.**==
-
 ## Encapsulating Data with Records
 
 ### Understanding Encapsulation
@@ -14646,7 +14627,6 @@ public record Crane(int numberEggs, String name) {
 ```
 
 While being able to declare a constructor is a nice feature of records, it’s also problematic. If we have 20 fields, we’ll need to declare assignments for every one, introducing the boilerplate we sought to remove.
-
 #### Compact Constructors
 
 A *compact constructor* is a special type of constructor used for records to process validation and transformations succinctly. It takes no parameters and implicitly sets all fields.
@@ -14758,11 +14738,11 @@ There are many benefits of using nested classes. They can define helper classes 
 
 **==An inner class, also called a member inner class, is a non-static type defined at the member level of a class (the same level as the methods, instance variables, and constructors)==**. Because they are not top-level types, ==**they can use any of the four access levels**==, not just public and package access.
 
-Inner classes have the following properties:
--  Can be declared ``public``, ``protected``, package, or ``private``
--  Can extend a class and implement interfaces
--  Can be marked ``abstract`` or ``final``
--  Can access members of the outer class, including ``private`` members
+**==Inner classes have the following properties:**==
+-  ==**Can be declared ``public``, ``protected``, package, or ``private``**==
+-  ==**Can extend a class and implement interfaces**==
+-  ==**Can be marked ``abstract`` or ``final``**==
+-  ==**Can access members of the outer class, including ``private`` members==**
 
 the inner class can access variables in the outer class without doing anything special
 
@@ -14797,7 +14777,7 @@ the inner class can access variables in the outer class without doing anything s
 ---
 **Nested Classes Can Now Have ``static`` Member**
 
-**With the introduction of records in Java 16, the existing rule that prevented an inner class from having any ``static`` members (other than static constants) was removed. ==All four types of nested classes can now define ``static`` variables and methods!**==**
+**With the introduction of records in Java 16, the existing rule that prevented an inner class from having any ``static`` members (other than static constants) was removed. ==All four types of nested classes can now define ``static`` variables and methods!**==
 
 ---
 #### Instantiating an Instance of an Inner Class
@@ -14965,7 +14945,6 @@ The ``length`` and ``height`` variables are ``final`` and effectively final, res
 ==**the compiler generates a separate ``.class`` file for each inner class. A separate class has no way to refer to a local variable. However, if the local variable is ``final`` or effectively final, Java can handle it by passing a copy of the value or reference variable to the constructor of the local class==. If it weren’t ``final`` or effectively final, these tricks wouldn’t work because the value could change after the copy was made.**
 
 ---
-
 ### Defining an Anonymous Class
 
 An anonymous class is a specialized form of a local class that does not have a name. **==It is declared and instantiated all in one statement using the ``new`` keyword, a type name with parentheses, and a set of braces ``{}``. Anonymous classes must extend an existing class or implement an existing interface.==** They are useful when you have a short implementation that will not be used anywhere else.
