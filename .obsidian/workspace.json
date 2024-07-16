@@ -37,7 +37,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Java Concurrency in Practice - Notes.md",
                 "mode": "source",
                 "source": false
               }
@@ -73,7 +73,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#Chapter",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -110,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Java Concurrency in Practice - Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -127,7 +127,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+                "file": "Java Concurrency in Practice - Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -150,7 +150,19 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+                "file": "Java Concurrency in Practice - Notes.md"
+              }
+            }
+          },
+          {
+            "id": "07ec146ced5213f7",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
               }
             }
           }
@@ -169,13 +181,15 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "obsidian-excalidraw-plugin:Create new drawing": false
+      "obsidian-excalidraw-plugin:Create new drawing": false,
+      "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "e554360c9f2a9ba0",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Java Concurrency in Practice - Notes.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Java Concurrency in Practice - Notes.md",
+    "Java Concurrency in Practice Screenshots/Pasted image 20240716201103.png",
     "Java Concurrency in Practice Screenshots/Pasted image 20240710101205.png",
     "Java Concurrency in Practice Screenshots/Pasted image 20240710101022.png",
     "Java Concurrency in Practice Screenshots/Pasted image 20240710100938.png",
@@ -189,7 +203,6 @@
     "RabbitMQ Screenshots",
     "RabbitMQ Screenshots/Pasted image 20240625102518.png",
     "RabbitMQ Screenshots/Pasted image 20240625102359.png",
-    "RabbitMQ Screenshots/Pasted image 20240625102247.png",
     "Elasticsearch Notes.md",
     "Elastic ScreenShots",
     "JAVA APP - 1 NOTES.md",

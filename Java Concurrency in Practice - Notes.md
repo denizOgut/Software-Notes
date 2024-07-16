@@ -3744,3 +3744,654 @@ public class PuzzleSolver<P, M> extends ConcurrentPuzzleSolver<P, M> {
 
 ## Avoiding Liveness Hazards
 
+We use locking to ensure thread safety, but indiscriminate use of locking can cause lock-ordering deadlocks. Similarly, we use thread pools and semaphores to bound resource consumption, but failure to understand the activities being bounded can cause resource deadlocks.
+
+### 10.1 Deadlock
+
+When a thread holds a lock forever, other threads attempting to acquire that lock will block forever waiting. When thread A holds lock L and tries to acquire lock M, but at the same time thread B holds M and tries to acquire L, both threads will wait forever. This situation is the simplest case of deadlock (or deadly embrace), where multiple threads wait forever due to a cyclic locking dependency.
+
+The JVM is not nearly as helpful in resolving deadlocks as database servers are. When a set of Java threads deadlock, that’s the end of the game—those threads are permanently out of commission. Depending on what those threads do, the application may stall completely, or a particular subsystem may stall, or performance may suffer. The only way to restore the application to health is to abort and restart it
+
+Like many other concurrency hazards, deadlocks rarely manifest themselves immediately. The fact that a class has a potential deadlock doesn’t mean that it ever will deadlock, just that it can.
+
+#### 10.1.1 Lock-ordering deadlock
+
+The deadlock in ``LeftRightDeadlock`` came about because the two threads attempted to acquire the same locks in a different order. If they asked for the locks in the same order, there would be no cyclic locking dependency and therefore no deadlock.
+
+> A program will be free of lock-ordering deadlocks if all threads acquire the locks they need in a fixed global order.
+
+Verifying consistent lock ordering requires a global analysis of your program’s locking behavior. It is not sufficient to inspect code paths that acquire multiple locks individually
+
+```java
+// Warning: deadlock-prone!
+public class LeftRightDeadlock {
+    private final Object left = new Object();
+    private final Object right = new Object();
+
+    public void leftRight() {
+        synchronized (left) {
+            synchronized (right) {
+                doSomething();
+            }
+        }
+    }
+
+    public void rightLeft() {
+        synchronized (right) {
+            synchronized (left) {
+                doSomethingElse();
+            }
+        }
+    }
+}
+```
+
+![[Pasted image 20240716201103.png]]
+
+#### 10.1.2 Dynamic lock order deadlocks
+
+It may appear as if all the threads acquire their locks in the same order, but in fact the lock order depends on the order of arguments passed to ``transferMoney``, and these in turn might depend on external inputs. Deadlock can occur if two threads call ``transferMoney`` at the same time
+
+```java
+public void transferMoney(Account fromAccount,
+                          Account toAccount,
+                          DollarAmount amount)
+        throws InsufficientFundsException {
+    synchronized (fromAccount) {
+        synchronized (toAccount) {
+            if (fromAccount.getBalance().compareTo(amount) < 0) {
+                throw new InsufficientFundsException();
+            } else {
+                fromAccount.debit(amount);
+                toAccount.credit(amount);
+            }
+        }
+    }
+}
+```
+
+one transferring from X to Y, and the other doing the opposite:
+	A: ``transferMoney(myAccount, yourAccount, 10);``
+	B: ``transferMoney(yourAccount, myAccount, 20);``
+
+With unlucky timing, A will acquire the lock on ``myAccount`` and wait for the lock on ``yourAccount``, while B is holding the lock on ``yourAccount`` and waiting for the lock on ``myAccount``.
+
+One way to induce an ordering on objects is to use ``System.identityHashCode``, which returns the value that would be returned by ``Object.hashCode``. It involves a few extra lines of code, but eliminates the possibility
+of deadlock.
+
+In the rare case that two objects have the same hash code, we must use an arbitrary means of ordering the lock acquisitions, and this reintroduces the possibility of deadlock. To prevent inconsistent lock ordering in this case, a third “tie breaking” lock is used. By acquiring the tie-breaking lock before acquiring either Account lock, we ensure that only one thread at a time performs the risky task of acquiring two locks in an arbitrary order, eliminating the possibility of deadlock (so long as this mechanism is used consistently). If hash collisions were common, this technique might become a concurrency bottleneck
+
+**Inducing a lock ordering to avoid deadlock**
+
+```java
+private static final Object tieLock = new Object();
+
+public void transferMoney(final Account fromAcct,
+                          final Account toAcct,
+                          final DollarAmount amount)
+        throws InsufficientFundsException {
+    class Helper {
+        public void transfer() throws InsufficientFundsException {
+            if (fromAcct.getBalance().compareTo(amount) < 0)
+                throw new InsufficientFundsException();
+            else {
+                fromAcct.debit(amount);
+                toAcct.credit(amount);
+            }
+        }
+    }
+
+    int fromHash = System.identityHashCode(fromAcct);
+    int toHash = System.identityHashCode(toAcct);
+
+    if (fromHash < toHash) {
+        synchronized (fromAcct) {
+            synchronized (toAcct) {
+                new Helper().transfer();
+            }
+        }
+    } else if (fromHash > toHash) {
+        synchronized (toAcct) {
+            synchronized (fromAcct) {
+                new Helper().transfer();
+            }
+        }
+    } else {
+        synchronized (tieLock) {
+            synchronized (fromAcct) {
+                synchronized (toAcct) {
+                    new Helper().transfer();
+                }
+            }
+        }
+    }
+}
+```
+
+
+
+```java
+public class DemonstrateDeadlock {
+    private static final int NUM_THREADS = 20;
+    private static final int NUM_ACCOUNTS = 5;
+    private static final int NUM_ITERATIONS = 1000000;
+
+    public static void main(String[] args) {
+        final Random rnd = new Random();
+        final Account[] accounts = new Account[NUM_ACCOUNTS];
+        for (int i = 0; i < accounts.length; i++)
+            accounts[i] = new Account();
+
+        class TransferThread extends Thread {
+            public void run() {
+                for (int i = 0; i < NUM_ITERATIONS; i++) {
+                    int fromAcct = rnd.nextInt(NUM_ACCOUNTS);
+                    int toAcct = rnd.nextInt(NUM_ACCOUNTS);
+                    DollarAmount amount = new DollarAmount(rnd.nextInt(1000));
+                    transferMoney(accounts[fromAcct], accounts[toAcct], amount);
+                }
+            }
+        }
+
+        for (int i = 0; i < NUM_THREADS; i++)
+            new TransferThread().start();
+    }
+}
+```
+
+### 10.1.3 Deadlocks between cooperating objects
+
+> **Invoking an alien method with a lock held is asking for liveness trouble. The alien method might acquire other locks (risking deadlock) or block for an unexpectedly long time, stalling other threads that need the lock you hold.**
+
+ 
+#### 10.1.4 Open calls
+
+Calling a method with no locks held is called an open call , and classes that rely on open calls are more well-behaved and composable than classes that make calls with locks held. Using open calls to avoid deadlock is analogous to using encapsulation to provide thread safety: while one can certainly construct a thread-safe program without any encapsulation, the thread safety analysis of a program that makes effective use of encapsulation is far easier than that of one that does not
+
+```java
+// Warning: deadlock-prone!
+class Taxi {
+    @GuardedBy("this") private Point location, destination;
+    private final Dispatcher dispatcher;
+
+    public Taxi(Dispatcher dispatcher) {
+        this.dispatcher = dispatcher;
+    }
+
+    public synchronized Point getLocation() {
+        return location;
+    }
+
+    public synchronized void setLocation(Point location) {
+        this.location = location;
+        if (location.equals(destination))
+            dispatcher.notifyAvailable(this);
+    }
+}
+
+class Dispatcher {
+    @GuardedBy("this") private final Set<Taxi> taxis;
+    @GuardedBy("this") private final Set<Taxi> availableTaxis;
+
+    public Dispatcher() {
+        taxis = new HashSet<Taxi>();
+        availableTaxis = new HashSet<Taxi>();
+    }
+
+    public synchronized void notifyAvailable(Taxi taxi) {
+        availableTaxis.add(taxi);
+    }
+
+    public synchronized Image getImage() {
+        Image image = new Image();
+        for (Taxi t : taxis)
+            image.drawMarker(t.getLocation());
+        return image;
+    }
+}
+```
+
+open calls makes it far easier to identify the code paths that acquire multiple locks and therefore to ensure that locks are acquired in a consistent order
+
+> **Strive to use open calls throughout your program. Programs that rely on open calls are far easier to analyze for deadlock-freedom than those that allow calls to alien methods with locks held.**
+
+Restructuring a ``synchronized`` block to allow open calls can sometimes have undesirable consequences, since it takes an operation that was atomic and makes it not atomic
+
+In some cases, however, the loss of atomicity is a problem, and here you will have to use another technique to achieve atomicity. One such technique is to structure a concurrent object so that only one thread can execute the code path following the open call. For example, when shutting down a service, you may want to wait for in-progress operations to complete and then release resources used by the service. Holding the service lock while waiting for operations to complete is inherently deadlock-prone, but releasing the service lock before the service is shut down may let other threads start new operations. The solution is to hold the lock long enough to update the service state to “shutting down” so that other threads wanting to start new operations—including shutting down the service—see that the service is unavailable, and do not try.
+
+##### 10.1.5 Resource deadlocks
+
+**Using open calls to avoiding deadlock between cooperating objects.**
+
+```java
+@ThreadSafe
+class Taxi {
+    @GuardedBy("this") private Point location, destination;
+    private final Dispatcher dispatcher;
+    ...
+    public synchronized Point getLocation() {
+        return location;
+    }
+
+    public void setLocation(Point location) {
+        boolean reachedDestination;
+        synchronized (this) {
+            this.location = location;
+            reachedDestination = location.equals(destination);
+        }
+        if (reachedDestination)
+            dispatcher.notifyAvailable(this);
+    }
+}
+
+@ThreadSafe
+class Dispatcher {
+    @GuardedBy("this") private final Set<Taxi> taxis;
+    @GuardedBy("this") private final Set<Taxi> availableTaxis;
+    ...
+    public synchronized void notifyAvailable(Taxi taxi) {
+        availableTaxis.add(taxi);
+    }
+
+    public Image getImage() {
+        Set<Taxi> copy;
+        synchronized (this) {
+            copy = new HashSet<Taxi>(taxis);
+        }
+        Image image = new Image();
+        for (Taxi t : copy)
+            image.drawMarker(t.getLocation());
+        return image;
+    }
+}
+```
+
+### 10.2 Avoiding and diagnosing deadlocks
+
+A program that never acquires more than one lock at a time cannot experience lock-ordering deadlock.
+If you must acquire multiple locks, lock ordering must be a part of your design: try to minimize the number of potential locking interactions, and follow and document a lock-ordering protocol for locks that may be acquired together.
+
+In programs that use fine-grained locking, audit your code for deadlock freedom using a two-part strategy: first, identify where multiple locks could be acquired (try to make this a small set), and then perform a global analysis of all such instances to ensure that lock ordering is consistent across your entire program.
+
+#### 10.2.1 Timed lock attempts
+
+Another technique for detecting and recovering from deadlocks is to use the timed ``tryLock`` feature of the explicit ``Lock`` classes  instead of intrinsic locking. Where intrinsic locks wait forever if they cannot acquire the lock, explicit locks let you specify a timeout after which ``tryLock`` returns failure. By using a timeout that is much longer than you expect acquiring the lock to take, you can regain control when something unexpected happens.
+
+When a timed lock attempt fails, you do not necessarily know why. Maybe there was a deadlock; maybe a thread erroneously entered an infinite loop while holding that lock; or maybe some activity is just running a lot slower than you expected
+
+Using timed lock acquisition to acquire multiple locks can be effective against deadlock even when timed locking is not used consistently throughout the program. If a lock acquisition times out, you can release the locks, back off and wait for a while, and try again, possibly clearing the deadlock condition and allowing the program to recover.
+
+#### 10.2.2 Deadlock analysis with thread dumps
+
+While preventing deadlocks is mostly your problem, the JVM can help identify them when they do happen using thread dumps. A thread dump includes a stack trace for each running thread, similar to the stack trace that accompanies an exception. Thread dumps also include locking information, such as which locks are held by each thread, in which stack frame they were acquired, and which lock a blocked thread is waiting to acquire.4 Before generating a thread dump, the JVM searches the is-waiting-for graph for cycles to find deadlocks. If it finds one, it includes deadlock information identifying which locks and threads are involved, and where in the program the offending lock acquisitions are.
+
+Locks are acquired is necessarily less precise than for intrinsic locks. Intrinsic locks are associated with the stack frame in which they were acquired; explicit Locks are associated only with the acquiring thread
+
+```shell
+Found one Java-level deadlock:
+=============================
+"ApplicationServerThread":
+waiting to lock monitor 0x080f0cdc (a MumbleDBConnection),
+which is held by "ApplicationServerThread"
+"ApplicationServerThread":
+waiting to lock monitor 0x080f0ed4 (a MumbleDBCallableStatement),
+which is held by "ApplicationServerThread"
+Java stack information for the threads listed above:
+"ApplicationServerThread":
+at MumbleDBConnection.remove_statement
+- waiting to lock <0x650f7f30> (a MumbleDBConnection)
+at MumbleDBStatement.close
+- locked <0x6024ffb0> (a MumbleDBCallableStatement)
+...
+"ApplicationServerThread":
+at MumbleDBCallableStatement.sendBatch
+- waiting to lock <0x6024ffb0> (a MumbleDBCallableStatement)
+at MumbleDBConnection.commit
+- locked <0x650f7f30> (a MumbleDBConnection)
+...
+```
+
+### 10.3 Other liveness hazards
+
+While deadlock is the most widely encountered liveness hazard, there are several other liveness hazards you may encounter in concurrent programs including starvation, missed signals, and livelock.
+
+#### 10.3.1 Starvation
+
+Starvation occurs when a thread is perpetually denied access to resources it needs in order to make progress; the most commonly starved resource is CPU cycles. Starvation in Java applications can be caused by inappropriate use of thread priorities. It can also be caused by executing nonterminating constructs (infinite loops or resource waits that do not terminate) with a lock held, since other threads that need that lock will never be able to acquire it
+
+The thread priorities defined in the Thread API are merely scheduling hints. The Thread API defines ten priority levels that the JVM can map to operating system scheduling priorities as it sees fit. This mapping is platform-specific, so two Java priorities can map to the same OS priority on one system and different OS priorities on another. Some operating systems have fewer than ten priority levels, in which case multiple Java priorities map to the same OS priority.
+
+In most Java applications, all application threads have the same priority, ``Thread.NORM_PRIORITY``. The thread priority mechanism is a blunt instrument, and it’s not always obvious what effect changing priorities will have; boosting a thread’s priority might do nothing or might always cause one thread to be scheduled in preference to the other, causing starvation.
+
+**==It is generally wise to resist the temptation to tweak thread priorities.==**
+
+> **Avoid the temptation to use thread priorities, since they increase platform dependence and can cause liveness problems. Most concurrent applications can use the default priority for all threads.**
+
+#### 10.3.2 Poor responsiveness
+
+One step removed from starvation is poor responsiveness, which is not uncommon in GUI applications using background threads. Poor responsiveness can also be caused by poor lock management. If a thread
+holds a lock for a long time other threads that need to access that collection may have to wait a very long time.
+
+#### 10.3.3 Livelock
+
+Livelock is a form of liveness failure in which a thread, while not blocked, still cannot make progress because it keeps retrying an operation that will always fail. Livelock often occurs in transactional messaging applications, where the messaging infrastructure rolls back a transaction if a message cannot be processed successfully, and puts it back at the head of the queue.
+
+Livelock can also occur when multiple cooperating threads change their state in response to the others in such a way that no thread can ever make progress. This is similar to what happens when two overly polite people are walking in opposite directions in a hallway: each steps out of the other’s way, and now they are again in each other’s way. So they both step aside again, and again, and again. . . The solution for this variety of livelock is to introduce some randomness into the retry mechanism
+
+### Summary
+
+ ==**Liveness failures are a serious problem because there is no way to recover from them short of aborting the application. The most common form of liveness failure is lock-ordering deadlock. Avoiding lock ordering deadlock starts at design time: ensure that when threads acquire multiple locks, they do so in a consistent order. The best way to do this is by using open calls throughout your program. This greatly reduces the number of places where multiple locks are held at once, and makes it more obvious where those places are.**==
+
+## Performance and Scalability
+
+One of the primary reasons to use threads is to improve performance
+
+### 11.1 Thinking about performance
+
+Improving performance means doing more work with fewer resources. The meaning of “resources” can vary; for a given activity, some specific resource is usually in shortest supply, whether it is CPU cycles, memory, network bandwidth, I/O bandwidth, database requests, disk space, or any number of other resources. When the performance of an activity is limited by availability of a particular resource, we say it is bound by that resource: CPU-bound, database-bound, etc.
+
+While the goal may be to improve performance overall, using multiple threads always introduces some performance costs compared to the single-threaded approach.
+
+In using concurrency to achieve better performance, we are trying to do two things: utilize the processing resources we have more effectively, and enable our program to exploit additional processing resources if they become available.
+
+#### 11.1.1 Performance versus scalability
+
+Application performance can be measured in a number of ways, such as service time, latency, throughput, efficiency, scalability, or capacity. Some of these (service time, latency) are measures of “how fast” a given unit of work can be processed or acknowledged; others (capacity, throughput) are measures of “how much” work can be performed with a given quantity of computing resources.
+
+> **Scalability describes the ability to improve throughput or capacity when additional computing resources (such as additional CPUs, memory, storage, or I/O bandwidth) are added.**
+
+Designing and tuning concurrent applications for scalability can be very different from traditional performance optimization. When tuning for performance, the goal is usually to do the same work with less effort, such as by reusing previously computed results through caching or replacing an O(n2) algorithm with an O(n log n) one. When tuning for scalability, you are instead trying to find ways to parallelize the problem so you can take advantage of additional processing resources to do more work with more resources
+
+These two aspects of performance—how fast and how much—are completely separate, and sometimes even at odds with each other.
+
+#### 11.1.2 Evaluating performance tradeoffs
+
+> ==**Avoid premature optimization. First make it right, then make it fast—if it is not already fast enough.==**
+
+Most performance decisions involve multiple variables and are highly situational. Before deciding that one approach is “faster” than another, ask yourself some questions:
+
+• What do you mean by “faster”?
+• Under what conditions will this approach actually be faster? Under light or heavy load? With large or small data sets? Can you support your answer with measurements?
+• How often are these conditions likely to arise in your situation? Can you support your answer with measurements?
+• Is this code likely to be used in other situations where the conditions may be different?
+• What hidden costs, such as increased development or maintenance risk, are you trading for this improved performance? Is this a good tradeoff?
+
+**==The quest for performance is probably the single greatest source of concurrency bugs.==**
+
+when you trade safety for performance, you may get neither. Especially when it comes to concurrency, the intuition of many developers about where a performance problem lies or which approach will be faster or more scalable is often incorrect. It is therefore imperative that any performance tuning exercise be accompanied by concrete performance requirements (so you know both when to tune and when to stop tuning) and with a measurement program in place using a realistic configuration and load profile.
+
+> **Measure, don’t guess.**
+
+### 11.2 Amdahl’s law
+
+Amdahl's Law is a formula used to estimate the maximum potential speedup of a task when a portion of it can be parallelized. It highlights the impact of the serial portion of a task on overall performance improvement.
+
+ **Key Points**:
+
+- **Formula:** S=1(1−P)+PNS = \frac{1}{(1 - P) + \frac{P}{N}}S=(1−P)+NP​1​
+    - SSS: Theoretical speedup
+    - PPP: Proportion of the task that can be parallelized
+    - NNN: Number of processors
+- **Diminishing Returns:** Adding more processors yields decreasing benefits as the speedup approaches an upper limit defined by the serial portion of the task.
+- **Serial Bottleneck:** Even a small serial portion can significantly limit the overall speedup.
+- **Example:** If 90% of a task is parallelizable, using 4 processors yields a speedup of about 3.08 times, and using 10 processors yields a speedup of about 5.26 times.
+
+In essence, Amdahl's Law demonstrates the importance of minimizing the serial portion of a task to maximize performance gains through parallel processing.
+
+> **All concurrent applications have some sources of serialization; if you think yours does not, look again.**
+
+### 11.3 Costs introduced by threads
+
+Single-threaded programs incur neither scheduling nor synchronization overhead, and need not use locks to preserve the consistency of data structures. Scheduling and interthread coordination have performance costs; for threads to offer a performance improvement, the performance benefits of parallelization must outweigh the costs introduced by concurrency.
+
+#### 11.3.1 Context switching
+
+If the main thread is the only schedulable thread, it will almost never be scheduled out. On the other hand, if there are more runnable threads than CPUs, eventually the OS will preempt one thread so that another can use the CPU. This causes a context switch, which requires saving the execution context of the currently running thread and restoring the execution context of the newly scheduled thread.
+
+Context switches are not free; thread scheduling requires manipulating shared data structures in the OS and JVM. The OS and JVM use the same CPUs your program does; more CPU time spent in JVM and OS code means less is available for your program. But OS and JVM activity is not the only cost of context switches. When a new thread is switched in, the data it needs is unlikely to be in the local processor cache, so a context switch causes a flurry of cache misses, and thus threads run a little more slowly when they are first scheduled. This is one of the reasons that schedulers give each runnable thread a certain minimum time quantum even when many other threads are waiting: it amortizes the cost of the context switch and its consequences over more uninterrupted execution time, improving overall throughput (at some cost to responsiveness).
+
+**Synchronization that has no effect. Don’t do this.**
+
+```java
+synchronized (new Object()) {
+	// do something
+}
+```
+
+The actual cost of context switching varies across platforms, but a good rule of thumb is that a context switch costs the equivalent of 5,000 to 10,000 clock cycles, or several microseconds on most current processors.
+
+#### 11.3.2 Memory synchronization
+
+The performance cost of synchronization comes from several sources. The visibility guarantees provided by ``synchronized`` and ``volatile`` may entail using special instructions called memory barriers that can flush or invalidate caches, flush hardware write buffers, and stall execution pipelines. Memory barriers may also have indirect performance consequences because they inhibit other compiler optimizations; most operations cannot be reordered with memory barriers.
+
+When assessing the performance impact of synchronization, it is important to distinguish between contended and uncontended synchronization. The synchronized mechanism is optimized for the uncontended case (volatile is always uncontended), and at this writing, the performance cost of a “fast-path” uncontended synchronization ranges from 20 to 250 clock cycles for most systems.
+
+> **Don’t worry excessively about the cost of uncontended synchronization. The basic mechanism is already quite fast, and JVMs can perform additional optimizations that further reduce or eliminate the cost. Instead, focus optimization efforts on areas where lock contention actually occurs.**
+
+Synchronization by one thread can also affect the performance of other threads. Synchronization creates traffic on the shared memory bus; this bus has a limited bandwidth and is shared across all processors. If threads must compete for synchronization bandwidth, all threads using synchronization will suffer
+
+#### 11.3.3 Blocking
+
+Uncontended synchronization can be handled entirely within the JVM ; contended synchronization may require OS activity, which adds to the cost. When locking is contended, the losing thread(s) must block. The JVM can implement blocking either via spin-waiting or by suspending the blocked thread through the operating system. Which is more efficient depends on the relationship between context switch overhead and the time until the lock becomes available; spin-waiting is preferable for short waits and suspension is preferable for long waits.
+
+### 11.4 Reducing lock contention
+
+serialization hurts scalability and that context switches hurt performance. Contended locking causes both, so reducing lock contention can improve both performance and scalability
+
+Access to resources guarded by an exclusive lock is serialized—only one thread at a time may access it. Of course, we use locks for good reasons, such as preventing data corruption, but this safety comes at a price. Persistent contention for a lock limits scalability.
+
+> **The principal threat to scalability in concurrent applications is the exclusive resource lock.**
+
+> ==**There are three ways to reduce lock contention:**==
+	==**• Reduce the duration for which locks are held;**==
+	==**• Reduce the frequency with which locks are requested; or**==
+	==**• Replace exclusive locks with coordination mechanisms that permit greater concurrency.==**
+
+#### 11.4.1 Narrowing lock scope (“Get in, get out”)
+
+An effective way to reduce the likelihood of contention is to hold locks as briefly as possible. This can be done by moving code that doesn’t require the lock out of synchronized blocks, especially for expensive operations and potentially blocking operations such as I/O.
+
+**Holding a lock longer than necessary.**
+
+```java
+@ThreadSafe
+public class AttributeStore {
+    @GuardedBy("this") private final Map<String, String> attributes = new HashMap<String, String>();
+
+    public synchronized boolean userLocationMatches(String name, String regexp) {
+        String key = "users." + name + ".location";
+        String location = attributes.get(key);
+        if (location == null)
+            return false;
+        else
+            return Pattern.matches(regexp, location);
+    }
+}
+```
+
+**Reducing lock duration**
+```java
+@ThreadSafe
+public class BetterAttributeStore {
+    @GuardedBy("this") private final Map<String, String> attributes = new HashMap<String, String>();
+
+    public boolean userLocationMatches(String name, String regexp) {
+        String key = "users." + name + ".location";
+        String location;
+        synchronized (this) {
+            location = attributes.get(key);
+        }
+        if (location == null)
+            return false;
+        else
+            return Pattern.matches(regexp, location);
+    }
+}
+```
+
+#### 11.4.2 Reducing lock granularity
+
+The other way to reduce the fraction of time that a lock is held (and therefore the likelihood that it will be contended) is to have threads ask for it less often. This can be accomplished by lock splitting and lock striping, which involve using separate locks to guard multiple independent state variables previously guarded by a single lock. These techniques reduce the granularity at which locking occurs, potentially allowing greater scalability—but using more locks also increases the risk of deadlock.
+
+**==If a lock guards more than one independent state variable, you may be able to improve scalability by splitting it into multiple locks that each guard different variables. This results in each lock being requested less often==**
+
+Splitting a lock into two offers the greatest possibility for improvement when the lock is experiencing moderate but not heavy contention. Splitting locks that are experiencing little contention yields little net improvement in performance or throughput, although it might increase the load threshold at which performance starts to degrade due to contention. Splitting locks experiencing moderate contention might actually turn them into mostly uncontended locks, which is the most desirable outcome for both performance and scalability.
+
+
+**Candidate for lock splitting.**
+```java
+@ThreadSafe
+public class ServerStatus {
+    @GuardedBy("this") public final Set<String> users;
+    @GuardedBy("this") public final Set<String> queries;
+    ...
+
+    public synchronized void addUser(String u) {
+        users.add(u);
+    }
+
+    public synchronized void addQuery(String q) {
+        queries.add(q);
+    }
+
+    public synchronized void removeUser(String u) {
+        users.remove(u);
+    }
+
+    public synchronized void removeQuery(String q) {
+        queries.remove(q);
+    }
+}
+```
+
+**``ServerStatus`` refactored to use split locks.**
+
+```java
+@ThreadSafe
+public class ServerStatus {
+    @GuardedBy("users") public final Set<String> users;
+    @GuardedBy("queries") public final Set<String> queries;
+    ...
+
+    public void addUser(String u) {
+        synchronized (users) {
+            users.add(u);
+        }
+    }
+
+    public void addQuery(String q) {
+        synchronized (queries) {
+            queries.add(q);
+        }
+    }
+
+    public void removeUser(String u) {
+        synchronized (users) {
+            users.remove(u);
+        }
+    }
+
+    public void removeQuery(String q) {
+        synchronized (queries) {
+            queries.remove(q);
+        }
+    }
+}
+```
+
+#### 11.4.3 Lock striping
+
+Splitting a heavily contended lock into two is likely to result in two heavily contended locks. While this will produce a small scalability improvement by enabling two threads to execute concurrently instead of one, it still does not dramatically improve prospects for concurrency on a system with many processors.
+
+Lock splitting can sometimes be extended to partition locking on a variable sized set of independent objects, in which case it is called lock striping. For example, the implementation of ``ConcurrentHashMap`` uses an array of 16 locks, each of which guards 1/16 of the hash buckets; bucket N is guarded by lock N mod 16. Assuming the hash function provides reasonable spreading characteristics and keys are accessed uniformly, this should reduce the demand for any given lock by approximately a factor of 16. It is this technique that enables ``ConcurrentHashMap`` to support up to 16 concurrent writers
+
+One of the downsides of lock striping is that locking the collection for exclusive access is more difficult and costly than with a single lock. Usually an operation can be performed by acquiring at most one lock, but occasionally you need to lock the entire collection, as when ``ConcurrentHashMap`` needs to expand the map and rehash the values into a larger set of buckets. This is typically done by acquiring all of the locks in the stripe set
+
+#### 11.4.4 Avoiding hot fields
+
+```java
+@ThreadSafe
+public class StripedMap {
+    // Synchronization policy: buckets[n] guarded by locks[n%N_LOCKS]
+    private static final int N_LOCKS = 16;
+    private final Node[] buckets;
+    private final Object[] locks;
+
+    private static class Node { 
+        ... 
+    }
+
+    public StripedMap(int numBuckets) {
+        buckets = new Node[numBuckets];
+        locks = new Object[N_LOCKS];
+        for (int i = 0; i < N_LOCKS; i++)
+            locks[i] = new Object();
+    }
+
+    private final int hash(Object key) {
+        return Math.abs(key.hashCode() % buckets.length);
+    }
+
+    public Object get(Object key) {
+        int hash = hash(key);
+        synchronized (locks[hash % N_LOCKS]) {
+            for (Node m = buckets[hash]; m != null; m = m.next)
+                if (m.key.equals(key))
+                    return m.value;
+        }
+        return null;
+    }
+
+    public void clear() {
+        for (int i = 0; i < buckets.length; i++) {
+            synchronized (locks[i % N_LOCKS]) {
+                buckets[i] = null;
+            }
+        }
+    }
+    ...
+}
+```
+
+Lock granularity cannot be reduced when there are variables that are required for every operation. This is yet another area where raw performance and scalability are often at odds with each other; common optimizations such as caching frequently computed values can introduce “hot fields” that limit scalability. If you were implementing ``HashMap``, you would have a choice of how size computes the number of entries in the Map. The simplest approach is to count the number of entries every time it is called. A common optimization is to update a separate counter as entries are added or removed; this slightly increases the cost of a put or remove operation to keep the counter up-to-date, but reduces the cost of the ``size`` operation from O(n) to O(1)
+
+#### 11.4.5 Alternatives to exclusive locks
+
+A third technique for mitigating the effect of lock contention is to forego the use of exclusive locks in favor of a more concurrency-friendly means of managing shared state. These include using the concurrent collections, read-write locks, immutable objects and atomic variables.
+
+``ReadWriteLock``  enforces a multiple-reader, single-writer locking discipline: more than one reader can access the shared resource concurrently so long as none of them wants to modify it, but writers must acquire the lock exclusively. For read-mostly data structures, ``ReadWriteLock`` can offer greater concurrency than exclusive locking; for read-only data structures, immutability can eliminate the need for locking entirely.
+
+Atomic variables  offer a means of reducing the cost of updating “hot fields” such as statistics counters, sequence generators, or the reference to the first node in a linked data structure
+
+The atomic variable classes provide very fine-grained (and therefore more scalable) atomic operations on integers or object references, and are implemented using low-level concurrency primitives (such as compare-and-swap) provided by most modern processors.
+
+#### 11.4.6 Monitoring CPU utilization
+
+When testing for scalability, the goal is usually to keep the processors fully utilized. Tools like ``vmstat`` and ``mpstat`` on Unix systems or ``perfmon`` on Windows systems can tell you just how “hot” the processors are running.
+
+If the CPUs are not fully utilized, you need to figure out why. There are several likely causes:
+
+**Insufficient load**. It may be that the application being tested is just not subjected to enough load. You can test for this by increasing the load and measuring changes in utilization, response time, or service time. Generating enough load to saturate an application can require substantial computer power; the problem may be that the client systems, not the system being tested, are running at capacity.
+ 
+ **I/O-bound**. You can determine whether an application is disk-bound using ``iostat`` or ``perfmon``, and whether it is bandwidth-limited by monitoring traffic levels on your network.
+
+**Externally bound**. If your application depends on external services such as a database or web service, the bottleneck may not be in your code. You can test for this by using a profiler or database administration tools to determine how much time is being spent waiting for answers from the external service.
+
+**Lock contention**. Profiling tools can tell you how much lock contention your application is experiencing and which locks are “hot”. You can often get the same information without a profiler through random sampling, triggering a few thread dumps and looking for threads contending for locks. If a thread is blocked waiting for a lock, the appropriate stack frame in the thread dump indicates “waiting to lock monitor . . . ” Locks that are mostly uncontended rarely show up in a thread dump; a heavily contended lock will almost always have at least one thread waiting to acquire it and so will frequently appear in thread dumps.
+
+#### 11.4.7 Just say no to object pooling
+
+In early JVM versions, object allocation and garbage collection were slow,13 but their performance has improved substantially since then. In fact, allocation in Java is now faster than malloc is in C: the common code path for new Object in HotSpot 1.4.x and 5.0 is approximately ten machine instructions.
+
+To work around “slow” object lifecycles, many developers turned to object pooling, where objects are recycled instead of being garbage collected and allocated anew when needed. Even taking into account its reduced garbage collection overhead, object pooling has been shown to be a performance loss14 for all but the most expensive objects in single-threaded programs
+
+In concurrent applications, pooling fares even worse. When threads allocate new objects, very little inter-thread coordination is required, as allocators typically use thread-local allocation blocks to eliminate most synchronization on heap data structures. But if those threads instead request an object from a pool, some synchronization is necessary to coordinate access to the pool data structure, creating the possibility that a thread will block. Because blocking a thread due to lock contention is hundreds of times more expensive than an allocation, even a small amount of pool-induced contention would be a scalability bottleneck.
+
+This is yet another technique intended as a performance optimization but that turned into a scalability hazard.
+
+> **Allocating objects is usually cheaper than synchronizing.**
+
+### Summary
+
+**==Because one of the most common reasons to use threads is to exploit multiple processors, in discussing the performance of concurrent applications, we are usually more concerned with throughput or scalability than we are with raw service time. Amdahl’s law tells us that the scalability of an application is driven by the proportion of code that must be executed serially. Since the primary source of serialization in Java programs is the exclusive resource lock, scalability can often be improved by spending less time holding locks, either by reducing lock granularity, reducing the duration for which locks are held, or replacing exclusive locks with nonexclusive or nonblocking alternatives.==**
+
