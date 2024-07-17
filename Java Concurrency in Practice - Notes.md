@@ -4395,3 +4395,447 @@ This is yet another technique intended as a performance optimization but that tu
 
 **==Because one of the most common reasons to use threads is to exploit multiple processors, in discussing the performance of concurrent applications, we are usually more concerned with throughput or scalability than we are with raw service time. Amdahl’s law tells us that the scalability of an application is driven by the proportion of code that must be executed serially. Since the primary source of serialization in Java programs is the exclusive resource lock, scalability can often be improved by spending less time holding locks, either by reducing lock granularity, reducing the duration for which locks are held, or replacing exclusive locks with nonexclusive or nonblocking alternatives.==**
 
+## Testing Concurrent Programs
+
+testing concurrent programs uses and extends ideas from testing sequential ones. The same techniques for testing correctness and performance in sequential programs can be applied to concurrent programs, but with concurrent programs the space of things that can go wrong is much larger. The major challenge in constructing tests for concurrent programs is that potential failures may be rare probabilistic occurrences rather than deterministic ones; tests that disclose such failures must be more extensive and run for longer than typical sequential tests.
+Most tests of concurrent classes fall into one or both of the classic categories of ***safety*** and ***liveness***.
+
+Tests of safety, which verify that a class’s behavior conforms to its specification, usually take the form of testing invariants.
+
+Related to liveness tests are performance tests. Performance can be measured in a number of ways, including: 
+- ==**Throughput: the rate at which a set of concurrent tasks is completed;**==
+- ==**Responsiveness: the delay between a request for and completion of some action (also called latency); or**==
+- ==**Scalability: the improvement in throughput (or lack thereof) as more resources (usually CPUs) are made available.==**
+
+### 12.1 Testing for correctness
+
+Developing unit tests for a concurrent class starts with the same analysis as for a sequential class—identifying invariants and postconditions that are amenable to mechanical checking.
+
+```java
+@ThreadSafe
+public class BoundedBuffer<E> {
+    private final Semaphore availableItems, availableSpaces;
+    @GuardedBy("this") private final E[] items;
+    @GuardedBy("this") private int putPosition = 0, takePosition = 0;
+
+    public BoundedBuffer(int capacity) {
+        availableItems = new Semaphore(0);
+        availableSpaces = new Semaphore(capacity);
+        items = (E[]) new Object[capacity];
+    }
+
+    public boolean isEmpty() {
+        return availableItems.availablePermits() == 0;
+    }
+
+    public boolean isFull() {
+        return availableSpaces.availablePermits() == 0;
+    }
+
+    public void put(E x) throws InterruptedException {
+        availableSpaces.acquire();
+        doInsert(x);
+        availableItems.release();
+    }
+
+    public E take() throws InterruptedException {
+        availableItems.acquire();
+        E item = doExtract();
+        availableSpaces.release();
+        return item;
+    }
+
+    private synchronized void doInsert(E x) {
+        int i = putPosition;
+        items[i] = x;
+        putPosition = (++i == items.length) ? 0 : i;
+    }
+
+    private synchronized E doExtract() {
+        int i = takePosition;
+        E x = items[i];
+        items[i] = null;
+        takePosition = (++i == items.length) ? 0 : i;
+        return x;
+    }
+}
+```
+
+#### 12.1.1 Basic unit tests
+
+```java
+class BoundedBufferTest extends TestCase {
+    void testIsEmptyWhenConstructed() {
+        BoundedBuffer<Integer> bb = new BoundedBuffer<Integer>(10);
+        assertTrue(bb.isEmpty());
+        assertFalse(bb.isFull());
+    }
+
+    void testIsFullAfterPuts() throws InterruptedException {
+        BoundedBuffer<Integer> bb = new BoundedBuffer<Integer>(10);
+        for (int i = 0; i < 10; i++)
+            bb.put(i);
+        assertTrue(bb.isFull());
+        assertFalse(bb.isEmpty());
+    }
+}
+```
+
+These simple test methods are entirely sequential. Including a set of sequential tests in your test suite is often helpful, since they can disclose when a problem is not related to concurrency issues before you start looking for data races.
+
+#### 12.1.2 Testing blocking operations
+
+Tests of essential concurrency properties require introducing more than one thread. Most testing frameworks are not very concurrency-friendly: they rarely include facilities to create threads or monitor them to ensure that they do not die unexpectedly. If a helper thread created by a test case discovers a failure, the framework usually does not know with which test the thread is associated, so some work may be required to relay success or failure information back to the main test runner thread so it can be reported.
+
+If a method is supposed to block under certain conditions, then a test for that behavior should succeed only if the thread does not proceed. Testing that a method blocks is similar to testing that a method throws an exception; if the method returns normally, the test has failed.
+
+Testing that a method blocks introduces an additional complication: once the method successfully blocks, you have to convince it somehow to unblock. The obvious way to do this is via interruption—start a blocking activity in a separate thread, wait until the thread blocks, interrupt it, and then assert that the blocking operation completed.
+
+```java
+void testTakeBlocksWhenEmpty() {
+    final BoundedBuffer<Integer> bb = new BoundedBuffer<Integer>(10);
+    Thread taker = new Thread() {
+        public void run() {
+            try {
+                int unused = bb.take();
+                fail(); // if we get here, it’s an error
+            } catch (InterruptedException success) { }
+        }
+    };
+    try {
+        taker.start();
+        Thread.sleep(LOCKUP_DETECT_TIMEOUT);
+        taker.interrupt();
+        taker.join(LOCKUP_DETECT_TIMEOUT);
+        assertFalse(taker.isAlive());
+    } catch (Exception unexpected) {
+        fail();
+    }
+}
+```
+
+#### 12.1.3 Testing safety
+
+To test that a concurrent
+class performs correctly under unpredictable concurrent access, we need to set up multiple threads performing put and take operations over some amount of time and then somehow test that nothing went wrong.
+
+Constructing tests to disclose safety errors in concurrent classes is a chicken and-egg problem: the test programs themselves are concurrent programs. Developing good concurrent tests can be more difficult than developing the classes they test.
+
+> **The challenge to constructing effective safety tests for concurrent classes is identifying easily checked properties that will, with high probability, fail if something goes wrong, while at the same time not letting the failure auditing code limit concurrency artificially. It is best if checking the test property does not require any synchronization.**
+
+One approach that works well with classes used in producer-consumer designs  is to check that everything put into a queue or buffer comes out of it, and that nothing else does. A naïve implementation of this approach would insert the element into a “shadow” list when it is put on the queue, remove it from the list when it is removed from the queue, and assert that the shadow list is empty when the test has finished.
+
+A better approach is to compute checksums of the elements that are enqueued and dequeued using an order-sensitive checksum function, and compare them. If they match, the test passes. This approach works best when there is a single producer putting elements into the buffer and a single consumer taking them out, because it can test not only that the right elements (probably) came out but that they came out in the right order.
+
+**Medium-quality random number generator suitable for testing.**
+```java
+static int xorShift(int y) {
+	y ^= (y << 6);
+	y ^= (y >>> 21);
+	y ^= (y << 7);
+	return y;
+}
+```
+
+Depending on your platform, creating and starting a thread can be a moderately heavyweight operation. If your thread is short-running and you start a number of threads in a loop, the threads run sequentially rather than concurrently in the worst case.
+
+> **Tests should be run on multiprocessor systems to increase the diversity of potential interleaving's. However, having more than a few CPUs does not necessarily make tests more effective. To maximize the chance of detecting timing-sensitive data races, there should be more active threads than CPUs, so that at any given time some threads are running and some are switched out, thus reducing the predictability of interactions between threads.** 
+
+**Producer-consumer test program for ``BoundedBuffer``.**
+
+```java
+public class PutTakeTest {
+    private static final ExecutorService pool = Executors.newCachedThreadPool();
+    private final AtomicInteger putSum = new AtomicInteger(0);
+    private final AtomicInteger takeSum = new AtomicInteger(0);
+    private final CyclicBarrier barrier;
+    private final BoundedBuffer<Integer> bb;
+    private final int nTrials, nPairs;
+
+    public static void main(String[] args) {
+        new PutTakeTest(10, 10, 100000).test(); // sample parameters
+        pool.shutdown();
+    }
+
+    PutTakeTest(int capacity, int npairs, int ntrials) {
+        this.bb = new BoundedBuffer<Integer>(capacity);
+        this.nTrials = ntrials;
+        this.nPairs = npairs;
+        this.barrier = new CyclicBarrier(npairs * 2 + 1);
+    }
+
+    void test() {
+        try {
+            for (int i = 0; i < nPairs; i++) {
+                pool.execute(new Producer());
+                pool.execute(new Consumer());
+            }
+            barrier.await(); // wait for all threads to be ready
+            barrier.await(); // wait for all threads to finish
+            assertEquals(putSum.get(), takeSum.get());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    class Producer implements Runnable { /* Listing 12.6 */ }
+    class Consumer implements Runnable { /* Listing 12.6 */ }
+}
+```
+
+**Producer and consumer classes used in ``PutTakeTest``.**
+
+```java
+/* inner classes of PutTakeTest (Listing 12.5) */
+class Producer implements Runnable {
+    public void run() {
+        try {
+            int seed = (this.hashCode() ^ (int) System.nanoTime());
+            int sum = 0;
+            barrier.await();
+            for (int i = nTrials; i > 0; --i) {
+                bb.put(seed);
+                sum += seed;
+                seed = xorShift(seed);
+            }
+            putSum.getAndAdd(sum);
+            barrier.await();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+
+class Consumer implements Runnable {
+    public void run() {
+        try {
+            barrier.await();
+            int sum = 0;
+            for (int i = nTrials; i > 0; --i) {
+                sum += bb.take();
+            }
+            takeSum.getAndAdd(sum);
+            barrier.await();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+
+#### 12.1.4 Testing resource management
+
+secondary aspect to test is that it does not do things it is not supposed to do, such as leak resources. Any object that holds or manages other objects should not continue to maintain references to those objects longer than necessary. Such storage leaks prevent garbage collectors from reclaiming memory (or threads, file handles, sockets, database connections, or other limited resources) and can lead to resource exhaustion and application failure.
+
+Resource management issues are especially important for classes like ``BoundedBuffer``— the entire reason for bounding a buffer is to prevent application failure due to resource exhaustion when producers get too far ahead of consumers. Bounding causes overly productive producers to block rather than continue to create work that will consume more and more memory or other resources. Undesirable memory retention can be easily tested with heap-inspection tools that measure application memory usage; a variety of commercial and open-source heap-profiling tools can do this.
+
+#### 12.1.5 Using callbacks
+
+Callbacks to client-provided code can be helpful in constructing test cases; callbacks are often made at known points in an object’s lifecycle that are good opportunities to assert invariants. For example, ``ThreadPoolExecutor`` makes calls to the task Runnables and to the ``ThreadFactory``.
+
+**Testing for resource leaks.**
+
+```java
+class Big { 
+    double[] data = new double[100000]; 
+}
+
+void testLeak() throws InterruptedException {
+    BoundedBuffer<Big> bb = new BoundedBuffer<Big>(CAPACITY);
+    int heapSize1 = /* snapshot heap */;
+    for (int i = 0; i < CAPACITY; i++) {
+        bb.put(new Big());
+    }
+    for (int i = 0; i < CAPACITY; i++) {
+        bb.take();
+    }
+    int heapSize2 = /* snapshot heap */;
+    assertTrue(Math.abs(heapSize1 - heapSize2) < THRESHOLD);
+}
+```
+
+Testing a thread pool involves testing a number of elements of execution policy: that additional threads are created when they are supposed to, but not when they are not supposed to; that idle threads get reaped when they are supposed to
+
+```java
+class TestingThreadFactory implements ThreadFactory {
+    public final AtomicInteger numCreated = new AtomicInteger();
+    private final ThreadFactory factory = Executors.defaultThreadFactory();
+
+    public Thread newThread(Runnable r) {
+        numCreated.incrementAndGet();
+        return factory.newThread(r);
+    }
+}
+```
+
+If the core pool size is smaller than the maximum size, the thread pool should grow as demand for execution increases. Submitting long-running tasks to the pool makes the number of executing tasks stay constant for long enough to make a few assertions, such as testing that the pool is expanded as expected
+
+```java
+public void testPoolExpansion() throws InterruptedException {
+    int MAX_SIZE = 10;
+    ExecutorService exec = Executors.newFixedThreadPool(MAX_SIZE);
+    for (int i = 0; i < 10 * MAX_SIZE; i++) {
+        exec.execute(new Runnable() {
+            public void run() {
+                try {
+                    Thread.sleep(Long.MAX_VALUE);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
+    }
+    for (int i = 0; i < 20 && threadFactory.numCreated.get() < MAX_SIZE; i++) {
+        Thread.sleep(100);
+    }
+    assertEquals(threadFactory.numCreated.get(), MAX_SIZE);
+    exec.shutdownNow();
+}
+```
+
+#### 12.1.6 Generating more interleaving's
+
+Since many of the potential failures in concurrent code are low-probability events, testing for concurrency errors is a numbers game, but there are some things you can do to improve your chances.
+
+Similarly, testing on a variety of systems with different processor counts, operating systems, and processor architectures can disclose problems that might not occur on all systems.
+
+A useful trick for increasing the number of interleavings, and therefore more effectively exploring the state space of your programs, is to use ``Thread.yield`` to encourage more context switches during operations that access shared state.
+
+```java
+public synchronized void transferCredits(Account from, Account to, int amount) {
+    from.setBalance(from.getBalance() - amount);
+    if (random.nextInt(1000) > THRESHOLD) {
+        Thread.yield();
+    }
+    to.setBalance(to.getBalance() + amount);
+}
+```
+
+### 12.2 Testing for performance
+
+Performance tests are often extended versions of functionality tests. In fact, it is almost always worthwhile to include some basic functionality testing within performance tests to ensure that you are not testing the performance of broken code.
+
+While there is definitely overlap between performance and functionality tests, they have different goals. Performance tests seek to measure end-to-end performance metrics for representative use cases. Picking a reasonable set of usage scenarios is not always easy; ideally, tests should reflect how the objects being tested are actually used in your application.
+
+A common secondary goal of performance testing is to select sizing's empirically for various bounds—numbers of threads, buffer capacities, and so on. While these values might turn out to be sensitive enough to platform characteristics to require dynamic configuration, it is equally common that reasonable choices for these values work well across a wide range of systems.
+
+#### 12.2.1 Extending ``PutTakeTest`` to add timing
+
+```java
+public class BarrierTimer implements Runnable {
+    private boolean started;
+    private long startTime, endTime;
+
+    public synchronized void run() {
+        long t = System.nanoTime();
+        if (!started) {
+            started = true;
+            startTime = t;
+        } else {
+            endTime = t;
+        }
+    }
+
+    public synchronized void clear() {
+        started = false;
+    }
+
+    public synchronized long getTime() {
+        return endTime - startTime;
+    }
+}
+```
+
+```java
+public void test() {
+    try {
+        timer.clear();
+        for (int i = 0; i < nPairs; i++) {
+            pool.execute(new Producer());
+            pool.execute(new Consumer());
+        }
+        barrier.await();
+        barrier.await();
+        long nsPerItem = timer.getTime() / (nPairs * (long)nTrials);
+        System.out.print("Throughput: " + nsPerItem + " ns/item");
+        assertEquals(putSum.get(), takeSum.get());
+    } catch (Exception e) {
+        throw new RuntimeException(e);
+    }
+}
+```
+
+```java
+public static void main(String[] args) throws Exception {
+    int tpt = 100000; // trials per thread
+    for (int cap = 1; cap <= 1000; cap *= 10) {
+        System.out.println("Capacity: " + cap);
+        for (int pairs = 1; pairs <= 128; pairs *= 2) {
+            TimedPutTakeTest t = new TimedPutTakeTest(cap, pairs, tpt);
+            System.out.print("Pairs: " + pairs + "\t");
+            t.test();
+            System.out.print("\t");
+            Thread.sleep(1000);
+            t.test();
+            System.out.println();
+            Thread.sleep(1000);
+        }
+    }
+    pool.shutdown();
+}
+```
+
+### 12.3 Avoiding performance testing pitfalls
+
+#### 12.3.1 Garbage collection
+
+The timing of garbage collection is unpredictable, so there is always the possibility that the garbage collector will run during a measured test run. If a test program performs N iterations and triggers no garbage collection but iteration N+1would trigger a garbage collection, a small variation in the size of the run could have a big (but spurious) effect on the measured time per iteration.
+
+**==There are two strategies for preventing garbage collection from biasing your results. One is to ensure that garbage collection does not run at all during your test (you can invoke the JVM with ``-verbose:gc`` to find out); alternatively, you can make sure that the garbage collector runs a number of times during your run so that the test program adequately reflects the cost of ongoing allocation and garbage collection.==**
+
+Most producer-consumer applications involve a fair amount of allocation and garbage collection—producers allocate new objects that are used and discarded by consumers. Running the bounded buffer test for long enough to incur multiple garbage collections yields more accurate results.
+#### 12.3.2 Dynamic compilation
+
+Writing and interpreting performance benchmarks for dynamically compiled languages like Java is far more difficult than for statically compiled languages like C or C++. The HotSpot JVM (and other modern JVMs) uses a combination of bytecode interpretation and dynamic compilation. When a class is first loaded, the JVM executes it by interpreting the bytecode. At some point, if a method is run often enough, the dynamic compiler kicks in and converts it to machine code; when compilation completes, it switches from interpretation to direct execution. The timing of compilation is unpredictable. Your timing tests should run only after all code has been compiled; there is no value in measuring the speed of the interpreted code since most programs run long enough that all frequently executed code paths are compiled. Allowing the compiler to run during a measured test run can bias test results in two ways: compilation consumes CPU resources, and measuring the run time of a combination of interpreted and compiled code is not a meaningful performance metric.
+
+The JVM uses various background threads for housekeeping tasks. When measuring multiple unrelated computationally intensive activities in a single run, it is a good idea to place explicit pauses between the measured trials to give the JVM a chance to catch up with background tasks with minimal interference from measured tasks.
+
+#### 12.3.3 Unrealistic sampling of code paths
+
+Runtime compilers use profiling information to help optimize the code being compiled. The JVM is permitted to use information specific to the execution in order to produce better code, which means that compiling method M in one program may generate different code than compiling M in another. In some cases, the JVM may make optimizations based on assumptions that may only be true temporarily, and later back them out by invalidating the compiled code if they become untrue
+
+As a result, it is important that your test programs not only adequately approximate the usage patterns of a typical application, but also approximate the set of code paths used by such an application. Otherwise, a dynamic compiler could make special optimizations to a purely single-threaded test program that could not be applied in real applications containing at least occasional parallelism. Therefore, tests of multithreaded performance should normally be mixed with tests of single-threaded performance, even if you want to measure only single-threaded performance.
+
+#### 12.3.4 Unrealistic degrees of contention
+
+Concurrent applications tend to interleave two very different sorts of work: accessing shared data, such as fetching the next task from a shared work queue, and thread-local computation Depending on the relative proportions of the two types of work, the application will experience different levels of contention and exhibit different performance and scaling behaviors.
+
+To obtain realistic results, concurrent performance tests should try to approximate the thread-local computation done by a typical application in addition to the concurrent coordination under study. If the the work done for each task in an application is significantly different in nature or scope from the test program, it is easy to arrive at unwarranted conclusions about where the performance bottlenecks lie.
+
+#### 12.3.5 Dead code elimination
+
+One of the challenges of writing good benchmarks (in any language) is that optimizing compilers are adept at spotting and eliminating dead code—code that has no effect on the outcome. Since benchmarks often don’t compute anything, they are an easy target for the optimizer. Most of the time, it is a good thing when the optimizer prunes dead code from a program, but for a benchmark this is a big problem because then you are measuring less execution than you think.
+
+Dead-code elimination is a problem in benchmarking statically compiled languages too, but detecting that the compiler has eliminated a good chunk of your benchmark is a lot easier because you can look at the machine code and see that a part of your program is missing. With dynamically compiled languages, that information is not easily accessible.
+
+> **Writing effective performance tests requires tricking the optimizer into not optimizing away your benchmark as dead code. This requires every computed result to be used somehow by your program—in a way that does not require synchronization or substantial computation.**
+
+### 12.4 Complementary testing approaches
+
+The goal of testing is not so much to find errors as it is to increase confidence that the code works as expected. Since it is unrealistic to assume you can find all the bugs, the goal of a quality assurance (QA) plan should be to achieve the greatest possible confidence given the testing resources available. More things can go wrong in a concurrent program than in a sequential one, and therefore more testing is required to achieve the same level of confidence.
+
+#### 12.4.1 Code review
+
+As effective and important as unit and stress tests are for finding concurrency bugs, they are no substitute for rigorous code review by multiple people. (On the other hand, code review is no substitute for testing either.) You can and should design tests to maximize their chances of discovering safety errors, and you should run them frequently, but you should not neglect to have concurrent code reviewed carefully by someone besides its author.
+
+#### 12.4.2 Static analysis tools
+
+Static analysis tools produce a list of warnings that must be examined by hand to determine whether they represent actual errors.
+
+#### 12.4.3 Aspect-oriented testing techniques
+
+aspect-oriented programming (AOP) techniques have only limited applicability to concurrency, because most popular AOP tools do not yet support pointcuts at synchronization points. However, AOP can be applied to assert invariants or some aspects of compliance with synchronization policies.
+
+### Summary
+
+**==Testing concurrent programs for correctness can be extremely challenging because many of the possible failure modes of concurrent programs are low-probability events that are sensitive to timing, load, and other hard-to-reproduce conditions. Further, the testing infrastructure can introduce additional synchronization or timing constraints that can mask concurrency problems in the code being tested. Testing concurrent programs for performance can be equally challenging; Java programs are more difficult to test than programs written in statically compiled languages like C, because timing measurements can be affected by dynamic compilation, garbage collection, and adaptive optimization. To have the best chance of finding latent bugs before they occur in production, combine traditional testing techniques (being careful to avoid the pitfalls discussed here) with code reviews and automated analysis tools. Each of these techniques finds problems that the others are likely to miss.==**
