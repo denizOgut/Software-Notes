@@ -4839,3 +4839,235 @@ aspect-oriented programming (AOP) techniques have only limited applicability to 
 ### Summary
 
 **==Testing concurrent programs for correctness can be extremely challenging because many of the possible failure modes of concurrent programs are low-probability events that are sensitive to timing, load, and other hard-to-reproduce conditions. Further, the testing infrastructure can introduce additional synchronization or timing constraints that can mask concurrency problems in the code being tested. Testing concurrent programs for performance can be equally challenging; Java programs are more difficult to test than programs written in statically compiled languages like C, because timing measurements can be affected by dynamic compilation, garbage collection, and adaptive optimization. To have the best chance of finding latent bugs before they occur in production, combine traditional testing techniques (being careful to avoid the pitfalls discussed here) with code reviews and automated analysis tools. Each of these techniques finds problems that the others are likely to miss.==**
+
+# Advanced Topics
+
+## Explicit Locks
+
+### 13.1 ``Lock`` and ``ReentrantLock``
+
+The ``Lock`` interface defines a number of abstract locking operations. Unlike intrinsic locking, Lock offers a choice of unconditional, polled, timed, and interruptible lock acquisition, and all lock and unlock operations are explicit.
+
+```java
+public interface Lock {
+	void lock();
+	void lockInterruptibly() throws InterruptedException;
+	boolean tryLock();
+	boolean tryLock(long timeout, TimeUnit unit) throws InterruptedException;
+	void unlock();
+	Condition newCondition();
+}
+```
+
+``ReentrantLock`` implements ``Lock``, providing the same mutual exclusion and memory-visibility guarantees as synchronized. Acquiring a ``ReentrantLock`` has the same memory semantics as entering a ``synchronized`` block, and releasing a ``ReentrantLock`` has the same memory semantics as exiting a ``synchronized`` block. And, like ``synchronized``, ``ReentrantLock`` offers reentrant locking semantics ``ReentrantLock`` supports all of the lock-acquisition modes defined by ``Lock``, providing more flexibility for dealing with lock unavailability than does synchronized. 
+
+Why create a new locking mechanism that is so similar to intrinsic locking? **==Intrinsic locking works fine in most situations but has some functional limitations— it is not possible to interrupt a thread waiting to acquire a lock, or to attempt to acquire a lock without being willing to wait for it forever. Intrinsic locks also must be released in the same block of code in which they are acquired==**; this simplifies coding and interacts nicely with exception handling, but makes non-block structured locking disciplines impossible.
+
+**==Failing to use ``finally`` to release a ``Lock`` is a ticking time bomb.==** When it goes off, you will have a hard time tracking down its origin as there will be no record of where or when the ``Lock`` should have been released. This is one reason not to use ``ReentrantLock`` as a blanket substitute for synchronized: it is more “dangerous” because it doesn’t automatically clean up the lock when control leaves the guarded block.
+
+```java
+Lock lock = new ReentrantLock();
+...
+lock.lock();
+try {
+	// update object state
+	// catch exceptions and restore invariants if necessary
+} finally {
+	lock.unlock();
+}
+```
+
+#### 13.1.1 Polled and timed lock acquisition
+
+The timed and polled lock-acquisition modes provided by ``tryLock`` allow more sophisticated error recovery than unconditional acquisition. With intrinsic locks, a deadlock is fatal—the only way to recover is to restart the application, and the only defense is to construct your program so that inconsistent lock ordering is impossible. Timed and polled locking offer another option: probabilistic deadlock avoidance.
+
+Using timed or polled lock acquisition (``tryLock``) lets you regain control if you cannot acquire all the required locks, release the ones you did acquire, and try again
+
+Timed locks are also useful in implementing activities that manage a time budget When an activity with a time budget calls a blocking method, it can supply a timeout corresponding to the remaining time in the budget. This lets activities terminate early if they cannot deliver a result within the desired time. With intrinsic locks, there is no way to cancel a lock acquisition once it is started, so intrinsic locks put the ability to implement time-budgeted activities at risk.
+
+#### 13.1.2 Interruptible lock acquisition
+
+Just as timed lock acquisition allows exclusive locking to be used within time limited activities, interruptible lock acquisition allows locking to be used within cancellable activities identified several mechanisms, such as acquiring
+an intrinsic lock, that are not responsive to interruption. These non-interruptible blocking mechanisms complicate the implementation of cancellable tasks. The ``lockInterruptibly`` method allows you to try to acquire a lock while remaining responsive to interruption, and its inclusion in Lock avoids creating another category of non-interruptible blocking mechanisms.
+
+**Listing 13.3. Avoiding lock-ordering deadlock using ``tryLock``.**
+
+```java
+public boolean transferMoney(Account fromAcct,
+                             Account toAcct,
+                             DollarAmount amount,
+                             long timeout,
+                             TimeUnit unit)
+        throws InsufficientFundsException, InterruptedException {
+    long fixedDelay = getFixedDelayComponentNanos(timeout, unit);
+    long randMod = getRandomDelayModulusNanos(timeout, unit);
+    long stopTime = System.nanoTime() + unit.toNanos(timeout);
+    while (true) {
+        if (fromAcct.lock.tryLock()) {
+            try {
+                if (toAcct.lock.tryLock()) {
+                    try {
+                        if (fromAcct.getBalance().compareTo(amount) < 0)
+                            throw new InsufficientFundsException();
+                        else {
+                            fromAcct.debit(amount);
+                            toAcct.credit(amount);
+                            return true;
+                        }
+                    } finally {
+                        toAcct.lock.unlock();
+                    }
+                }
+            } finally {
+                fromAcct.lock.unlock();
+            }
+        }
+        if (System.nanoTime() > stopTime)
+            return false;
+        NANOSECONDS.sleep(fixedDelay + rnd.nextLong() % randMod);
+    }
+}
+```
+
+**Listing 13.4. Locking with a time budget**
+
+```java
+public boolean trySendOnSharedLine(String message,
+                                   long timeout, TimeUnit unit)
+        throws InterruptedException {
+    long nanosToLock = unit.toNanos(timeout)
+            - estimatedNanosToSend(message);
+    if (!lock.tryLock(nanosToLock, NANOSECONDS))
+        return false;
+    try {
+        return sendOnSharedLine(message);
+    } finally {
+        lock.unlock();
+    }
+}
+```
+
+**Listing 13.5. Interruptible lock acquisition.**
+
+```java
+public boolean sendOnSharedLine(String message)
+        throws InterruptedException {
+    lock.lockInterruptibly();
+    try {
+        return cancellableSendOnSharedLine(message);
+    } finally {
+        lock.unlock();
+    }
+}
+
+private boolean cancellableSendOnSharedLine(String message) throws InterruptedException { ... }
+```
+
+#### 13.1.3 Non-block-structured locking
+
+With intrinsic locks, acquire-release pairs are block-structured—a lock is always released in the same basic block in which it was acquired, regardless of how control exits the block. Automatic lock release simplifies analysis and prevents potential coding errors, but sometimes a more flexible locking discipline is needed.
+
+reducing lock granularity can enhance scalability. Lock striping allows different hash chains in a hash-based collection to use different locks. We can apply a similar principle to reduce locking granularity in a linked list by using a separate lock for each link node, allowing different threads to operate independently on different portions of the list. The lock for a given node guards the link pointers and the data stored in that node, so when traversing or modifying the list we must hold the lock on one node until we acquire the lock on the next node; only then can we release the lock on the first node
+
+### 13.2 Performance considerations
+
+When ``ReentrantLock`` was added in Java 5.0, it offered far better contended performance than intrinsic locking. For synchronization primitives, contended performance is the key to scalability: if more resources are expended on lock management and scheduling, fewer are available for the application. A better lock implementation makes fewer system calls, forces fewer context switches, and initiates less memory-synchronization traffic on the shared memory bus, operations that are time-consuming and divert computing resources from the program.
+
+> **Performance is a moving target; yesterday’s benchmark showing that X is faster than Y may already be out of date today.**
+
+### 13.3 Fairness
+
+The ``ReentrantLock`` constructor offers a choice of two fairness options: create a non-fair lock (the default) or a fair lock. Threads acquire a fair lock in the order in which they requested it, whereas a non-fair lock permits barging: threads requesting a lock can jump ahead of the queue of waiting threads if the lock happens to be available when it is requested
+
+Non-fair ``ReentrantLocks`` do not go out of their way to promote barging—they simply don’t prevent a thread from barging if it shows up at the right time. With a fair lock, a newly requesting thread is queued if the lock is held by another thread or if threads are queued waiting for the lock; with a non-fair lock, the thread is queued only if the lock is currently held
+
+Wouldn’t we want all locks to be fair? After all, fairness is good and unfairness is bad, right? When it comes to locking, though, fairness resuming threads. In practice, a statistical fairness guarantee—promising that a
+blocked thread will eventually acquire the lock—is often good enough, and is far less expensive to deliver. Some algorithms rely on fair queueing to ensure their correctness, but these are unusual. In most cases, the performance benefits of non-fair locks outweigh the benefits of fair queueing.
+
+Fair locks tend to work best when they are held for a relatively long time or when the mean time between lock requests is relatively long. In these cases, the condition under which barging provides a throughput advantage—when the lock is unheld but a thread is currently waking up to claim it—is less likely to hold.  Like the default ``ReentrantLock``, intrinsic locking offers no deterministic fairness guarantees, but the statistical fairness guarantees of most locking implementations are good enough for almost all situations
+
+### 13.4 Choosing between ``synchronized`` and ``ReentrantLock``
+
+``ReentrantLock`` provides the same locking and memory semantics as intrinsic locking, as well as additional features such as timed lock waits, interruptible lock waits, fairness, and the ability to implement non-block-structured locking. The performance of ``ReentrantLock`` appears to dominate that of intrinsic locking, winning slightly on Java 6 and dramatically on Java 5.0. So why not deprecate synchronized and encourage all new concurrent code to use ``ReentrantLock``?
+
+Intrinsic locks still have significant advantages over explicit locks. The notation is familiar and compact, and many existing programs already use intrinsic locking—and mixing the two could be confusing and error-prone. Reentrant- Lock is definitely a more dangerous tool than synchronization; if you forget to wrap the ``unlock`` call in a ``finally`` block, your code will probably appear to run properly, but you’ve created a time bomb that may well hurt innocent bystanders.
+
+> **`ReentrantLock` is an advanced tool for situations where intrinsic locking is not practical. Use it if you need its advanced features: timed, polled, or interruptible lock acquisition, fair queueing, or non-block-structured locking. Otherwise, prefer synchronized.**
+
+### 13.5 Read-write locks
+
+``ReentrantLock`` implements a standard mutual-exclusion lock: at most one thread at a time can hold a ``ReentrantLock``. But mutual exclusion is frequently a stronger locking discipline than needed to preserve data integrity, and thus limits concurrency more than necessary. **==Mutual exclusion is a conservative locking strategy that prevents writer/writer and writer/reader overlap, but also prevents reader/ reader overlap==**. In many cases, data structures are “read-mostly”—they are mutable and are sometimes modified, but most accesses involve only reading. In these cases, it would be nice to relax the locking requirements to allow multiple readers to access the data structure at once.
+
+``ReadWriteLock``, exposes two Lock objects—one for reading and one for writing. To read data guarded by a ``ReadWriteLock`` you must first acquire the read lock, and to modify data guarded by a ``ReadWriteLock`` you must first acquire the write lock. While there may appear to be two separate locks, the read lock and write lock are simply different views of an integrated read-write lock object.
+
+```java
+public interface ReadWriteLock {
+	Lock readLock();
+	Lock writeLock();
+}
+```
+
+The locking strategy implemented by read-write locks allows multiple simultaneous readers but only a single writer. Like ``Lock``, ``ReadWriteLock`` admits multiple implementations that can vary in performance, scheduling guarantees, acquisition preference, fairness, or locking semantics.
+
+Read-write locks are a performance optimization designed to allow greater concurrency in certain situations. In practice, read-write locks can improve performance for frequently accessed read-mostly data structures on multiprocessor systems; under other conditions they perform slightly worse than exclusive locks due to their greater complexity
+
+The interaction between the read and write locks allows for a number of possible implementations. Some of the implementation options for a ``ReadWriteLock`` are:
+
+- ==**Release preference**. When a writer releases the write lock and both readers and writers are queued up, who should be given preference—readers, writers, or whoever asked first?==
+
+- ==**Reader barging**. If the lock is held by readers but there are waiting writers, should newly arriving readers be granted immediate access, or should they wait behind the writers? Allowing readers to barge ahead of writers enhances concurrency but runs the risk of starving writers.==
+
+- ==**Reentrancy**. Are the read and write locks reentrant?==
+
+- ==**Downgrading**. If a thread holds the write lock, can it acquire the read lock without releasing the write lock? This would let a writer “downgrade” to a read lock without letting other writers modify the guarded resource in the meantime.==
+
+- ==**Upgrading**. Can a read lock be upgraded to a write lock in preference to other waiting readers or writers? Most read-write lock implementations do not support upgrading, because without an explicit upgrade operation it is deadlock-prone. (If two readers simultaneously attempt to upgrade to a write lock, neither will release the read lock.)==
+
+``ReentrantReadWriteLock`` provides reentrant locking semantics for both locks. Like ``ReentrantLock``, a ``ReentrantReadWriteLock`` can be constructed as non-fair (the default) or fair. With a fair lock, preference is given to the thread that has been waiting the longest; if the lock is held by readers and a thread requests the write lock, no more readers are allowed to acquire the read lock until the writer has been serviced and releases the write lock
+
+**==Like ``ReentrantLock``, the write lock in ``ReentrantReadWriteLock`` has a unique-owner and can be released only by the thread that acquired it.==**
+
+**Listing 13.7. Wrapping a Map with a read-write lock.**
+
+```java
+public class ReadWriteMap<K,V> {
+    private final Map<K,V> map;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock r = lock.readLock();
+    private final Lock w = lock.writeLock();
+    
+    public ReadWriteMap(Map<K,V> map) {
+        this.map = map;
+    }
+    
+    public V put(K key, V value) {
+        w.lock();
+        try {
+            return map.put(key, value);
+        } finally {
+            w.unlock();
+        }
+    }
+    
+    // Do the same for remove(), putAll(), clear()
+    
+    public V get(Object key) {
+        r.lock();
+        try {
+            return map.get(key);
+        } finally {
+            r.unlock();
+        }
+    }
+    
+    // Do the same for other read-only Map methods
+}
+```
+
+### Summary
+
+**==Explicit Locks offer an extended feature set compared to intrinsic locking, including greater flexibility in dealing with lock unavailability and greater control over queueing behavior. But ``ReentrantLock`` is not a blanket substitute for synchronized; use it only when you need features that synchronized lacks. Read-write locks allow multiple readers to access a guarded object concurrently, offering the potential for improved scalability when accessing read-mostly data structures.==**
+
+
+## Building Custom Synchronizers
+
