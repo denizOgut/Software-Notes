@@ -5068,6 +5068,518 @@ public class ReadWriteMap<K,V> {
 
 **==Explicit Locks offer an extended feature set compared to intrinsic locking, including greater flexibility in dealing with lock unavailability and greater control over queueing behavior. But ``ReentrantLock`` is not a blanket substitute for synchronized; use it only when you need features that synchronized lacks. Read-write locks allow multiple readers to access a guarded object concurrently, offering the potential for improved scalability when accessing read-mostly data structures.==**
 
-
 ## Building Custom Synchronizers
 
+The easiest way to construct a state-dependent class is usually to build on top of an existing state-dependent library class;
+
+But if the library classes do not provide the functionality you need, you can also build your own synchronizers using the low-level mechanisms provided by the language and libraries, including intrinsic condition queues, explicit ``Condition`` objects, and the ``AbstractQueuedSynchronizer`` framework.
+
+### 14.1 Managing state dependence
+
+In a single-threaded program, if a state-based precondition (like “the connection pool is nonempty”) does not hold when a method is called, it will never become true. Therefore, classes in sequential programs can be coded to fail when their preconditions do not hold. But in a concurrent program, state-based conditions can change through the actions of other threads: a pool that was empty a few instructions ago can become nonempty because another thread returned an element. State-dependent methods on concurrent objects can sometimes get away with failing when their preconditions are not met, but there is often a better alternative: wait for the precondition to become true.
+
+State-dependent operations that block until the operation can proceed are more convenient and less error-prone than those that simply fail. The built-in condition queue mechanism enables threads to block until an object has entered a state that allows progress and to wake blocked threads when they may be able to make further progress.
+
+ The pattern of locking is somewhat unusual in that the lock is released and reacquired in the middle of the operation. The state variables that make up the precondition must be guarded by the object’s lock, so that they can remain constant while the precondition is tested. But if the precondition does not hold, the lock must be released so another thread can modify the object state—otherwise the precondition will never become true.
+
+```java
+acquire lock on object state
+while (precondition does not hold) {
+	release lock
+	wait until precondition might hold
+	optionally fail if interrupted or timeout expires
+	reacquire lock
+}
+perform action
+release lock
+```
+
+State dependent operations can deal with precondition failure by throwing an exception or returning an error status (making it the caller’s problem), or by blocking until the object transitions to the right state
+
+#### 14.1.1 Example: propagating precondition failure to callers
+
+```java
+@ThreadSafe
+public abstract class BaseBoundedBuffer<V> {
+    @GuardedBy("this") private final V[] buf;
+    @GuardedBy("this") private int tail;
+    @GuardedBy("this") private int head;
+    @GuardedBy("this") private int count;
+    
+    protected BaseBoundedBuffer(int capacity) {
+        this.buf = (V[]) new Object[capacity];
+    }
+    
+    protected synchronized final void doPut(V v) {
+        buf[tail] = v;
+        if (++tail == buf.length)
+            tail = 0;
+        ++count;
+    }
+    
+    protected synchronized final V doTake() {
+        V v = buf[head];
+        buf[head] = null;
+        if (++head == buf.length)
+            head = 0;
+        --count;
+        return v;
+    }
+    
+    public synchronized final boolean isFull() {
+        return count == buf.length;
+    }
+    
+    public synchronized final boolean isEmpty() {
+        return count == 0;
+    }
+}
+```
+
+```java
+@ThreadSafe
+public class GrumpyBoundedBuffer<V> extends BaseBoundedBuffer<V> {
+    public GrumpyBoundedBuffer(int size) { 
+        super(size); 
+    }
+
+    public synchronized void put(V v) throws BufferFullException {
+        if (isFull())
+            throw new BufferFullException();
+        doPut(v);
+    }
+
+    public synchronized V take() throws BufferEmptyException {
+        if (isEmpty())
+            throw new BufferEmptyException();
+        return doTake();
+    }
+}
+```
+
+```java
+while (true) {
+	try {
+		V item = buffer.take();
+		// use item
+		break;
+	} catch (BufferEmptyException e) {
+		Thread.sleep(SLEEP_GRANULARITY);
+	}
+}
+```
+
+#### 14.1.2 Example: crude blocking by polling and sleeping
+
+```java
+@ThreadSafe
+public class SleepyBoundedBuffer<V> extends BaseBoundedBuffer<V> {
+    public SleepyBoundedBuffer(int size) { 
+        super(size); 
+    }
+
+    public void put(V v) throws InterruptedException {
+        while (true) {
+            synchronized (this) {
+                if (!isFull()) {
+                    doPut(v);
+                    return;
+                }
+            }
+            Thread.sleep(SLEEP_GRANULARITY);
+        }
+    }
+
+    public V take() throws InterruptedException {
+        while (true) {
+            synchronized (this) {
+                if (!isEmpty())
+                    return doTake();
+            }
+            Thread.sleep(SLEEP_GRANULARITY);
+        }
+    }
+}
+```
+
+These attempts to synthesize a blocking operation from polling and sleeping were fairly painful. It would be nice to have a way of suspending a thread but ensuring that it is awakened promptly when a certain condition (such as the buffer being no longer full) becomes true. This is exactly what condition queues do
+
+#### 14.1.3 Condition queues to the rescue
+
+Condition queues are like the “toast is ready” bell on your toaster. If you are listening for it, you are notified promptly when your toast is ready and can drop what you are doing get your toast. you could miss the notification, but on return to the kitchen you can observe the state of the toaster and either retrieve the toast if it is finished or start listening for the bell again if it is not
+
+A condition queue gets its name because it gives a group of threads—called the wait set—a way to wait for a specific condition to become true. Unlike typical queues in which the elements are data items the elements of a condition queue are the threads waiting for the condition.
+
+Just as each Java object can act as a lock, each object can also act as a condition queue, and the wait, notify, and notifyAll methods in Object constitute the API for intrinsic condition queues. An object’s intrinsic lock and its intrinsic condition queue are related: in order to call any of the condition queue methods on object X, you must hold the lock on X. This is because the mechanism for waiting for state-based conditions is necessarily tightly bound to the mechanism for preserving state consistency: you cannot wait for a condition unless you can examine the state, and you cannot release another thread from a condition wait unless you can modify the state.
+
+``Object.wait`` atomically releases the lock and asks the OS to suspend the current thread, allowing other threads to acquire the lock and therefore modify the object state. Upon waking, it reacquires the lock before returning. Intuitively, calling wait means “I want to go to sleep, but wake me when something interesting happens”, and calling the notification methods means “something interesting happened”.
+
+**Listing 14.6. Bounded buffer using condition queues.**
+```java
+@ThreadSafe
+public class BoundedBuffer<V> extends BaseBoundedBuffer<V> {
+    // CONDITION PREDICATE: not-full (!isFull())
+    // CONDITION PREDICATE: not-empty (!isEmpty())
+    public BoundedBuffer(int size) { 
+        super(size); 
+    }
+
+    // BLOCKS-UNTIL: not-full
+    public synchronized void put(V v) throws InterruptedException {
+        while (isFull())
+            wait();
+        doPut(v);
+        notifyAll();
+    }
+
+    // BLOCKS-UNTIL: not-empty
+    public synchronized V take() throws InterruptedException {
+        while (isEmpty())
+            wait();
+        V v = doTake();
+        notifyAll();
+        return v;
+    }
+}
+```
+
+### 14.2 Using condition queues
+
+Condition queues make it easier to build efficient and responsive state-dependent classes, but they are still easy to use incorrectly; there are a lot of rules regarding their proper use that are not enforced by the compiler or platform. 
+#### 14.2.1 The condition predicate
+
+**==The key to using condition queues correctly is identifying the condition predicates that the object may wait for.==** It is the condition predicate that causes much of the confusion surrounding wait and notify, because it has no instantiation in the API and nothing in either the language specification or the JVM implementation ensures its correct use.
+
+==**The condition predicate is the precondition that makes an operation state-dependent in the first place.**==
+
+> **Document the condition predicate(s) associated with a condition queue and the operations that wait on them.**
+
+There is an important three-way relationship in a condition wait involving locking, the wait method, and a condition predicate. The condition predicate involves state variables, and the state variables are guarded by a lock, so before testing the condition predicate, we must hold that lock. The lock object and the condition queue object (the object on which wait and notify are invoked) must also be the same object
+
+> **Every call to wait is implicitly associated with a specific condition predicate. When calling wait regarding a particular condition predicate, the caller must already hold the lock associated with the condition queue, and that lock must also guard the state variables from which the condition predicate is composed.**
+
+#### 14.2.2 Waking up too soon
+
+A single intrinsic condition queue may be used with more than one condition predicate. When your thread is awakened because someone called notifyAll, that doesn’t mean that the condition predicate you were waiting for is now true.
+
+Additionally, wait is even allowed to return “spuriously”—not in response to any thread calling notify. When control re-enters the code calling wait, it has reacquired the lock associated with the condition queue. Is the condition predicate now true? Maybe. It might have been true at the time the notifying thread called notifyAll, but could have become false again by the time you reacquire the lock. Other threads may have acquired the lock and changed the object’s state between when your thread was awakened and when wait reacquired the lock.
+
+You don’t know why another thread called notify or notifyAll; maybe it was because another condition predicate associated with the same condition queue became true.
+
+For all these reasons, when you wake up from wait you must test the condition predicate again, and go back to waiting if it is not yet true. Since you can wake up repeatedly without your condition predicate being true, you must therefore always call wait from within a loop, testing the condition predicate in each iteration.
+
+```java
+void stateDependentMethod() throws InterruptedException {
+	// condition predicate must be guarded by lock
+	synchronized(lock) {
+		while (!conditionPredicate())
+			lock.wait();
+			// object is now in desired state
+	}
+}
+```
+
+> When using condition waits (``Object.wait`` or ``Condition.await``):
+> **==• Always have a condition predicate—some test of object state that must hold before proceeding;**==
+> ==**• Always test the condition predicate before calling wait, and again after returning from wait;**==
+> ==**• Always call wait in a loop;**==
+> ==**• Ensure that the state variables making up the condition predicate are guarded by the lock associated with the condition queue;**==
+> ==**• Hold the lock associated with the the condition queue when calling wait, notify, or notifyAll; and**==
+> ==**• Do not release the lock after checking the condition predicate but before acting on it.==**
+
+#### 14.2.3 Missed signals
+
+Another form of liveness failure is missed signals. A missed signal occurs when a thread must wait for a specific condition that is already true, but fails to check the condition predicate before waiting. Now the thread is waiting to be notified of an event that has already occurred.
+
+notification is not “sticky”—if thread A notifies on a condition queue and thread B subsequently waits on that same condition queue, B does not immediately wake up—another notification is required to wake B. Missed signals are the result of coding errors like those warned against in the list above, such as failing to test the condition predicate before calling wait.
+#### 14.2.4 Notification
+
+The other half is notification. In a bounded buffer
+
+> **==Whenever you wait on a condition, make sure that someone will perform a notification whenever the condition predicate becomes true.==**
+
+There are two notification methods in the condition queue API—notify and notifyAll. To call either, you must hold the lock associated with the condition queue object. Calling notify causes the JVM to select one thread waiting on that condition queue to wake up; calling notifyAll wakes up all the threads waiting on that condition queue. Because you must hold the lock on the condition queue object when calling notify or notifyAll, and waiting threads cannot return from wait without reacquiring the lock, the notifying thread should release the lock quickly to ensure that the waiting threads are unblocked as soon as possible.
+
+Because multiple threads could be waiting on the same condition queue for different condition predicates, using notify instead of notifyAll can be dangerous, primarily because single notification is prone to a problem akin to missed signals.
+
+> Single notify can be used instead of notifyAll only when both of the following conditions hold:
+> 
+> - **Uniform waiters**. Only one condition predicate is associated with the condition queue, and each thread executes the same logic upon returning from wait; and
+> - **One-in, one-out**. A notification on the condition variable enables at most one thread to proceed.
+
+```java
+public synchronized void put(V v) throws InterruptedException {
+	while (isFull())
+		wait();
+	boolean wasEmpty = isEmpty();
+	doPut(v);
+	if (wasEmpty)
+		notifyAll();
+}
+```
+
+#### 14.2.6 Subclass safety issues
+
+If you want to support subclassing at all, you must structure your class so subclasses can add the appropriate notification on behalf of the base class if it is sub classed in a way that violates one of the requirements
+for single or conditional notification. 
+
+A state-dependent class should either fully expose (and document) its waiting and notification protocols to subclasses, or prevent subclasses from participating in them at all.
+
+One option for doing this is to effectively prohibit subclassing, either by making the class final or by hiding the condition queues, locks, and state variables from subclasses. Otherwise, if the subclass does something to undermine the way the base class uses notify, it needs to be able to repair the damage.
+
+#### 14.2.7 Encapsulating condition queues
+
+It is generally best to encapsulate the condition queue so that it is not accessible outside the class hierarchy in which it is used. Otherwise, callers might be tempted to think they understand your protocols for waiting and notification and use them in a manner inconsistent with your design.
+
+Unfortunately, this advice—to encapsulate objects used as condition queues— is not consistent with the most common design pattern for thread-safe classes, in which an object’s intrinsic lock is used to guard its state.
+
+#### 14.2.8 Entry and exit protocols
+
+Wellings (Wellings, 2004) characterizes the proper use of wait and notify in terms of entry and exit protocols. For each state-dependent operation and for each operation that modifies state on which another operation has a state dependency, you should define and document an entry and exit protocol. The entry protocol is the operation’s condition predicate; the exit protocol involves examining any state variables that have been changed by the operation to see if they might have caused some other condition predicate to become true, and if so, notifying on the associated condition queue.
+
+### 14.3 Explicit condition objects
+
+explicit Locks can be useful in some situations where intrinsic locks are too inflexible. Just as Lock is a generalization of intrinsic locks, Condition is a generalization of intrinsic condition queues. 
+
+```java
+public interface Condition {
+	void await() throws InterruptedException;
+	boolean await(long time, TimeUnit unit) throws InterruptedException;
+	long awaitNanos(long nanosTimeout) throws InterruptedException;
+	void awaitUninterruptibly();
+	boolean awaitUntil(Date deadline) throws InterruptedException;
+	void signal();
+	void signalAll();
+}
+```
+
+Unlike intrinsic condition queues, you can have as many Condition objects per Lock as you want. Condition objects inherit the fairness setting of their associated Lock; for fair locks, threads are released from ``Condition.await`` in FIFO order.
+
+> **==Hazard warning: The equivalents of wait, notify, and notifyAll for Condition objects are await, signal, and `signalAll`. However, Condition extends Object, which means that it also has wait and notify methods. Be sure to use the proper versions—await and signal— instead!==**
+
+**==Choose between using explicit ``Conditions`` and intrinsic condition queues in the same way as you would choose between ``ReentrantLock`` and synchronized: use ``Condition`` if you need its advanced features such as fair queueing or multiple wait sets per lock, and otherwise prefer intrinsic condition queues.==**
+
+### 14.4 Anatomy of a synchronizer
+
+The interfaces of ``ReentrantLock`` and ``Semaphore`` have a lot in common. Both classes act as a “gate”, allowing only a limited number of threads to pass at a time; threads arrive at the gate and are allowed through or are turned away Further, both allow interruptible, uninterruptible, and timed acquisition attempts, and both allow a choice of fair or non-fair queueing of waiting threads.
+ 
+ Given this commonality, you might think that Semaphore was implemented on top of ``ReentrantLock``, or perhaps ``ReentrantLock`` was implemented as a Semaphore with one permit. This would be entirely practical; it is a common exercise to prove that a counting semaphore can be implemented using a lock  and that a lock can be implemented using a counting semaphore.
+
+```java
+@ThreadSafe
+public class ConditionBoundedBuffer<T> {
+    protected final Lock lock = new ReentrantLock();
+    // CONDITION PREDICATE: notFull (count < items.length)
+    private final Condition notFull = lock.newCondition();
+    // CONDITION PREDICATE: notEmpty (count > 0)
+    private final Condition notEmpty = lock.newCondition();
+    @GuardedBy("lock")
+    private final T[] items = (T[]) new Object[BUFFER_SIZE];
+    @GuardedBy("lock") private int tail, head, count;
+
+    // BLOCKS-UNTIL: notFull
+    public void put(T x) throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == items.length)
+                notFull.await();
+            items[tail] = x;
+            if (++tail == items.length)
+                tail = 0;
+            ++count;
+            notEmpty.signal();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // BLOCKS-UNTIL: notEmpty
+    public T take() throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == 0)
+                notEmpty.await();
+            T x = items[head];
+            items[head] = null;
+            if (++head == items.length)
+                head = 0;
+            --count;
+            notFull.signal();
+            return x;
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+```java
+@ThreadSafe
+public class SemaphoreOnLock {
+    private final Lock lock = new ReentrantLock();
+    // CONDITION PREDICATE: permitsAvailable (permits > 0)
+    private final Condition permitsAvailable = lock.newCondition();
+    @GuardedBy("lock") private int permits;
+
+    SemaphoreOnLock(int initialPermits) {
+        lock.lock();
+        try {
+            permits = initialPermits;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // BLOCKS-UNTIL: permitsAvailable
+    public void acquire() throws InterruptedException {
+        lock.lock();
+        try {
+            while (permits <= 0)
+                permitsAvailable.await();
+            --permits;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void release() {
+        lock.lock();
+        try {
+            ++permits;
+            permitsAvailable.signal();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+### 14.5 ``AbstractQueuedSynchronizer``
+
+Most developers will probably never use AQS directly; the standard set of synchronizers covers a fairly wide range of situations. But seeing how the standard synchronizers are implemented can help clarify how they work.
+
+The basic operations that an AQS-based synchronizer performs are some variants of acquire and release. Acquisition is the state-dependent operation and can always block. With a lock or semaphore, the meaning of acquire is straightforward—acquire the lock or a permit—and the caller may have to wait until the synchronizer is in a state where that can happen. With ``CountDownLatch``, acquire means “wait until the latch has reached its terminal state”, and with ``FutureTask``, it means “wait until the task has completed”. Release is not a blocking operation; a release may allow threads blocked in acquire to proceed 
+
+For a class to be state-dependent, it must have some state. AQS takes on the task of managing some of the state for the synchronizer class: it manages a single integer of state information that can be manipulated through the protected ``getState``, ``setState``, and ``compareAndSetState`` methods. This can be used to represent arbitrary state; for example, ``ReentrantLock`` uses it to represent the count of times the owning thread has acquired the lock, Semaphore uses it to represent the number of permits remaining, and ``FutureTask`` uses it to represent the state of the task . Synchronizers can also manage additional state variables themselves; for example, ``ReentrantLock`` keeps track of the current lock owner so it can distinguish between reentrant and contended lock-acquisition requests.
+
+```java
+boolean acquire() throws InterruptedException {
+    while (state does not permit acquire) {
+        if (blocking acquisition requested) {
+            enqueue current thread if not already queued
+            block current thread
+        } else {
+            return failure;
+        }
+    }
+    possibly update synchronization state
+    dequeue thread if it was queued
+    return success;
+}
+
+void release() {
+    update synchronization state
+    if (new state may permit a blocked thread to acquire) {
+        unblock one or more queued threads;
+    }
+}
+```
+
+To simplify implementation of locks that support condition queues (like ``ReentrantLock``), AQS also provides machinery for constructing condition variables associated with synchronizers
+
+#### 14.5.1 A simple latch
+
+```java
+@ThreadSafe
+public class OneShotLatch {
+    private final Sync sync = new Sync();
+    
+    public void signal() { 
+        sync.releaseShared(0); 
+    }
+    
+    public void await() throws InterruptedException {
+        sync.acquireSharedInterruptibly(0);
+    }
+    
+    private class Sync extends AbstractQueuedSynchronizer {
+        protected int tryAcquireShared(int ignored) {
+            // Succeed if latch is open (state == 1), else fail
+            return (getState() == 1) ? 1 : -1;
+        }
+
+        protected boolean tryReleaseShared(int ignored) {
+            setState(1); // Latch is now open
+            return true; // Other threads may now be able to acquire
+        }
+    }
+}
+```
+
+### 14.6 AQS in ``java.util.concurrent`` synchronizer classes
+
+Many of the blocking classes in j``ava.util.concurrent``, such as ``ReentrantLock``, ``Semaphore``, ``ReentrantReadWriteLock``, ``CountDownLatch``, ``SynchronousQueue``, and ``FutureTask``, are built using AQS.
+
+#### 14.6.1 ``ReentrantLock``
+
+``ReentrantLock`` supports only exclusive acquisition, so it implements ``tryAcquire``, ``tryRelease``, and ``isHeldExclusively``;  ``ReentrantLock`` uses the synchronization state to hold the lock acquisition count, and maintains an owner variable holding the identity of the owning thread that is modified only when the current thread has just acquired the lock or is just about to release it. In ``tryRelease``, it checks the owner field to ensure that the current thread owns the lock before allowing an unlock to proceed; in ``tryAcquire``, it uses this field to differentiate between a reentrant acquisition and a contended acquisition attempt.
+
+When a thread attempts to acquire a lock, ``tryAcquire`` first consults the lock state. If it is unheld, it tries to update the lock state to indicate that it is held. Because the state could have changed since it was first inspected a few instructions ago, ``tryAcquire`` uses ``compareAndSetState`` to attempt to atomically update the state to indicate that the lock is now held and confirm that the state has not changed since last observed.
+
+```java
+protected boolean tryAcquire(int ignored) {
+	final Thread current = Thread.currentThread();
+	int c = getState();
+	if (c == 0) {
+		if (compareAndSetState(0, 1)) {
+			owner = current;
+		return true;
+	}
+		} else if (current == owner) {
+			setState(c+1);
+			return true;
+		}
+	return false;
+}
+```
+
+#### 14.6.2 ``Semaphore`` and ``CountDownLatch``
+
+Semaphore uses the AQS synchronization state to hold the count of permits currently available. The ``tryAcquireShared`` method
+
+```java
+protected int tryAcquireShared(int acquires) {
+	while (true) {
+		int available = getState();
+		int remaining = available - acquires;
+		if (remaining < 0 || compareAndSetState(available, remaining))
+			return remaining;
+	}
+}
+
+protected boolean tryReleaseShared(int releases) {
+	while (true) {
+		int p = getState();
+		if (compareAndSetState(p, p + releases))
+			return true;
+	}
+}
+```
+
+#### 14.6.3 ``FutureTask``
+
+At first glance, ``FutureTask`` doesn’t even look like a synchronizer. But ``Future.get`` has semantics that are very similar to that of a latch—if some event has occurred, then threads can proceed, otherwise they are queued until that event occurs
+
+``FutureTask`` uses the AQS synchronization state to hold the task status— running, completed, or cancelled. It also maintains additional state variables to hold the result of the computation or the exception it threw. It further maintains a reference to the thread that is running the computation
+
+#### 14.6.4 ``ReentrantReadWriteLock``
+
+The interface for ``ReadWriteLock`` suggests there are two locks—a reader lock and a writer lock—but in the AQS-based implementation of ``ReentrantReadWriteLock``, a single AQS subclass manages both read and write locking. ``ReentrantRead``- ``WriteLock`` uses 16 bits of the state for the write-lock count, and the other 16 bits for the read-lock count. Operations on the read lock use the shared acquire and release methods; operations on the write lock use the exclusive acquire and release methods.
+
+Internally, AQS maintains a queue of waiting threads, keeping track of whether a thread has requested exclusive or shared access. In ``ReentrantReadWriteLock``, when the lock becomes available, if the thread at the head of the
+queue was looking for write access it will get it, and if the thread at the head of the queue was looking for read access, all queued threads up to the first writer will get it.
+### Summary
+
+**==If you need to implement a state-dependent class—one whose methods must block if a state-based precondition does not hold—the best strategy is usually to build upon an existing library class such as Semaphore, ``BlockingQueue``, or ``CountDownLatch``, as in ``ValueLatch`` on page 187. However, sometimes existing library classes do not provide a sufficient foundation; in these cases, you can build your own synchronizers using intrinsic condition queues, explicit Condition objects, or ``AbstractQueuedSynchronizer``. Intrinsic condition queues are tightly bound to intrinsic locking, since the mechanism for managing state dependence is necessarily tied to the mechanism for ensuring state consistency. Similarly, explicit Conditions are tightly bound to explicit Locks, and offer an extended feature set compared to intrinsic condition queues, including multiple wait sets per lock, interruptible or uninterruptible condition waits, fair or non-fair queuing, and deadline-based waiting.==**
+
+## Atomic Variables and Nonblocking Synchronization
