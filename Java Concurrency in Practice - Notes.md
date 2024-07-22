@@ -5887,3 +5887,261 @@ This ABA problem can arise in algorithms that do their own memory management for
 
 ## The Java Memory Model
 
+### 16.1 What is a memory model, and why would I want one?
+
+Suppose one thread assigns a value to ``aVariable``:
+
+A memory model addresses the question “Under what conditions does a thread that reads ``aVariable`` see the value 3?” This may sound like a dumb question, but in the absence of synchronization, there are a number of reasons a thread might not immediately—or ever—see the results of an operation in another thread. Compilers may generate instructions in a different order than the “obvious” one suggested by the source code, or store variables in registers instead of in memory; processors may execute instructions in parallel or out of order; caches may vary the order in which writes to variables are committed to main memory; and values stored in processor-local caches may not be visible to other processors. These factors can prevent a thread from seeing the most up-to-date value for a variable and can cause memory actions in other threads to appear to happen out of order—if you don’t use adequate synchronization.
+
+In a single-threaded environment, all these tricks played on our program by the environment are hidden from us and have no effect other than to speed up execution. The Java Language Specification requires the JVM to maintain within thread as-if-serial semantics: as long as the program has the same result as if it were executed in program order in a strictly sequential environment, all these games are permissible.
+
+As processors have become more sophisticated, so too have compilers, rearranging instructions to facilitate optimal execution and using sophisticated global register-allocation algorithms.
+
+In a multithreaded environment, the illusion of sequentially cannot be maintained without significant performance cost. Since most of the time threads within a concurrent application are each “doing their own thing”, excessive inter-thread coordination would only slow down the application to no real benefit. It is only when multiple threads share data that it is necessary to coordinate their activities, and the JVM relies on the program to identify when this is happening by using synchronization.
+
+#### 16.1.1 Platform memory models
+
+In a shared-memory multiprocessor architecture, each processor has its own cache that is periodically reconciled with main memory. Processor architectures provide varying degrees of cache coherence; some provide minimal guarantees that allow different processors to see different values for the same memory location at virtually any time. The operating system, compiler, and runtime (and sometimes, the program, too) must make up the difference between what the hardware provides and what thread safety requires.
+
+Ensuring that every processor knows what every other processor is doing at all times is expensive. Most of the time this information is not needed, so processors relax their memory-coherency guarantees to improve performance. An architecture’s memory model tells programs what guarantees they can expect from the memory system, and specifies the special instructions required o get the additional memory coordination guarantees required when sharing data. In order to shield the Java developer from the differences between memory models across architectures, Java provides its own memory model, and the JVM deals with the differences between the JMM and the underlying platform’s memory model by inserting memory barriers at the appropriate places.
+
+The bottom line is that modern shared-memory multiprocessors (and compilers) can do some surprising things when data is shared across threads, unless you’ve told them not to through the use of memory barriers. Fortunately, Java programs need not specify the placement of memory barriers; they need only identify when shared state is being accessed, through the proper use of synchronization.
+
+### 16.1.2 Reordering
+
+The various reasons why operations might be delayed or appear to execute out of order can all be grouped into the general category of reordering.
+
+#### 16.1.3 The Java Memory Model in 500 words or less
+
+The Java Memory Model is specified in terms of actions, which include reads and writes to variables, locks and unlocks of monitors, and starting and joining with threads. The JMM defines a partial ordering2 called happens-before on all actions within the program. To guarantee that the thread executing action B can see the results of action A (whether or not A and B occur in different threads), there must be a happens-before relationship between A and B. In the absence of a happens-before ordering between two operations, the JVM is free to reorder them as it pleases.
+
+A data race occurs when a variable is read by more than one thread, and written by at least one thread, but the reads and writes are not ordered by happens-before. A correctly synchronized program is one with no data races; correctly synchronized programs exhibit sequential consistency, meaning that all actions within the program appear to happen in a fixed, global order.
+
+**Insufficiently synchronized program that can have surprising results. Don’t do this.**
+
+```java
+public class PossibleReordering {
+    static int x = 0, y = 0;
+    static int a = 0, b = 0;
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread one = new Thread(new Runnable() {
+            public void run() {
+                a = 1;
+                x = b;
+            }
+        });
+
+        Thread other = new Thread(new Runnable() {
+            public void run() {
+                b = 1;
+                y = a;
+            }
+        });
+
+        one.start();
+        other.start();
+        one.join();
+        other.join();
+        System.out.println("( " + x + "," + y + ")");
+    }
+}
+```
+
+![[Pasted image 20240722184613.png]]
+
+The rules for happens-before are: Program order rule. Each action in a thread happens-before every action in that thread that comes later in the program order.
+
+- ==**Monitor lock rule**. An unlock on a monitor lock happens-before every subsequent lock on that same monitor lock.==
+
+- ==**Volatile variable rule**. A write to a volatile field happens-before every subsequent read of that same field.==
+
+- ==**Thread start rule**. A call to ``Thread.start`` on a thread happens-before every action in the started thread.==
+
+- ==**Thread termination rule**. Any action in a thread happens-before any other thread detects that thread has terminated, either by successfully return from ``Thread.join`` or by ``Thread.isAlive`` returning false.==
+
+- ==**Interruption rule**. A thread calling interrupt on another thread happens-before the interrupted thread detects the interrupt (either by having ``InterruptedException`` thrown, or invoking ``isInterrupted`` or interrupted).==
+
+- ==**Finalizer rule**. The end of a constructor for an object happens-before the start of the finalizer for that ``object.Transitivity``. If A happens-before B, and B happens-before C, then A happens-before C.==
+
+![[Pasted image 20240722184925.png]]
+
+#### 16.1.4 Piggybacking on synchronization
+
+Because of the strength of the happens-before ordering, you can sometimes piggyback on the visibility properties of an existing synchronization. This entails combining the program order rule for happens-before with one of the other ordering rules (usually the monitor lock or volatile variable rule) to order accesses to a variable not otherwise guarded by a lock. This technique is very sensitive to the order in which statements occur and is therefore quite fragile; it is an advanced technique that should be reserved for squeezing the last drop of performance out of the most performance-critical classes like ``ReentrantLock``.
+
+The implementation of the protected ``AbstractQueuedSynchronizer`` methods in ``FutureTask`` illustrates piggybacking.
+
+**Listing 16.2. Inner class of ``FutureTask`` illustrating synchronization piggybacking.**
+```java
+// Inner class of FutureTask
+private final class Sync extends AbstractQueuedSynchronizer {
+    private static final int RUNNING = 1, RAN = 2, CANCELLED = 4;
+    private V result;
+    private Exception exception;
+
+    void innerSet(V v) {
+        while (true) {
+            int s = getState();
+            if (ranOrCancelled(s))
+                return;
+            if (compareAndSetState(s, RAN))
+                break;
+        }
+        result = v;
+        releaseShared(0);
+        done();
+    }
+
+    V innerGet() throws InterruptedException, ExecutionException {
+        acquireSharedInterruptibly(0);
+        if (getState() == CANCELLED)
+            throw new CancellationException();
+        if (exception != null)
+            throw new ExecutionException(exception);
+        return result;
+    }
+}
+```
+
+We call this technique “piggybacking” because it uses an existing happens before ordering that was created for some other reason to ensure the visibility of object X, rather than creating a happens-before ordering specifically for publishing X.
+
+Other happens-before orderings guaranteed by the class library include:
+
+==**• Placing an item in a thread-safe collection happens-before another thread retrieves that item from the collection;==**
+
+**==• Counting down on a ``CountDownLatch`` happens-before a thread returns from await on that latch;==**
+
+**==• Releasing a permit to a Semaphore happens-before acquiring a permit from that same Semaphore;==**
+
+**==• Actions taken by the task represented by a Future happens-before another thread successfully returns from ``Future.get``;==**
+
+**==• Submitting a Runnable or Callable to an Executor happens-before the task begins execution; and==**
+
+**==• A thread arriving at a ``CyclicBarrier`` or Exchanger happens-before the other threads are released from that same barrier or exchange point. If Cyclic- Barrier uses a barrier action, arriving at the barrier happens-before the barrier action, which in turn happens-before threads are released from the barrier.**==
+
+### 16.2 Publication
+
+#### 16.2.1 Unsafe publication
+
+The possibility of reordering in the absence of a happens-before relationship explains why publishing an object without adequate synchronization can allow another thread to see a partially constructed object. Initializing a new object involves writing to variables—the new object’s fields. Similarly, publishing a reference involves writing to another variable—the reference to the new object. If you do not ensure that publishing the shared reference happens-before another thread loads that shared reference, then the write of the reference to the new object can be reordered (from the perspective of the thread consuming the object) with the writes to its fields. In that case, another thread could see an up-to-date value for the object reference but out-of-date values for some or all of that object’s state—a partially constructed object.
+
+```java
+@NotThreadSafe
+public class UnsafeLazyInitialization {
+    private static Resource resource;
+
+    public static Resource getInstance() {
+        if (resource == null)
+            resource = new Resource(); // unsafe publication
+        return resource;
+    }
+}
+```
+
+> **With the exception of immutable objects, it is not safe to use an object that has been initialized by another thread unless the publication happens before the consuming thread uses it.**
+
+#### 16.2.2 Safe publication
+
+The safe-publication idioms  ensure that the published object is visible to other threads because they ensure the publication happens before the consuming thread loads a reference to the published object. If thread A places X on a ``BlockingQueue`` (and no thread subsequently modifies it) and thread B retrieves it from the queue, B is guaranteed to see X as A left it. This is because the ``BlockingQueue`` implementations have sufficient internal synchronization to ensure that the put happens-before the take. Similarly, using a shared variable guarded by a lock or a shared volatile variable ensures that reads and writes of that variable are ordered by happens-before.
+
+This happens-before guarantee is actually a stronger promise of visibility and ordering than made by safe publication. When X is safely published from A to B, the safe publication guarantees visibility of the state of X, but not of the state of other variables A may have touched. But if A putting X on a queue happens-before B fetches X from that queue, not only does B see X in the state that A left it (assuming that X has not been subsequently modified by A or anyone else), but B sees everything A did before the handoff
+
+#### 16.2.3 Safe initialization idioms
+
+It sometimes makes sense to defer initialization of objects that are expensive to initialize until they are actually needed, but we have seen how the misuse of lazy initialization can lead to trouble.
+
+**Listing 16.4. Thread-safe lazy initialization.**
+```java
+@ThreadSafe
+public class SafeLazyInitialization {
+    private static Resource resource;
+
+    public synchronized static Resource getInstance() {
+        if (resource == null)
+            resource = new Resource();
+        return resource;
+    }
+}
+```
+
+**Listing 16.5. Eager initialization.**
+
+```java
+@ThreadSafe
+public class EagerInitialization {
+	private static Resource resource = new Resource();
+	public static Resource getResource() { return resource; }
+}
+```
+
+**Listing 16.6. Lazy initialization holder class idiom.**
+
+```java
+public class ResourceFactory {
+	private static class ResourceHolder {
+		public static Resource resource = new Resource();
+	}
+	public static Resource getResource() {
+		return ResourceHolder.resource;
+	}
+}
+```
+
+#### 16.2.4 Double-checked locking
+
+Double-checked locking (DCL) was an early optimization strategy to reduce synchronization overhead for lazy initialization, where initialization is delayed until needed. It checks if a resource is initialized without synchronization first, and if not, synchronizes and checks again before initializing. However, this approach was flawed because it could result in seeing a partially constructed resource due to visibility issues in the Java Memory Model (JMM). This could lead to an object being in an invalid state. With Java 5.0 and later, making the resource variable `volatile` allows DCL to work correctly, as volatile ensures visibility, and its performance impact is minimal.
+
+```java
+@NotThreadSafe
+public class DoubleCheckedLocking {
+    private static Resource resource;
+
+    public static Resource getInstance() {
+        if (resource == null) {
+            synchronized (DoubleCheckedLocking.class) {
+                if (resource == null) {
+                    resource = new Resource();
+                }
+            }
+        }
+        return resource;
+    }
+}
+```
+
+### 16.3 Initialization safety
+
+The guarantee of initialization safety allows properly constructed immutable objects to be safely shared across threads without synchronization, regardless of how they are published—even if published using a data race.
+
+Without initialization safety, supposedly immutable objects like ``String`` can appear to change their value if synchronization is not used by both the publishing and consuming threads. The security architecture relies on the immutability of ``String``; the lack of initialization safety could create security vulnerabilities that allow malicious code to bypass security checks.
+
+
+> **Initialization safety guarantees that for properly constructed objects, all threads will see the correct values of final fields that were set by the constructor, regardless of how the object is published. Further, any variables that can be reached through a final field of a properly constructed object (such as the elements of a final array or the contents of a `HashMap` referenced by a final field) are also guaranteed to be visible to other threads.**
+
+For objects with final fields, initialization safety prohibits reordering any part of construction with the initial load of a reference to that object. All writes to final fields made by the constructor, as well as to any variables reachable through those fields, become “frozen” when the constructor completes, and any thread that obtains a reference to that object is guaranteed to see a value that is at least as up to date as the frozen value. Writes that initialize variables reachable through final fields are not reordered with operations following the post-construction freeze.
+
+```java
+@ThreadSafe
+public class SafeStates {
+    private final Map<String, String> states;
+
+    public SafeStates() {
+        states = new HashMap<String, String>();
+        states.put("alaska", "AK");
+        states.put("alabama", "AL");
+        // ...
+        states.put("wyoming", "WY");
+    }
+
+    public String getAbbreviation(String s) {
+        return states.get(s);
+    }
+}
+```
+
+> **Initialization safety makes visibility guarantees only for the values that are reachable through final fields as of the time the constructor finishes. For values reachable through nonfinal fields, or values that may change after construction, you must use synchronization to ensure visibility.** 
+
+### Summary
+
+**==The Java Memory Model specifies when the actions of one thread on memory are guaranteed to be visible to another. The specifics involve ensuring that operations are ordered by a partial ordering called happens-before, which is specified at the level of individual memory and synchronization operations. In the absence of sufficient synchronization, some very strange things can happen when threads access shared data. However, the higher-level rules offered in Chapters 2 and 3, such as @GuardedBy and safe publication, can be used to ensure thread safety without resorting to the low-level details of happens-before.==**
