@@ -1303,6 +1303,214 @@ Thread safety is the concept of correctness.
 
 Thread-safe classes encapsulate any needed synchronization so that clients need not provide their own.
 
+## How to Create and Start a New Thread
+
+In Java, we can create a _Thread_ in following ways:
+
+- By extending _[Thread](https://howtodoinjava.com/java/multi-threading/java-runnable-vs-thread/)_ class
+- By implementing _Runnable_ interface
+- Using Lambda expressions
+
+###  By Extending _Thread_ Class
+
+To create a new thread, extend the class with _Thread_ and override the `run()` method.
+
+```java
+public class ExtendsThreadExample {
+    public static void main(String[] args) {
+        Thread one = new Thread1();
+        Thread two = new Thread2();
+
+        one.start();
+        two.start();
+    }
+}
+
+class Thread1 extends Thread {
+    @Override
+    public void run() {
+        for (int i = 0; i < 10; i++) {
+            System.out.println("T1 : " + i);
+        }
+    }
+}
+
+class Thread2 extends Thread {
+    @Override
+    public void run() {
+        for (int i = 0; i < 10; i++) {
+            System.out.println("T2 : " + i);
+        }
+    }
+}
+```
+
+**CSD EXAMPLE**
+```java
+public class RandomTextGeneratorThread extends Thread {  
+    private final Random m_random = new Random();  
+    private final int m_count;  
+    private final int m_min;  
+    private final int m_bound;  
+  
+    public RandomTextGeneratorThread(String name, int count, int min, int bound)  
+    {  
+        super(name);  
+        m_count = count;  
+        m_min = min;  
+        m_bound = bound;  
+    }  
+  
+    @Override  
+    public void run()  
+    {  
+        for (var i = 0; i < m_count; ++i) {  
+            var text = StringUtil.getRandomTextEN(m_random, m_random.nextInt(m_min, m_bound));  
+  
+            System.out.printf("%s -> %s%n", getName(), text);  
+            //ThreadUtil.sleep(m_random.nextLong(300, 501));  
+        }  
+    }  
+}
+```
+
+```java
+class Application {  
+    public static void run(String[] args)  
+    {  
+        var self = Thread.currentThread();  
+  
+        var nThreads = Console.readInt("Input number of threads:");  
+        var count = Console.readInt("Input count:");  
+  
+        System.out.printf("Name:%s%n", self.getName());  
+  
+        for (var i = 0; i < nThreads; ++i) {  
+            var thread = new RandomTextGeneratorThread("Generator-" + (i + 1), count, 5, 15);  
+  
+            thread.start();  
+        }  
+  
+        System.out.println("main ends!...");  
+    }  
+}
+```
+
+### By Implementing _Runnable_ Interface
+
+Implementing the _Runnable_ interface is considered a better approach because, in this way, the thread class can extend any other class. Remember, in Java, a class can extend only one class but implement multiple interfaces.
+
+```java
+public class RunnableThreadExample {
+    public static void main(String[] args) {
+        Thread one = new Thread(new ThreadOne());
+        Thread two = new Thread(new ThreadTwo());
+        Thread three = new Thread(() -> {
+            for (int i = 0; i < 10; i++) {
+                System.out.println("Thread Three : " + i);
+            }
+        });
+        one.start();
+        two.start();
+        three.start();
+    }
+}
+
+class ThreadOne implements Runnable {
+    @Override
+    public void run() {
+        for (int i = 0; i < 10; i++) {
+            System.out.println("Thread One : " + i);
+        }
+    }
+}
+
+class ThreadTwo implements Runnable {
+    @Override
+    public void run() {
+        for (int i = 0; i < 10; i++) {
+            System.out.println("Thread Two : " + i);
+        }
+    }
+}
+```
+
+**CSD EXAMPLE**
+```java
+public class RandomTextGeneratorThread implements Runnable {  
+    private final Random m_random = new Random();  
+    private final int m_count;  
+    private final int m_min;  
+    private final int m_bound;  
+  
+    public RandomTextGeneratorThread(int count, int min, int bound)  
+    {  
+        m_count = count;  
+        m_min = min;  
+        m_bound = bound;  
+    }  
+  
+    @Override  
+    public void run()  
+    {  
+        var name = Thread.currentThread().getName();  
+  
+        for (var i = 0; i < m_count; ++i) {  
+            var text = StringUtil.getRandomTextEN(m_random, m_random.nextInt(m_min, m_bound));  
+  
+            System.out.printf("%s -> %s%n", name, text);  
+        }  
+    }  
+}
+```
+
+### Using Lambda Expressions
+
+Lambda expressions help create inline instances of functional interfaces and can help reduce the boilerplate code.
+
+```java
+Runnable subTaskWithLambda = () ->
+{
+  System.out.println("SubTaskWithLambda started...");
+};
+```
+
+### Difference between Runnable vs Thread
+
+#### Key Points
+
+1. ``Runnable`` is an interface with a single ``run()`` method that needs to be implemented to define the task that will execute in the thread.
+
+2. ``Thread`` is a class that can be extended to create a new thread and override the ``run()`` method to define its task.
+
+3. Creating a thread with ``Runnable`` allows you to extend another class, but extending  ``Thread`` does not.
+
+4. Using ``Runnable`` is the preferred way to create a thread because it supports the Object-Oriented principle of composition over inheritance.
+
+#### Difference
+
+| Runnable                                    | Thread                                       |
+|---------------------------------------------|----------------------------------------------|
+| An interface to be implemented by any class | A class that is to be extended when creating |
+| whose instances are intended to be executed | a new thread.                                |
+| by a thread.                                |                                              |
+| Allows extending another class and          | Extending Thread means you cannot extend    |
+| implementing Runnable.                      | any other class.                            |
+| You need to pass an instance of a Runnable  | You can directly create a Thread object by  |
+| to a Thread object.                         | extending from the Thread class.           |
+####  When To Use ? 
+
+- Use ``Runnable`` when you want to separate the task's logic from thread control, or when you need to implement multiple interfaces.
+
+- Use ``Thread`` when you need to manage or control thread-specific behavior and do not require the ability to extend another class.
+
+### Difference between Runnable vs Callable
+
+| **Runnable interface**                                                                                    | **Callable interface**                                                                                                            |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| It cannot return the result of computation.                                                               | It can return the result of the parallel processing of a task.                                                                    |
+| It cannot throw a checked Exception.                                                                      | It can throw a checked Exception.                                                                                                 |
+| In a runnable interface, one needs to override the run() method in Java.                                  | In order to use Callable, you need to override the call()                                                                         |
 ## Lifecycle and States of a Thread
 
 A thread in Java at any point of time exists in any one of the following states. A thread lies only in one of the shown states at any instant:
@@ -1548,165 +1756,6 @@ Main thread priority : 10
 - The default priority for the main thread is always 5, it can be changed later. The default priority for all other threads depends on the priority of the parent thread.
 -  If two threads have the same priority then we can’t expect which thread will execute first. It depends on the thread scheduler’s algorithm(Round-Robin, First Come First Serve, etc)
 - If we are using thread priority for thread scheduling then we should always keep in mind that the underlying platform should provide support for scheduling based on thread priority.
-
-## How to Create and Start a New Thread
-
-In Java, we can create a _Thread_ in following ways:
-
-- By extending _[Thread](https://howtodoinjava.com/java/multi-threading/java-runnable-vs-thread/)_ class
-- By implementing _Runnable_ interface
-- Using Lambda expressions
-
-###  By Extending _Thread_ Class
-
-To create a new thread, extend the class with _Thread_ and override the `run()` method.
-
-```java
-class SubTask extends Thread {
-  public void run() {
-    System.out.println("SubTask started...");
-  }
-}
-```
-
-**CSD EXAMPLE**
-```java
-public class RandomTextGeneratorThread extends Thread {  
-    private final Random m_random = new Random();  
-    private final int m_count;  
-    private final int m_min;  
-    private final int m_bound;  
-  
-    public RandomTextGeneratorThread(String name, int count, int min, int bound)  
-    {  
-        super(name);  
-        m_count = count;  
-        m_min = min;  
-        m_bound = bound;  
-    }  
-  
-    @Override  
-    public void run()  
-    {  
-        for (var i = 0; i < m_count; ++i) {  
-            var text = StringUtil.getRandomTextEN(m_random, m_random.nextInt(m_min, m_bound));  
-  
-            System.out.printf("%s -> %s%n", getName(), text);  
-            //ThreadUtil.sleep(m_random.nextLong(300, 501));  
-        }  
-    }  
-}
-```
-
-```java
-class Application {  
-    public static void run(String[] args)  
-    {  
-        var self = Thread.currentThread();  
-  
-        var nThreads = Console.readInt("Input number of threads:");  
-        var count = Console.readInt("Input count:");  
-  
-        System.out.printf("Name:%s%n", self.getName());  
-  
-        for (var i = 0; i < nThreads; ++i) {  
-            var thread = new RandomTextGeneratorThread("Generator-" + (i + 1), count, 5, 15);  
-  
-            thread.start();  
-        }  
-  
-        System.out.println("main ends!...");  
-    }  
-}
-```
-
-### By Implementing _Runnable_ Interface
-
-Implementing the _Runnable_ interface is considered a better approach because, in this way, the thread class can extend any other class. Remember, in Java, a class can extend only one class but implement multiple interfaces.
-
-```java
-class SubTaskWithRunnable implements Runnable {  public void run() {    System.out.println("SubTaskWithRunnable started...");  }}
-```
-
-**CSD EXAMPLE**
-```java
-public class RandomTextGeneratorThread implements Runnable {  
-    private final Random m_random = new Random();  
-    private final int m_count;  
-    private final int m_min;  
-    private final int m_bound;  
-  
-    public RandomTextGeneratorThread(int count, int min, int bound)  
-    {  
-        m_count = count;  
-        m_min = min;  
-        m_bound = bound;  
-    }  
-  
-    @Override  
-    public void run()  
-    {  
-        var name = Thread.currentThread().getName();  
-  
-        for (var i = 0; i < m_count; ++i) {  
-            var text = StringUtil.getRandomTextEN(m_random, m_random.nextInt(m_min, m_bound));  
-  
-            System.out.printf("%s -> %s%n", name, text);  
-        }  
-    }  
-}
-```
-
-### Using Lambda Expressions
-
-Lambda expressions help create inline instances of functional interfaces and can help reduce the boilerplate code.
-
-```java
-Runnable subTaskWithLambda = () ->
-{
-  System.out.println("SubTaskWithLambda started...");
-};
-```
-
-### Difference between Runnable vs Thread
-
-#### Key Points
-
-1. ``Runnable`` is an interface with a single ``run()`` method that needs to be implemented to define the task that will execute in the thread.
-
-2. ``Thread`` is a class that can be extended to create a new thread and override the ``run()`` method to define its task.
-
-3. Creating a thread with ``Runnable`` allows you to extend another class, but extending  ``Thread`` does not.
-
-4. Using ``Runnable`` is the preferred way to create a thread because it supports the Object-Oriented principle of composition over inheritance.
-
-#### Difference
-
-| Runnable                                    | Thread                                       |
-|---------------------------------------------|----------------------------------------------|
-| An interface to be implemented by any class | A class that is to be extended when creating |
-| whose instances are intended to be executed | a new thread.                                |
-| by a thread.                                |                                              |
-| Allows extending another class and          | Extending Thread means you cannot extend    |
-| implementing Runnable.                      | any other class.                            |
-| You need to pass an instance of a Runnable  | You can directly create a Thread object by  |
-| to a Thread object.                         | extending from the Thread class.           |
-
-####  When To Use ? 
-
-- Use ``Runnable`` when you want to separate the task's logic from thread control, or when you need to implement multiple interfaces.
-
-- Use ``Thread`` when you need to manage or control thread-specific behavior and do not require the ability to extend another class.
-
-
-### Difference between Runnable vs Callable
-
-| **Runnable interface**                                                                                    | **Callable interface**                                                                                                            |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| It cannot return the result of computation.                                                               | It can return the result of the parallel processing of a task.                                                                    |
-| It cannot throw a checked Exception.                                                                      | It can throw a checked Exception.                                                                                                 |
-| In a runnable interface, one needs to override the run() method in Java.                                  | In order to use Callable, you need to override the call()                                                                         |
-
 ### Starting a New Thread
 
 ####  Using *``Thread.start()``*
@@ -1972,223 +2021,6 @@ class Application {
 }
 ```
 
-## Different Ways to Kill a Thread
-
-There is **no official method to kill a thread in Java**. Stopping a thread is entirely managed by the JVM. Although Java provides several ways to manage the thread lifecycle such as a _start()_, _sleep()_, _stop()_ , etc. but does not provide any method to kill a thread and free the resources cleanly.
-
-**Oracle specified** the reason for deprecating the stop() method as _It is inherently unsafe. Stopping a thread causes it to unlock all its locked monitors._ 
-
-### Two Ways to Kill a Thread
-
-**Effectively, we can only signal the thread to stop itself and let the thread clean up the resources and terminate itself.** In Java, we can send a signal to a thread in two ways:
-
-- By periodically checking a _boolean_ flag
-- By interrupting the thread using  _``Thread.interrupt()``_  method
-
-#### By Checking a Flag
-
-In this method, we check a _boolean_ flag periodically, or after every step in the task. Initially, the flag is set to _false_. To stop the thread, set the flag to _true_. Inside the thread, when the code checks the flag’s value to _true_, it destroys itself gracefully and returns.
-
-Note that in this design, generally, there are two threads. One thread sets the _flag_ value to _true_, and another thread checks the _flag_ value. To **ensure that both threads see the same value** all the time, we must make the _flag_ variable _**volatile**_. Or we can use **``AtomicBoolean``** class that **supports atomic operations on an underlying _volatile_ _boolean_ variable**.
-
-```java
-Checking flag periodicallypublic class CustomTask implements Runnable {
-  private volatile boolean flag = false;
-  private Thread worker;
-  public void start() {
-    worker = new Thread(this);
-    worker.start();
-  }
-  public void stop() {
-    flag = true;
-  }
-  @Override
-  public void run() {
-    while (!flag) {
-      try {
-        Thread.sleep(500);
-        System.out.println(Thread.currentThread().getName() + " Running...");
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        System.out.println("Thread was interrupted," + e.getMessage());
-      }
-    }
-    System.out.println(Thread.currentThread().getName() + " Stopped");
-    return;
-  }
-}
-```
-
-```java
-CustomTask task1 = new CustomTask();
-CustomTask task2 = new CustomTask();
-task1.start();
-task2.start();
-try {
-  Thread.sleep(1000);
-  task1.stop();
-  task2.stop();
-} catch (InterruptedException e) {
-  System.out.println("Caught:" + e);
-}
-```
-
-```shell
-OutputThread-0 Running...
-Thread-1 Running...
-Thread-1 Running...
-Thread-0 Running...
-Thread-1 Stopped
-Thread-0 Stopped
-```
-
-**CSD EXAMPLE**
-
-```java
-class Application {  
-    private static boolean ms_flag = true;  
-  
-    private static void threadCallback()  
-    {  
-        var a = 0L;  
-  
-        while (ms_flag)  
-            Console.writeLine(a++);  
-    }  
-  
-    public static void run(String[] args)  
-    {  
-        var t = new Thread(Application::threadCallback);  
-  
-        t.start();  
-  
-        ThreadUtil.sleep(3, TimeUnit.SECONDS);  
-        ms_flag = false;  
-    }  
-}
-```
-
-#### By Interrupting the Thread
-
-The only difference is that we will **interrupt the thread instead of setting the flag to _false_**.
-
-So inside the thread, we will keep checking the _thread’s interrupt status_, and when the thread is interrupted, we will stop the thread gracefully. To check the status of the interrupted thread, we can use the _**``Thread.isInterrupted()``**_ method. It returns either _true_ or _false_ based on the thread’s interrupt status.
-
-```java
-Using Interrupt Statuspublic class CustomTaskV2 implements Runnable {
-  private Thread worker;
-  public void start() {
-    worker = new Thread(this);
-    worker.start();
-  }
-  public void interrupt() {
-    worker.interrupt();
-  }
-  @Override
-  public void run() {
-    while (!Thread.currentThread().isInterrupted()) {
-      try {
-        Thread.sleep(500);
-        System.out.println(Thread.currentThread().getName() + " Running...");
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        System.out.println("Thread was interrupted with reason : " + e.getMessage());
-      }
-    }
-    System.out.println(Thread.currentThread().getName() + " Stopped");
-    return;
-  }
-}
-```
-
-```java
-CustomTaskV2 task1 = new CustomTaskV2();
-CustomTaskV2 task2 = new CustomTaskV2();
-task1.start();
-task2.start();
-try {
-  Thread.sleep(1100);isInterrupted
-  task1.interrupt();
-  task2.interrupt();
-} catch (InterruptedException e) {
-  System.out.println("Caught:" + e);
-}
-```
-
-```shell
-OutputThread-0 Running...
-Thread-1 Running...
-Thread-1 Running...
-Thread-0 Running...
-Thread was interrupted with reason : sleep interrupted
-Thread was interrupted with reason : sleep interrupted
-Thread-0 Stopped
-Thread-1 Stopped
-```
-
-**CSD EXAMPLE**
-
-```java
-class Application {  
-    private static void threadCallback1()  
-    {  
-        var a = 0L;  
-        var self = Thread.currentThread();  
-  
-        while (!self.isInterrupted())  
-            Console.writeLine("t1->First:%d", a++);  
-  
-        while (!self.isInterrupted())  
-            Console.writeLine("t1->Second:%d", a++);  
-    }  
-  
-    private static void threadCallback2()  
-    {  
-        var a = 0L;  
-  
-        while (!Thread.interrupted())  
-            Console.writeLine("t2->First:%d", a++);  
-  
-        while (!Thread.interrupted())  
-            Console.writeLine("t2->Second:%d", a++);  
-    }  
-  
-    public static void run(String[] args)  
-    {  
-        var t1 = new Thread(Application::threadCallback1);  
-        var t2 = new Thread(Application::threadCallback2);  
-  
-        t1.start();  
-        t2.start();  
-  
-        ThreadUtil.sleep(3, TimeUnit.SECONDS);  
-        t1.interrupt();  
-        t2.interrupt();  
-        ThreadUtil.sleep(3, TimeUnit.SECONDS);  
-        t2.interrupt();  
-    }  
-}
-```
-
-### ``Interrupt()``, ``Interrupted()`` And ``IsInterrupted()`` difference
-
-- **`interrupt()` method:**
-    
-    - Invoked on a Thread object to interrupt it.
-    - Sets the interrupt flag for the thread.
-    - Does not necessarily stop the thread but indicates that it should check for interruption.
-- **`isInterrupted()` method:**
-    
-    - Checks the interrupt status of the current thread or a specified thread.
-    - Does not clear the interrupt flag; returns the current status.
-    - Can be used to determine if the thread has been interrupted.
-- **`interrupted()` method:**
-    
-    - A static method that checks the interrupt status of the current thread.
-    - Clears the interrupt status, setting it to false.
-    - Provides a way to check and clear the interrupt status in a single atomic operation.
-
-
 ##  Join Threads
 
 If we have a requirement where **the first _Thread_ _must_ wait until the second _Thread_ completes its execution** then we should join these 2 Threads.
@@ -2212,7 +2044,7 @@ If we have a requirement where **the first _Thread_ _must_ wait until the se
 
 ####  Joining without Timeout
 
-The default _join()_ method makes the current _Thread_ wait indefinitely until the _Thread_ on which it is called is completed. If the _Thread_ is interrupted then it will throw _[InterruptedException](https://docs.oracle.com/javase/7/docs/api/java/lang/InterruptedException.html)._
+The default _join()_ method makes the current _Thread_ wait indefinitely until the _Thread_ on which it is called is completed. If the _Thread_ is interrupted then it will throw _`InterruptedException`._
 
 ```java
 public final void join() throws InterruptedException
@@ -2560,7 +2392,7 @@ Child Thread Execution – 4
 
 ###  Watch out for Deadlocks
 
-If **two Threads call the _join()_ method on each other then both threads enter into waiting for state and wait for each other forever**.
+If **==two Threads call the ``_join()``_ method on each other then both threads enter into waiting for state and wait for each other forever==**.
 
 Similarly, if a thread, by mistake, joins itself then it will be blocked forever, and JVM must be shutdown to recover.
 
@@ -2588,6 +2420,222 @@ class Threadjoindemo
 - `Thread.yield()` is often used to improve relative progression between threads in the thread pool.
 - The `join()` method is used to make one thread wait for the completion of another. The calling thread will block until the thread it joins with has finished executing.
 - Adding a timeout within `join()` allows the waiting thread to proceed after the specified timeout, making it less deterministic and dependent on the operating system for timing.
+
+## Different Ways to Kill a Thread
+
+There is **no official method to kill a thread in Java**. Stopping a thread is entirely managed by the JVM. Although Java provides several ways to manage the thread lifecycle such as a _start()_, _sleep()_, _stop()_ , etc. but does not provide any method to kill a thread and free the resources cleanly.
+
+**Oracle specified** the reason for deprecating the stop() method as _It is inherently unsafe. Stopping a thread causes it to unlock all its locked monitors._ 
+
+### Two Ways to Kill a Thread
+
+**Effectively, we can only signal the thread to stop itself and let the thread clean up the resources and terminate itself.** In Java, we can send a signal to a thread in two ways:
+
+- By periodically checking a _boolean_ flag
+- By interrupting the thread using  _``Thread.interrupt()``_  method
+
+#### By Checking a Flag
+
+In this method, we check a _boolean_ flag periodically, or after every step in the task. Initially, the flag is set to _false_. To stop the thread, set the flag to _true_. Inside the thread, when the code checks the flag’s value to _true_, it destroys itself gracefully and returns.
+
+Note that in this design, generally, there are two threads. One thread sets the _flag_ value to _true_, and another thread checks the _flag_ value. To **ensure that both threads see the same value** all the time, we must make the _flag_ variable _**volatile**_. Or we can use **``AtomicBoolean``** class that **supports atomic operations on an underlying _volatile_ _boolean_ variable**.
+
+```java
+Checking flag periodicallypublic class CustomTask implements Runnable {
+  private volatile boolean flag = false;
+  private Thread worker;
+  public void start() {
+    worker = new Thread(this);
+    worker.start();
+  }
+  public void stop() {
+    flag = true;
+  }
+  @Override
+  public void run() {
+    while (!flag) {
+      try {
+        Thread.sleep(500);
+        System.out.println(Thread.currentThread().getName() + " Running...");
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        System.out.println("Thread was interrupted," + e.getMessage());
+      }
+    }
+    System.out.println(Thread.currentThread().getName() + " Stopped");
+    return;
+  }
+}
+```
+
+```java
+CustomTask task1 = new CustomTask();
+CustomTask task2 = new CustomTask();
+task1.start();
+task2.start();
+try {
+  Thread.sleep(1000);
+  task1.stop();
+  task2.stop();
+} catch (InterruptedException e) {
+  System.out.println("Caught:" + e);
+}
+```
+
+```shell
+OutputThread-0 Running...
+Thread-1 Running...
+Thread-1 Running...
+Thread-0 Running...
+Thread-1 Stopped
+Thread-0 Stopped
+```
+
+**CSD EXAMPLE**
+
+```java
+class Application {  
+    private static boolean ms_flag = true;  
+  
+    private static void threadCallback()  
+    {  
+        var a = 0L;  
+  
+        while (ms_flag)  
+            Console.writeLine(a++);  
+    }  
+  
+    public static void run(String[] args)  
+    {  
+        var t = new Thread(Application::threadCallback);  
+  
+        t.start();  
+  
+        ThreadUtil.sleep(3, TimeUnit.SECONDS);  
+        ms_flag = false;  
+    }  
+}
+```
+
+#### By Interrupting the Thread
+
+The only difference is that we will **interrupt the thread instead of setting the flag to _false_**.
+
+So inside the thread, we will keep checking the _thread’s interrupt status_, and when the thread is interrupted, we will stop the thread gracefully. To check the status of the interrupted thread, we can use the _**``Thread.isInterrupted()``**_ method. It returns either _true_ or _false_ based on the thread’s interrupt status.
+
+```java
+Using Interrupt Statuspublic class CustomTaskV2 implements Runnable {
+  private Thread worker;
+  public void start() {
+    worker = new Thread(this);
+    worker.start();
+  }
+  public void interrupt() {
+    worker.interrupt();
+  }
+  @Override
+  public void run() {
+    while (!Thread.currentThread().isInterrupted()) {
+      try {
+        Thread.sleep(500);
+        System.out.println(Thread.currentThread().getName() + " Running...");
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        System.out.println("Thread was interrupted with reason : " + e.getMessage());
+      }
+    }
+    System.out.println(Thread.currentThread().getName() + " Stopped");
+    return;
+  }
+}
+```
+
+```java
+CustomTaskV2 task1 = new CustomTaskV2();
+CustomTaskV2 task2 = new CustomTaskV2();
+task1.start();
+task2.start();
+try {
+  Thread.sleep(1100);isInterrupted
+  task1.interrupt();
+  task2.interrupt();
+} catch (InterruptedException e) {
+  System.out.println("Caught:" + e);
+}
+```
+
+```shell
+OutputThread-0 Running...
+Thread-1 Running...
+Thread-1 Running...
+Thread-0 Running...
+Thread was interrupted with reason : sleep interrupted
+Thread was interrupted with reason : sleep interrupted
+Thread-0 Stopped
+Thread-1 Stopped
+```
+
+**CSD EXAMPLE**
+
+```java
+class Application {  
+    private static void threadCallback1()  
+    {  
+        var a = 0L;  
+        var self = Thread.currentThread();  
+  
+        while (!self.isInterrupted())  
+            Console.writeLine("t1->First:%d", a++);  
+  
+        while (!self.isInterrupted())  
+            Console.writeLine("t1->Second:%d", a++);  
+    }  
+  
+    private static void threadCallback2()  
+    {  
+        var a = 0L;  
+  
+        while (!Thread.interrupted())  
+            Console.writeLine("t2->First:%d", a++);  
+  
+        while (!Thread.interrupted())  
+            Console.writeLine("t2->Second:%d", a++);  
+    }  
+  
+    public static void run(String[] args)  
+    {  
+        var t1 = new Thread(Application::threadCallback1);  
+        var t2 = new Thread(Application::threadCallback2);  
+  
+        t1.start();  
+        t2.start();  
+  
+        ThreadUtil.sleep(3, TimeUnit.SECONDS);  
+        t1.interrupt();  
+        t2.interrupt();  
+        ThreadUtil.sleep(3, TimeUnit.SECONDS);  
+        t2.interrupt();  
+    }  
+}
+```
+
+### ``Interrupt()``, ``Interrupted()`` And ``IsInterrupted()`` difference
+
+- **`interrupt()` method:**
+    
+    - Invoked on a Thread object to interrupt it.
+    - Sets the interrupt flag for the thread.
+    - Does not necessarily stop the thread but indicates that it should check for interruption.
+- **`isInterrupted()` method:**
+    
+    - Checks the interrupt status of the current thread or a specified thread.
+    - Does not clear the interrupt flag; returns the current status.
+    - Can be used to determine if the thread has been interrupted.
+- **`interrupted()` method:**
+    
+    - A static method that checks the interrupt status of the current thread.
+    - Clears the interrupt status, setting it to false.
+    - Provides a way to check and clear the interrupt status in a single atomic operation.
 
 ## Daemon Threads
 
@@ -2757,88 +2805,6 @@ We can use _Daemon Threads_ in usecases like:
 - **Life Cycle:** The daemon threads’ lifecycle depends on user threads, whereas user threads have an independent lifecycle.
 - **Termination:** All the daemon threads are terminated once the last user thread has been terminated, irrespective of the daemon thread’s position at that time, whereas user threads are terminated after completing their corresponding jobs.
 
-## Atomic
-
-In Java, **atomic variables** and **operations** used in concurrency. The **multi-threading** environment leads to a problem when **concurrency** is unified. The shared entity such as objects and variables may be changed during the execution of the program. Hence, they may lead to inconsistency of the program. So, it is important to take care of the shared entity while accessing concurrently. In such cases, the **atomic variable** can be a solution to it.
-
-Java provides a ``**java.util.concurrent.atomic**`` package in which atomic classes are defined. The atomic classes provide a **lock-free** and **thread-safe** environment or programming on a single variable. It also supports atomic operations. All the atomic classes have the get() and set() methods that work on the volatile variable. The method works the same as read and writes on volatile variables.
-
-###  **Atomic Operations**
-
-**Three** key concepts are associated with atomic actions in Java are as follows:
-
-1. Atomicity deals with which actions and sets o actions have **invisible**
-2. Visibility determines when the effect of one thread can be **seen** by another.
-3. Ordering determines when actions in one thread occur out of order with respect to another thread.
-
-When multiple threads attempt to update the same value through CAS, one of them wins and updates the value. **However, unlike in the case of locks, no other thread gets suspended**; instead, they’re simply informed that they did not manage to update the value. The threads can then proceed to do further work and context switches are completely avoided.
-
-###  **Atomic Variables**
-
-The most commonly used atomic variable classes in Java are [AtomicInteger](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html), [AtomicLong](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicLong.html), [AtomicBoolean](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicBoolean.html), and [AtomicReference](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicReference.html). These classes represent an _int_, _long_, _boolean,_ and object reference respectively which can be atomically updated. The main methods exposed by these classes are:
-
-- _**``get()``**_ – gets the value from the memory, so that changes made by other threads are visible; equivalent to reading a _volatile_ variable
-- _**``incrementAndGet()``** –_ Atomically increments by one the current value
-- _**``set()``**_ – writes the value to memory, so that the change is visible to other threads; equivalent to writing a _volatile_ variable
-- _**``lazySet()``**_ – eventually writes the value to memory, maybe reordered with subsequent relevant memory operations. One use case is nullifying references, for the sake of garbage collection, which is never going to be accessed again. In this case, better performance is achieved by delaying the null _volatile_ write
-- _**``compareAndSet()``**_ –  returns true when it succeeds, else false
-- _**``weakCompareAndSet()``**_ –  it does not create happens-before orderings. This means that it may not necessarily see updates made to other variables.
-
-**CSD EXAMPLE**
-
-```java
-public class IntIncrementor {  
-    private final AtomicInteger m_value;  
-    private final int m_count;  
-  
-    private void incrementerCallback(int idx)  
-    {  
-  
-        for (var i = 0; i < m_count; ++i)  
-            m_value.getAndIncrement();  
-  
-        /*  
-            ++m_value;  
-            mov reg, m_value            add reg, 1            mov m_value, 1         */    }  
-  
-    public IntIncrementor(int count)  
-    {  
-        m_count = count;  
-        m_value = new AtomicInteger();  
-    }  
-  
-    public int getValue()  
-    {  
-        return m_value.get();  
-    }  
-  
-    public int getCount()  
-    {  
-        return m_count;  
-    }  
-  
-    public void run(int nThreads)  
-    {  
-        Thread [] threads = new Thread[nThreads];  
-  
-        for (var i = 0; i < nThreads; ++i) {  
-            var idx = i;  
-  
-            threads[i] = new Thread(() -> incrementerCallback(idx), "Thread-");  
-            threads[i].start();  
-        }  
-  
-        for (var t : threads)  
-            try {  
-                t.join();  
-            }  
-            catch (InterruptedException ignore) {  
-  
-            }  
-    }  
-}
-```
-
 ##  Synchronization
 
 Java Synchronization is used to make sure by some synchronization method that only one thread can access the resource at a given point in time.
@@ -2969,6 +2935,45 @@ Sending     Bye
 
  Bye Sent
 ```
+
+```java
+public class SynchronisationDemo {
+
+    private static int counter = 0;
+
+    public static void main(String[] args) {
+        Thread one = new Thread(() -> {
+            for (int i = 0; i < 10000; i++) {
+                //counter++;
+                increment();
+            }
+        });
+
+        Thread two = new Thread(() -> {
+            for (int i = 0; i < 10000; i++) {
+                //counter++;
+                increment();
+            }
+        });
+
+        one.start();
+        two.start();
+
+        try {
+            one.join();
+            two.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("Counter is : " + counter);
+    }
+
+    private synchronized static void increment() {
+        counter++;
+    }
+```
+
 
 **CSD SYNCHRONIZED STATEMENT EXAMPLE**
 
@@ -3209,145 +3214,7 @@ public class IntIncrementor {
 
 - **Concurrency Limitations:** Java synchronization does not allow concurrent reads.
 - **Decreases Efficiency:** Java synchronized method run very slowly and can degrade the performance, so you should synchronize the method when it is absolutely necessary otherwise not and to synchronize block only for critical section of the code.
-##  Volatile
 
-The `volatile` keyword in Java is used to indicate that a variable’s value can be modified by different threads. Used with the syntax, `volatile dataType variableName = x;` It ensures that changes made to a volatile variable by one thread are immediately visible to other threads.
-
-```java
-class SharedObj
-{
-   // volatile keyword here makes sure that
-   // the changes made in one thread are 
-   // immediately reflect in other thread
-   static **volatile** int sharedVar = 6;
-}
-```
-
-The `volatile` keyword in Java is a type of variable modifier that tells the JVM (Java Virtual Machine) that a variable can be accessed and modified by multiple threads. The `volatile` keyword is used in multithreaded environments to ensure that changes made to a variable by one thread are immediately visible to other threads.
-
-```java
-public class VolatileExample {
-    private volatile int count = 0;
-
-    public void incrementCount() {
-        count++;
-    }
-
-    public void displayCount() {
-        System.out.println("Count: " + count);
-    }
-}
-
-public class Main {
-    public static void main(String[] args) {
-        VolatileExample example = new VolatileExample();
-        example.incrementCount();
-        example.displayCount();
-    }
-}
-
-# Output:
-# Count: 1
-```
-
-The `volatile` keyword ensures that the updated value of `count` is immediately visible to all threads. If `count` was not declared as `volatile`, there could be a delay in visibility of the updated value to other threads, leading to inconsistent results.
-
-### Advantages and Pitfalls of Volatile Keyword
-
-- The primary advantage of the `volatile` keyword is its guarantee of visibility of changes across threads. It ensures that a change in a `volatile` variable in one thread is immediately reflected in all other threads.
-
-- However, the `volatile` keyword does not guarantee atomicity.  the increment operation (`count++`) in the above code is not atomic. It involves multiple steps – reading the current value of `count`, incrementing it, and then writing the updated value back to `count`. These steps are not performed as a single, indivisible operation. Therefore, in a multithreaded environment, it’s possible for another thread to modify `count` between these steps, leading to unexpected results.
-
-### Volatile and Memory Visibility
-
- In Java, each thread has its own stack, and it can also access the heap. The heap contains objects and instance variables, but local variables are stored in the thread’s stack and are not visible to other threads.
-
-When a variable is declared `volatile`, it ensures that the value of the `volatile` variable is always read from and written to the main memory, and not from the thread’s local cache. This ensures that the most recent value of the `volatile` variable is always visible to all threads, which is crucial for maintaining data consistency in multithreading.
-
-## Difference Between Atomic, Volatile and Synchronized
-
-| Modifier      | Synchronized                                       | Volatile                                              | Atomic                                              |
-|---------------|---------------------------------------------------|-------------------------------------------------------|------------------------------------------------------|
-| 1. Applicable | Only blocks or methods                            | Variables only                                        | Variables only                                       |
-| 2. Purpose     | Lock-based concurrent algorithm                   | Non-blocking algorithm, more scalable                  | Non-blocking algorithm                               |
-| 3. Performance | Relatively low (due to lock acquisition/release) | Relatively high compared to synchronized              | Relatively high compared to both volatile and synchronized |
-| 4. Hazards     | Not immune to concurrency hazards (deadlock, livelock) | Immune to concurrency hazards (deadlock, livelock)     | Immune to concurrency hazards (deadlock, livelock)    |
-
-| Method         | Advantages                                                | Disadvantages                                             |
-| -------------- | --------------------------------------------------------- | --------------------------------------------------------- |
-| `volatile`     | Ensures visibility of changes across threads              | Does not guarantee atomicity for compound operations      |
-| `synchronized` | Ensures atomicity for compound operations                 | Can lead to thread blocking and decreased performance     |
-| Atomic classes | Ensures atomicity for specific operations without locking | Limited to specific operations provided by atomic classes |
-## Compare and Swap Example – CAS Algorithm
-
-### Optimistic and Pessimistic Locking
-
-Traditional locking mechanisms, e.g. **using _synchronized_ keyword in java, is said to be pessimistic technique** of locking or multi-threading. It asks you to first guarantee that no other thread will interfere in between certain operation (i.e. lock the object), and then only allow you access to any instance/method.
-
-> **It’s much like saying “please close the door first; otherwise some other crook will come in and rearrange your stuff”.**
-
-Though above approach is safe and it does work, but it **put a significant penalty on your application in terms of performance**. Reason is simple that waiting threads can not do anything unless they also get a chance and perform the guarded operation.
-
-There exist one more approach which is more efficient in performance, and it **optimistic** in nature. In this approach, you proceed with an update, **being hopeful that you can complete it without interference**. This approach relies on collision detection to determine if there has been interference from other parties during the update, in which case the operation fails and can be retried (or not).
-
-> **The optimistic approach is like the old saying, “It is easier to obtain forgiveness than permission”, where “easier” here means “more efficient”.**
-
-
-**Compare and Swap** is a good example of such optimistic approach
-
-### Compare and Swap Algorithm
-
-This algorithm compares the contents of a memory location to a given value and, only if they are the same, modifies the contents of that memory location to a given new value. This is done as a single atomic operation. The atomicity guarantees that the new value is calculated based on up-to-date information; if the value had been updated by another thread in the meantime, the write would fail. The result of the operation must indicate whether it performed the substitution; this can be done either with a simple Boolean response (this variant is often called compare-and-set), or by returning the value read from the memory location (not the value written to it).
-
-There are 3 parameters for a CAS operation:
-
-1. A memory location V where value has to be replaced
-2. Old value A which was read by thread last time
-3. New value B which should be written over V
-
-> **CAS says “I think V should have the value A; if it does, put B there, otherwise don’t change it but tell me I was wrong.” CAS is an optimistic technique—it proceeds with the update in the hope of success, and can detect failure if another thread has updated the variable since it was last examined.**
-
-**EXAMPLE**
-
-Assume V is a memory location where value “10” is stored. There are multiple threads who want to increment this value and use the incremented value for other operations, a very practical scenario. Let’s break the whole CAS operation in steps:
-
-**1) Thread 1 and 2 want to increment it, they both read the value and increment it to 11.**
-
-_V = 10, A = 0, B = 0_
-
-**2) Now thread 1 comes first and compare V with it’s last read value:**
-
-_V = 10, A = 10, B = 11_
-
-```java
-if     A = V
-   V = B
- else
-   operation failed
-   return V
-```
-
-Clearly the value of V will be overwritten as 11, i.e. operation was successful.
-
-**3) Thread 2 comes and try the same operation as thread 1**
-
-_V = 11, A = 10, B = 11_
-
-```java
-if     A = V
-   V = B
- else
-   operation failed
-   return V
-```
-
-**4) In this case, V is not equal to A, so value is not replaced and current value of V i.e. 11 is returned. Now thread 2, again retry this operation with values:**
-
-_V = 11, A = 11, B = 12_
-
-And this time, condition is met and incremented value 12 is returned to thread 2.
-
-In summary, when multiple threads attempt to update the same variable simultaneously using CAS, one wins and updates the variable’s value, and the rest lose. But the losers are not punished by suspension of thread. They are free to retry the operation or simply do nothing.
 ##  ``wait()``, ``notify()`` and ``notifyAll()``
 
 The `Object` class in Java has three final methods that allow threads to communicate about the locked status of a resource.
@@ -3405,9 +3272,9 @@ synchronized(lockObject)
 
 **EXAMPLE**
 
-- Producer thread produce a new resource in every 1 second and put it in ‘taskQueue’.
-- Consumer thread takes 1 seconds to process consumed resource from ‘taskQueue’.
-- Max capacity of taskQueue is 5 i.e. maximum 5 resources can exist inside ‘taskQueue’ at any given time.
+- Producer thread produce a new resource in every 1 second and put it in ‘``taskQueue``’.
+- Consumer thread takes 1 seconds to process consumed resource from ‘``taskQueue``’.
+- Max capacity of ``taskQueue`` is 5 i.e. maximum 5 resources can exist inside ‘``taskQueue``’ at any given time.
 - Both threads run infinitely.
 
 **Producer Thread**
@@ -3462,7 +3329,7 @@ class Producer implements Runnable
 
 - Here “`produce(counter++)`” code has been written inside infinite loop so that producer keeps producing elements at regular interval.
 - We have written the `produce()` method code following the general guideline to write `wait()` method as mentioned in first section.
-- Once the `wait()` is over, producer add an element in taskQueue and called `notifyAll()` method. Because the last-time `wait()` method was called by consumer thread (that’s why producer is out of waiting state), consumer gets the notification.
+- Once the `wait()` is over, producer add an element in ``taskQueue`` and called `notifyAll()` method. Because the last-time `wait()` method was called by consumer thread (that’s why producer is out of waiting state), consumer gets the notification.
 - Consumer thread after getting notification, if ready to consume the element as per written logic.
 - Note that both threads use `sleep()` methods as well for simulating time delays in creating and consuming elements.
 
@@ -3556,6 +3423,50 @@ Consumed: 7
 Queue is empty Consumer is waiting , size: 0
 ```
 
+
+```java
+public class WaitNotifyDemo {
+    private static final Object LOCK = new Object();
+
+    public static void main(String[] args) {
+        Thread one = new Thread(() -> {
+            try {
+                one();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        Thread two = new Thread(() -> {
+            try {
+                two();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        one.start();
+        two.start();
+    }
+
+    private static void one() throws InterruptedException {
+        synchronized (LOCK) {
+            System.out.println("Hello from method one...");
+            LOCK.wait();
+            System.out.println("Back Again in the method one");
+        }
+    }
+
+    private static void two() throws InterruptedException {
+        synchronized (LOCK) {
+            System.out.println("Hello from method two...");
+            LOCK.notify(); // Remaining code lines in the block are executed
+            System.out.println("Hello from method two even after notify...");
+        }
+    }
+}
+```
+
 ###  Difference between ``sleep()`` and ``wait()``
 
 #### Method called on
@@ -3575,104 +3486,13 @@ Queue is empty Consumer is waiting , size: 0
 
 #### Wake up condition
 
-- `wait()` – until call notify(), notifyAll() from object
-- `sleep()` – until at least time expire or call interrupt().
+- `wait()` – until call ``notify()``, ``notifyAll()`` from object
+- `sleep()` – until at least time expire or call ``interrupt()``.
 
 #### Usage
 
 - `sleep()` – for time-synchronization
 - `wait()` – for multi-thread-synchronization.
-
-## ThreadLocal Variables
-
-one of the most critical aspects of a concurrent application is shared data. When you create thread that implements the `Runnable` interface and then start various `Thread` objects using the same `Runnable` object, all the threads share the same attributes that are defined inside the runnable object. This essentially means that if you change any attribute in a thread, all the threads will be affected by this change and will see the modified value by first thread. Sometimes it is desired behavior e.g. multiple threads increasing / decreasing the same counter variable; but sometimes you want to ensure that every thread MUST work on it’s own copy of thread instance and does not affect others data.
-
-###  When to use ThreadLocal?
-
-1. **Thread Isolation is Required**: If you have data that needs to be isolated on a per-thread basis and you don't want different threads to interfere with each other's data.
-    
-2. **Avoid Passing Context Explicitly**: Instead of passing context data explicitly through method parameters or through other means, `ThreadLocal` allows you to access the data directly within the thread's execution context.
-    
-3. **Concurrency without Shared State**: When you want to achieve concurrency without the need for shared state management or synchronization mechanisms between threads.
-
-### ThreadLocal Class
-
-```java
-public class ThreadLocal<T> extends Object {...}
-```
-
-`ThreadLocal` instances are typically **_private static_** fields in classes that wish to associate state with a thread (e.g., a user ID or Transaction ID).
-
-This class has following methods:
-
-1. **``get()``** : Returns the value in the current thread’s copy of this thread-local variable.
-2. **``initialValue()``** : Returns the current thread’s “initial value” for this thread-local variable.
-3. **``remove()``** : Removes the current thread’s value for this thread-local variable.
-4. **``set(T value)``** : Sets the current thread’s copy of this thread-local variable to the specified value.
-
-**EXAMPLE**
-
-```java
-class DemoTask implements Runnable
-{
-   // Atomic integer containing the next thread ID to be assigned
-   private static final AtomicInteger        nextId   = new AtomicInteger(0);
-    
-   // Thread local variable containing each thread's ID
-   private static final ThreadLocal<Integer> threadId = new ThreadLocal<Integer>()
-                                                         {
-                                                            @Override
-                                                            protected Integer initialValue()
-                                                            {
-                                                               return nextId.getAndIncrement();
-                                                            }
-                                                         };
- 
-   // Returns the current thread's unique ID, assigning it if necessary
-   public int getThreadId()
-   {
-      return threadId.get();
-   }
-   // Returns the current thread's starting timestamp
-   private static final ThreadLocal<Date> startDate = new ThreadLocal<Date>()
-                                                 {
-                                                    protected Date initialValue()
-                                                    {
-                                                       return new Date();
-                                                    }
-                                                 };
- 
-   
- 
-   @Override
-   public void run()
-   {
-      System.out.printf("Starting Thread: %s : %s\n", getThreadId(), startDate.get());
-      try
-      {
-         TimeUnit.SECONDS.sleep((int) Math.rint(Math.random() * 10));
-      } catch (InterruptedException e)
-      {
-         e.printStackTrace();
-      }
-      System.out.printf("Thread Finished: %s : %s\n", getThreadId(), startDate.get());
-   }
-}
-```
-
-```shell
-Starting Thread: 0 : Wed Dec 24 15:04:40 IST 2014
-Thread Finished: 0 : Wed Dec 24 15:04:40 IST 2014
- 
-Starting Thread: 1 : Wed Dec 24 15:04:42 IST 2014
-Thread Finished: 1 : Wed Dec 24 15:04:42 IST 2014
- 
-Starting Thread: 2 : Wed Dec 24 15:04:44 IST 2014
-Thread Finished: 2 : Wed Dec 24 15:04:44 IST 2014
-```
-
-> **Most common use of thread local is when you have some object that is not thread-safe, but you want to avoid synchronizing access to that object using synchronized keyword/block. Instead, give each thread its own instance of the object to work with.**  
->**A good alternative to synchronization or threadlocal is to make the variable a local variable. Local variables are always thread safe. The only thing which may prevent you to do this is your application design constraints.**
 
 ##  Executor Framework
 
@@ -3697,7 +3517,7 @@ The framework includes several key components, including the `Executor`, `Exec
 
 This interface provides a way to execute submitted `Runnable` tasks.
 
-> ==An Executor is normally used instead of explicitly creating threads.==
+> **==An Executor is normally used instead of explicitly creating threads.==**
 
 rather than invoking `new Thread(new RunnableTask()).start()` for each task of a set of tasks
 
@@ -3718,8 +3538,8 @@ executor.execute(runnableTask);
 
 - **Fixed thread pool**
 
-	FixedThreadPool is another special type of executor that is a thread pool having a fixed number of threads. By this executor, the submitted task is executed by the n thread.  
-	The tasks are then stored in **LinkedBlockingQueue** until previous tasks are not completed.
+	``FixedThreadPool`` is another special type of executor that is a thread pool having a fixed number of threads. By this executor, the submitted task is executed by the n thread.  
+	The tasks are then stored in **``LinkedBlockingQueue``** until previous tasks are not completed.
 	
 	`ExecutorService executor = Executors.newFixedThreadPool(4);`
 
@@ -4091,7 +3911,871 @@ class Application {
 
  Java provides concrete Future implementations that provide these features (`CompletableFuture`, `CountedCompleter`, `ForkJoinTask, FutureTask`).
 
+##  Synchronized Collections
 
+With the advent of multi-threaded programming, the need for thread-safe collections grew. It is when _Synchronized Collections_ were added to Java’s Collection framework.
+
+### How does Synchronized Collections ensure thread-safety? 
+
+Synchronized collections achieves thread-safety by enforcing synchronization on each of its publicly available method. In addition to that, it ensures that its internal state is never published. Thus, the only way to modify a collection is via its public synchronized methods
+
+> **==Think of synchronized collections as plain unsynchronised collections plus state encapsulation and synchronized public methods.==**
+
+Since every public method of a synchronized collection is guarded by the same (intrinsic) lock, no two threads can modify/read the collection at once. This ensures that the collection always maintain its variants and hence become thread-safe.
+### How to create Synchronized Collections?
+
+he `Collections` class expose several static methods for creating synchronized collections. These static method are named in the following format — `synchronizedXxx`. Here is a list of these methods:
+
+he Collections class expose several static methods for creating synchronized collections. These static method are named in the following format — ``synchronizedXxx``. Here is a list of these methods:
+
+- **`synchronizedCollection(Collection<T> c)`**
+- **`synchronizedList(List<T> list)`**
+- **`synchronizedMap(Map<K, V> m)`**
+- **`synchronizedNavigableMap(NavigableMap<K, V> m)`**
+- **`synchronizedNavigableSet(NavigableSet<T> s)`**
+- **`synchronizedSet(Set<T> s)`**
+- **`synchronizedSortedMap(SortedMap<K, V> m)`**
+- **`synchronizedSortedSet(SortedSet<T> s)`**
+
+### Pitfall of Compound Actions on Synchronized Collections
+
+While methods exposed from synchronized collections are thread-safe, compound actions on client-side still require proper locking.
+
+```java
+  
+public void putIfAbsent(List<Integer> synchronizedList, Integer elem) {  
+  if(!synchronizedList.contains()) {  
+    synchronizedList.add(elem);  
+  }  
+}
+```
+
+Even with thread-safe `contains` and `add` methods, the `putIfAbsent` method does not achieve what it intended to. Between the _‘check’_ and _‘act’_ steps of our method, another thread can add the `elem` to the list. Guarding such compound actions is the responsibility of the client.
+
+Synchronized collections allow client-side locking to ensure that such compound actions are atomic with respect to other operations. Each public method of the synchronized collection is guarded by its own intrinsic lock
+
+```java
+  
+public void putIfAbsent(List<Integer> synchronizedList, Integer elem) {  
+  synchronized(synchronizedList) {  
+    if(!synchronizedList.contains()) {  
+      synchronizedList.add(elem);  
+    }  
+  }  
+}
+```
+
+### Pitfalls of Iterating on Synchronized Collections
+
+Some extra care is needed to be taken when iterating over a synchronized collection. When iterating over a synchronized collection using iterators, any concurrent modifications to the collection will cause the iterator to _fail-fast._ On detecting any concurrent modification, the iterator will throw a ``ConcurrentModificationException``.
+
+```java
+  
+final Set<String> syncStringSet = Collections.synchronizedSet(new HashSet<>());  
+  
+// Might throw ConcurrentModificationException  
+for(String s: syncStringSet) {  
+  doSomething(s);  
+}
+```
+
+To avoid getting a ``ConcurrentModificationException``, we can hold a lock on the synchronized collection for the entire duration of iteration
+
+```java
+public class SynchronisedCollections {
+    public static void main(String[] args) {
+        //List<Integer> list = new ArrayList<>();
+        List<Integer> list = Collections.synchronizedList(new ArrayList<>());
+        Thread one = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) {
+                list.add(i);
+            }
+        });
+
+        Thread two = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) {
+                list.add(i);
+            }
+        });
+
+        one.start();
+        two.start();
+
+        try {
+            one.join();
+            two.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("Size of array : " + list.size());
+    }
+}
+```
+
+### ``CountDownLatch``
+
+The `CountDownLatch` class is a powerful concurrency construct provided by Java. Its purpose is to allow one or more threads to wait until a given set of operations performed by other threads completes. Essentially, it acts as a synchronization aid.
+
+###  Basics of `CountDownLatch`
+
+- **Initialization**:
+    - A `CountDownLatch` is initialized with a specific count (usually the number of threads we want to wait for).
+    - This count represents the number of times the `countDown()` method must be called before the waiting threads are released.
+- **Decrementing the Count**:
+    - Threads that complete their work call the `countDown()` method.
+    - Each call decrements the internal counter.
+    - When the counter reaches zero, the waiting threads are unblocked.
+- **Waiting Threads**:
+    - Threads waiting for the counter to reach zero call one of the `await()` methods.
+    - The calling thread blocks until the counter becomes zero or until it’s interrupted.
+
+**==One of disadvantage of ``CountDownLatch`` is you can not reuse it once count is zero.==**
+
+```java
+public class SynchronisedCollections {
+    public static void main(String[] args) {
+        //List<Integer> list = new ArrayList<>();
+        List<Integer> list = Collections.synchronizedList(new ArrayList<>());
+        Thread one = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) {
+                list.add(i);
+            }
+        });
+
+        Thread two = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) {
+                list.add(i);
+            }
+        });
+
+        one.start();
+        two.start();
+
+        try {
+            one.join();
+            two.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("Size of array : " + list.size());
+    }
+}
+```
+
+```java
+/**
+ * Let's build a simulation where a group of chefs needs to prepare different dishes in a restaurant kitchen.
+ * Each chef is responsible for preparing a specific dish, and the kitchen manager wants to start serving
+ * customers only when all dishes are ready.
+ * Here's how you could use CountdownLatch in Java to coordinate the chefs!
+ */
+public class Restaurant {
+    public static void main(String[] args) throws InterruptedException {
+        int numberOfChefs = 3;
+        CountDownLatch latch = new CountDownLatch(numberOfChefs);
+
+        // Chefs start preparing their dishes
+        new Thread(new Chef("Chef A", "Pizza", latch)).start();
+        new Thread(new Chef("Chef B", "Pasta", latch)).start();
+        new Thread(new Chef("Chef C", "Salad", latch)).start();
+
+        // Wait for all dishes to be ready
+        latch.await();
+
+        System.out.println("All dishes are ready! Let's start serving customers.");
+    }
+}
+
+class Chef implements Runnable {
+    private final String name;
+    private final String dish;
+    private final CountDownLatch latch;
+
+    public Chef(String name,
+                String dish,
+                CountDownLatch latch) {
+        this.name = name;
+        this.dish = dish;
+        this.latch = latch;
+    }
+
+    @Override
+    public void run() {
+        // Simulate preparing the dish
+        try {
+            System.out.println(name + " is preparing " + dish);
+            Thread.sleep(2000); // Simulate cooking time
+            System.out.println(name + " has finished preparing " + dish);
+            latch.countDown(); // Notify that this dish is ready
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+
+## Blocking Queue
+
+The _Java_ _``BlockingQueue``_ interface, `java.util.concurrent.BlockingQueue`, represents a queue which is thread safe to put elements into, and take elements out of from. In other words, multiple threads can be inserting and taking elements concurrently from a Java `BlockingQueue`, without any concurrency issues arising.
+
+The term _blocking_ _queue_ comes from the fact that the Java `BlockingQueue` is capable of blocking the threads that try to insert or take elements from the queue. For instance, if a thread tries to take an element and there are none left in the queue, the thread can be blocked until there is an element to take. Whether or not the calling thread is blocked depends on what methods you call on the `BlockingQueue`.
+
+![[Pasted image 20240727122803.png]]
+
+```JAVA
+public class BlockingQueueDemo {
+    static final int QUEUE_CAPACITY = 10;
+    static BlockingQueue<Integer> taskQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
+
+    public static void main(String[] args) {
+        // Producer thread
+        Thread producerThread = new Thread(() -> {
+            try {
+                for (int i = 1; i <= 20; i++) {
+                    taskQueue.put(i);
+                    System.out.println("Task produced: " + i);
+                    Thread.sleep(10); // Simulate task generation time
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        // Consumer threads
+        Thread consumerThread1 = new Thread(() -> {
+            try {
+                while (true) {
+                    int task = taskQueue.take();
+                    processTask(task, "Consumer 1");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        Thread consumerThread2 = new Thread(() -> {
+            try {
+                while (true) {
+                    int task = taskQueue.take();
+                    processTask(task, "Consumer 2");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        producerThread.start();
+        consumerThread1.start();
+        consumerThread2.start();
+    }
+
+    private static void processTask(int task, String consumerName) throws InterruptedException {
+        // Simulate task processing
+        System.out.println("Task being processed by " + consumerName + ": " + task);
+        Thread.sleep(1000);
+        System.out.println("Task consumed by " + consumerName + ": " + task);
+    }
+}
+```
+
+## Concurrent Map
+
+_``ConcurrentMap``_ is an extension of the _``Map``_ interface. It aims to provides a structure and guidance to solving the problem of reconciling throughput with thread-safety.
+
+By overriding several interface default methods, _``ConcurrentMap``_ gives guidelines for valid implementations to provide thread-safety and memory-consistent atomic operations.
+
+Several default implementations are overridden, disabling the _null_ key/value support:
+
+- _``getOrDefault``_
+- _``forEach``_
+- _``replaceAll``_
+- _``computeIfAbsent``_
+- _``computeIfPresent``_
+- _``compute``_
+- _``merge``_
+
+The following _APIs_ are also overridden to support atomicity, without a default interface implementation:
+
+- _``putIfAbsent``_
+- _``remove``_
+- _``replace(key, oldValue, newValue)``_
+- _``replace(key, value)``_
+
+The rest of actions are directly inherited with basically consistent with _Map_.
+
+```java
+public class ConcurrentCache {
+    private static final Map<String, String> cache = new ConcurrentHashMap<>();
+
+    private static String compute(String key) {
+        System.out.println(key + " not present in the cache, so going to compute!");
+        try {
+            Thread.sleep(500); // Simulating computation time
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Value for " + key;
+    }
+
+    public static String getCachedValue(String key) {
+        String value = cache.get(key);
+
+        // If not in the cache, compute and put it in the cache
+        if (value == null) {
+            value = compute(key);
+            cache.put(key, value);
+        }
+
+        return value;
+    }
+
+    public static void main(String[] args) {
+        for (int i = 0; i < 10; i++) {
+            final int threadNum = i;
+            new Thread(() -> {
+                String key = "Key @ " + threadNum;
+                for (int j = 0; j < 3; j++) { // Fetch the same key 3 times
+                    String value = getCachedValue(key);
+                    System.out.println("Thread " + Thread.currentThread().getName() + ": Key=" + key + ", Value=" + value);
+                }
+            }).start();
+        }
+    }
+}
+```
+
+##  ``CyclicBarrier``
+
+There are scenarios in concurrent programming when you want **set of threads** to wait for each other at a common point until all threads in the set have reached that common point. 
+
+The `java.util.concurrent.CyclicBarrier` class is a barrier that all threads must wait at, until all threads reach it, before any of the threads can continue.
+
+The barrier is called cyclic because it can be re-used after the waiting threads are released.
+
+![[Pasted image 20240727124103.png]]
+
+The threads wait for each other by calling the `await()` method on the `CyclicBarrier`. Once N threads are waiting at the `CyclicBarrier`, all threads are released and can continue running.
+
+```java
+public class MultiStageTour {
+
+    private static final int NUM_TOURISTS = 5;
+    private static final int NUM_STAGES = 3;
+    private static final CyclicBarrier barrier = new CyclicBarrier(NUM_TOURISTS,() -> {
+        System.out.println("Tour guide starts speaking...");
+    });
+
+    public static void main(String[] args) {
+        for (int i = 0; i < NUM_TOURISTS; i++) {
+            Thread touristThread = new Thread(new Tourist(i));
+            touristThread.start();
+        }
+    }
+
+    static class Tourist implements Runnable {
+        private final int touristId;
+
+        public Tourist(int touristId) {
+            this.touristId = touristId;
+        }
+
+        @Override
+        public void run() {
+            for (int i = 0; i < NUM_STAGES; i++) {
+                // Perform actions at each stage
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("Tourist " + touristId + " arrives at Stage " + (i + 1));
+
+                // Wait for all tourists to arrive at the current stage
+                try {
+                    barrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+}
+```
+
+## ``Exchanger``
+
+The `java.util.concurrent.Exchanger` class represents a kind of rendezvous point where two threads can exchange objects. 
+
+![[Pasted image 20240727124529.png]]
+
+```java
+public class ExchangerDemo {
+    public static void main(String[] args) {
+        // Create an Exchanger with type Integer
+        Exchanger<Integer> exchanger = new Exchanger<>();
+
+        // Create two threads
+        Thread thread1 = new Thread(new FirstThread(exchanger));
+        Thread thread2 = new Thread(new SecondThread(exchanger));
+
+        // Start the threads
+        thread1.start();
+        thread2.start();
+    }
+}
+
+class FirstThread implements Runnable {
+    private final Exchanger<Integer> exchanger;
+
+    public FirstThread(Exchanger<Integer> exchanger) {
+        this.exchanger = exchanger;
+    }
+
+    @Override
+    public void run() {
+        try {
+            int dataToSend = 10;
+            System.out.println("First thread is sending data " + dataToSend);
+
+            // Send data to the other thread and receive data in return
+            int receivedData = exchanger.exchange(dataToSend);
+
+            System.out.println("First thread received: " + receivedData);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+
+// Second thread implementation
+class SecondThread implements Runnable {
+    private final Exchanger<Integer> exchanger;
+
+    public SecondThread(Exchanger<Integer> exchanger) {
+        this.exchanger = exchanger;
+    }
+
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(3000);
+            int dataToSend = 20;
+            System.out.println("Second thread is sending data " + dataToSend);
+
+            // Send data to the other thread and receive data in return
+            int receivedData = exchanger.exchange(dataToSend);
+
+            System.out.println("Second thread received: " + receivedData);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+
+## ``CopyOnWriteArrayList``
+
+**Java ``CopyOnWriteArrayList``** is a thread-safe variant of **``ArrayList``** in which all mutative operations (add, set, and so on) are implemented by making a fresh copy of the underlying array.
+
+It’s **immutable snapshot** style iterator method uses a reference to the state of the array at the point that the iterator was created. This helps in use cases when traversal operations vastly outnumber list update operations and we do not want to synchronize the traversals and still want thread safety while updating the list.
+
+The important things to learn about **Java ``CopyOnWriteArrayList``** class are:
+
+- ``CopyOnWriteArrayList`` class implement `List` and `RandomAccess` interfaces and thus provide all functionalities available in ``ArrayList`` class.
+- Using ``CopyOnWriteArrayList`` is costly for update operations, because each mutation creates a cloned copy of underlying array and add/update element to it.
+- It is thread-safe version of ``ArrayList``. Each thread accessing the list sees its own version of snapshot of backing array created while initializing the iterator for this list.
+- Because it gets snapshot of underlying array while creating iterator, it **does not throw ``ConcurrentModificationException``**.
+- Mutation operations on iterators (remove, set, and add) are not supported. These methods throw `UnsupportedOperationException`.
+- ``CopyOnWriteArrayList`` is a concurrent replacement for a **synchronized List** and offers better concurrency when iterations outnumber mutations.
+- It allows duplicate elements and heterogeneous Objects (use generics to get compile time errors).
+- Because it creates a new copy of array every time iterator is created, **performance is slower** than ``ArrayList``.
+
+```java
+public class COWADemo {
+    public static void main(String[] args) {
+        Simulation simulation = new Simulation();
+        simulation.simulate();
+    }
+}
+
+class Simulation {
+    private final List<Integer> list;
+
+    public Simulation() {
+        list = new CopyOnWriteArrayList<>();
+        list.addAll(Arrays.asList(0,0,0,0,0,0,0,0));
+    }
+
+    public void simulate() {
+        Thread one = new Thread(new WriteTask(list));
+        Thread two = new Thread(new WriteTask(list));
+        Thread three = new Thread(new WriteTask(list));
+        Thread four = new Thread(new ReadTask(list));
+
+        one.start();
+        two.start();
+        three.start();
+        four.start();
+    }
+}
+
+class ReadTask implements Runnable {
+    private final List<Integer> list;
+
+    public ReadTask(List<Integer> list) {
+        this.list = list;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println(list);
+        }
+    }
+}
+
+class WriteTask implements Runnable {
+    private List<Integer> list;
+    private Random random;
+
+    public WriteTask(List<Integer> list) {
+        this.list = list;
+        this.random = new Random();
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                Thread.sleep(1200);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            list.set(random.nextInt(list.size()), random.nextInt(10));
+        }
+    }
+}
+```
+
+## Locks
+
+
+## Atomic
+
+In Java, **atomic variables** and **operations** used in concurrency. The **multi-threading** environment leads to a problem when **concurrency** is unified. The shared entity such as objects and variables may be changed during the execution of the program. Hence, they may lead to inconsistency of the program. So, it is important to take care of the shared entity while accessing concurrently. In such cases, the **atomic variable** can be a solution to it.
+
+Java provides a ``**java.util.concurrent.atomic**`` package in which atomic classes are defined. The atomic classes provide a **lock-free** and **thread-safe** environment or programming on a single variable. It also supports atomic operations. All the atomic classes have the get() and set() methods that work on the volatile variable. The method works the same as read and writes on volatile variables.
+
+###  **Atomic Operations**
+
+**Three** key concepts are associated with atomic actions in Java are as follows:
+
+1. Atomicity deals with which actions and sets o actions have **invisible**
+2. Visibility determines when the effect of one thread can be **seen** by another.
+3. Ordering determines when actions in one thread occur out of order with respect to another thread.
+
+When multiple threads attempt to update the same value through CAS, one of them wins and updates the value. **However, unlike in the case of locks, no other thread gets suspended**; instead, they’re simply informed that they did not manage to update the value. The threads can then proceed to do further work and context switches are completely avoided.
+
+###  **Atomic Variables**
+
+The most commonly used atomic variable classes in Java are [AtomicInteger](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html), [AtomicLong](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicLong.html), [AtomicBoolean](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicBoolean.html), and [AtomicReference](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/AtomicReference.html). These classes represent an _int_, _long_, _boolean,_ and object reference respectively which can be atomically updated. The main methods exposed by these classes are:
+
+- _**``get()``**_ – gets the value from the memory, so that changes made by other threads are visible; equivalent to reading a _volatile_ variable
+- _**``incrementAndGet()``** –_ Atomically increments by one the current value
+- _**``set()``**_ – writes the value to memory, so that the change is visible to other threads; equivalent to writing a _volatile_ variable
+- _**``lazySet()``**_ – eventually writes the value to memory, maybe reordered with subsequent relevant memory operations. One use case is nullifying references, for the sake of garbage collection, which is never going to be accessed again. In this case, better performance is achieved by delaying the null _volatile_ write
+- _**``compareAndSet()``**_ –  returns true when it succeeds, else false
+- _**``weakCompareAndSet()``**_ –  it does not create happens-before orderings. This means that it may not necessarily see updates made to other variables.
+
+**CSD EXAMPLE**
+
+```java
+public class IntIncrementor {  
+    private final AtomicInteger m_value;  
+    private final int m_count;  
+  
+    private void incrementerCallback(int idx)  
+    {  
+  
+        for (var i = 0; i < m_count; ++i)  
+            m_value.getAndIncrement();  
+  
+        /*  
+            ++m_value;  
+            mov reg, m_value            add reg, 1            mov m_value, 1         */    }  
+  
+    public IntIncrementor(int count)  
+    {  
+        m_count = count;  
+        m_value = new AtomicInteger();  
+    }  
+  
+    public int getValue()  
+    {  
+        return m_value.get();  
+    }  
+  
+    public int getCount()  
+    {  
+        return m_count;  
+    }  
+  
+    public void run(int nThreads)  
+    {  
+        Thread [] threads = new Thread[nThreads];  
+  
+        for (var i = 0; i < nThreads; ++i) {  
+            var idx = i;  
+  
+            threads[i] = new Thread(() -> incrementerCallback(idx), "Thread-");  
+            threads[i].start();  
+        }  
+  
+        for (var t : threads)  
+            try {  
+                t.join();  
+            }  
+            catch (InterruptedException ignore) {  
+  
+            }  
+    }  
+}
+```
+##  Volatile
+
+The `volatile` keyword in Java is used to indicate that a variable’s value can be modified by different threads. Used with the syntax, `volatile dataType variableName = x;` It ensures that changes made to a volatile variable by one thread are immediately visible to other threads.
+
+```java
+class SharedObj
+{
+   // volatile keyword here makes sure that
+   // the changes made in one thread are 
+   // immediately reflect in other thread
+   static **volatile** int sharedVar = 6;
+}
+```
+
+The `volatile` keyword in Java is a type of variable modifier that tells the JVM (Java Virtual Machine) that a variable can be accessed and modified by multiple threads. The `volatile` keyword is used in multithreaded environments to ensure that changes made to a variable by one thread are immediately visible to other threads.
+
+```java
+public class VolatileExample {
+    private volatile int count = 0;
+
+    public void incrementCount() {
+        count++;
+    }
+
+    public void displayCount() {
+        System.out.println("Count: " + count);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        VolatileExample example = new VolatileExample();
+        example.incrementCount();
+        example.displayCount();
+    }
+}
+
+# Output:
+# Count: 1
+```
+
+The `volatile` keyword ensures that the updated value of `count` is immediately visible to all threads. If `count` was not declared as `volatile`, there could be a delay in visibility of the updated value to other threads, leading to inconsistent results.
+
+### Advantages and Pitfalls of Volatile Keyword
+
+- The primary advantage of the `volatile` keyword is its guarantee of visibility of changes across threads. It ensures that a change in a `volatile` variable in one thread is immediately reflected in all other threads.
+
+- However, the `volatile` keyword does not guarantee atomicity.  the increment operation (`count++`) in the above code is not atomic. It involves multiple steps – reading the current value of `count`, incrementing it, and then writing the updated value back to `count`. These steps are not performed as a single, indivisible operation. Therefore, in a multithreaded environment, it’s possible for another thread to modify `count` between these steps, leading to unexpected results.
+
+### Volatile and Memory Visibility
+
+ In Java, each thread has its own stack, and it can also access the heap. The heap contains objects and instance variables, but local variables are stored in the thread’s stack and are not visible to other threads.
+
+When a variable is declared `volatile`, it ensures that the value of the `volatile` variable is always read from and written to the main memory, and not from the thread’s local cache. This ensures that the most recent value of the `volatile` variable is always visible to all threads, which is crucial for maintaining data consistency in multithreading.
+
+## Difference Between Atomic, Volatile and Synchronized
+
+| Modifier      | Synchronized                                       | Volatile                                              | Atomic                                              |
+|---------------|---------------------------------------------------|-------------------------------------------------------|------------------------------------------------------|
+| 1. Applicable | Only blocks or methods                            | Variables only                                        | Variables only                                       |
+| 2. Purpose     | Lock-based concurrent algorithm                   | Non-blocking algorithm, more scalable                  | Non-blocking algorithm                               |
+| 3. Performance | Relatively low (due to lock acquisition/release) | Relatively high compared to synchronized              | Relatively high compared to both volatile and synchronized |
+| 4. Hazards     | Not immune to concurrency hazards (deadlock, livelock) | Immune to concurrency hazards (deadlock, livelock)     | Immune to concurrency hazards (deadlock, livelock)    |
+
+| Method         | Advantages                                                | Disadvantages                                             |
+| -------------- | --------------------------------------------------------- | --------------------------------------------------------- |
+| `volatile`     | Ensures visibility of changes across threads              | Does not guarantee atomicity for compound operations      |
+| `synchronized` | Ensures atomicity for compound operations                 | Can lead to thread blocking and decreased performance     |
+| Atomic classes | Ensures atomicity for specific operations without locking | Limited to specific operations provided by atomic classes |
+## Compare and Swap Example – CAS Algorithm
+
+### Optimistic and Pessimistic Locking
+
+Traditional locking mechanisms, e.g. **using _synchronized_ keyword in java, is said to be pessimistic technique** of locking or multi-threading. It asks you to first guarantee that no other thread will interfere in between certain operation (i.e. lock the object), and then only allow you access to any instance/method.
+
+> **It’s much like saying “please close the door first; otherwise some other crook will come in and rearrange your stuff”.**
+
+Though above approach is safe and it does work, but it **put a significant penalty on your application in terms of performance**. Reason is simple that waiting threads can not do anything unless they also get a chance and perform the guarded operation.
+
+There exist one more approach which is more efficient in performance, and it **optimistic** in nature. In this approach, you proceed with an update, **being hopeful that you can complete it without interference**. This approach relies on collision detection to determine if there has been interference from other parties during the update, in which case the operation fails and can be retried (or not).
+
+> **The optimistic approach is like the old saying, “It is easier to obtain forgiveness than permission”, where “easier” here means “more efficient”.**
+
+
+**Compare and Swap** is a good example of such optimistic approach
+### Compare and Swap Algorithm
+
+This algorithm compares the contents of a memory location to a given value and, only if they are the same, modifies the contents of that memory location to a given new value. This is done as a single atomic operation. The atomicity guarantees that the new value is calculated based on up-to-date information; if the value had been updated by another thread in the meantime, the write would fail. The result of the operation must indicate whether it performed the substitution; this can be done either with a simple Boolean response (this variant is often called compare-and-set), or by returning the value read from the memory location (not the value written to it).
+
+There are 3 parameters for a CAS operation:
+
+1. A memory location V where value has to be replaced
+2. Old value A which was read by thread last time
+3. New value B which should be written over V
+
+> **CAS says “I think V should have the value A; if it does, put B there, otherwise don’t change it but tell me I was wrong.” CAS is an optimistic technique—it proceeds with the update in the hope of success, and can detect failure if another thread has updated the variable since it was last examined.**
+
+**EXAMPLE**
+
+Assume V is a memory location where value “10” is stored. There are multiple threads who want to increment this value and use the incremented value for other operations, a very practical scenario. Let’s break the whole CAS operation in steps:
+
+**1) Thread 1 and 2 want to increment it, they both read the value and increment it to 11.**
+
+_V = 10, A = 0, B = 0_
+
+**2) Now thread 1 comes first and compare V with it’s last read value:**
+
+_V = 10, A = 10, B = 11_
+
+```java
+if     A = V
+   V = B
+ else
+   operation failed
+   return V
+```
+
+Clearly the value of V will be overwritten as 11, i.e. operation was successful.
+
+**3) Thread 2 comes and try the same operation as thread 1**
+
+_V = 11, A = 10, B = 11_
+
+```java
+if     A = V
+   V = B
+ else
+   operation failed
+   return V
+```
+
+**4) In this case, V is not equal to A, so value is not replaced and current value of V i.e. 11 is returned. Now thread 2, again retry this operation with values:**
+
+_V = 11, A = 11, B = 12_
+
+And this time, condition is met and incremented value 12 is returned to thread 2.
+
+In summary, when multiple threads attempt to update the same variable simultaneously using CAS, one wins and updates the variable’s value, and the rest lose. But the losers are not punished by suspension of thread. They are free to retry the operation or simply do nothing.
+## ``ThreadLocal`` Variables
+
+one of the most critical aspects of a concurrent application is shared data. When you create thread that implements the `Runnable` interface and then start various `Thread` objects using the same `Runnable` object, all the threads share the same attributes that are defined inside the runnable object. This essentially means that if you change any attribute in a thread, all the threads will be affected by this change and will see the modified value by first thread. Sometimes it is desired behavior e.g. multiple threads increasing / decreasing the same counter variable; but sometimes you want to ensure that every thread MUST work on it’s own copy of thread instance and does not affect others data.
+
+###  When to use ``ThreadLocal``?
+
+1. **Thread Isolation is Required**: If you have data that needs to be isolated on a per-thread basis and you don't want different threads to interfere with each other's data.
+    
+2. **Avoid Passing Context Explicitly**: Instead of passing context data explicitly through method parameters or through other means, `ThreadLocal` allows you to access the data directly within the thread's execution context.
+    
+3. **Concurrency without Shared State**: When you want to achieve concurrency without the need for shared state management or synchronization mechanisms between threads.
+
+### ``ThreadLocal`` Class
+
+```java
+public class ThreadLocal<T> extends Object {...}
+```
+
+`ThreadLocal` instances are typically **_private static_** fields in classes that wish to associate state with a thread (e.g., a user ID or Transaction ID).
+
+This class has following methods:
+
+1. **``get()``** : Returns the value in the current thread’s copy of this thread-local variable.
+2. **``initialValue()``** : Returns the current thread’s “initial value” for this thread-local variable.
+3. **``remove()``** : Removes the current thread’s value for this thread-local variable.
+4. **``set(T value)``** : Sets the current thread’s copy of this thread-local variable to the specified value.
+
+**EXAMPLE**
+
+```java
+class DemoTask implements Runnable
+{
+   // Atomic integer containing the next thread ID to be assigned
+   private static final AtomicInteger        nextId   = new AtomicInteger(0);
+    
+   // Thread local variable containing each thread's ID
+   private static final ThreadLocal<Integer> threadId = new ThreadLocal<Integer>()
+                                                         {
+                                                            @Override
+                                                            protected Integer initialValue()
+                                                            {
+                                                               return nextId.getAndIncrement();
+                                                            }
+                                                         };
+ 
+   // Returns the current thread's unique ID, assigning it if necessary
+   public int getThreadId()
+   {
+      return threadId.get();
+   }
+   // Returns the current thread's starting timestamp
+   private static final ThreadLocal<Date> startDate = new ThreadLocal<Date>()
+                                                 {
+                                                    protected Date initialValue()
+                                                    {
+                                                       return new Date();
+                                                    }
+                                                 };
+ 
+   
+ 
+   @Override
+   public void run()
+   {
+      System.out.printf("Starting Thread: %s : %s\n", getThreadId(), startDate.get());
+      try
+      {
+         TimeUnit.SECONDS.sleep((int) Math.rint(Math.random() * 10));
+      } catch (InterruptedException e)
+      {
+         e.printStackTrace();
+      }
+      System.out.printf("Thread Finished: %s : %s\n", getThreadId(), startDate.get());
+   }
+}
+```
+
+```shell
+Starting Thread: 0 : Wed Dec 24 15:04:40 IST 2014
+Thread Finished: 0 : Wed Dec 24 15:04:40 IST 2014
+ 
+Starting Thread: 1 : Wed Dec 24 15:04:42 IST 2014
+Thread Finished: 1 : Wed Dec 24 15:04:42 IST 2014
+ 
+Starting Thread: 2 : Wed Dec 24 15:04:44 IST 2014
+Thread Finished: 2 : Wed Dec 24 15:04:44 IST 2014
+```
+
+> **Most common use of thread local is when you have some object that is not thread-safe, but you want to avoid synchronizing access to that object using synchronized keyword/block. Instead, give each thread its own instance of the object to work with.**  
+>**A good alternative to synchronization or threadlocal is to make the variable a local variable. Local variables are always thread safe. The only thing which may prevent you to do this is your application design constraints.**
 
 # NETWORK PROGRAMMING
 

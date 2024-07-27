@@ -16317,8 +16317,8 @@ The second example shows the most verbose form of a lambda that returns a ``bool
 
 ![[Pasted image 20240402190127.png]]
 
--  ==**A single parameter specified with the name a and stating that the type is ``Animal``**==
--  ==**The arrow operator (->) to separate the parameter and body**==
+-  ==**A single parameter specified with the name ``a`` and stating that the type is ``Animal``**==
+-  ==**The arrow operator`` (->)`` to separate the parameter and body**==
 -  ==**A body that has one or more lines of code, including a semicolon and a ``return`` statement==**
 
 **==The parentheses around the lambda parameters can be omitted only if there is a single parameter and its type is not explicitly stated. We can omit braces when we have only a single statement. Java allows you to omit a ``return`` statement and semicolon ``(;)`` when no braces are used.==** This special shortcut doesn’t work when you have two or more statements.
@@ -16342,7 +16342,7 @@ The final two rows take two parameters and ignore one of them—there isn’t a 
 
 ![[Pasted image 20240402191042.png]]
 
-Remember that the parentheses are optional only when there is one parameter and it doesn’t have a type declared.
+**==Remember that the parentheses are optional only when there is one parameter and it doesn’t have a type declared==**.
 
 ---
 
@@ -16412,7 +16412,6 @@ public interface Climb {
 - The ``Skip`` interface is not a valid functional interface because it has two abstract methods: the inherited ``sprint()`` method and the declared ``skip()`` method.
 - The ``Sleep`` interface is also not a valid functional interface. Neither ``snore()`` nor ``getZzz()`` meets the criteria of a single abstract method. **==Even though default methods function like abstract methods, in that they can be overridden in a class implementing the interface, they are insufficient for satisfying the single abstract method requirement.==**
 - the ``Climb`` interface is a functional interface. Despite defining a slew of methods, it contains only one abstract method: ``reach()``.
-
 ### Adding Object Methods
 
 All classes inherit certain methods from ``Object``.
@@ -16425,7 +16424,7 @@ All classes inherit certain methods from ``Object``.
 
 ---
 
-**Since Java assumes all classes ``extend`` from ``Object``, you also cannot declare an interface method that is incompatible with Object. For example, declaring an abstract method ``int toString()`` in an interface would not compile since Object’s version of the method returns a ``String``.**
+**Since Java assumes all classes ``extend`` from ``Object``, you also cannot declare an interface method that is incompatible with ``Object``. For example, declaring an abstract method ``int toString()`` in an interface would not compile since Object’s version of the method returns a ``String``.**
 
 ---
 
@@ -16435,7 +16434,7 @@ public interface Soar {
 }
 ```
 
-Since ``toString()`` is a public method implemented in ``Object``, it does not count toward the single abstract method test
+Since ``toString()`` is a ``public`` method implemented in ``Object``, it does not count toward the single abstract method test
 
 ```java
 public interface Dive {
@@ -17279,7 +17278,6 @@ The core functional interfaces in Table 8.4 are provided in the ``java.util.func
 
 **TABLE 8.4 Common functional interfaces**
 ![[Pasted image 20240403140214.png]]
-
 ### Implementing ``Supplier``
 
 A ``Supplier`` is used when you want to generate or supply values without taking any input. The ``Supplier`` interface is defined as follows:
@@ -17837,7 +17835,7 @@ class BiPredicateHelper {
 
 ### Implementing ``Function`` and ``BiFunction``
 
-A ``Function`` is responsible for turning one parameter into a value of a potentially different type and returning it. Similarly, a ``BiFunction`` is responsible for turning two parameters into a value and returning it.
+**==A ``Function`` is responsible for turning one parameter into a value of a potentially different type and returning it.==** Similarly, a ``BiFunction`` is responsible for turning two parameters into a value and returning it.
 
 ```java
 @FunctionalInterface
@@ -17859,7 +17857,7 @@ System.out.println(f1.apply("cluck")); // 5
 System.out.println(f2.apply("cluck")); // 5
 ```
 
-This function turns the ``String`` into an int, which is autoboxed into an ``Integer``.
+This function turns the ``String`` into an ``int``, which is autoboxed into an ``Integer``.
 
 ```java
 BiFunction<String, String, String> b1 = String::concat;
@@ -18179,7 +18177,7 @@ Predicate<String> brownEggs = s -> s.contains("egg") && s.contains("brown");
 Predicate<String> otherEggs = s -> s.contains("egg") && !s.contains("brown");
 ```
 
-This works, but it’s not great. It’s a bit long to read, and it contains duplication. better way to deal with this situation is to use two of the default methods on Predicate.
+This works, but it’s not great. It’s a bit long to read, and it contains duplication. better way to deal with this situation is to use two of the default methods on ``Predicate``.
 
 ```java
 Predicate<String> brownEggs = egg.and(brown);
@@ -18208,8 +18206,7 @@ This time, the before runs first, turning the 3 into 4. Then the after runs, dou
 
 There are also a large number of special functional interfaces for primitives. 
 
-Most of them are for the double, int, and long types. There is one exception, which is BooleanSupplier.
-
+Most of them are for the double, int, and long types. **==There is one exception, which is ``BooleanSupplier``.==**
 #### Functional Interfaces for ``boolean``
 
 ``BooleanSupplier`` is a separate type. It has one method to implement:
@@ -19084,7 +19081,6 @@ They can appear in three places with respect to lambdas:
 - ==**variables referenced from the lambda body.==** 
  
 All three of these are opportunities for the exam to trick you
-
 ### Listing Parameters
 
 specifying the type of parameters is optional. Additionally, ``var`` can be used in place of the specific type. That means that all three of these statements are interchangeable:
@@ -19136,9 +19132,9 @@ public void counts(List<Integer> list) {
 8: (Integer x, y) -> "goodbye" // DOES NOT COMPILE
 ```
 
-- Lines 5 needs to remove var from x or add it to y
-- lines 6 and 7 need to use the type or var consistently.
-- line 8 needs to remove Integer from x or add a type to y.
+- Lines 5 needs to remove ``var`` from ``x`` or add it to ``y``
+- lines 6 and 7 need to use the type or ``var`` consistently.
+- line 8 needs to remove ``Integer`` from x or add a type to y.
 ---
 ### Using Local Variables Inside a Lambda Body
 
