@@ -19785,7 +19785,6 @@ A *collection* is a group of objects contained in a single object. The *Java Col
 ![[Pasted image 20240405233314.png]]
 
 Notice that ``Map`` doesn’t implement the ``Collection`` interface. It is considered part of the Java Collections Framework even though it isn’t technically a ``Collection``. It is a collection (note the lowercase), though, in that it contains a group of objects. **==The reason maps are treated differently is that they need different methods due to being key/value pairs.==**
-
 ### Using the Diamond Operator
 
 When constructing a Java Collections Framework, you need to specify the type that will go inside.
@@ -19831,7 +19830,6 @@ For some ``Collection`` types, ``add()`` always returns true. For other types, t
 8: System.out.println(set.add("Sparrow")); // true
 9: System.out.println(set.add("Sparrow")); // false
 ```
-
 ### Removing Data
 
 The ``remove()`` method removes a single matching value in the ``Collection`` and returns whether it was successful.
@@ -19848,7 +19846,6 @@ public boolean remove(Object object
 7: System.out.println(birds.remove("hawk")); // true
 8: System.out.println(birds); // [hawk]
 ```
-
 ### Counting Elements
 
 The ``isEmpty()`` and ``size()`` methods look at how many elements are in the ``Collection``
@@ -19867,7 +19864,6 @@ birds.add("hawk"); // [hawk, hawk]
 System.out.println(birds.isEmpty()); // false
 System.out.println(birds.size()); // 2
 ```
-
 ### Clearing the Collection
 
 The ``clear()`` method provides an easy way to discard all elements of the ``Collection``.
@@ -19886,7 +19882,6 @@ birds.clear(); // []
 System.out.println(birds.isEmpty()); // true
 System.out.println(birds.size()); // 0
 ```
-
 ### Check Contents
 
 The ``contains()`` method checks whether a certain value is in the ``Collection``.
@@ -19903,7 +19898,6 @@ System.out.println(birds.contains("robin")); // false
 ```
 
 The ``contains()`` method calls ``equals()`` on elements of the ``ArrayList`` to see whether there are any matches.
-
 ### Removing with Conditions
 
 The ``removeIf()`` method removes all elements that match a condition.
@@ -19926,7 +19920,6 @@ public boolean removeIf(Predicate<? super E> filter)
 14: set.removeIf(String::isEmpty); // s -> s.isEmpty()
 15: System.out.println(set); // [Wand]
 ```
-
 ### Iterating
 
 There’s a ``forEach()`` method that you can call on a ``Collection`` instead of writing a loop. It uses a ``Consumer`` that takes a single parameter and doesn’t return anything.
@@ -19979,7 +19972,7 @@ System.out.println(list1.equals(list3)); //true
 ---
 ## Using the ``List`` Interface
 
-use a list when you want an ordered collection that **==can contain duplicate entries. Each element of the ``List`` has an index, and the indexes begin with zero.==** The main thing all ``List`` implementations have in common is that they are ordered and allow duplicates. Beyond that, they each offer different functionality
+use a list when you want an ordered collection that **==can contain duplicate entries. Each element of the ``List`` has an index, and the indexes begin with zero.==** ==**The main thing all ``List`` implementations have in common is that they are ordered and allow duplicates==.** Beyond that, they each offer different functionality
 
 ---
 
@@ -19996,7 +19989,6 @@ An ``ArrayList`` is like a resizable array. When elements are added, the ``Array
 A ``LinkedList`` is special because it implements both ``List`` and ``Deque``. It has all the methods of a ``List``. It also has additional methods to facilitate adding or removing from the beginning and/or end of the list.
 
 **==The main benefits of a ``LinkedList`` are that you can access, add to, and remove from the beginning and end of the list in constant time. The trade-off is that dealing with an arbitrary index takes linear time. This makes a ``LinkedList`` a good choice when you’ll be using it as ``Deque``.==**
-
 ### Creating a ``List`` with a Factory
 
 When you create a ``List`` of type ``ArrayList`` or ``LinkedList``, you know the type. There are a few special methods where you get a ``List`` back but don’t know the type. These methods let you create a ``List`` including data in one line using a factory method. Some of these methods return an immutable object
@@ -20024,7 +20016,7 @@ When you create a ``List`` of type ``ArrayList`` or ``LinkedList``, you know the
 - Lines 18 and 19 create an immutable ``List``. 
 - Line 30 shows it is immutable by throwing an exception when trying to add a value. 
  
-All three lists would throw an exception when adding or removing a value. The of and copy lists would also throw one on trying to update an element.
+**==All three lists would throw an exception when adding or removing a value. The of and copy lists would also throw one on trying to update an element.==**
 
 ### Creating a ``List`` with a Constructor
 
@@ -20124,7 +20116,6 @@ The ``replaceAll()`` method calls the lambda on each element of the list and rep
 **At the end of line 34, we have [3, 2, 1]. Line 35 passes a primitive, which means we are requesting deletion of the element at index 2. This leaves us with [3, 2]. Then line 36 passes an ``Integer`` object, which means we are deleting the value 2. That brings us to [3].**
 
 ---
-
 ### Converting from ``List`` to an Array
 
 ```java
@@ -20152,7 +20143,6 @@ A ``HashSet`` stores its elements in a hash table, which means the keys are a ha
 The main benefit is that adding elements and checking whether an element is in the set both have constant time. The trade-off is that you lose the order in which you inserted the elements. Most of the time, you aren’t concerned with this in a Set anyway, making ``HashSet`` the most common set.
 
 A ``TreeSet`` stores its elements in a sorted tree structure. The main benefit is that the set is always in sorted order. The trade-off is that adding and checking whether an element exists takes longer than with a ``HashSet``, especially as the tree grows larger.
-
 ### Working with ``Set`` Methods
 
 Like a ``List``, you can create an immutable ``Set`` in one line or make a copy of an existing one.
@@ -20183,18 +20173,15 @@ Set<Character> copy = Set.copyOf(letters);
 ```
 
 The elements are printed out in their natural sorted order. Numbers implement the ``Comparable`` interface in Java, which is used for sorting.
-
 ## Using the ``Queue`` and ``Deque`` Interfaces
 
 use a ``Queue`` when elements are added and removed in a specific order. You can think of a queue as a line. *FIFO*
 A ``Deque`` (double-ended queue), often pronounced *deck* is different from a regular queue in that you can insert and remove elements from both the front (head) and back (tail).
 
 All queues have specific requirements for adding and removing the next element. Beyond that, they each offer different functionality
-
 ### Comparing ``Deque`` Implementations
 
 ``LinkedList`` in addition to being a list, it is a ``Deque``. The main benefit of a ``LinkedList`` is that it implements both the ``List`` and ``Deque`` interfaces. The trade-off is that it isn’t as efficient as a “pure” queue.
-
 ### Working with ``Queue`` and ``Deque`` Methods
 
 ![[Pasted image 20240406004150.png]]
@@ -20470,7 +20457,6 @@ Map.ofEntries(
 ```
 
 ---
-
 ### Comparing ``Map`` Implementations
 
 A ``HashMap`` stores the keys in a hash table. This means that it uses the ``hashCode()`` method of
@@ -20561,7 +20547,6 @@ The ``get()`` method returns null if the requested key is not in the map. Someti
 ```
 
 ``get()`` and ``getOrDefault()`` behave the same way when the key is present. They return the value mapped by that key.
-
 ### Replacing Values
 
 These methods are similar to the ``List`` version, except a key is involved:
@@ -20592,11 +20577,40 @@ System.out.println(favorites); // {Tom=Tram, Jenny=Bus Tour, Sam=Tram}
 
 ### Merging Data
 
+**==it either puts new value under the given key (if absent) or updates existing key with a given value (_UPSERT_).==**
+
+method that accepts the following arguments:
+
+1. A key
+2. A default value. If there’s no value corresponding to the key _or_ if the value is `null`, the method will associate this default value with the key
+3. A remapping `BiFunction`:
+    1. The first argument is the current value mapped by the key
+    2. The second argument is the default value
+    3. The return value is the new computed value
+
+
+```java
+Map<String, Integer> map = new HashMap<>();
+
+// ...
+
+Integer value = map.get(key);
+if (value == null) {
+    map.put(key, 1);
+} else {
+    map.put(key, ++value);
+}
+```
+
+```java
+map.merge(key, 1, (oldValue, defaultValue) -> oldValue + 1);
+```
+
 The ``merge()`` method adds logic of what to choose.
 
 ```java
 11: BiFunction<String, String, String> mapper = (v1, v2)
-12: -> v1.length()> v2.length() ? v1: v2;
+12: -> v1.length() > v2.length() ? v1: v2;
 13:
 14: Map<String, String> favorites = new HashMap<>();
 15: favorites.put("Jenny", "Bus Tour");
@@ -20657,7 +20671,6 @@ For numbers, order is obvious— it is numerical order. For ``String`` objects, 
 can also sort objects that you create yourself. Java provides an interface called ``Comparable``. If your class implements ``Comparable``, it can be used in data structures that require comparison. There is also a class called ``Comparator``, which is used to specify that you want to use a different order than the object itself provides.
 
 ``Comparable`` and ``Comparator`` are similar enough to be tricky. The exam likes to see if it can trick you into mixing up the two.
-
 ### Creating a ``Comparable`` Class
 
 The ``Comparable`` interface has only one method
@@ -20726,7 +20739,6 @@ Lines 3–5 show one way to compare two int values. We could have used ``Integer
 **==``id -a. id`` sorts in ascending order, and ``a.id -id`` sorts in descending order.==**
 
 ---
-
 #### Casting the ``compareTo()`` Argument
 
 When dealing with legacy code or code that does not use generics, the ``compareTo()`` method requires a cast since it is passed an ``Object``.
@@ -20742,7 +20754,6 @@ public class LegacyDuck implements Comparable {
 ```
 
 Since we don’t specify a generic type for ``Comparable``, Java assumes that we want an ``Object``, which means that we have to cast to ``LegacyDuck`` before accessing instance variables on it.
-
 #### Checking for ``null``
 
 ```java
@@ -20761,7 +20772,6 @@ public class MissingDuck implements Comparable<MissingDuck> {
 ```
 
 This method throws an exception if it is passed a ``null`` ``MissingDuck`` object.
-
 #### Keeping ``compareTo()`` and ``equals()`` Consistent
 
 If you write a class that implements ``Comparable``, you introduce new business logic for determining equality. The ``compareTo()`` method returns 0 if two objects are equal, while your ``equals()`` method returns true if two objects are equal. **==A natural ordering that uses ``compareTo()`` is said to be consistent with equals if, and only if, ``x.equals(y)`` is true whenever ``x.compareTo(y)`` equals 0. Similarly, ``x.equals(y)`` must be false whenever ``x.compareTo(y)`` is not 0.==** You are strongly encouraged to make your ``Comparable`` classes consistent with equals because not all collection classes behave predictably if the ``compareTo()`` and ``equals()`` methods are not consistent.
@@ -20839,7 +20849,6 @@ Comparator<Duck> byWeight = Comparator.comparing(Duck::getWeight);
 **``Comparable`` is also a functional interface since it also has a single abstract method. However, using a lambda for ``Comparable`` would be silly. The point of ``Comparable`` is to implement it inside the object being compared.**
 
 ---
-
 ### Comparing ``Comparable`` and ``Comparator``
 
 ![[Pasted image 20240406163439.png]]
@@ -20962,7 +20971,6 @@ It may seem weird for this exception to be thrown when the first object is added
 ```
 
 A ``Comparator`` is a helpful object. It lets you separate sort order from the object to be sorted. Notice that line 9 in both of the previous examples is the same. It’s the declaration of the ``TreeSet`` that has changed
-
 ### Sorting a ``List``
 
 While you can call ``Collections.sort(list)``, you can also sort directly on the list object.
@@ -20977,7 +20985,7 @@ While you can call ``Collections.sort(list)``, you can also sort directly on the
 9: System.out.println(bunnies); // [floppy, hoppy, long ear]
 ```
 
-The ``sort()`` method takes a ``Comparator`` that provides the sort order. Remember that ``Comparator`` takes two parameters and returns an ``int``. **==There is not a sort method on ``Set`` or ``Map``. Both of those types are unordered, so it wouldn’t make sense to sort them.==**
+The ``sort()`` method takes a ``Comparator`` that provides the sort order. Remember that ``Comparator`` takes two parameters and returns an ``int``. **==There is not a ``sort`` method on ``Set`` or ``Map``. Both of those types are unordered, so it wouldn’t make sense to sort them.==**
 
 ## Working with Generics
 
@@ -21067,7 +21075,6 @@ Elephant elephant = new Elephant();
 Integer numPounds = 15_000;
 SizeLimitedCrate<Elephant, Integer> c1 = new SizeLimitedCrate<>(elephant, numPounds);
 ```
-
 ### Understanding Type Erasure
 
 Specifying a generic type allows the compiler to enforce proper use of the generic type. **==Behind the scenes, the compiler replaces all references to ``T`` in ``Crate`` with ``Object``. In other words, after the code compiles, your generics are just ``Object`` types.==**
@@ -21090,7 +21097,6 @@ This means there is only one class file. There aren’t different copies for dif
 Robot r = crate.lookInCrate(); // FROM THIS 
 Robot r = (Robot) crate.lookInCrate(); // TO THIS
 ```
-
 #### Overloading a Generic Method
 
 Only one of these two methods is allowed in a class because **==type erasure will reduce both sets of arguments to ``(List input)``:==**
@@ -21151,7 +21157,6 @@ public class Goat extends Mammal {
 Notice that the ``sleep()`` method in the ``Goat`` class does compile since ``String`` is a subtype of ``CharSequence``. **==This example shows that covariance applies to the ``return`` type, just not the generic parameter type.==**
 
 For the exam, it might be helpful for you to apply type erasure to questions involving generics to ensure that they compile properly. Once you’ve determined which methods are overridden and which are being overloaded, work backward, making sure the generic types match for overridden methods. And ==**remember, generic methods cannot be overloaded by changing the generic parameter type only.**==
-
 ### Implementing Generic Interfaces
 
 Just like a class, an interface can declare a formal type parameter.
@@ -21254,13 +21259,11 @@ public record CrateRecord<T>(T contents) {
 	}
 }
 ```
-
 ### Bounding Generic Types
 
 A bounded parameter type is a generic type that specifies a bound for the generic. A wildcard generic type is an unknown generic type represented with a question mark ``(?)``.
 
 ![[Pasted image 20240406180309.png]]
-
 #### Creating Unbounded Wildcards
 
 An unbounded wildcard represents any data type. You use ? when you want to specify that any type is okay with you
@@ -21391,7 +21394,6 @@ List<? extends Number> foo3 = new ArrayList<Double>();  // Double extends Number
     - You can't add a `Number` because `foo3` could be pointing at a `List<Integer>`.
 
 **==_You can't add any object to `List<? extends T>` because you can't guarantee what kind of `List` it is really pointing to, so you can't guarantee that the object is allowed in that `List`. The only "guarantee" is that you can only read from it and you'll get a `T` or subclass of `T`._==**
-
 #### Creating Lower-Bounded Wildcards
 
 ```java
@@ -21433,6 +21435,8 @@ public static void addSound(List<? super String> list) {
 
 - ==**Line 5 is fine. ``IOException`` can be added to any of those types**.== 
 - ==**Line 6 is also fine. ``FileNotFoundException`` can also be added to any of those three types. This is tricky because ``FileNotFoundException`` is a subclass of ``IOException``, and the keyword says super. Java says, “Well, ``FileNotFoundException`` also happens to be an ``IOException``, so everything is fine.”**==
+
+> ***==When you declare `List<? super IOException>`, the compiler knows you want to add `IOException` or its subclasses to the list, but it doesn't know the exact type of the list. It could be a `List<Exception>` or `List<Object>`, and adding anything other than `IOException` or its subclasses could break type safety.==***
 
 ---
 
