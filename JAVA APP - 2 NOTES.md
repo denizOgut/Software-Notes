@@ -4466,6 +4466,246 @@ class WriteTask implements Runnable {
 
 ## Locks
 
+The _Java_ _Lock_ interface, `java.util.concurrent.locks.Lock`, represents a concurrent lock which can be used to guard against race conditions inside critical sections. Thus, the Java Lock interface provides a more flexible alternative to a Java synchronized block.
+
+### Main Differences Between a Lock and a Synchronized Block
+
+The main differences between a `Lock` and a synchronized block are:
+
+- A synchronized block makes no guarantees about the sequence in which threads waiting to entering it are granted access.
+- You cannot pass any parameters to the entry of a synchronized block. Thus, having a timeout trying to get access to a synchronized block is not possible.
+- The synchronized block must be fully contained within a single method. A `Lock` can have it's calls to `lock()` and `unlock()` in separate methods.
+
+### Condition on Locks
+
+By using `Condition`, we can create mechanisms that allow threads to wait for specific conditions to be met before proceeding with their execution. 
+
+```java
+public interface Condition {
+ 
+    void await() throws InterruptedException;
+ 
+    void awaitUninterruptibly();
+ 
+    long awaitNanos(long nanosTimeout) throws InterruptedException;
+ 
+    boolean await(long time, TimeUnit unit) throws InterruptedException;
+ 
+    boolean awaitUntil(Date deadline) throws InterruptedException;
+ 
+    void signal();
+ 
+    void signalAll();
+}
+```
+
+A `Condition` is bound to a `Lock` and a thread cannot interact with a `Condition` and its methods if it does not have a hold on that `Lock`.
+
+Also, `Condition` uses the underlying `lock` mechanisms. For example, `signal` and `signalAll` will use the underlying queue of the threads that are maintained by the `Lock`, and will notify them to wake up.
+
+One of the obvious things to implement using `Conditions` is a `BlockingQueue`. Worker threads process data and publisher threads dispatch data. Data are published on a queue, worker threads will process data from the queue, and then they should wait if there is no data in the queue.
+
+For a worker thread, if the condition is met the flow is the following:
+
+- Acquire the lock
+- Check the condition
+- Process data
+- Release the lock
+
+If the condition is not met, the flow would slightly change to this:
+
+- Acquire the lock
+- Check the condition
+- Wait until the condition is met
+- Re-acquire the lock
+- Process data
+- Release the lock
+
+The publisher thread, whenever it adds a message, should notify the threads waiting on the condition.
+
+The workflow would be like this:
+
+- Acquire the lock
+- Publish data
+- Notify the workers
+- Release the lock
+
+```java
+public class ConditionDemo {
+    private final Integer MAX_SIZE = 5;
+    private final Lock lock = new ReentrantLock();
+    private final Queue<Integer> buffer = new LinkedList<>();
+    private final Condition bufferNotFull = lock.newCondition();
+    private final Condition bufferNotEmpty = lock.newCondition();
+
+    private void produce(int item) throws InterruptedException {
+        lock.lock();
+        try {
+            while (buffer.size() == MAX_SIZE) {
+                bufferNotFull.await();
+            }
+            buffer.offer(item);
+            System.out.println("Produced >> " + item);
+            bufferNotEmpty.signal();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void consume() throws InterruptedException {
+        lock.lock();
+        try {
+            while (buffer.isEmpty()) {
+                bufferNotEmpty.await();
+            }
+            System.out.println("Consumed << " + buffer.poll());
+            bufferNotFull.signal();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void main(String[] args) {
+        ConditionDemo demo = new ConditionDemo();
+
+        Thread producerThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    demo.produce(i);
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        Thread consumerThread = new Thread(() -> {
+           try {
+               for (int i = 0; i < 10; i++) {
+                   demo.consume();
+                   Thread.sleep(2000);
+               }
+           } catch (InterruptedException e) {
+               throw new RuntimeException(e);
+           }
+        });
+
+        producerThread.start();
+        consumerThread.start();
+    }
+}
+```
+
+### ``ReentrantLock``
+ 
+ This is the most widely used implementation class of Lock interface. This class implements the Lock interface in similar way as synchronized keyword. Apart from Lock interface implementation, ``ReentrantLock`` contains some utility methods to get the thread holding the lock, threads waiting to acquire the lock etc. synchronized block are reentrant in nature i.e if a thread has lock on the monitor object and if another synchronized block requires to have the lock on the same monitor object then thread can enter that code block. I think this is the reason for the class name to be ``ReentrantLock``.
+
+```java
+public class ReentrantLockDemo {
+    private final ReentrantLock lock = new ReentrantLock();
+    private int sharedData = 0;
+
+    public void methodA() {
+        lock.lock();
+        try {
+            // Critical section
+            sharedData++;
+            System.out.println("Method A: sharedData = " + sharedData);
+            // Call methodB(), which also requires the lock
+            methodB();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void methodB() {
+        lock.lock();
+        try {
+            // Critical section
+            sharedData--;
+            System.out.println("Method B: sharedData = " + sharedData);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void main(String[] args) {
+        ReentrantLockDemo example = new ReentrantLockDemo();
+
+        // Create and start multiple threads
+        for (int i = 0; i < 5; i++) {
+            new Thread(example::methodA).start();
+        }
+    }
+}
+```
+
+### ``ReadWriteLock``
+
+A `java.util.concurrent.locks.ReadWriteLock` is an advanced thread lock mechanism. It allows multiple threads to read a certain resource, but only one to write it, at a time.
+
+The idea is, that multiple threads can read from a shared resource without causing concurrency errors. The concurrency errors first occur when reads and writes to a shared resource occur concurrently, or if multiple writes take place concurrently.
+
+#### ``ReadWriteLock`` Locking Rules
+
+The rules by which a thread is allowed to lock the `ReadWriteLock` either for reading or writing the guarded resource, are as follows:
+
+|                |                                                                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Read Lock**  | If no threads have locked the `ReadWriteLock` for writing,  <br>and no thread have requested a write lock (but not yet obtained it).  <br>Thus, multiple threads can lock the lock for reading. |
+| **Write Lock** | If no threads are reading or writing.  <br>Thus, only one thread at a time can lock the lock for writing.                                                                                       |
+
+```java
+public class SharedResource {
+    private int counter = 0;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    public void increment() {
+        lock.writeLock().lock();
+        try {
+            counter++;
+            System.out.println(Thread.currentThread().getName() + " writes: " + counter);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    public void getValue() {
+        lock.readLock().lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + " reads: " + counter);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+}
+
+class ReadWriteLockDemo {
+    public static void main(String[] args) {
+        SharedResource sharedResource = new SharedResource();
+
+        // Create multiple reader threads
+        for (int i = 0; i < 2; i++) {
+            Thread readerThread = new Thread(() -> {
+                for (int j = 0; j < 3; j++) {
+                    sharedResource.getValue();
+                }
+            });
+            readerThread.setName("Reader Thread " + (i + 1));
+            readerThread.start();
+        }
+
+        // Create a writer thread
+        Thread writerThread = new Thread(() -> {
+            for (int i = 0; i < 5; i++) {
+                sharedResource.increment();
+            }
+        });
+        writerThread.setName("Writer Thread");
+        writerThread.start();
+    }
+}
+```
 
 ## Atomic
 
@@ -4493,6 +4733,42 @@ The most commonly used atomic variable classes in Java are [AtomicInteger](http
 - _**``lazySet()``**_ – eventually writes the value to memory, maybe reordered with subsequent relevant memory operations. One use case is nullifying references, for the sake of garbage collection, which is never going to be accessed again. In this case, better performance is achieved by delaying the null _volatile_ write
 - _**``compareAndSet()``**_ –  returns true when it succeeds, else false
 - _**``weakCompareAndSet()``**_ –  it does not create happens-before orderings. This means that it may not necessarily see updates made to other variables.
+
+```java
+public class AtomicVariable {
+
+    private static int count = 0;
+    private static final AtomicInteger counter = new AtomicInteger(0);
+
+    public static void main(String[] args) {
+        Thread one = new Thread(() -> {
+            for (int i = 0; i < 10000; i++) {
+                //count++;
+                counter.incrementAndGet();
+            }
+        });
+
+        Thread two = new Thread(() -> {
+            for (int i = 0; i < 10000; i++) {
+                //count++;
+                counter.incrementAndGet();
+            }
+        });
+
+        one.start();
+        two.start();
+
+        try {
+            one.join();
+            two.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("Count value is : " + counter);
+    }
+}
+```
 
 **CSD EXAMPLE**
 
@@ -4617,75 +4893,6 @@ When a variable is declared `volatile`, it ensures that the value of the `vola
 | `volatile`     | Ensures visibility of changes across threads              | Does not guarantee atomicity for compound operations      |
 | `synchronized` | Ensures atomicity for compound operations                 | Can lead to thread blocking and decreased performance     |
 | Atomic classes | Ensures atomicity for specific operations without locking | Limited to specific operations provided by atomic classes |
-## Compare and Swap Example – CAS Algorithm
-
-### Optimistic and Pessimistic Locking
-
-Traditional locking mechanisms, e.g. **using _synchronized_ keyword in java, is said to be pessimistic technique** of locking or multi-threading. It asks you to first guarantee that no other thread will interfere in between certain operation (i.e. lock the object), and then only allow you access to any instance/method.
-
-> **It’s much like saying “please close the door first; otherwise some other crook will come in and rearrange your stuff”.**
-
-Though above approach is safe and it does work, but it **put a significant penalty on your application in terms of performance**. Reason is simple that waiting threads can not do anything unless they also get a chance and perform the guarded operation.
-
-There exist one more approach which is more efficient in performance, and it **optimistic** in nature. In this approach, you proceed with an update, **being hopeful that you can complete it without interference**. This approach relies on collision detection to determine if there has been interference from other parties during the update, in which case the operation fails and can be retried (or not).
-
-> **The optimistic approach is like the old saying, “It is easier to obtain forgiveness than permission”, where “easier” here means “more efficient”.**
-
-
-**Compare and Swap** is a good example of such optimistic approach
-### Compare and Swap Algorithm
-
-This algorithm compares the contents of a memory location to a given value and, only if they are the same, modifies the contents of that memory location to a given new value. This is done as a single atomic operation. The atomicity guarantees that the new value is calculated based on up-to-date information; if the value had been updated by another thread in the meantime, the write would fail. The result of the operation must indicate whether it performed the substitution; this can be done either with a simple Boolean response (this variant is often called compare-and-set), or by returning the value read from the memory location (not the value written to it).
-
-There are 3 parameters for a CAS operation:
-
-1. A memory location V where value has to be replaced
-2. Old value A which was read by thread last time
-3. New value B which should be written over V
-
-> **CAS says “I think V should have the value A; if it does, put B there, otherwise don’t change it but tell me I was wrong.” CAS is an optimistic technique—it proceeds with the update in the hope of success, and can detect failure if another thread has updated the variable since it was last examined.**
-
-**EXAMPLE**
-
-Assume V is a memory location where value “10” is stored. There are multiple threads who want to increment this value and use the incremented value for other operations, a very practical scenario. Let’s break the whole CAS operation in steps:
-
-**1) Thread 1 and 2 want to increment it, they both read the value and increment it to 11.**
-
-_V = 10, A = 0, B = 0_
-
-**2) Now thread 1 comes first and compare V with it’s last read value:**
-
-_V = 10, A = 10, B = 11_
-
-```java
-if     A = V
-   V = B
- else
-   operation failed
-   return V
-```
-
-Clearly the value of V will be overwritten as 11, i.e. operation was successful.
-
-**3) Thread 2 comes and try the same operation as thread 1**
-
-_V = 11, A = 10, B = 11_
-
-```java
-if     A = V
-   V = B
- else
-   operation failed
-   return V
-```
-
-**4) In this case, V is not equal to A, so value is not replaced and current value of V i.e. 11 is returned. Now thread 2, again retry this operation with values:**
-
-_V = 11, A = 11, B = 12_
-
-And this time, condition is met and incremented value 12 is returned to thread 2.
-
-In summary, when multiple threads attempt to update the same variable simultaneously using CAS, one wins and updates the variable’s value, and the rest lose. But the losers are not punished by suspension of thread. They are free to retry the operation or simply do nothing.
 ## ``ThreadLocal`` Variables
 
 one of the most critical aspects of a concurrent application is shared data. When you create thread that implements the `Runnable` interface and then start various `Thread` objects using the same `Runnable` object, all the threads share the same attributes that are defined inside the runnable object. This essentially means that if you change any attribute in a thread, all the threads will be affected by this change and will see the modified value by first thread. Sometimes it is desired behavior e.g. multiple threads increasing / decreasing the same counter variable; but sometimes you want to ensure that every thread MUST work on it’s own copy of thread instance and does not affect others data.
@@ -4776,6 +4983,348 @@ Thread Finished: 2 : Wed Dec 24 15:04:44 IST 2014
 
 > **Most common use of thread local is when you have some object that is not thread-safe, but you want to avoid synchronizing access to that object using synchronized keyword/block. Instead, give each thread its own instance of the object to work with.**  
 >**A good alternative to synchronization or threadlocal is to make the variable a local variable. Local variables are always thread safe. The only thing which may prevent you to do this is your application design constraints.**
+
+## DeadLock
+
+A deadlock **occurs when two or more tasks permanently block each other by each task having a lock on a resource that the other tasks are trying to lock**.
+
+```java
+public class DeadlockDemo {
+    private final Lock lockA = new ReentrantLock(true);
+    private final Lock lockB = new ReentrantLock(true);
+
+    public void workerOne() {
+        lockA.lock();
+        System.out.println("Worker One acquired lockA");
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        lockB.lock();
+        System.out.println("Worker One acquired LockB");
+        lockA.lock();
+        lockB.unlock();
+    }
+
+    public void workerTwo() {
+        lockB.lock();
+        System.out.println("Worker One acquired lockB");
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        lockA.lock();
+        System.out.println("Worker One acquired LockA");
+        lockB.lock();
+        lockA.unlock();
+    }
+
+    public static void main(String[] args) {
+        DeadlockDemo deadlock = new DeadlockDemo();
+        new Thread(deadlock::workerOne, "Worker One").start();
+        new Thread(deadlock::workerTwo, "Worker Two").start();
+
+        new Thread(() -> {
+            ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
+            while (true) {
+                long[] threadIds = mxBean.findDeadlockedThreads();
+                if (threadIds != null) {
+                    ThreadInfo[] threadInfo = mxBean.getThreadInfo(threadIds);
+                    System.out.println("Dead Lock detected!");
+                    for (long threadId : threadIds) {
+                        System.out.println("Thread with ID " + threadId + " in Dead Lock");
+                    }
+                    break;
+                }
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }).start();
+    }
+}
+```
+
+## Semaphores
+
+Semaphore in Java is a variable that is used to manage processes that run in parallel. It is a non-negative variable that indicates the number of resources in the system that are available at a point in time. By using counters, the semaphore controls the shared resources to ensure that threads running simultaneously are able to access the resources and avoid race conditions. Thus the semaphore protects critical sections by using synchronized constructs. 
+
+### What Are the Types of Semaphore?
+
+There are two types of Semaphore:
+#### 1. Counting Semaphore
+
+The semaphore variable is initialized with the number of resources available. When a process needs to acquire a shared resource, ``wait()`` function is invoked and the value of the semaphore is reduced by 1. Once the process is done using the resource, it is released by invoking the signal() function. The value of the variable is increased by 1. When the semaphore value is 0, none of the resources are available and the process has to wait till a resource is released.
+#### 2. Binary Semaphore
+
+In a binary semaphore, the value of the variable will be either 0 or 1. The value is set to 1 in the beginning and if a process wants to use a shared resource, it can invoke the ``wait()`` function, and the value changes from 1 to 0. Once the process is done using the resource, it is released by invoking the ``signal()`` function. The value of the variable changes from 0 to 1. When the value of the semaphore is 0 and a process has to wait to acquire the shared resource which has to be released by the previous process. 
+### How Does a Semaphore Work?
+
+The counter of the semaphore holds a value of 0 or higher. 
+
+- When the value of the counter is greater than 0, the thread is allowed to access the shared resource and the counter value reduces by 1.
+- Otherwise until a permit can be obtained, the thread is blocked.
+- After the thread completes execution, it releases the resource that is no longer required. Once the resource is released, the counter value is increased by 1.
+- Another thread awaiting the acquisition of the same resource can now obtain a permit to access the resource. 
+- If the counter is 0, permission to access the resource is denied
+
+![[Pasted image 20240727175953.png]]
+
+### Semaphore vs. Mutex
+
+|                                                                                                                                          |                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Semaphore                                                                                                                                | Mutex                                                                                                               |
+| Allows the shared resource to be used by multiple processes till it is available                                                         | Allows multiple processes to access a resource but                                                                  |
+| It is a variable greater than 0                                                                                                          | It is an object                                                                                                     |
+| Deploys signal mechanism where the methods wait() & signal() are used to indicate if a process is using a resource or releasing it       | Deploys locking mechanism where the process using a resource locks it and releases it once it has finished using it |
+| Multiple processes can change the value of a semaphore variable but only one process can modify it at a given time to acquire a resource | The same process can acquire or release a lock at a time                                                            |
+
+```java
+public class Scraper {
+    public static void main(String[] args) {
+        try (ExecutorService service = Executors.newCachedThreadPool()) {
+            for (int i = 0; i < 15; i++) {
+                service.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        ScrapeService.INSTANCE.scrape();
+                    }
+                });
+            }
+        }
+    }
+}
+
+enum ScrapeService {
+    INSTANCE;
+    private Semaphore semaphore = new Semaphore(3);
+
+    public void scrape() {
+        try {
+            semaphore.acquire();
+            invokeScrapeBot();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            semaphore.release();
+        }
+    }
+
+    private void invokeScrapeBot() {
+        try {
+            System.out.println("Scraping data...");
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+
+## Mutex
+
+A **mutex** (short for "mutual exclusion") is a synchronization primitive used to control access to a shared resource in concurrent programming. It ensures that only one thread can access the resource at a time, preventing race conditions and ensuring data consistency.
+
+A mutex is an object that acts as a lock, allowing only one thread to access a critical section of code or a shared resource at a time. When a thread acquires a mutex, it gains exclusive access to the associated resource, and other threads are blocked from accessing the resource until the mutex is released.
+
+## ``ForkJoinPool``
+
+The fork and join principle consists of two steps which are performed recursively. These two steps are the fork step and the join step.
+
+### Fork
+
+A task that uses the fork and join principle can _fork_ (split) itself into smaller subtasks which can be executed concurrently. 
+
+![[Pasted image 20240727201306.png]]
+
+By splitting itself up into subtasks, each subtask can be executed in parallel by different CPUs, or different threads on the same CPU.
+
+A task only splits itself up into subtasks if the work the task was given is large enough for this to make sense. There is an overhead to splitting up a task into subtasks, so for small amounts of work this overhead may be greater than the speedup achieved by executing subtasks concurrently.
+
+The limit for when it makes sense to fork a task into subtasks is also called a threshold. It is up to each task to decide on a sensible threshold. It depends very much on the kind of work being done.
+
+### Join
+
+When a task has split itself up into subtasks, the task waits until its subtasks have finished executing.
+
+Once its subtasks have finished executing, the task may _join_ (merge) all the results into one result.
+
+![[Pasted image 20240727201335.png]]
+
+not all types of tasks may return a result. If the tasks do not return a result then a task just waits for its subtasks to complete. No result merging takes place then.
+
+```java
+public class SearchOccurrenceTask extends RecursiveTask<Integer> {
+    int[] arr;
+    int start;
+    int end;
+    int searchElement;
+
+    public SearchOccurrenceTask(int[] arr, int start, int end, int searchElement) {
+        this.arr = arr;
+        this.start = start;
+        this.end = end;
+        this.searchElement = searchElement;
+    }
+
+    @Override
+    protected Integer compute() {
+        int size = end-start+1;
+        if(size > 50) {
+            int mid = (start+end)/2;
+            SearchOccurrenceTask task1 = new SearchOccurrenceTask(arr, start, mid, searchElement);
+            SearchOccurrenceTask task2 = new SearchOccurrenceTask(arr, mid+1, end, searchElement);
+            task1.fork();
+            task2.fork();
+
+            return task1.join() + task2.join();
+        } else {
+            return search();
+        }
+    }
+
+    private Integer search() {
+        int count = 0;
+        for (int i = start; i <= end ; i++) {
+            if (arr[i] == searchElement) {
+                count++;
+            }
+        }
+        return count;
+    }
+}
+
+class FJPDemo {
+    public static void main(String[] args) {
+        int[] arr = new int[100];
+        Random random = new Random();
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = random.nextInt(10) + 1;
+        }
+
+        int searchElement = random.nextInt(10) + 1;
+
+        try (ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors())) {
+            SearchOccurrenceTask task = new SearchOccurrenceTask(arr, 0, arr.length-1, searchElement);
+            Integer occurrence = pool.invoke(task);
+            System.out.println("Array is : " + Arrays.toString(arr));
+            System.out.printf("%d found %d times", searchElement, occurrence);
+        }
+    }
+}
+```
+
+```java
+public class WorkLoadSplitter extends RecursiveAction {
+
+    private final long workLoad;
+
+    public WorkLoadSplitter(long workLoad) {
+        this.workLoad = workLoad;
+    }
+
+    @Override
+    protected void compute() {
+        if (this.workLoad > 16) {
+            System.out.println("Work Load too big, thus splitting : " + this.workLoad);
+            long firstWorkLoad = this.workLoad/2;
+            long secondWorkLoad = this.workLoad - firstWorkLoad;
+
+            WorkLoadSplitter firstSplit = new WorkLoadSplitter(firstWorkLoad);
+            WorkLoadSplitter secondSplit = new WorkLoadSplitter(secondWorkLoad);
+
+            firstSplit.fork();
+            secondSplit.fork();
+        } else {
+            System.out.println("Work Load within limits! Task being executed for workload : " + this.workLoad);
+        }
+    }
+}
+
+class WorkLoadSplitDemo {
+    public static void main(String[] args) {
+        try (ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors())) {
+            WorkLoadSplitter splitter = new WorkLoadSplitter(128);
+            pool.invoke(splitter);
+        }
+    }
+}
+```
+
+## Compare and Swap Example – CAS Algorithm
+
+### Optimistic and Pessimistic Locking
+
+Traditional locking mechanisms, e.g. **using _synchronized_ keyword in java, is said to be pessimistic technique** of locking or multi-threading. It asks you to first guarantee that no other thread will interfere in between certain operation (i.e. lock the object), and then only allow you access to any instance/method.
+
+> **It’s much like saying “please close the door first; otherwise some other crook will come in and rearrange your stuff”.**
+
+Though above approach is safe and it does work, but it **put a significant penalty on your application in terms of performance**. Reason is simple that waiting threads can not do anything unless they also get a chance and perform the guarded operation.
+
+There exist one more approach which is more efficient in performance, and it **optimistic** in nature. In this approach, you proceed with an update, **being hopeful that you can complete it without interference**. This approach relies on collision detection to determine if there has been interference from other parties during the update, in which case the operation fails and can be retried (or not).
+
+> **The optimistic approach is like the old saying, “It is easier to obtain forgiveness than permission”, where “easier” here means “more efficient”.**
+
+
+**Compare and Swap** is a good example of such optimistic approach
+### Compare and Swap Algorithm
+
+This algorithm compares the contents of a memory location to a given value and, only if they are the same, modifies the contents of that memory location to a given new value. This is done as a single atomic operation. The atomicity guarantees that the new value is calculated based on up-to-date information; if the value had been updated by another thread in the meantime, the write would fail. The result of the operation must indicate whether it performed the substitution; this can be done either with a simple Boolean response (this variant is often called compare-and-set), or by returning the value read from the memory location (not the value written to it).
+
+There are 3 parameters for a CAS operation:
+
+1. A memory location V where value has to be replaced
+2. Old value A which was read by thread last time
+3. New value B which should be written over V
+
+> **CAS says “I think V should have the value A; if it does, put B there, otherwise don’t change it but tell me I was wrong.” CAS is an optimistic technique—it proceeds with the update in the hope of success, and can detect failure if another thread has updated the variable since it was last examined.**
+
+**EXAMPLE**
+
+Assume V is a memory location where value “10” is stored. There are multiple threads who want to increment this value and use the incremented value for other operations, a very practical scenario. Let’s break the whole CAS operation in steps:
+
+**1) Thread 1 and 2 want to increment it, they both read the value and increment it to 11.**
+
+_V = 10, A = 0, B = 0_
+
+**2) Now thread 1 comes first and compare V with it’s last read value:**
+
+_V = 10, A = 10, B = 11_
+
+```java
+if     A = V
+   V = B
+ else
+   operation failed
+   return V
+```
+
+Clearly the value of V will be overwritten as 11, i.e. operation was successful.
+
+**3) Thread 2 comes and try the same operation as thread 1**
+
+_V = 11, A = 10, B = 11_
+
+```java
+if     A = V
+   V = B
+ else
+   operation failed
+   return V
+```
+
+**4) In this case, V is not equal to A, so value is not replaced and current value of V i.e. 11 is returned. Now thread 2, again retry this operation with values:**
+
+_V = 11, A = 11, B = 12_
+
+And this time, condition is met and incremented value 12 is returned to thread 2.
+
+In summary, when multiple threads attempt to update the same variable simultaneously using CAS, one wins and updates the variable’s value, and the rest lose. But the losers are not punished by suspension of thread. They are free to retry the operation or simply do nothing.
 
 # NETWORK PROGRAMMING
 

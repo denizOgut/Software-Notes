@@ -35,11 +35,9 @@
             "id": "e554360c9f2a9ba0",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
-                "mode": "source",
-                "source": false
+                "file": "JAVA APP Screen Shots/Pasted image 20240727201306.png"
               }
             }
           }
@@ -110,7 +108,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
+                "file": "JAVA APP Screen Shots/Pasted image 20240727201306.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -127,7 +125,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
+                "file": "JAVA APP Screen Shots/Pasted image 20240727201306.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -150,7 +148,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md"
+                "file": "JAVA APP Screen Shots/Pasted image 20240727201306.png"
               }
             }
           },
@@ -187,21 +185,20 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
+    "JAVA APP - 2 NOTES.md",
+    "JAVA APP Screen Shots/Pasted image 20240727201335.png",
+    "JAVA APP Screen Shots/Pasted image 20240727201306.png",
+    "JAVA APP Screen Shots/Pasted image 20240727175953.png",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "JAVA APP Screen Shots/Pasted image 20240727124529.png",
     "JAVA APP Screen Shots/Pasted image 20240727124103.png",
     "JAVA APP Screen Shots/Pasted image 20240727122803.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-    "JAVA APP - 2 NOTES.md",
     "Java Concurrency in Practice Screenshots/Pasted image 20240722184925.png",
     "Java Concurrency in Practice Screenshots/Pasted image 20240722184613.png",
     "Java Concurrency in Practice - Notes.md",
     "Java Concurrency in Practice Screenshots/Pasted image 20240716201103.png",
     "Java Concurrency in Practice Screenshots/Pasted image 20240710101205.png",
-    "Java Concurrency in Practice Screenshots/Pasted image 20240710101022.png",
-    "Java Concurrency in Practice Screenshots/Pasted image 20240710100938.png",
-    "Java Concurrency in Practice Screenshots/Pasted image 20240709195919.png",
     "RabbitMQ Notes.md",
-    "Java Concurrency in Practice Screenshots/Pasted image 20240707085441.png",
     "Java Concurrency in Practice Screenshots",
     "DATABASE PROGRAMMING NOTES.md",
     "RabbitMQ Screenshots",
