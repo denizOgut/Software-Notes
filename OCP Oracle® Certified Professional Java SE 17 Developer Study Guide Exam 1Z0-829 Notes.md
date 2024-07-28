@@ -22108,7 +22108,6 @@ F. compare() takes two method parameters.
 **The java.lang.Comparable interface is implemented on the object to compare. It specifies the compareTo() method, which takes one parameter. The java.util.Comparator interface specifies the compare() method, which takes two parameters. This gives us options B, D, and F as the answers.**
 
 ---
-
 # Chapter 10 - Streams #Chapter
 
 ## Returning an Optional
@@ -22225,7 +22224,6 @@ It prints out 95.0 three times. Since the value does exist, there is no need to 
 - **One is that there isn’t a clear way to express that ``null`` might be a special value. By contrast, returning an ``Optional`` is a clear statement in the API that there might not be a value.**
 - **Another advantage of ``Optional`` is that you can use a functional programming style with ``ifPresent()`` and the other methods rather than needing an if statement.**
 ---
-
 ## Using Streams
 
 ### Understanding the Pipeline Flow
@@ -22296,7 +22294,6 @@ Notice how they are separated by commas ``(,)`` just like in all other methods. 
 #### Reviewing Stream Creation Methods
 
 ![[Pasted image 20240420231908.png]]
-
 ### Using Common Terminal Operations
 
 **==You can perform a terminal operation without any intermediate operations but not the other way around.==**
@@ -22336,12 +22333,11 @@ System.out.println(minEmpty.isPresent()); // false
 ```
 
 Since the stream is empty, the comparator is never called, and no value is present in the ``Optional``.
-
 #### Finding a Value
 
 The ``findAny()`` and ``findFirst()`` methods return an element of the stream unless the stream is empty. If the stream is empty, they return an empty ``Optional``. Since Java generates only the amount of stream you need, the infinite stream needs to generate only one element. As its name implies, the ``findAny()`` method can return any element of the stream. the ``findAny()`` method is more likely to return a random element when working with parallel streams.
 
-These methods are terminal operations but not reductions. The reason is that they sometimes return without processing all of the elements. This means that they return a value based on the stream but do not reduce the entire stream into one value.
+**==These methods are terminal operations but not reductions. The reason is that they sometimes return without processing all of the elements. This means that they return a value based on the stream but do not reduce the entire stream into one value.==**
 
 ```java
 public Optional<T> findAny()
@@ -22622,7 +22618,6 @@ public class StreamCollectingExample {
 ### Using Common Intermediate Operations
 
 Unlike a terminal operation, an intermediate operation produces a stream as its result. An intermediate operation can also deal with an infinite stream simply by returning another infinite stream. Since elements are produced only as needed, this works fine.
-
 #### Filtering
 
 The ``filter()`` method returns a ``Stream`` with elements that match a given expression.
@@ -22646,7 +22641,6 @@ Stream<String> s = Stream.of("duck", "duck", "duck", "goose");
 s.distinct()
 .forEach(System.out::print); // duckgoose
 ```
-
 #### Restricting by Position
 
 The ``limit()`` and ``skip()`` methods can make a ``Stream`` smaller, or ``limit()`` could make a finite stream out of an infinite stream.
@@ -22660,7 +22654,6 @@ s.skip(5)
 .limit(2)
 .forEach(System.out::print); // 67
 ```
-
 #### Mapping
 
 The ``map()`` method creates a one-to- one mapping from the elements in the stream to the elements of the next step in the stream.
@@ -22681,7 +22674,7 @@ The ``flatMap()`` method takes each element in the stream and makes any elements
 public <R> Stream<R> flatMap( Function<? super T, ? extends Stream<? extends R>> mapper)
 ```
 
-This gibberish basically says that it returns a Stream of the type that the function contains at a lower level.
+This gibberish basically says that it returns a ``Stream`` of the type that the function contains at a lower level.
 
 ```java
 List<String> zero = List.of();
@@ -22718,7 +22711,6 @@ Stream.concat(one, two)
 **The two streams are concatenated, and the terminal operation, ``forEach()``, is called.**
 
 ---
-
 #### Sorting
 
 The ``sorted()`` method returns a stream with the elements sorted. Just like sorting arrays, Java uses natural ordering unless we specify a comparator
@@ -22743,7 +22735,6 @@ s.sorted(Comparator::reverseOrder); // DOES NOT COMPILE
 ```
 
 the second ``sorted()`` method signature It takes a ``Comparator``, which is a functional interface that takes two parameters and returns an int. However, ``Comparator::reverseOrder`` doesn’t do that. Because ``reverseOrder()`` takes no arguments and returns a value, the method reference is equivalent to ``() -> Comparator.reverseOrder()``, which is really a ``Supplier<Comparator>``. This is not compatible with ``sorted()``.
-
 #### Taking a Peek
 
 The ``peek()`` method is useful for debugging because **==it allows us to perform a stream operation without changing the stream.==**
@@ -22762,7 +22753,6 @@ long count = stream.filter(s -> s.startsWith("g"))
 .peek(System.out::println).count(); // grizzly
 System.out.println(count); // 1
 ```
-
 ### Putting Together the Pipeline
 
 Streams allow you to use chaining and express what you want to accomplish rather than how to do so.
@@ -22936,7 +22926,6 @@ The first parameter to the ``range()`` method is inclusive, which means it inclu
 IntStream rangeClosed = IntStream.rangeClosed(1, 5);
 rangeClosed.forEach(System.out::print); // 12345
 ```
-
 ### Mapping Streams
 
 ![[Pasted image 20240421191230.png]]
@@ -22982,7 +22971,6 @@ private static Stream<Integer> boxing(IntStream stream) {
 
 - The first one uses the ``mapToObj()``
 - The second one is more succinct. It does not require a mapping function because all it does is autobox each primitive to the corresponding wrapper object. The ``boxed()`` method exists on all three types of primitive streams.
-
 ### Using Optional with Primitive Streams
 
 ```java
@@ -23077,7 +23065,6 @@ public class IntSummaryStatisticsExample2 {
 ```
 
 **==Remember that streams are lazily evaluated. This means that the stream isn’t created on line 28. An object is created that knows where to look for the data when it is needed. On line 30, the stream pipeline runs. First, it looks at the source and seeing three elements.==**
-
 ### Chaining Optionals
 
 few of the intermediate operations for streams are available for ``Optional``. 
@@ -23115,14 +23102,13 @@ What if we had a helper method that did the logic of calculating something for u
 Optional<Integer> result = optional.map(ChainingOptionals::calculator); // DOES NOT COMPILE
 ```
 
-The problem is that calculator returns ``Optional<Integer>``. The map() method adds another ``Optional``, giving us Optional``<Optional<Integer>>``. Well, that’s no good. The solution is to call ``flatMap()``, instead:
+The problem is that calculator returns ``Optional<Integer>``. The ``map()`` method adds another ``Optional``, giving us Optional``<Optional<Integer>>``. Well, that’s no good. The solution is to call ``flatMap()``, instead:
 
 ```java
 Optional<Integer> result = optional.flatMap(ChainingOptionals::calculator);
 ```
 
 This one works because ``flatMap`` removes the unnecessary layer. In other words, it flattens the result. Chaining calls to ``flatMap()`` is useful when you want to transform one ``Optional`` type to another.
-
 ### Using a ``Spliterator``
 
 The characteristics of a ``Spliterator`` depend on the underlying data source. A ``Collection`` data source is a basic ``Spliterator``. By contrast, when using a ``Stream`` data source, the ``Spliterator`` can be parallel or even infinite. The ``Stream`` itself is executed lazily rather than when the ``Spliterator`` is created.
