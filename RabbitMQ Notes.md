@@ -67,29 +67,33 @@ An AMQP message is a package of information that consists of three main parts:
 
 ![[Pasted image 20240625101611.png]]
 
-###  Type of exchanges
+## Exchange
 
-#### Direct Exchange
+An Exchange is a structure that routes a message produced by the producer to either a recipient or a queue. The producer sends the produced message to the Exchange, which then adds the incoming message to the relevant queue along with its contained information. If there is a listening consumer, it takes the next message from the queue to process. In short, its task is to deliver the message it receives to the relevant Queue according to the specified Routing Key.
+### Direct Exchange
 
  The direct exchange routes messages to queues **==based on the message routing key==**. This is the simplest and most common type of exchange. It’s like sending a letter to a specific address, the letter will be delivered only to that specific address. A direct exchange can function similarly to a fanout exchange if multiple queues are bound to it with the same routing key. In this case, messages sent to the exchange with that routing key will be routed to all queues bound with the same routing key.
  
-![[Pasted image 20240625102247.png]]
+![[Pasted image 20240729221910.png]]
 
-####  Fanout Exchange
+###  Fanout Exchange
 
 The fanout exchange **==routes messages to all queues that are bound to it==**. It’s like sending a letter to a post office box, and all the people who have a key to that box will get it.
 
-![[Pasted image 20240625102359.png]]
+![[Pasted image 20240729221931.png]]
 
-#### Topic Exchange
+### Topic Exchange
 
 The topic exchange routes messages to queues **==based on a pattern that the queue and message routing key must match==**. This type of exchange is like sending a letter with a specific topic and only the people who are interested in that topic will get the letter.
 
-![[Pasted image 20240625102518.png]]
 
-#### Headers Exchange
+![[Pasted image 20240729222002.png]]
+
+### Headers Exchange
 
 The headers exchange routes messages **==based on the message header attributes rather than the routing key==**. This type of exchange allows for more complex routing logic because it evaluates the headers of the message against the arguments specified in the binding. It’s like sending a letter that will only be delivered if it has the correct combination of labels or stamps. For example, a message might be routed based on headers like `x-match`, `department`, and `priority`. Depending on how these headers match the criteria set by the queue, the message will be delivered to one or more queues.
+
+![[Pasted image 20240729222135.png]]
 
 ##  Queue Properties
 
@@ -101,113 +105,39 @@ The headers exchange routes messages **==based on the message header attributes 
 - **Priority**: Message prioritization with performance trade-offs.
 - **Expiration time (TTL)**: Sets lifespan for messages and queues.
 
-##  Queue Types
+## Dead Letter Exchange & Queue
 
-###  Quorum Queues
+A Dead Letter Exchange (DLX) is a special type of Exchange to which a message is routed when it cannot be consumed for specific reasons. The Dead Letter Queue (DLQ) is a special queue that receives messages through this Exchange.
 
-Quorum queues adopt a different replication and consensus protocol and give up support for certain ***transient*** in nature features, which results in some limitations. 
+Situations where this mechanism is needed: 
+- If a message's TTL (Time-To-Live) has expired. 
+- If the queue is full and there is no space for new messages. 
+- If the message is rejected by the Consumer in any way (Nack or Reject).
 
-#### What is a Quorum?[​](https://www.rabbitmq.com/docs/quorum-queues#what-is-quorum "Direct link to What is a Quorum?")
+In such cases, instead of being deleted outright, messages are processed through the DLX and DLQ, allowing for different actions to be taken on these messages later. RabbitMQ offers this mechanism built-in. The only requirement is to provide the ***x-dead-letter-exchange*** tag as an argument when defining the Queue. In Queues where this tag is provided, if any of the above conditions occur, the message will be routed to the DLQ through the DLX. Messages that cannot be delivered through the DLQ can be used later for their intended purpose.
 
-If intentionally simplified, quorum in a distributed system can be defined as an agreement between the majority of nodes (`(N/2)+1` where `N` is the total number of system participants).
+![[Pasted image 20240729232031.png]]
 
-When applied to queue mirroring in RabbitMQ clusters this means that the majority of replicas (including the currently elected queue leader) agree on the state of the queue and its contents.
+## Advantages & Disadvantages
+### Advantages
 
-#### Quorum Queues Use Cases
+- **Reliability**: RabbitMQ ensures message delivery even in the event of system failures or network issues. Features like message acknowledgment and persistence prevent messages from being lost. In the event of damage to the queue or RabbitMQ Broker for any reason, the system allows for messages to be recorded or backed up on disk, preventing message loss.
 
-Quorum queues are designed for critical systems requiring high fault tolerance and data safety, where the longevity and reliability of queues are essential. They are not suited for every scenario, especially where low latency and advanced features are prioritized.
+- **Flexibility**: RabbitMQ supports multiple messaging protocols such as AMQP, MQTT, and STOMP, providing versatility for different types of applications and integration scenarios. For example, consider a service communicating with various applications through message queues. Given that other applications might use different messaging protocols, RabbitMQ allows messages to be sent by queues specific to the application's protocol, facilitating easy adaptation of services.
 
-**Best Practices**:
+- **Scalability**: RabbitMQ can handle large message volumes and can be scaled horizontally by adding more nodes to clusters. This scalability ensures load distribution within the system, enabling queues to operate more efficiently.
+  
+- **Routing and Filtering**: RabbitMQ offers advanced message routing and filtering capabilities. As previously mentioned in routing methods, it allows messages to be routed to specific queues based on criteria such as message headers, routing keys, or message content. This makes it easier to separate messages by services and functions, ensuring clarity and purpose-specific usage.
 
-- **Publishers**: Use publisher confirms for ensuring messages are safely replicated across nodes.
-- **Consumers**: Use manual acknowledgements to requeue unprocessed messages for retry.
+- **Management and Monitoring**: RabbitMQ provides a web-based management interface and comprehensive monitoring capabilities. This makes it easy to manage and monitor the messaging infrastructure.
 
-#### When Not to Use Quorum Queues
+### Disadvantages
 
-Quorum queues should be avoided in the following scenarios:
-
-- **Temporary Queues**: Transient or exclusive queues with high rates of creation and deletion.
-- **Low Latency Requirements**: Scenarios needing the lowest possible latency, as quorum queues have higher latency due to data safety features.
-- **Data Safety Not a Priority**: Applications not using manual acknowledgements or publisher confirms.
-- **Very Long Queue Backlogs**: Streams are a better fit for handling extensive backlogs.
-
-###  Classic Queues
-
-A RabbitMQ classic queue (the original queue type) is a versatile queue type suitable for use cases where data safety is not a priority because the data stored in classic queues is not replicated. Classic queues uses the **non-replicated** FIFO queue implementation.
-
-If data safety is a priority, the recommendation is to use quorum queues and streams instead of classic queues.
-Classic queues are the default queue type as long as the default queue type is not overridden for the virtual host.
-
-####  Classic Queue Features
-
-Classic queues fully support [queue exclusivity](https://www.rabbitmq.com/docs/queues), [queue and message TTL (Time-To-Live)](https://www.rabbitmq.com/docs/ttl), [queue length limits](https://www.rabbitmq.com/docs/maxlength), [message priority](https://www.rabbitmq.com/docs/priority), [consumer priority](https://www.rabbitmq.com/docs/consumer-priority) and adhere to settings [controlled using policies](https://www.rabbitmq.com/docs/parameters#policies).
-
-Classic queues support [dead letter exchanges](https://www.rabbitmq.com/docs/dlx) with the exception of [at-least-once dead-lettering](https://www.rabbitmq.com/docs/quorum-queues#dead-lettering).
-
-Classic queues do not support [poison message handling](https://en.wikipedia.org/wiki/Poison_message), unlike [quorum queues](https://www.rabbitmq.com/docs/quorum-queues). Classic queues also do not support at-least-once dead-lettering, supported by quorum queues.
-
-###  Time-to-Live and Expiration
-
-With RabbitMQ, you can set a TTL (time-to-live) argument or policy for messages and queues. As the name suggests, TTL specifies the time period that the messages and queues "live for".
-
-Message TTL determines how long messages can be retained in a queue. If the retention period of a message in a queue exceeds the message TTL of the queue, the message expires and is discarded.
-
-"Discarded" means that the message will not be delivered to any of subscribed consumers and won't be accessible through `basic.get` method applied directly on queue. Message TTL can be applied to a single queue, a group of queues, or applied on the message-by-message basis.
-
-###  Lazy Queue
-
-A "*lazy queue*" is a classic queue which is running in `lazy` mode. When the "*lazy*" queue mode is set, messages in classic queues are moved to disk as early as practically possible. These messages are loaded into RAM only when they are requested by consumers.
-
-The other queue mode is the `default` mode. If no mode is specified during declaration, then the `default` mode is used.
-
-One of the main reasons for using lazy queues is to support very long queues (many millions of messages). Queues can become very long for various reasons:
-
-- consumers are offline / have crashed / are down for maintenance
-- there is a sudden message ingress spike, producers are outpacing consumers
-- consumers are slower than normal
-
-By default, queues keep an in-memory cache of messages that is filled up as messages are published into RabbitMQ. The idea of this cache is to be able to deliver messages to consumers as fast as possible. Note that persistent messages can be written to disk as they enter the broker **and** kept in RAM at the same time.
-
-Running classic queues in `lazy` queue mode attempts to move the messages above to disk as early as practically possible. This means significantly fewer messages are kept in RAM in the majority of cases under normal operation. This comes at a cost of increased disk I/O.
-
-###  Dead Letter Exchanges
-
-Messages from a queue can be "dead-lettered", which means these messages are republished to an exchange when any of the following four events occur.
-
-1. The message is [negatively acknowledged](https://www.rabbitmq.com/docs/confirms) by a consumer using `basic.reject` or `basic.nack` with `requeue` parameter set to `false`, or
-2. The message expires due to [per-message TTL](https://www.rabbitmq.com/docs/ttl), or
-3. The message is dropped because its queue exceeded a [length limit](https://www.rabbitmq.com/docs/maxlength), or
-4. The message is returned more times to a quorum queue than the [delivery-limit](https://www.rabbitmq.com/docs/quorum-queues#poison-message-handling).
-
-If an entire [queue expires](https://www.rabbitmq.com/docs/ttl#queue-ttl), the messages in the queue are **not** dead-lettered.
-
-Dead letter exchanges (DLXs) are normal exchanges. They can be any of the usual types and are declared as normal.
-
-Dead-lettered messages are routed to their dead letter exchange either:
-
-- with the routing key specified for the queue they were on; or, _if this was not set_,
-- with the same routing keys they were originally published with
-
-By default, dead-lettered messages are re-published _without_ publisher [confirms](https://www.rabbitmq.com/docs/confirms) turned on internally. Therefore using DLX in a clustered RabbitMQ environment is not guaranteed to be safe. Messages are removed from the original queue immediately after publishing to the DLX target queue. This ensures that there is no chance of excessive message build up that could exhaust broker resources. However, messages can be lost if the target queue is not available to accept messages.
-
-Dead-lettering a message modifies its headers:
-
-- the exchange name is replaced with that of the latest dead-letter exchange
-- the routing key may be replaced with that specified in a queue performing dead lettering,
-- if the above happens, the `CC` header will also be removed, and
-- the `BCC` header will be removed as per [Sender-selected distribution](https://www.rabbitmq.com/docs/sender-selected)
-
-###  Priority Queue
-
-RabbitMQ supports adding "priorities" to classic queues. Classic queues with the "priority" feature turned on are commonly referred to as "priority queues". Priorities between 1 and 255 are supported, however, **values between 1 and 5 are highly recommended**. It is important to know that higher priority values require more CPU and memory resources, since RabbitMQ needs to internally maintain a sub-queue for each priority from 1, up to the maximum value configured for a given queue.
-
-By default, RabbitMQ classic queues do not support priorities. When creating priority queues, a maximum priority can be chosen as you see fit. When choosing a priority value, the following factors need to be considered:
-
-- There is some in-memory and on-disk cost per priority level per queue. There is also an additional CPU cost, especially when consuming, so you may not wish to create huge numbers of levels.
+- **Complexity**: Setting up and configuring RabbitMQ can be complex, especially for users unfamiliar with message queue systems. Configuring Exchanges, queues, bindings, and understanding routing keys can be challenging for beginners. This requires significant developer effort for effective use.
     
-- The message `priority` field is defined as an unsigned byte, so in practice priorities should be between 0 and 255.
+- **Scalability**: Although RabbitMQ can be scaled horizontally by adding more nodes to a cluster, managing this scalability can be difficult and requires careful planning to ensure high availability and performance. Additionally, this can increase the complexity of the infrastructure, requiring extra resources or effort for troubleshooting.
     
-- Messages without a `priority` property are treated as if their priority were 0. Messages with a priority which is higher than the queue's maximum are treated as if they were published with the maximum priority
+- **Resource Intensity-Performance**: Running RabbitMQ, especially as message load increases, requires significant resources such as CPU and memory. Configuration, fine-tuning, and monitoring are essential for optimal performance. Increased message size and volume can become a major issue if not supported by a well-planned and robust infrastructure. 
 
 ## Spring RabbitMQ Example
 
