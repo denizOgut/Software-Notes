@@ -21199,8 +21199,134 @@ class ShippableCrate implements Shippable {
 
 This is often useful for ``static`` methods since they aren’t part of an instance that can declare the type. However, it is also allowed on non-``static`` methods.
 
-**==You can't use a class's generic type parameters in static methods or static fields. The class's type parameters are only in scope for instance methods and instance fields. For ``static`` fields and ``static`` methods, they are shared among all instances of the class, even instances of different type parameters, so obviously they cannot depend on a particular type parameter.==**
+---
 
+In static methods, generic type parameters `<V>` are associated with the class, not with the method itself. This means that the type parameters are defined at the class level and used in static methods. Since static methods do not depend on instance data, they operate based on class-level type parameters. 
+
+```java
+public class Util<T> {
+    
+    public static <V> V addAndReturn(V element, Collection<V> collection) {
+        collection.add(element);
+        return element;
+    }
+}
+```
+
+- ==**Class-Level Type Parameter `<T>`**: Defines the type parameter for the class (though not used in the static method in this case).==
+- ==**Static Method Type Parameter `<V>`**: Defined within the static method and used in that method.==
+
+In instance methods, generic type parameters are associated with the class. If the class is generic, instance methods can use the class’s type parameters. Additionally, instance methods can define their own type parameters if needed.
+
+```java
+public class Util<T> {
+    
+    public T processElement(T element) {
+        // Process and return element of type T
+        return element;
+    }
+}
+```
+
+- ==**Class-Level Type Parameter `<T>`**: Defines the type parameter for the class.==
+- ==**Instance Method**: Uses the class’s type parameter `<T>`.==
+
+```java
+class Util<T> {  
+  
+    public <T> T processElement(T element) {  
+  
+        return element;  
+    }  
+}
+```
+
+ ==**Summary**==
+
+- ==**Static Methods:** Use class-level type parameters `<V>`. The type parameter is defined at the class level and can be used within static methods. The class itself may have its own generic type parameter `<T>`, which is not used in the static method in the example.==
+- ==**Instance Methods:** Use class-level type parameters `<T>` if the class is generic, or can define their own method-level type parameters `<T>`.==
+- ==**Class-Level `<T>`** and **Method-Level `<T>`** are different if they are separately defined.==
+- ==**Return Type of Method:** Belongs to the method’s own type parameter. In the provided example, `processElement` returns the type `<T>` defined within the method, not the class-level `<T>`.==
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+class MyObject1 {
+    private int value;
+
+    public MyObject1(int value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return "MyObject1{" +
+               "value=" + value +
+               '}';
+    }
+}
+
+class MyObject2 {
+    private String text;
+
+    public MyObject2(String text) {
+        this.text = text;
+    }
+
+    @Override
+    public String toString() {
+        return "MyObject2{" +
+               "text='" + text + '\'' +
+               '}';
+    }
+}
+
+public class DataProcessor<T> {
+    private T data;
+
+    // Constructor to initialize the class with data of type T
+    public DataProcessor(T data) {
+        this.data = data;
+    }
+
+    // Instance method that processes data of type T (class-level type parameter)
+    public T getData() {
+        return data;
+    }
+
+    // Static method with its own generic type parameter <U>
+    public static <U> U process(U element) {
+        // Simply returns the element
+        return element;
+    }
+}
+```
+
+```java
+public class Main {
+    public static void main(String[] args) {
+        // Creating an instance of DataProcessor with MyObject1 type
+        DataProcessor<MyObject1> myObject1Processor = new DataProcessor<>(new MyObject1(123));
+        MyObject1 myObject1Data = myObject1Processor.getData();
+        System.out.println("MyObject1 Data: " + myObject1Data); // Output: MyObject1{value=123}
+
+        // Creating an instance of DataProcessor with MyObject2 type
+        DataProcessor<MyObject2> myObject2Processor = new DataProcessor<>(new MyObject2("Hello"));
+        MyObject2 myObject2Data = myObject2Processor.getData();
+        System.out.println("MyObject2 Data: " + myObject2Data); // Output: MyObject2{text='Hello'}
+
+        // Using the static method with different types
+        Integer processedInt = DataProcessor.process(456);
+        String processedString = DataProcessor.process("World");
+
+        System.out.println("Processed Integer: " + processedInt); // Output: Processed Integer: 456
+        System.out.println("Processed String: " + processedString); // Output: Processed String: World
+    }
+}
+```
+
+---
 
 ```java
 public class Handler {

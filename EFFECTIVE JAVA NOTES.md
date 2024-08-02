@@ -911,19 +911,19 @@ if (o instanceof Set) {  // Raw type
 
 In summary, using raw types can lead to exceptions at runtime, so don't use them. They are provided only for compatibility and interoperability with legacy code.
 
-|**Term**|**Example**|
-|---|---|
-|Parameterized type|`List<String>`|
-|Actual type parameter|`String`|
-|Generic type|`List<E>`|
-|Formal type parameter|`E`|
-|Unbounded wildcard type|`List<?>`|
-|Raw type|`List`|
-|Bounded type parameter|`<E extends Number>`|
-|Recursive type bound|`<T extends Comparable<T>>`|
-|Bounded wildcard type|`List<? extends Number>`|
-|Generic method|`static <E> List<E> asList(E[] a)`|
-|Type token|`String.class`|
+| **Term**                | **Example**                        |
+| ----------------------- | ---------------------------------- |
+| Parameterized type      | `List<String>`                     |
+| Actual type parameter   | `String`                           |
+| Generic type            | `List<E>`                          |
+| Formal type parameter   | `E`                                |
+| Unbounded wildcard type | `List<?>`                          |
+| Raw type                | `List`                             |
+| Bounded type parameter  | `<E extends Number>`               |
+| Recursive type bound    | `<T extends Comparable<T>>`        |
+| Bounded wildcard type   | `List<? extends Number>`           |
+| Generic method          | `static <E> List<E> asList(E[] a)` |
+| Type token              | `String.class`                     |
 
 ## Eliminate Unchecked Warnings
 
