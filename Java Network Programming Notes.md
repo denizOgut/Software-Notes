@@ -220,3 +220,1371 @@ A recommendation is the highest level of W3C standard. However, the W3C is very 
 
 # Chapter 2. Streams
 
+A large part of what network programs do is simple input and output: moving bytes from one system to another. Bytes are bytes; to a large extent, reading data a server sends you is not all that different from reading a file.
+
+I/O in Java is built on _streams_. Input streams read data; output streams write data. Different stream classes, like `java.io.FileInputStream` and `sun.net.TelnetOutputStream`, read and write particular sources of data. However, all output streams have the same basic methods to write data and all input streams use the same basic methods to read data. After a stream is created, you can often ignore the details of exactly what it is you’re reading or writing.
+
+Filter streams can be chained to either an input stream or an output stream. Filters can modify the data as it’s read or written—for instance, by encrypting or compressing it—or they can simply provide additional methods for converting the data that’s read or written into other formats.
+
+Readers and writers can be chained to input and output streams to allow programs to read and write text (i.e., characters) rather than bytes. Used properly, readers and writers can handle a wide variety of character encodings, including multibyte character sets such as SJIS and UTF-8.
+
+Streams are synchronous; that is, when a program (really a thread) asks a stream to read or write a piece of data, it waits for the data to be read or written before it does anything else. Java also offers nonblocking I/O using channels and buffers. Nonblocking I/O is a little more complicated, but can be much faster in some high-volume applications
+
+## Output Streams
+
+Java’s basic output class is `java.io.OutputStream`:
+
+```java
+public abstract class OutputStream 
+```
+
+This class provides the fundamental methods needed to write data. These are:
+
+```java
+public abstract void write(int b) throws IOException
+public void write(byte[] data) throws IOException
+public void write(byte[] data, int offset, int length)  throws IOException
+public void flush() throws IOException
+public void close() throws IOException
+```
+
+Subclasses of `OutputStream` use these methods to write data onto particular media. whichever medium you’re writing to, you mostly use only these same five methods.
+
+`OutputStream`’s fundamental method is `write(int b)`. This method takes an integer from 0 to 255 as an argument and writes the corresponding byte to the output stream. This method is declared abstract because subclasses need to change it to handle their particular medium. For instance, a `ByteArrayOutputStream` can implement this method with pure Java code that copies the byte into its array. However, a `FileOutputStream` will need to use native code that understands how to write data in files on the host platform.
+
+Take note that although this method takes an `int` as an argument, it actually writes an unsigned byte. Java doesn’t have an unsigned byte data type, so an `int` has to be used here instead. The only real difference between an unsigned byte and a signed byte is the interpretation. They’re both made up of eight bits, and when you write an `int` onto a network connection using `write(int b)`, only eight bits are placed on the wire. If an `int` outside the range 0–255 is passed to `write(int b)`, the least significant byte of the number is written and the remaining three bytes are ignored.
+
+---
+ **TIP**
+
+**On rare occasions, you may find a buggy third-party class that does something different when writing a value outside the range 0–255—for instance, throwing an `IllegalArgumentException` or always writing 255—so it’s best to avoid writing `int`s outside the range 0–255 if possible.**
+
+---
+
+For example, the character-generator protocol defines a server that sends out ASCII text. The most popular variation of this protocol sends 72-character lines containing printable ASCII characters.
+
+this protocol is straightforward to implement using the basic `write()` methods, as the next code fragment demonstrates:
+
+```java
+public static void generateCharacters(OutputStream out)
+    throws IOException {
+
+   int firstPrintableCharacter     = 33;
+   int numberOfPrintableCharacters = 94;
+   int numberOfCharactersPerLine   = 72;
+
+   int start = firstPrintableCharacter;
+   while (true) { /* infinite loop */
+     for (int i = start; i < start + numberOfCharactersPerLine; i++) {
+       out.write((
+           (i - firstPrintableCharacter) % numberOfPrintableCharacters)
+            + firstPrintableCharacter);
+     }
+     out.write('\R'); // carriage return
+     out.write('\N'); // linefeed
+     start = ((start + 1) - firstPrintableCharacter)
+         % numberOfPrintableCharacters + firstPrintableCharacter;
+   }
+}
+```
+
+An `OutputStream` is passed to the `generateCharacters()` method in the `out` argument. Bytes are written onto `out` one at a time. These bytes are given as integers in a rotating sequence from 33 to 126. Most of the arithmetic here is to make the loop rotate in that range.
+
+Writing a single byte at a time is often inefficient. For example, every TCP segment contains at least 40 bytes of overhead for routing and error correction. If each byte is sent by itself, you may be stuffing the network with 41 times more data than you think you are! Add overhead of the host-to-network layer protocol, and this can be even worse. Consequently, most TCP/IP implementations buffer data to some extent. That is, they accumulate bytes in memory and send them to their eventual destination only when a certain number have accumulated or a certain amount of time has passed. However, **==if you have more than one byte ready to go, it’s not a bad idea to send them all at once.==** Using `write(byte[] data)` or `write(byte[] data, int offset, int length)` is normally much faster than writing all the components of the `data` array one at a time.
+
+```java
+public static void generateCharacters(OutputStream out)
+    throws IOException {
+
+  int firstPrintableCharacter = 33;
+  int numberOfPrintableCharacters = 94;
+  int numberOfCharactersPerLine = 72;
+  int start = firstPrintableCharacter;
+  byte[] line = new byte[numberOfCharactersPerLine + 2];
+  // the +2 is for the carriage return and linefeed
+
+  while (true) { /* infinite loop */
+    for (int i = start; i < start + numberOfCharactersPerLine; i++) {
+      line[i - start] = (byte) ((i - firstPrintableCharacter)
+          % numberOfPrintableCharacters + firstPrintableCharacter);
+    }
+    line[72] = (byte) '\R'; // carriage return
+    line[73] = (byte) '\N'; // line feed
+    out.write(line);
+    start = ((start + 1) - firstPrintableCharacter)
+        % numberOfPrintableCharacters + firstPrintableCharacter;
+  }
+}
+```
+
+The algorithm for calculating which bytes to write when is the same as for the previous implementation. The crucial difference is that the bytes are packed into a byte array before being written onto the network.
+
+Streams can also be buffered in software, directly in the Java code as well as in the network hardware. Typically, this is accomplished by chaining a `BufferedOutputStream` or a `BufferedWriter` to the underlying stream, a technique **==Consequently, if you are done writing data, it’s important to flush the output stream.==**
+
+The `flush()` method breaks the deadlock by forcing the buffered stream to send its data even if the buffer isn’t yet full.
+
+![[Pasted image 20240730210523.png]]
+
+It’s important to flush your streams whether you think you need to or not. Depending on how you got hold of a reference to the stream, you may or may not know whether it’s buffered.
+
+If flushing isn’t necessary for a particular stream, it’s a very low-cost operation. However, if it is necessary, it’s very necessary. Failing to flush when you need to can lead to unpredictable, unrepeatable program hangs that are extremely hard to diagnose if you don’t have a good idea of what the problem is in the first place. As a corollary to all this, you should flush all streams immediately before you close them. Otherwise, data left in the buffer when the stream is closed may get lost.
+
+==Finally, when you’re done with a stream, close it by invoking its `close()` method.==
+Failure to close a stream in a long-running program can leak file handles, network ports, and other resources.
+
+```java
+OutputStream out = null;
+try {
+  out = new FileOutputStream("/tmp/data.txt");
+  // work with the output stream...
+} catch (IOException ex) {
+  System.err.println(ex.getMessage());
+} finally {
+  if (out != null) {
+    try {
+      out.close();
+    } catch (IOException ex) {
+      // ignore
+    }
+  }
+}
+```
+
+This technique is sometimes called **==the _dispose pattern_==**; and it’s common for any object that needs to be cleaned up before it’s garbage collected.
+
+Java 7 introduces the _try with resources_ construct to make this cleanup neater. Instead of declaring the stream variable outside the `try` block, you declare it inside an argument list of the `try` block.
+
+```java
+try (OutputStream out = new FileOutputStream("/tmp/data.txt")) {
+  // work with the output stream...
+} catch (IOException ex) {
+  System.err.println(ex.getMessage());
+}
+```
+
+The `finally` clause is no longer needed. Java automatically invokes `close()` on any `AutoCloseable` objects declared inside the argument list of the `try` block.
+
+## Input Streams
+
+Java’s basic input class is `java.io.InputStream`:
+
+```java
+public abstract class InputStream
+```
+
+```java
+public abstract int read() throws IOException
+public int read(byte[] input) throws IOException
+public int read(byte[] input, int offset, int length) throws IOException
+public long skip(long n) throws IOException
+public int available() throws IOException
+public void close() throws IOException
+```
+
+Concrete subclasses of `InputStream` use these methods to read data from particular media. ut whichever source you’re reading, you mostly use only these same six methods. Sometimes you don’t know exactly what kind of stream you’re reading from.
+
+The basic method of `InputStream` is the no-args `read()` method. This method reads a single byte of data from the input stream’s source and returns it as an `int` from 0 to 255. End of stream is signified by returning –1. The `read()` method waits and blocks execution of any code that follows it until a byte of data is available and ready to be read. Input and output can be slow, so **==if your program is doing anything else of importance, try to put I/O in its own thread.==**
+
+The `read()` method is declared abstract because subclasses need to change it to handle their particular medium.
+
+```java
+byte[] input = new byte[10];
+for (int i = 0; i < input.length; i++) {
+  int b = in.read();
+  if (b == -1) break;
+  input[i] = (byte) b;
+}
+```
+
+Although `read()` only reads a byte, it returns an `int`. Thus, a cast is necessary before storing the result in the byte array.
+
+Reading a byte at a time is as inefficient as writing data one byte at a time. Consequently, there are two overloaded `read()` methods that fill a specified array with multiple bytes of data read from the stream `read(byte[] input)` and `read(byte[] input,` `int` `offset,` `int length)`. The first method attempts to fill the specified array `input`. The second attempts to fill the specified subarray of `input`, starting at `offset` and continuing for `length` bytes.
+
+**==Notice I said these methods _attempt_ to fill the array==**, not that they necessarily succeed. An attempt may fail in several ways. For instance, it’s not unheard of that while your program is reading data from a remote web server over DSL, a bug in a switch at a phone company central office will disconnect you and several hundred of your neighbors from the rest of the world. This would cause an `IOException`.
+
+To account for this, the multibyte read methods return the number of bytes actually read.
+
+```java
+byte[] input  = new byte[1024];
+int bytesRead = in.read(input);
+```
+
+**==To guarantee that all the bytes you want are actually read, place the read in a loop that reads repeatedly until the array is filled.==**
+
+```java
+int bytesRead   = 0;
+int bytesToRead = 1024;
+byte[] input    = new byte[bytesToRead];
+while (bytesRead < bytesToRead) {
+  bytesRead += in.read(input, bytesRead, bytesToRead - bytesRead);
+}
+```
+
+This technique is especially crucial for network streams. Chances are that if a file is available at all, all the bytes of a file are also available. However, because networks move much more slowly than CPUs, it is very easy for a program to empty a network buffer before all the data has arrived. In fact, if one of these two methods tries to read from a temporarily empty but open network buffer, it will generally return 0, indicating that no data is available but the stream is not yet closed. This is often preferable to the behavior of the single-byte `read()` method, which blocks the running thread in the same circumstances.
+
+All three `read()` methods return –1 to signal the end of the stream. If the stream ends while there’s still data that hasn’t been read, the multibyte `read()` methods return the data until the buffer has been emptied.
+
+The previous code fragment had a bug because it didn’t consider the possibility that all 1,024 bytes might never arrive (as opposed to not being immediately available). Fixing that bug requires testing the return value of `read()` before adding it to `bytesRead`
+
+```java
+int bytesRead = 0;
+int bytesToRead = 1024;
+byte[] input = new byte[bytesToRead];
+while (bytesRead < bytesToRead) {
+  int result = in.read(input, bytesRead, bytesToRead - bytesRead);
+  if (result == -1) break; // end of stream
+  bytesRead += result;
+}
+```
+
+If you do not want to wait until all the bytes you need are immediately available, you can use the `available()` method to determine how many bytes can be read without blocking. This returns the minimum number of bytes you can read.
+
+```java
+int bytesAvailable = in.available();
+byte[] input = new byte[bytesAvailable];
+int bytesRead = in.read(input, 0, bytesAvailable);
+// continue with rest of program immediately...
+```
+
+In this case, you can expect that `bytesRead` is exactly equal to `bytesAvailable`.
+
+On rare occasions, you may want to skip over data without reading it. The `skip()` method accomplishes this task. It’s less useful on network connections than when reading from files. Network connections are sequential and normally quite slow, so it’s not significantly more time consuming to read data than to skip over it.
+
+**==As with output streams, once your program has finished with an input stream, it should close it by invoking its `close()` method.==**
+
+### Marking and Resetting
+
+The `InputStream` class also has three less commonly used methods that allow programs to back up and reread data they’ve already read. These are:
+
+```java
+public void mark(int readAheadLimit)
+public void reset() throws IOException
+public boolean markSupported()
+```
+
+In order to reread data, mark the current position in the stream with the `mark()` method. At a later point, you can reset the stream to the marked position using the `reset()` method. Subsequent reads then return data starting from the marked position. **==However, you may not be able to reset as far back as you like. The number of bytes you can read from the mark and still reset is determined by the `readAheadLimit` argument to `mark()`==**. If you try to reset too far back, an `IOException` is thrown. Furthermore, **==there can be only one mark in a stream at any given time. Marking a second location erases the first mark.==**
+
+ **==Before trying to use marking and resetting, check whether the `markSupported()` method returns true. If it does, the stream supports marking and resetting. Otherwise, `mark()` will do nothing and `reset()` will throw an `IOException`.==**
+
+The only input stream classes in `java.io` that always support marking are `BufferedInputStream` and `ByteArrayInputStream`.
+## Filter Streams
+
+`InputStream` and `OutputStream` are fairly raw classes. Deciding what those bytes mean—whether they’re integers or IEEE 754 floating-point numbers or Unicode text—is completely up to the programmer and the code. However, there are certain extremely common data formats that can benefit from a solid implementation in the class library. For example, many integers passed as parts of network protocols are 32-bit big-endian integers. Much of the text sent over the Web is either 7-bit ASCII, 8-bit Latin-1, or multibyte UTF-8. Many files transferred by FTP are stored in the ZIP format. Java provides a number of filter classes you can attach to raw streams to translate the raw bytes to and from these and other formats.
+
+The filters come in two versions: the filter streams, and the readers and writers. The filter streams still work primarily with raw data as bytes: for instance, by compressing the data or interpreting it as binary numbers. The readers and writers handle the special case of text in a variety of encodings such as UTF-8 and ISO 8859-1.
+
+Filters are organized in a chain Each link in the chain receives data from the previous filter or stream and passes the data along to the next link in the chain
+
+![[Pasted image 20240730212451.png]]
+
+Every filter output stream has the same `write()`, `close()`, and `flush()` methods as `java.io.OutputStream`. Every filter input stream has the same `read()`, `close()`, and `available()` methods as `java.io.InputStream`. 
+
+The filtering is purely internal and does not expose any new public interface. However, in most cases, the filter stream adds public methods with additional purposes. Sometimes these are intended to be used in addition to the usual `read()` and `write()` methods, like the `unread()` method of `PushbackInputStream`. At other times, they almost completely replace the original interface.
+### Chaining Filters Together
+
+**==Filters are connected to streams by their constructors.==**
+
+```java
+FileInputStream     fin = new FileInputStream("data.txt");
+BufferedInputStream bin = new BufferedInputStream(fin);
+```
+
+From this point forward, it’s possible to use the `read()` methods of both `fin` and `bin` to read data from the file _data.txt_. However, intermixing calls to different streams connected to the same source may violate several implicit contracts of the filter streams. **==Most of the time, you should only use the last filter in the chain to do the actual reading or writing.==**
+
+```java
+InputStream in = new FileInputStream("data.txt");
+in = new BufferedInputStream(in);
+```
+
+After these two lines execute, there’s no longer any way to access the underlying file input stream, so you can’t accidentally read from it and corrupt the buffer. This example works because it’s not necessary to distinguish between the methods of `InputStream` and those of `BufferedInputStream` given that `BufferedInputStream` is simply used polymorphically as an instance of `InputStream`. In cases where it is necessary to use the additional methods of the filter stream not declared in the superclass, you may be able to construct one stream directly inside another.
+
+```java
+DataOutputStream dout = new DataOutputStream(new BufferedOutputStream(
+    new FileOutputStream("data.txt")));
+```
+
+```java
+DataOutputStream dout = new DataOutputStream(
+                         new BufferedOutputStream(
+                          new FileOutputStream("data.txt")
+                         )
+                        );
+```
+
+==**Connection is permanent. Filters cannot be disconnected from a stream.**== **==under no circumstances should you ever read from or write to anything other than the last filter in the chain.==**
+
+### Buffered Streams
+
+**==The `BufferedOutputStream` class stores written data in a buffer (a protected byte array field named `buf`) until the buffer is full or the stream is flushed. Then it writes the data onto the underlying output stream all at once. A single write of many bytes is almost always much faster than many small writes that add up to the same thing.==** This is especially true of network connections because each TCP segment or UDP packet carries a finite amount of overhead, generally about 40 bytes’ worth. This means that sending 1 kilobyte of data 1 byte at a time actually requires sending 40 kilobytes over the wire, whereas sending it all at once only requires sending a little more than 1K of data. Most network cards and TCP implementations provide some level of buffering themselves, so the real numbers aren’t quite this dramatic. Nonetheless, buffering network output is generally a huge performance win.
+
+The `BufferedInputStream` class also has a protected byte array named `buf` that serves as a buffer. When one of the stream’s `read()` methods is called, it first tries to get the requested data from the buffer. Only when the buffer runs out of data does the stream read from the underlying source. At this point, it reads as much data as it can from the source into the buffer, whether it needs all the data immediately or not. Data that isn’t used immediately will be available for later invocations of `read()`. When reading files from a local disk, it’s almost as fast to read several hundred bytes of data from the underlying stream as it is to read one byte of data. Therefore, **==buffering can substantially improve performance.==** **==Nonetheless, buffering input rarely hurts and will become more important over time as network speeds increase.==**
+
+```java
+public BufferedInputStream(InputStream in)
+public BufferedInputStream(InputStream in, int bufferSize)
+public BufferedOutputStream(OutputStream out)
+public BufferedOutputStream(OutputStream out, int bufferSize)
+```
+
+The first argument is the underlying stream from which unbuffered data will be read or to which buffered data will be written. The second argument, if present, specifies the number of bytes in the buffer. Otherwise, the buffer size is set to 2,048 bytes for an input stream and 512 bytes for an output stream. The ideal size for a buffer depends on what sort of stream you’re buffering.
+
+`BufferedInputStream` does not declare any new methods of its own. It only overrides methods from `InputStream`. It does support marking and resetting. The two multibyte `read()` methods attempt to completely fill the specified array or subarray of data by reading from the underlying input stream as many times as necessary. **==They return only when the array or subarray has been completely filled, the end of stream is reached, or the underlying stream would block on further reads==**. Most input streams do not behave like this. They read from the underlying stream or data source only once before returning.
+
+`BufferedOutputStream` also does not declare any new methods of its own. You invoke its methods exactly as you would in any output stream. The difference is that each write places data in the buffer rather than directly on the underlying output stream. Consequently, it is essential to flush the stream when you reach a point at which the data needs to be sent.
+### PrintStream
+
+The `PrintStream` class is the first filter output stream most programmers encounter because `System.out` is a `PrintStream`. However, other output streams can also be chained to print streams, using these two constructors:
+
+```java
+public PrintStream(OutputStream out)
+public PrintStream(OutputStream out, boolean autoFlush)
+```
+
+By default, print streams should be explicitly flushed. However, if the `autoFlush` argument is `true`, the stream will be flushed every time a byte array or linefeed is written or a `println()` method is invoked.
+
+As well as the usual `write()`, `flush()`, and `close()` methods, `PrintStream` has 9 overloaded `print()` methods and 10 overloaded `println()` methods:
+
+```java
+public void print(boolean b)
+public void print(char c)
+public void print(int i)
+public void print(long l)
+public void print(float f)
+public void print(double d)
+public void print(char[] text)
+public void print(String s)
+public void print(Object o)
+public void println()
+public void println(boolean b)
+public void println(char c)
+public void println(int i)
+public void println(long l)
+public void println(float f)
+public void println(double d)
+public void println(char[] text)
+public void println(String s)
+public void println(Object o)
+```
+
+---
+
+ ==**WARNING**==
+==**`PrintStream` is evil and network programmers should avoid it like the plague!**==
+
+---
+
+**==The first problem is that the output from `println()` is platform dependent. Depending on what system runs your code, lines may sometimes be broken with a linefeed, a carriage return, or a carriage return/linefeed pair.==** This doesn’t cause problems when writing to the console, but it’s a disaster for writing network clients and servers that must follow a precise protocol. Most network protocols such as HTTP and Gnutella specify that lines should be terminated with a carriage return/linefeed pair. Using `println()` makes it easy to write a program that works on Windows but fails on Unix and the Mac. Although many servers and clients are liberal in what they accept and can handle incorrect line terminators, there are occasional exceptions.
+
+**==The second problem is that `PrintStream` assumes the default encoding of the platform on which it’s running. However, this encoding may not be what the server or client expects. whether the client expects or understands those encodings or not. `PrintStream` doesn’t provide any mechanism for changing the default encoding.==** This problem can be patched over by using the related `PrintWriter` class instead. But the problems continue.
+
+**==The third problem is that `PrintStream` eats all exceptions.==** This makes `PrintStream` suitable for textbook programs such as HelloWorld, because simple console output can be taught without burdening students with first learning about exception handling and all that implies. However, network connections are much less reliable than the console. Connections routinely fail because of network congestion, phone company misfeasance, remote systems crashing, and many other reasons. Network programs must be prepared to deal with unexpected interruptions in the flow of data. The way to do this is by handling exceptions. However, `PrintStream` catches any exceptions thrown by the underlying output stream. **==`PrintStream` does not have the usual `throws IOException` declaration:==**
+
+```java
+public abstract void write(int b)
+public void write(byte[] data)
+public void write(byte[] data, int offset, int length)
+public void flush()
+public void close()
+```
+
+If the underlying stream throws an exception, this internal error flag is set. The programmer is relied upon to check the value of the flag using the `checkError()` method:
+
+```java
+public boolean checkError()
+```
+
+### Data Streams
+
+The `DataInputStream` and `DataOutputStream` classes provide methods for reading and writing Java’s primitive data types and strings in a binary format. **==The binary formats used are primarily intended for exchanging data between two different Java programs through a network connection, a datafile, a pipe, or some other intermediary.==** What a data output stream writes, a data input stream can read. However, it happens that the formats are the same ones used for most Internet protocols that exchange binary numbers. For instance, the time protocol uses 32-bit big-endian integers, just like Java’s `int` data type. The controlled-load network element service uses 32-bit IEEE 754 floating-point numbers, just like Java’s `float` data type. However, this isn’t true for all network protocols, so check the details of any protocol you use.
+
+The `DataOutputStream` class offers these 11 methods for writing particular Java data types:
+
+```java
+public final void writeBoolean(boolean b) throws IOException
+public final void writeByte(int b) throws IOException
+public final void writeShort(int s) throws IOException
+public final void writeChar(int c) throws IOException
+public final void writeInt(int i) throws IOException
+public final void writeLong(long l) throws IOException
+public final void writeFloat(float f) throws IOException
+public final void writeDouble(double d) throws IOException
+public final void writeChars(String s) throws IOException
+public final void writeBytes(String s) throws IOException
+public final void writeUTF(String s) throws IOException
+```
+
+All data is written in big-endian format. Integers are written in two’s complement in the minimum number of bytes possible. Thus, a `byte` is written as one byte, a `short` as two bytes, an `int` as four bytes, and a `long` as eight bytes. Floats and doubles are written in IEEE 754 form in four and eight bytes, respectively. Booleans are written as a single byte with the value 0 for false and 1 for true. Chars are written as two unsigned bytes.
+
+The last three methods are a little trickier. The `writeChars()` method simply iterates through the `String` argument, writing each character in turn as a two-byte, big-endian Unicode character The `writeBytes()` method iterates through the `String` argument but writes only the least significant byte of each character. Thus, information will be lost for any string with characters from outside the Latin-1 character set. This method may be useful on some network protocols that specify the ASCII encoding, but it should be avoided most of the time.
+
+Neither `writeChars()` nor `writeBytes()` encodes the length of the string in the output stream. As a result, you can’t really distinguish between raw characters and characters that make up part of a string. The `writeUTF()` method does include the length of the string. It encodes the string itself in a _variant_ of the UTF-8 encoding of Unicode. Because this variant is subtly incompatible with most non-Java software, it should be used only for exchanging data with other Java programs that use a `DataInputStream` to read strings
+
+Along with these methods for writing binary numbers and strings, `DataOutputStream` of course has the usual `write()`, `flush()`, and `close()` methods any `OutputStream` class has.
+
+Every format that `DataOutputStream` writes, `DataInputStream` can read. In addition, `DataInputStream` has the usual `read()`, `available()`, `skip()`, and `close()` methods, as well as methods for reading complete arrays of bytes and lines of text.
+
+```java
+public final boolean readBoolean() throws IOException
+public final byte readByte() throws IOException
+public final char readChar() throws IOException
+public final short readShort() throws IOException
+public final int readInt() throws IOException
+public final long readLong() throws IOException
+public final float readFloat() throws IOException
+public final double readDouble() throws IOException
+public final String readUTF() throws IOException
+```
+
+In addition, `DataInputStream` provides two methods to read unsigned bytes and unsigned shorts and return the equivalent `int`. Java doesn’t have either of these data types, but you may encounter them when reading binary data written by a C program:
+
+```java
+public final int readUnsignedByte() throws IOException
+public final int readUnsignedShort() throws IOException
+```
+
+`DataInputStream` has the usual two multibyte `read()` methods that read data into an array or subarray and return the number of bytes read.
+
+```java
+public final int read(byte[] input) throws IOException
+public final int read(byte[] input, int offset, int length)
+    throws IOException
+public final void readFully(byte[] input) throws IOException
+public final void readFully(byte[] input, int offset, int length)
+    throws IOException
+```
+
+Finally, `DataInputStream` provides the popular `readLine()` method that reads a line of text as delimited by a line terminator and returns a string:
+
+```java
+public final String readLine() throws IOException
+```
+
+**==However, this method should not be used under any circumstances, both because it is deprecated==** and because it is buggy. It’s deprecated because it doesn’t properly convert non-ASCII characters to bytes in most circumstances. That task is now handled by the `readLine()` method of the `BufferedReader` class.
+
+This problem isn’t obvious when reading files because there will almost certainly be a next character: –1 for end of stream, if nothing else. However, on persistent network connections such as those used for FTP and late-model HTTP, a server or client may simply stop sending data after the last character and wait for a response without actually closing the connection. If you’re lucky, the connection may eventually time out on one end or the other and you’ll get an `IOException`, although this will probably take at least a couple of minutes, and cause you to lose the last line of data from the stream. If you’re not lucky, the program will hang indefinitely.
+## Readers and Writers
+
+Java provides an almost complete mirror of the input and output stream class hierarchy designed for working with characters instead of bytes In this mirror image hierarchy, two abstract superclasses define the basic API for reading and writing characters. The `java.io.Reader` class specifies the API by which characters are read. The `java.io.Writer` class specifies the API by which characters are written. Wherever input and output streams use bytes, readers and writers use Unicode characters. Concrete subclasses of `Reader` and `Writer` allow particular sources to be read and targets to be written. Filter readers and writers can be attached to other readers and writers to provide additional services or interfaces.
+
+**==The most important concrete subclasses of `Reader` and `Writer` are the `InputStreamReader` and the `OutputStreamWriter` classes.==**
+
+In addition to these two classes, the `java.io` package provides several raw reader and writer classes that read characters without directly requiring an underlying input stream, including:
+
+- `FileReader`
+- `FileWriter`
+- `StringReader`
+- `StringWriter`
+- `CharArrayReader`
+- `CharArrayWriter`
+
+The first two classes in this list work with files and the last four work inside Java, so they aren’t of great use for network programming. However, aside from different constructors, these classes have pretty much the same public interface as all other reader and writer classes.
+### Writers
+
+The `Writer` class mirrors the `java.io.OutputStream` class. It’s abstract and has two protected constructors. Like `OutputStream`, the `Writer` class is never used directly; instead, it is used polymorphically, through one of its subclasses. It has five `write()` methods as well as a `flush()` and a `close()` method:
+
+```java
+protected Writer()
+protected Writer(Object lock)
+public abstract void write(char[] text, int offset, int length)
+    throws IOException
+public void write(int c) throws IOException
+public void write(char[] text) throws IOException
+public void write(String s) throws IOException
+public void write(String s, int offset, int length) throws IOException
+public abstract void flush() throws IOException
+public abstract void close() throws IOException
+```
+
+The `write(char[] text, int offset, int length)` method is the base method in terms of which the other four `write()` methods are implemented. For example, given a `Writer` object `w`, you can write the string “Network” like this:
+
+```java
+char[] network = {'N', 'E', 'T', 'W', 'O', 'R', 'K'};
+w.write(network, 0, network.length);
+```
+
+The same task can be accomplished with these other methods, as well:
+
+```java
+w.write(network);
+for (int i = 0;  i < network.length;  i++) w.write(network[i]);
+w.write("Network");
+w.write("Network", 0, 7);
+```
+
+All of these examples are different ways of expressing the same thing.
+
+Writers may be buffered, either directly by being chained to a `BufferedWriter` or indirectly because their underlying output stream is buffered. To force a write to be committed to the output medium, invoke the `flush()` method:
+
+```java
+w.flush();
+```
+
+The `close()` method behaves similarly to the `close()` method of `OutputStream`. `close()` flushes the writer, then closes the underlying output stream and releases any resources associated with it:
+
+```java
+public abstract void close() throws IOException
+```
+
+### OutputStreamWriter
+
+`OutputStreamWriter` is the most important concrete subclass of `Writer`. An `OutputStreamWriter` receives characters from a Java program. It converts these into bytes according to a specified encoding and writes them onto an underlying output stream.
+
+```java
+public OutputStreamWriter(OutputStream out, String encoding)
+    throws UnsupportedEncodingException
+```
+
+If no encoding is specified, the default encoding for the platform is used. For example, this code fragment writes the first few words of Homer’s Odyssey in the CP1253 Windows Greek encoding:
+
+```java
+OutputStreamWriter w = new OutputStreamWriter(
+    new FileOutputStream("OdysseyB.txt"), "Cp1253");
+w.write("ἦμος δ΄ ἠριγένεια φάνη ῥοδοδάκτυλος Ἠώς");
+```
+
+Other than the constructors, `OutputStreamWriter` has only the usual `Writer` methods and one method to return the encoding of the object: 
+
+```java
+public String getEncoding()
+```
+### Readers
+
+The `Reader` class mirrors the `java.io.InputStream` class. It’s abstract with two protected constructors. Like `InputStream` and `Writer`, the `Reader` class is never used directly, only through one of its subclasses. It has three `read()` methods, as well as `skip()`, `close()`, `ready()`, `mark()`, `reset()`, and `markSupported()` methods:
+
+```java
+protected Reader()
+protected Reader(Object lock)
+public abstract int read(char[] text, int offset, int length)
+    throws IOException
+public int read() throws IOException
+public int read(char[] text) throws IOException
+public long skip(long n) throws IOException
+public boolean ready()
+public boolean markSupported()
+public void mark(int readAheadLimit) throws IOException
+public void reset() throws IOException
+public abstract void close() throws IOException
+```
+
+The `read(char[] text, int offset, int length)` method is the fundamental method through which the other two `read()` methods are implemented.
+
+The exception to the rule of similarity is `ready()`, which has the same general purpose as `available()` but not quite the same semantics, even modulo the byte-to-char conversion. Whereas `available()` returns an `int` specifying a minimum number of bytes that may be read without blocking, `ready()` only returns a `boolean` indicating whether the reader may be read without blocking. The problem is that some character encodings, such as UTF-8, use different numbers of bytes for different characters. Thus, it’s hard to tell how many characters are waiting in the network or filesystem buffer without actually reading them out of the buffer.
+
+`InputStreamReader` is the most important concrete subclass of `Reader`. It converts these into characters according to a specified encoding and returns them. The constructor specifies the input stream to read from and the encoding to use:
+
+```java
+public InputStreamReader(InputStream in)
+public InputStreamReader(InputStream in, String encoding)
+    throws UnsupportedEncodingException
+```
+
+If no encoding is specified, the default encoding for the platform is used
+
+```java
+public static String getMacCyrillicString(InputStream in)
+    throws IOException {
+
+  InputStreamReader r = new InputStreamReader(in, "MacCyrillic");
+  StringBuilder sb = new StringBuilder();
+  int c;
+  while ((c = r.read()) != -1) sb.append((char) c);
+  return sb.toString();
+}
+```
+### Filter Readers and Writers
+
+The `InputStreamReader` and `OutputStreamWriter` classes act as decorators on top of input and output streams that change the interface from a byte-oriented interface to a character-oriented interface. Once this is done, additional character-oriented filters can be layered on top of the reader or writer using the `java.io.FilterReader` and `java.io.FilterWriter` classes. As with filter streams, there are a variety of subclasses that perform specific filtering, including:
+
+- `BufferedReader`
+- `BufferedWriter`
+- `LineNumberReader`
+- `PushbackReader`
+- `PrintWriter`
+
+The `BufferedReader` and `BufferedWriter` classes are the character-based equivalents of the byte-oriented `BufferedInputStream` and `BufferedOutputStream` classes. Where `BufferedInputStream` and `BufferedOutputStream` use an internal array of bytes as a buffer, `BufferedReader` and `BufferedWriter` use an internal array of chars.
+
+When a program reads from a `BufferedReader`, text is taken from the buffer rather than directly from the underlying input stream or other text source. When the buffer empties, it is filled again with as much text as possible, even if not all of it is immediately needed, making future reads much faster. When a program writes to a `BufferedWriter`, the text is placed in the buffer. The text is moved to the underlying output stream or other target only when the buffer fills up or when the writer is explicitly flushed, which can make writes much faster than would otherwise be the case.
+
+```java
+public BufferedReader(Reader in, int bufferSize)
+public BufferedReader(Reader in)
+public BufferedWriter(Writer out)
+public BufferedWriter(Writer out, int bufferSize)
+```
+
+```java
+public static String getMacCyrillicString(InputStream in)
+    throws IOException {
+
+  Reader r = new InputStreamReader(in, "MacCyrillic");
+  r = new BufferedReader(r, 1024);
+  StringBuilder sb = new StringBuilder();
+  int c;
+  while ((c = r.read()) != -1) sb.append((char) c);
+  return sb.toString();
+}
+```
+
+All that was needed to buffer this method was one additional line of code. None of the rest of the algorithm had to change, because the only `InputStreamReader` methods used were the `read()` and `close()` methods declared in the `Reader` superclass and shared by all `Reader` subclasses, including `BufferedReader`.
+
+The `BufferedWriter()` class adds one new method not included in its superclass, called `newLine()`, also geared toward writing lines:
+
+```java
+public void newLine() throws IOException
+```
+
+This method inserts a platform-dependent line-separator string into the output. The `line.separator` system property determines exactly what the string is: probably a linefeed on Unix and Mac OS X, and a carriage return/linefeed pair on Windows. Because network protocols generally specify the required line terminator, you should not use this method for network programming. Instead, explicitly write the line terminator the protocol requires.
+
+### PrintWriter
+
+The `PrintWriter` class is a replacement for Java 1.0’s `PrintStream` class that properly handles multibyte character sets and international text.
+
+Aside from the constructors, the `PrintWriter` class has an almost identical collection of methods to `PrintStream`. These include:
+
+```java
+public PrintWriter(Writer out)
+public PrintWriter(Writer out, boolean autoFlush)
+public PrintWriter(OutputStream out)
+public PrintWriter(OutputStream out, boolean autoFlush)
+public void flush()
+public void close()
+public boolean checkError()
+public void write(int c)
+public void write(char[] text, int offset, int length)
+public void write(char[] text)
+public void write(String s, int offset, int length)
+public void write(String s)
+public void print(boolean b)
+public void print(char c)
+public void print(int i)
+public void print(long l)
+public void print(float f)
+public void print(double d)
+public void print(char[] text)
+public void print(String s)
+public void print(Object o)
+public void println()
+public void println(boolean b)
+public void println(char c)
+public void println(int i)
+public void println(long l)
+public void println(float f)
+public void println(double d)
+public void println(char[] text)
+public void println(String s)
+public void println(Object o)
+```
+
+# Chapter 3. Threads
+
+threads are easier on resources because they share memory. Using threads instead of processes can buy you another factor of three in server performance. By combining this with a pool of reusable threads (as opposed to a pool of reusable processes), your server can run nine times faster, all on the same hardware and network connection! The impact of running many different threads on the server hardware is _relatively_ minimal because they all run within one process. Most Java virtual machines keel over due to memory exhaustion somewhere between 4,000 and 20,000 simultaneous threads. However, by using a thread pool instead of spawning new threads for each connection, fewer than a hundred threads can handle thousands of short connections per minute.
+
+Unfortunately, this increased performance doesn’t come for free. There’s a cost in program complexity. In particular, multithreaded servers (and other multithreaded programs) require developers to address concerns that aren’t issues for single-threaded programs, particularly issues of safety and liveness. Because different threads share the same memory, it’s entirely possible for one thread to stomp all over the variables and data structures used by another thread.
+
+Consequently, different threads have to be extremely careful about which resources they use when. Generally, each thread must agree to use certain resources only when it’s sure those resources can’t change or that it has exclusive access to them. However, it’s also possible for two threads to be too careful, each waiting for exclusive access to resources it will never get. This can lead to deadlock, in which two threads are each waiting for resources the other possesses. Neither thread can proceed without the resources that the other thread has reserved, but neither is willing to give up the resources it has already.
+
+## Running Threads
+
+A _thread_ with a little _t_ is a separate, independent path of execution in the virtual machine. A `Thread` with a capital _T_ is an instance of the `java.lang.Thread` class. There is a one-to-one relationship between threads executing in the virtual machine and `Thread` objects constructed by the virtual machine. Most of the time it’s obvious from the context which one is meant if the difference is really important.
+
+To start a new thread running in the virtual machine, you construct an instance of the `Thread` class and invoke its `start()` method, like this:
+
+```java
+Thread t = new Thread();
+t.start();
+```
+
+To give a thread something to do, you either subclass the `Thread` class and override its `run()` method, or implement the `Runnable` interface and pass the `Runnable` object to the `Thread` constructor **==In both cases, the key is the `run()` method, which has this signature:==**
+
+```java
+public void run()
+```
+
+This method may invoke other methods; it may construct other objects; it may even spawn other threads. However, the thread starts here and it stops here. When the `run()` method completes, the thread dies. **==In essence, the `run()` method is to a thread what the `main()` method is to a traditional nonthreaded program==**. A single-threaded program exits when the `main()` method returns. A multithreaded program exits when both the `main()` method and the `run()` methods of all nondaemon threads return.
+
+### Subclassing Thread
+
+Consider a program that calculates the Secure Hash Algorithm (SHA) digest for many files. To a large extent, this is an I/O-bound program (i.e., its speed is limited by the amount of time it takes to read the files from the disk). If you write it as a standard program that processes the files in series, the program is going to spend a lot of time waiting for the hard drive to return the data. This limit is even more characteristic of network programs: they execute faster than the network can supply input. Consequently, they spend a lot of time blocked. This is time that other threads could use, either to process other input sources or to do something that doesn’t rely on slow input.
+
+Example 3-1. ``DigestThread``
+
+```java
+import java.io.*;
+import java.security.*;
+import javax.xml.bind.*; // for DatatypeConverter; requires Java 6 or JAXB 1.0
+
+public class DigestThread extends Thread {
+
+  private String filename;
+
+  public DigestThread(String filename) {
+   this.filename = filename;
+  }
+
+  @Override
+  public void run() {
+    try {
+      FileInputStream in = new FileInputStream(filename);
+      MessageDigest sha = MessageDigest.getInstance("SHA-256");
+      DigestInputStream din = new DigestInputStream(in, sha);
+      while (din.read() != -1) ;
+      din.close();
+      byte[] digest = sha.digest();
+
+      StringBuilder result = new StringBuilder(filename);
+      result.append(": ");
+      result.append(DatatypeConverter.printHexBinary(digest));
+      System.out.println(result);
+    } catch (IOException ex) {
+      System.err.println(ex);
+    } catch (NoSuchAlgorithmException ex) {
+      System.err.println(ex);
+    }
+  }
+
+  public static void main(String[] args) {
+    for (String filename : args) {
+      Thread t = new DigestThread(filename);
+      t.start();
+    }
+  }
+}
+```
+
+The `main()` method reads filenames from the command line and starts a new `DigestThread` for each one. The work of the thread is actually performed in the `run()` method.
+
+**==Because the signature of the `run()` method is fixed, you can’t pass arguments to it or return values from it.==** Consequently, you need different ways to pass information into the thread and get information out of it. The simplest way to pass information in is to pass arguments to the constructor, which sets fields in the `Thread` subclass, as done here.
+
+Getting information out of a thread back into the original calling thread is trickier because of the asynchronous nature of threads. however, you’ll want to pass the information to other parts of the program. You can store the result of the calculation in a field and provide a getter method to return the value of that field. However, how do you know when the calculation of that value is complete? What do you return if somebody calls the getter method before the value has been calculated
+
+---
+
+**==If you subclass `Thread`, you should override `run()` _and nothing else!_ The various other methods of the `Thread` class—for example, `start()`, `interrupt()`, `join()`, `sleep()`, and so on—all have very specific semantics and interactions with the virtual machine that are difficult to reproduce in your own code. You should override `run()` and provide additional constructors and other methods as necessary, but you should not replace any of the other standard `Thread` methods.==**
+
+---
+
+### Implementing the Runnable Interface
+
+One way to avoid overriding the standard `Thread` methods is not to subclass `Thread`. Instead, write the task you want the thread to perform as an instance of the `Runnable` interface. This interface declares the `run()` method, exactly the same as the `Thread` class:
+
+```java
+public void run()
+```
+
+Other than this method, which any class implementing this interface must provide, you are completely free to create any other methods with any other names you choose, all without any possibility of unintentionally interfering with the behavior of the thread.
+
+```java
+Thread t = new Thread(myRunnableObject);
+t.start();
+```
+
+Example 3-2. ``DigestRunnable``
+
+```java
+import java.io.*;
+import java.security.*;
+import javax.xml.bind.*; // for DatatypeConverter; requires Java 6 or JAXB 1.0
+
+public class DigestRunnable implements Runnable {
+
+  private String filename;
+
+  public DigestRunnable(String filename) {
+   this.filename = filename;
+  }
+
+  @Override
+  public void run() {
+    try {
+      FileInputStream in = new FileInputStream(filename);
+      MessageDigest sha = MessageDigest.getInstance("SHA-256");
+      DigestInputStream din = new DigestInputStream(in, sha);
+      while (din.read() != -1) ;
+      din.close();
+      byte[] digest = sha.digest();
+
+      StringBuilder result = new StringBuilder(filename);
+      result.append(": ");
+      result.append(DatatypeConverter.printHexBinary(digest));
+      System.out.println(result);
+    } catch (IOException ex) {
+      System.err.println(ex);
+    } catch (NoSuchAlgorithmException ex) {
+      System.err.println(ex);
+    }
+  }
+
+  public static void main(String[] args) {
+    for (String filename : args) {
+      DigestRunnable dr = new DigestRunnable(filename);
+      Thread t = new Thread(dr);
+      t.start();
+    }
+  }
+}
+```
+
+There’s no strong reason to prefer implementing `Runnable` to extending `Thread` or vice versa in the general case. some object-oriented purists argue that the task that a thread undertakes is not really a kind of `Thread`, and therefore should be placed in a separate class or interface such as `Runnable` rather than in a subclass of `Thread`.
+
+## Returning Information from a Thread
+
+Getting information out of a finished thread is one of the most commonly misunderstood aspects of multithreaded programming. The `run()` method and the `start()` method don’t return any values.
+
+Example 3-3. A thread that uses an accessor method to return the result
+
+```java
+import java.io.*;
+import java.security.*;
+
+public class ReturnDigest extends Thread {
+
+  private String filename;
+  private byte[] digest;
+
+  public ReturnDigest(String filename) {
+    this.filename = filename;
+  }
+
+  @Override
+  public void run() {
+    try {
+      FileInputStream in = new FileInputStream(filename);
+      MessageDigest sha = MessageDigest.getInstance("SHA-256");
+      DigestInputStream din = new DigestInputStream(in, sha);
+      while (din.read() != -1) ; // read entire file
+      din.close();
+      digest = sha.digest();
+    } catch (IOException ex) {
+      System.err.println(ex);
+    } catch (NoSuchAlgorithmException ex) {
+      System.err.println(ex);
+    }
+  }
+
+  public byte[] getDigest() {
+    return digest;
+  }
+}
+```
+
+Example 3-4. A main program that uses the accessor method to get the output of the thread
+
+```java
+import javax.xml.bind.*; // for DatatypeConverter
+
+public class ReturnDigestUserInterface {
+
+  public static void main(String[] args) {
+    for (String filename : args) {
+      // Calculate the digest
+      ReturnDigest dr = new ReturnDigest(filename);
+      dr.start();
+
+      // Now print the result
+      StringBuilder result = new StringBuilder(filename);
+      result.append(": ");
+      byte[] digest = dr.getDigest();
+      result.append(DatatypeConverter.printHexBinary(digest));
+      System.out.println(result);
+    }
+  }
+}
+```
+
+when you run this program, the result may not be what you expect:
+
+```shell
+D:\JAVA\JNP4\examples\03>java ReturnDigestUserInterface *.java
+Exception in thread "main" java.lang.NullPointerException
+  at javax.xml.bind.DatatypeConverterImpl.printHexBinary
+  (DatatypeConverterImpl.java:358)
+  at javax.xml.bind.DatatypeConverter.printHexBinary(DatatypeConverter.java:560)
+  at ReturnDigestUserInterface.main(ReturnDigestUserInterface.java:15)
+```
+
+The problem is that the main program gets the digest and uses it before the thread has had a chance to initialize it. Although this flow of control would work in a single-threaded program in which `dr.start()` simply invoked the `run()` method in the same thread, that’s not what happens here. The calculations that `dr.start()` kicks off may or may not finish before the `main()` method reaches the call to `dr.getDigest()`. If they haven’t finished, `dr.getDigest()` returns `null`, and the first attempt to access `digest` throws a `NullPointerException`.
+
+### Race Conditions
+
+One possibility is to move the call to `dr.getDigest()` later in the `main()` method, like this:
+
+```java
+public static void main(String[] args) {
+
+  ReturnDigest[] digests = new ReturnDigest[args.length];
+
+  for (int i = 0; i < args.length; i++) {
+    // Calculate the digest
+    digests[i] = new ReturnDigest(args[i]);
+    digests[i].start();
+  }
+
+  for (int i = 0; i < args.length; i++) {
+    // Now print the result
+    StringBuffer result = new StringBuffer(args[i]);
+    result.append(": ");
+    byte[] digest = digests[i].getDigest();
+    result.append(DatatypeConverter.printHexBinary(digest));
+
+    System.out.println(result);
+  }
+}
+```
+
+If you’re lucky, this will work and you’ll get the expected output, like this:
+```shell
+D:\JAVA\JNP4\examples\03>java ReturnDigest2 *.java
+AccumulatingError.java: 7B261F7D88467A1D30D66DD29EEEDE495EA16FCD3ADDB8B613BC2C5DC
+BenchmarkScalb.java: AECE2AD497F11F672184E45F2885063C99B2FDD41A3FC7C7B5D4ECBFD2B0
+CanonicalPathComparator.java: FE0AACF55D331BBF555528A876C919EAD826BC79B659C489D62
+Catenary.java: B511A9A507B43C9CDAF626D5B3A8CCCD80149982196E66ED1BFFD5E55B11E226
+...
+```
+
+let me emphasize that point about being _lucky_. You may not get this output. In fact, you may still get a `NullPointerException`. Whether this code works is completely dependent on whether every one of the `ReturnDigest` threads finishes before its `getDigest()` method is called. If the first `for` loop is too fast and the second `for` loop is entered before the threads spawned by the first loop start finishing, you’re back where you started. Worse yet, the program may appear to hang with no output at all, not even a stack trace.
+
+Whether you get the correct results, an exception, or a hung program depends on many factors, including how many threads the program spawns, the speed of the CPU and disk on the system where this is run, how many CPUs the system uses, and the algorithm the Java virtual machine uses to allot time to different threads. This is called a _race condition_. Getting the correct result depends on the relative speeds of different threads, and you can’t control those!
+
+### Polling
+
+The solution most novices adopt is to make the getter method return a flag value (or perhaps throw an exception) until the result field is set. Then the main thread periodically polls the getter method to see whether it’s returning something other than the flag value.
+
+```java
+public static void main(String[] args) {
+
+  ReturnDigest[] digests = new ReturnDigest[args.length];
+
+  for (int i = 0; i < args.length; i++) {
+    // Calculate the digest
+    digests[i] = new ReturnDigest(args[i]);
+    digests[i].start();
+  }
+
+  for (int i = 0; i < args.length; i++) {
+    while (true) {
+      // Now print the result
+      byte[] digest = digests[i].getDigest();
+      if (digest != null) {
+        StringBuilder result = new StringBuilder(args[i]);
+        result.append(": ");
+        result.append(DatatypeConverter.printHexBinary(digest));
+        System.out.println(result);
+        break;
+      }
+    }
+  }
+}
+```
+
+This solution may work. If it works at all, it gives the correct answers in the correct order irrespective of how fast the individual threads run relative to each other. However, it’s doing a lot more work than it needs to.
+
+Worse yet, this solution is not guaranteed to work. On some virtual machines, the main thread takes all the time available and leaves no time for the actual worker threads. The main thread is so busy checking for job completion that there’s no time left to actually complete the job!
+### Callbacks
+
+In fact, there’s a much simpler, more efficient way to handle the problem. The infinite loop that repeatedly polls each `ReturnDigest` object to see whether it’s finished can be eliminated. The trick is that rather than having the main program repeatedly ask each `ReturnDigest` thread whether it’s finished you let the thread tell the main program when it’s finished. It does this by invoking a method in the main class that started it. This is called a _callback_ because the thread calls its creator back when it’s done. This way, the main program can go to sleep while waiting for the threads to finish and not steal time from the running threads.
+
+Example 3-5. ``CallbackDigest``
+
+```java
+import java.io.*;
+import java.security.*;
+
+public class CallbackDigest implements Runnable {
+
+  private String filename;
+
+  public CallbackDigest(String filename) {
+   this.filename = filename;
+  }
+
+  @Override
+  public void run() {
+    try {
+      FileInputStream in = new FileInputStream(filename);
+      MessageDigest sha = MessageDigest.getInstance("SHA-256");
+      DigestInputStream din = new DigestInputStream(in, sha);
+      while (din.read() != -1) ; // read entire file
+      din.close();
+      byte[] digest = sha.digest();
+      CallbackDigestUserInterface.receiveDigest(digest, filename);
+    } catch (IOException ex) {
+      System.err.println(ex);
+    } catch (NoSuchAlgorithmException ex) {
+      System.err.println(ex);
+    }
+  }
+}
+```
+
+Instead, it is invoked by each thread separately. That is, `receiveDigest()` runs inside the digesting threads rather than inside the main thread of execution.
+
+Example 3-6. ``CallbackDigestUserInterface``
+
+```java
+import javax.xml.bind.*; // for DatatypeConverter; requires Java 6 or JAXB 1.0
+
+public class CallbackDigestUserInterface {
+
+  public static void receiveDigest(byte[] digest, String name) {
+    StringBuilder result = new StringBuilder(name);
+    result.append(": ");
+    result.append(DatatypeConverter.printHexBinary(digest));
+    System.out.println(result);
+  }
+
+  public static void main(String[] args) {
+    for (String filename : args) {
+      // Calculate the digest
+      CallbackDigest cb = new CallbackDigest(filename);
+      Thread t = new Thread(cb);
+      t.start();
+    }
+  }
+}
+```
+
+Examples 3-5 and 3-6 use static methods for the callback so that `CallbackDigest` only needs to know the name of the method in `CallbackDigestUserInterface` to call. However, it’s not much harder (and it’s considerably more common) to call back to an instance method. In this case, the class making the callback must have a reference to the object it’s calling back. Generally, this reference is provided as an argument to the thread’s constructor. When the `run()` method is nearly done, the last thing it does is invoke the instance method on the callback object to pass along the result.
+
+Example 3-7. ``InstanceCallbackDigest``
+
+```java
+import java.io.*;
+import java.security.*;
+
+public class InstanceCallbackDigest implements Runnable {
+
+  private String filename;
+  private InstanceCallbackDigestUserInterface callback;
+
+  public InstanceCallbackDigest(String filename,
+   InstanceCallbackDigestUserInterface callback) {
+    this.filename = filename;
+    this.callback = callback;
+  }
+
+  @Override
+  public void run() {
+    try {
+      FileInputStream in = new FileInputStream(filename);
+      MessageDigest sha = MessageDigest.getInstance("SHA-256");
+      DigestInputStream din = new DigestInputStream(in, sha);
+      while (din.read() != -1) ;  // read entire file
+      din.close();
+      byte[] digest = sha.digest();
+      callback.receiveDigest(digest);
+    } catch (IOException | NoSuchAlgorithmException ex) {
+      System.err.println(ex);
+    }
+  }
+}
+```
+
+Example 3-8. ``InstanceCallbackDigestUserInterface``
+
+```java
+import javax.xml.bind.*; // for DatatypeConverter; requires Java 6 or JAXB 1.0
+
+public class InstanceCallbackDigestUserInterface {
+
+  private String filename;
+  private byte[] digest;
+
+  public InstanceCallbackDigestUserInterface(String filename) {
+    this.filename = filename;
+  }
+
+  public void calculateDigest() {
+    InstanceCallbackDigest cb = new InstanceCallbackDigest(filename, this);
+    Thread t = new Thread(cb);
+    t.start();
+  }
+
+  void receiveDigest(byte[] digest) {
+    this.digest = digest;
+    System.out.println(this);
+  }
+
+  @Override
+  public String toString() {
+    String result = filename + ": ";
+    if (digest != null) {
+      result += DatatypeConverter.printHexBinary(digest);
+    } else {
+      result += "digest not available";
+    }
+    return result;
+  }
+
+  public static void main(String[] args) {
+    for (String filename : args) {
+      // Calculate the digest
+      InstanceCallbackDigestUserInterface d
+          = new InstanceCallbackDigestUserInterface(filename);
+      d.calculateDigest();
+    }
+  }
+}
+```
+
+Using instance methods instead of static methods for callbacks is a little more complicated but has a number of advantages. First, each instance of the main class (`InstanceCallbackDigestUserInterface`, in this example) maps to exactly one file and can keep track of information about that file in a natural way without needing extra data structures. Furthermore, the instance can easily recalculate the digest for a particular file, if necessary. In practice, this scheme proves a lot more flexible. However, there is one caveat. 
+
+**==starting threads in a constructor is dangerous, especially threads that will call back to the originating object. There’s a race condition here that may allow the new thread to call back before the constructor is finished and the object is fully initialized.==** It’s unlikely in this case, because starting the new thread is the last thing this constructor does. Nonetheless, it’s at least theoretically possible. Therefore, it’s good form to avoid launching threads from constructors.
+
+**==The first advantage of the callback scheme over the polling scheme is that it doesn’t waste so many CPU cycles. However, a much more important advantage is that callbacks are more flexible and can handle more complicated situations involving many more threads, objects, and classes.==**
+
+### Futures, Callables, and Executors
+
+Java 5 introduced a new approach to multithreaded programming that makes it somewhat easier to handle callbacks by hiding the details. Instead of directly creating a thread, you create an `ExecutorService` that will create threads for you as needed. You submit `Callable` jobs to the `ExecutorService` and for each one you get back a `Future`. At a later point, you can ask the `Future` for the result of the job. If the result is ready, you get it immediately. If it’s not ready, the polling thread blocks until it is ready. The advantage is that you can spawn off many different threads, then get the answers you need in the order you need them.
+
+Example 3-9. ``FindMaxTask``
+
+```java
+import java.util.concurrent.Callable;
+
+class FindMaxTask implements Callable<Integer> {
+
+  private int[] data;
+  private int start;
+  private int end;
+
+  FindMaxTask(int[] data, int start, int end) {
+    this.data = data;
+    this.start = start;
+    this.end = end;
+  }
+
+  public Integer call() {
+    int max = Integer.MIN_VALUE;
+    for (int i = start; i < end; i++) {
+      if (data[i] > max) max = data[i];
+    }
+    return max;
+  }
+}
+```
+
+Although you could invoke the `call()` method directly, that is not its purpose. Instead, you submit `Callable` objects to an `Executor` that spins up a thread for each one.
+
+Example 3-10. ``MultithreadedMaxFinder``
+
+```java
+import java.util.concurrent.*;
+
+public class MultithreadedMaxFinder {
+
+  public static int max(int[] data) throws InterruptedException, ExecutionException {
+
+    if (data.length == 1) {
+      return data[0];
+    } else if (data.length == 0) {
+      throw new IllegalArgumentException();
+    }
+
+    // split the job into 2 pieces
+    FindMaxTask task1 = new FindMaxTask(data, 0, data.length/2);
+    FindMaxTask task2 = new FindMaxTask(data, data.length/2, data.length);
+
+    // spawn 2 threads
+    ExecutorService service = Executors.newFixedThreadPool(2);
+
+    Future<Integer> future1 = service.submit(task1);
+    Future<Integer> future2 = service.submit(task2);
+
+    return Math.max(future1.get(), future2.get());
+  }
+}
+```
+
+Each subarray is searched at the same time, so on suitable hardware and a large input this program can run almost twice as fast. Nonetheless, the code is almost as simple and straightforward as finding the maximum in the first half of the array and then finding the maximum in the second half of the array, without ever worrying about threads or asynchronicity. However, there’s one key difference. In the last statement of Example 3-10, when `future1.get()` is called, the method blocks and waits for the first `FindMaxTask` to finish. Only when this has happened does it call `future2.get()`. It’s possible that the second thread has already finished, in which case the value is immediately returned; but if not, execution waits for that thread to finish too. Once both threads have finished, their results are compared and the maximum is returned.
+
+**==Futures are a very convenient means of launching multiple threads to work on different pieces of a problem, and then waiting for them all to finish before proceeding. Executors and executor services let you assign jobs to different threads with different strategies.==**
+
+## Synchronization
+
+A thread is like a borrower at a library; the thread borrows from a central pool of resources. Threads make programs more efficient by sharing memory, file handles, sockets, and other resources. As long as two threads don’t want to use the same resource at the same time, a multithreaded program is much more efficient than the multiprocess alternative, in which each process has to keep its own copy of every resource. The downside of a multithreaded program is that if two threads want the same resource at the same time, one of them will have to wait for the other to finish. If one of them doesn’t wait, the resource may get corrupted.
+
+```shell
+Triangle.java: B4C7AF1BAE952655A96517476BF9DAC97C4AF02411E40DD386FECB58D94CC769
+InterfaceLister.java: 267D0EFE73896CD550DC202935D20E87CA71536CB176AF78F915935A6
+Squares.java: DA2E27EA139785535122A2420D3DB472A807841D05F6C268A43695B9FDFE1B11
+UlpPrinter.java: C8009AB1578BF7E730BD2C3EADA54B772576E265011DF22D171D60A1881AFF51
+```
+
+Four threads run in parallel to produce this output. Each writes one line to the console. The order in which the lines are written is unpredictable because thread scheduling is unpredictable, but each line is written as a unified whole. Suppose, however, you used this variation of the `run()` method, which, rather than storing intermediate parts of the result in the `String` variable `result`, simply prints them on the console as they become available:
+
+```java
+@Override
+public void run() {
+  try {
+    FileInputStream in = new FileInputStream(filename);
+    MessageDigest sha = MessageDigest.getInstance("SHA-256");
+    DigestInputStream din = new DigestInputStream(in, sha);
+    while (din.read() != -1) ; // read entire file
+    din.close();
+    byte[] digest = sha.digest();
+    System.out.print(input + ": ");
+    System.out.print(DatatypeConverter.printHexBinary(digest));
+    System.out.println();
+  } catch (IOException ex) {
+    System.err.println(ex);
+  } catch (NoSuchAlgorithmException ex) {
+    System.err.println(ex);
+  }
+}
+```
+
+When you run the program on the same input, the output looks something like this:
+
+```shell
+Triangle.java: B4C7AF1BAE952655A96517476BF9DAC97C4AF02411E40DD386FECB58D94CC769
+InterfaceLister.java: Squares.java: UlpPrinter.java:
+C8009AB1578BF7E730BD2C3EADA54B772576E265011DF22D171D60A1881AFF51
+267D0EFE73896CD550DC202935D20E87CA71536CB176AF78F915935A6E81B034
+DA2E27EA139785535122A2420D3DB472A807841D05F6C268A43695B9FDFE1B11
+```
+
+The digests of the different files are all mixed up!
+
+The reason this mix-up occurs is that `System.out` is shared between the four different threads. When one thread starts writing to the console through several `System.out.print()` statements, it may not finish all its writes before another thread breaks in and starts writing its output. The exact order in which one thread preempts the other threads is indeterminate. You’ll probably see slightly different output every time you run this program.
+
+You need a way to assign exclusive access to a shared resource to one thread for a specific series of statements. In this example, that shared resource is `System.out`, and the statements that need exclusive access are:
+
+```java
+System.out.print(input + ": ");
+System.out.print(DatatypeConverter.printHexBinary(digest));
+System.out.println();
+```
+### Synchronized Blocks
+
+To indicate that these five lines of code should be executed together, wrap them in a `synchronized` block that synchronizes on the `System.out` object, like this:
+
+```java
+synchronized (System.out) {
+  System.out.print(input + ": ");
+  System.out.print(DatatypeConverter.printHexBinary(digest));
+  System.out.println();
+}
+```
+
+Once one thread starts printing out the values, all other threads will have to stop and wait for it to finish before they can print out their values. **==Synchronization forces all code that synchronizes on the same object to run in series, never in parallel.==** For instance, if some other code in a different class and different thread also happened to synchronize on `System.out`, it too would not be able to run in parallel with this block. However, other code that synchronizes on a different object or doesn’t synchronize at all can still run in parallel with this code. It can do so even if it also uses `System.out`. Java provides no means to stop all other threads from using a shared resource. It can only prevent other threads that synchronize on the same object from using the shared resource.
+
+---
+
+ **TIP**
+
+**==In fact, the `PrintStream` class internally synchronizes most methods on the `PrintStream` object (`System.out`, in this example). In other words, every other thread that calls `System.out.println()` will be synchronized on `System.out` and will have to wait for this code to finish. `PrintStream` is unique in this respect. Most other `OutputStream` subclasses do not synchronize themselves.==**
+
+---
+
+Synchronization must be considered any time multiple threads share resources. These threads may be instances of the same `Thread` subclass or use the same `Runnable` class, or they may be instances of completely different classes. The key is the resources they share, not what classes they are. **==Synchronization becomes an issue only when two threads both possess references to the same object==**. In the previous example, the problem was that several threads had access to the same `PrintStream` object, `System.out`. In this case, it was a static class variable that led to the conflict. However, instance variables can also have problems.
+
+Example 3-11. ``LogFile``
+
+```java
+import java.io.*;
+import java.util.*;
+
+public class LogFile {
+
+  private Writer out;
+
+  public LogFile(File f) throws IOException {
+    FileWriter fw = new FileWriter(f);
+    this.out = new BufferedWriter(fw);
+  }
+
+  public void writeEntry(String message) throws IOException {
+    Date d = new Date();
+    out.write(d.toString());
+    out.write('\T');
+    out.write(message);
+    out.write("\r\n");
+  }
+
+  public void close() throws IOException {
+    out.flush();
+    out.close();
+  }
+}
+```
+
+A problem occurs if two or more threads each have a reference to the same `LogFile` object and one of those threads interrupts another in the process of writing the data. One thread may write the date and a tab, then the next thread might write three complete entries; then, the first thread could write the message, a carriage return, and a linefeed. The solution, once again, is synchronization. However, here there are two good choices for which object to synchronize on. The first choice is to synchronize on the `Writer` object `out`. For example:
+
+```java
+public void writeEntry(String message) throws IOException {
+    synchronized (out) {
+      Date d = new Date();
+      out.write(d.toString());
+      out.write('\T');
+      out.write(message);
+      out.write("\r\n");
+    }
+  }
+```
+
+This works because all the threads that use this `LogFile` object also use the same `out` object that’s part of that `LogFile`. It doesn’t matter that `out` is private. Although it is used by the other threads and objects, it’s referenced only within the `LogFile` class. Furthermore, although you’re synchronizing here on the `out` object, it’s the `writeEntry()` method that needs to be protected from interruption. The `Writer` classes all have their own internal synchronization, which protects one thread from interfering with a `write()` method in another thread. Each `Writer` class has a `lock` field that specifies the object on which writes to that writer synchronize.
+
+The second possibility is to synchronize on the `LogFile` object itself. This is simple enough to arrange with the `this` keyword. For example:Each `Writer` class has a `lock` field that specifies the object on which writes to that writer synchronize.
+
+The second possibility is to synchronize on the `LogFile` object itself. This is simple enough to arrange with the `this` keyword. For example:
+
+```java
+public void writeEntry(String message) throws IOException {
+  synchronized (this) {
+    Date d = new Date();
+    out.write(d.toString());
+    out.write('\T');
+    out.write(message);
+    out.write("\r\n");
+  }
+}
+```
+
+### Synchronized Methods
+
+Because synchronizing the entire method body on the object itself is such a common thing to do, Java provides a shortcut. You can synchronize an entire method on the current object (the `this` reference) by adding the `synchronized` modifier to the method declaration. For example:
+
+```java
+public synchronized void writeEntry(String message) throws IOException {
+  Date d = new Date();
+  out.write(d.toString());
+  out.write('\T');
+  out.write(message);
+  out.write("\r\n");
+}
+```
+
+==**Simply adding the `synchronized` modifier to all methods is not a catchall solution for synchronization problems. For one thing, it exacts a severe performance penalty in many VMs (though more recent VMs have improved greatly in this respect), potentially slowing down your code by a factor of three or more. Second, it dramatically increases the chances of deadlock. Third, and most importantly, it’s not always the object itself you need to protect from simultaneous modification or access, and synchronizing on the instance of the method’s class may not protect the object you really need to protect.**==
+
+### Alternatives to Synchronization
+
+Synchronization is not always the best solution to the problem of inconsistent behavior caused by thread scheduling. There are a number of techniques that avoid the need for synchronization entirely. **==The first is to use local variables instead of fields wherever possible. Local variables do not have synchronization problems. Every time a method is entered, the virtual machine creates a completely new set of local variables for the method. These variables are invisible from outside the method and are destroyed when the method exits.==**
+
+**==Method arguments of primitive types are also safe from modification in separate threads because Java passes arguments by value rather than by reference.==** A corollary of this is that pure functions such as `Math.sqrt()` that take zero or more primitive data type arguments, perform some calculation, and return a value without ever interacting with the fields of any class are inherently thread safe. These methods often either are or should be declared static.
+
+Method arguments of object types are a little trickier because the actual argument passed by value is a reference to the object. Suppose, for example, you pass a reference to an array into a `sort()` method. While the method is sorting the array, there’s nothing to stop some other thread that also has a reference to the array from changing the values in the array.
+
+`String` arguments are safe because they’re _immutable_ (i.e., once a `String` object has been created, it cannot be changed by any thread). **==An immutable object never changes state. The values of its fields are set once when the constructor runs and never altered thereafter.==** `StringBuilder` arguments are not safe because they’re not immutable; they can be changed after they’re created.
+
+A constructor normally does not have to worry about issues of thread safety. Until the constructor returns, no thread has a reference to the object, so it’s impossible for two threads to have a reference to the object.
+
+You can take advantage of immutability in your own classes. It’s usually the easiest way to make a class thread safe, often much easier than determining exactly which methods or code blocks to synchronize. To make an object immutable, simply declare all its fields private and final and don’t write any methods that can change them.
+
+**==A third technique is to use a thread-unsafe class but only as a private field of a class that is thread safe. As long as the containing class accesses the unsafe class only in a thread-safe fashion and as long as it never lets a reference to the private field leak out into another object, the class is safe.==**
+
+In some cases, you can use a designedly thread-safe but mutable class from the `java.util.concurrent.atomic` package. In particular, rather than using an `int`, you can use an `AtomicInteger`. Rather than using a `long`, you can use an `AtomicLong`. Rather than using a `boolean`, you can use an `AtomicBoolean`. Rather than using an `int[]`, you can use an `AtomicIntegerArray`. Rather than a reference variable, you can store an object inside an `AtomicReference`, though note well that this doesn’t make the object itself thread safe, just the getting and setting of the reference variable.
+
+For collections such as maps and lists, you can wrap them in a thread-safe version using the methods of `java.util.Collections` 
+
+In all cases, realize that it’s just a single method invocation that is atomic. If you need to perform two operations on the atomic value in succession without possible interruption, you’ll still need to synchronize. Thus, for instance, even if a list is synchronized via `Collections.synchronizedList()`, you’ll still need to synchronize on it if you want to iterate through the list because that involves many consecutive atomic operations. Although each method call is safely atomic, the sequence of operations is not without explicit synchronization.
+
+## Deadlock
+
+Synchronization can lead to another possible problem: _deadlock_. **==Deadlock occurs when two threads need exclusive access to the same set of resources and each thread holds the lock on a different subset of those resources. If neither thread is willing to give up the resources it has, both threads come to an indefinite halt.==**
+
+**==The most important technique for preventing deadlock is to avoid unnecessary synchronization. If there’s an alternative approach for ensuring thread safety, such as making objects immutable or keeping a local copy of an object, use it. Synchronization should be a last resort for ensuring thread safety. If you do need to synchronize, keep the synchronized blocks small and try not to synchronize on more than one object at a time.==**
+
+The best you can do in the general case is carefully consider whether deadlock is likely to be a problem and design your code around it. If multiple objects need the same set of shared resources to operate, make sure they request them in the same order. For instance, if class A and class B need exclusive access to object X and object Y, make sure that both classes request X first and Y second. If neither requests Y unless it already possesses X, deadlock is not a problem.
+
+## Thread Scheduling
+
