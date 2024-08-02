@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Java Network Programming Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "mode": "source",
                 "source": false
               }
@@ -85,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Java Network Programming Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Java Network Programming Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Java Network Programming Notes.md"
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
               }
             }
           },
@@ -162,11 +162,12 @@
   },
   "active": "3794891b5e75308c",
   "lastOpenFiles": [
+    "EFFECTIVE JAVA NOTES.md",
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Java Network Programming Notes.md",
     "JAVA APP - 2 NOTES.md",
     "Java Network Programming Screenshots/Pasted image 20240730210523.png",
-    "Java Network Programming Notes.md",
     "Java Network Programming Screenshots/Pasted image 20240730212451.png",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "RabbitMQ Notes.md",
     "RabbitMQ Screenshots/Pasted image 20240729232031.png",
     "RabbitMQ Screenshots/Pasted image 20240729222135.png",
@@ -185,7 +186,6 @@
     "Elastic ScreenShots",
     "JAVA APP - 1 NOTES.md",
     "Golang Notes.md",
-    "EFFECTIVE JAVA NOTES.md",
     "100 Go Mistakes and How to Avoid Them.md",
     "Excalidraw/Drawing 2024-02-07 14.41.32.excalidraw.md",
     "Excalidraw",

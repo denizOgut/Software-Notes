@@ -21199,6 +21199,9 @@ class ShippableCrate implements Shippable {
 
 This is often useful for ``static`` methods since they aren’t part of an instance that can declare the type. However, it is also allowed on non-``static`` methods.
 
+**==You can't use a class's generic type parameters in static methods or static fields. The class's type parameters are only in scope for instance methods and instance fields. For ``static`` fields and ``static`` methods, they are shared among all instances of the class, even instances of different type parameters, so obviously they cannot depend on a particular type parameter.==**
+
+
 ```java
 public class Handler {
 	public static <T> void prepare(T t) {
