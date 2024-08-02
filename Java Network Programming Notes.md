@@ -1588,3 +1588,422 @@ The best you can do in the general case is carefully consider whether deadlock i
 
 ## Thread Scheduling
 
+When multiple threads are running at the same time you have to consider issues of thread scheduling. You need to make sure that all important threads get at least some time to run and that the more important threads get more time. Furthermore, you want to ensure that the threads execute in a reasonable order. If your web server has 10 queued requests, each of which requires 5 seconds to process, you don’t want to process them in series. If you do, the first request will finish in 5 seconds but the second will take 10, the third 15, and so on until the last request, which will have to wait almost a minute to be serviced. By that point, the user has likely gone to another page. By running threads in parallel, you might be able to process all 10 requests in only 10 seconds total. The reason this strategy works is that there’s a lot of dead time in servicing a typical web request, time in which the thread is simply waiting for the network to catch up with the CPU—time the VM’s thread scheduler can put to good use by other threads.
+### Priorities
+
+Not all threads are created equal. Each thread has a priority, specified as an integer from 0 to 10. When multiple threads are ready to run, the VM will generally run only the highest-priority thread, although that’s not a hard-and-fast rule. In Java, 10 is the highest priority and 0 is the lowest. The default priority is 5, and this is the priority that your threads will have unless you deliberately set them otherwise.
+
+---
+
+ **WARNING**
+
+**This is the exact opposite of the normal Unix way of prioritizing processes, in which the higher the priority number of a process, the less CPU time the process gets.**
+
+---
+
+These three priorities (1, 5, and 10) are often specified as the three named constants `Thread.MIN_PRIORITY`, `Thread.NORM_PRIORITY`, and `Thread.MAX_PRIORITY`:
+
+```java
+public static final int MIN_PRIORITY  = 1;
+public static final int NORM_PRIORITY = 5;
+public static final int MAX_PRIORITY  = 10;
+```
+
+Sometimes you want to give one thread more time than another. Threads that interact with the user should get very high priorities so that perceived responsiveness will be very quick. On the other hand, threads that calculate in the background should get low priorities. Tasks that will complete quickly should have high priorities. **==Tasks that take a long time should have low priorities so that they won’t get in the way of other tasks.==**
+
+```java
+public final void setPriority(int newPriority)
+```
+
+Attempting to exceed the maximum priority or set a nonpositive priority throws an `IllegalArgumentException`.
+
+```java
+public void calculateDigest() {
+    ListCallbackDigest cb = new ListCallbackDigest(filename);
+    cb.addDigestListener(this);
+    Thread t = new Thread(cb);
+    t.setPriority(8);
+    t.start();
+  }
+```
+
+### Preemption
+
+Every virtual machine has a thread scheduler that determines which thread to run at any given time. **==There are two main kinds of thread scheduling: _preemptive_ and _cooperative_. A preemptive thread scheduler determines when a thread has had its fair share of CPU time, pauses that thread, and then hands off control of the CPU to a different thread. A cooperative thread scheduler waits for the running thread to pause itself before handing off control of the CPU to a different thread.==** A virtual machine that uses cooperative thread scheduling is much more susceptible to thread starvation than a virtual machine that uses preemptive thread scheduling, because one high-priority, uncooperative thread can hog an entire CPU.
+
+All Java virtual machines are guaranteed to use preemptive thread scheduling between priorities. That is, if a lower-priority thread is running when a higher-priority thread becomes ready to run, the virtual machine will sooner or later (and probably sooner) pause the lower-priority thread to allow the higher-priority thread to run. The higher-priority thread _preempts_ the lower-priority thread.
+
+The situation when multiple threads of the same priority are ready to run is trickier. A preemptive thread scheduler will occasionally pause one of the threads to allow the next one in line to get some CPU time. However, a cooperative thread scheduler will not. It will wait for the running thread to explicitly give up control or come to a stopping point. If the running thread never gives up control and never comes to a stopping point and if no higher-priority threads preempt the running thread, all other threads will starve. This is a bad thing. It’s important to make sure all your threads periodically pause themselves so that other threads have an opportunity to run.
+
+---
+
+ **WARNING**
+
+**A starvation problem can be hard to spot if you’re developing on a VM that uses preemptive thread scheduling. Just because the problem doesn’t arise on your machine doesn’t mean it won’t arise on your customers’ machines if their VMs use cooperative thread scheduling. Most current VMs use preemptive thread scheduling, but some older VMs are cooperatively scheduled, and you may also encounter cooperative scheduling in special-purpose Java VMs such as for embedded environments.**
+
+---
+
+There are 10 ways a thread can pause in favor of other threads or indicate that it is ready to pause. These are:
+
+- It can block on I/O.
+- It can block on a synchronized object.
+- It can yield.
+- It can go to sleep.
+- It can join another thread.
+- It can wait on an object.
+- It can finish.
+- It can be preempted by a higher-priority thread.
+- It can be suspended.
+- It can stop.
+
+#### Blocking
+
+**==Blocking occurs any time a thread has to stop and wait for a resource it doesn’t have.==** The most common way a thread in a network program will voluntarily give up control of the CPU is by blocking on I/O. Because CPUs are much faster than networks and disks, a network program will often block while waiting for data to arrive from the network or be sent out to the network.
+
+Threads can also block when they enter a synchronized method or block. If the thread does not already possess the lock for the object being synchronized on and some other thread does possess that lock, the thread will pause until the lock is released. If the lock is never released, the thread is permanently stopped.
+
+Neither blocking on I/O nor blocking on a lock will release any locks the thread already possesses. For I/O blocks, this is not such a big deal, because eventually the I/O will either unblock and the thread will continue or an `IOException` will be thrown and the thread will then exit the synchronized block or method and release its locks. However, a thread blocking on a lock that it doesn’t possess will never give up its own locks. If one thread is waiting for a lock that a second thread owns and the second thread is waiting for a lock that the first thread owns, deadlock results.
+
+#### Yielding
+
+**==The second way for a thread to give up control is to explicitly yield.==** A thread does this by invoking the static `Thread.yield()` method. This signals to the virtual machine that it can run another thread if one is ready to run. Some virtual machines, particularly on real-time operating systems, may ignore this hint.
+
+Before yielding, a thread should make sure that it or its associated `Runnable` object is in a consistent state that can be used by other objects. Yielding does not release any locks the thread holds. Therefore, ideally, a thread should not be synchronized on anything when it yields. If the only other threads waiting to run when a thread yields are blocked because they need the synchronized resources that the yielding thread possesses, then the other threads won’t be able to run. Instead, control will return to the only thread that can run, the one that just yielded, which pretty much defeats the purpose of yielding.
+
+```java
+public void run() {
+  while (true) {
+    // Do the thread's work...
+    Thread.yield();
+  }
+}
+```
+
+If each iteration of the loop takes a significant amount of time, you may want to intersperse more calls to `Thread.yield()` in the rest of the code. This precaution should have minimal effect in the event that yielding isn’t necessary.
+
+#### Sleeping
+
+Sleeping is a more powerful form of yielding. Whereas yielding indicates only that a thread is willing to pause and let other equal-priority threads have a turn, a thread that goes to sleep will pause whether any other thread is ready to run or not. This gives an opportunity to run not only to other threads of the same priority, but also to threads of lower priorities. However, **==a thread that goes to sleep does hold onto all the locks it’s grabbed. Consequently, other threads that need the same locks will be blocked even if the CPU is available. Therefore, try to avoid sleeping threads inside a synchronized method or block.==**
+
+```java
+public static void sleep(long milliseconds) throws InterruptedException
+public static void sleep(long milliseconds, int nanoseconds)
+    throws InterruptedException
+```
+
+```java
+public void run() {
+  while (true) {
+    if (!getPage("http://www.ibiblio.org/")) {
+      mailError("webmaster@ibiblio.org");
+    }
+    try {
+      Thread.sleep(300000); // 300,000 milliseconds == 5 minutes
+    } catch (InterruptedException ex) {
+      break;
+    }
+  }
+}
+```
+
+The thread is not guaranteed to sleep as long as it wants to. On occasion, the thread may not wake up until some time after its requested wake-up call, simply because the VM is busy doing other things. It is also possible that some other thread will do something to wake up the sleeping thread before its time. Generally, this is accomplished by invoking the sleeping thread’s `interrupt()` method.
+
+```java
+public void interrupt()
+```
+
+**==This is one of those cases where the distinction between the thread and the `Thread` object is important. Just because the thread is sleeping doesn’t mean that other threads that are awake can’t work with the corresponding `Thread` object through its methods and fields. In particular, another thread can invoke the sleeping `Thread` object’s `interrupt()` method, which the sleeping thread experiences as an `InterruptedException`==**. From that point forward, the thread is awake and executes as normal, at least until it goes to sleep again. In the previous example
+
+---
+
+ **WARNING**
+
+**If a thread is blocked on an I/O operation such as a read or write, the effect of interrupting the thread is highly platform dependent. More often than not, it is a noop. That is, the thread continues to be blocked. On Solaris, the `read()` or `write()` method may throw an `InterruptedIOException`, a subclass of `IOException` instead. However, this is unlikely to happen on other platforms, and may not work with all stream classes on Solaris. If your program architecture requires interruptible I/O, you should seriously consider using the nonblocking I/O  rather than streams. Unlike streams, buffers and channels are explicitly designed to support interruption while blocked on a read or write.**
+
+--- 
+
+#### Joining threads
+
+It’s not uncommon for one thread to need the result of another thread. Java provides three `join()` methods to allow one thread to wait for another thread to finish before continuing. These are:
+
+```java
+public final void join() throws InterruptedException
+public final void join(long milliseconds) throws InterruptedException
+public final void join(long milliseconds, int nanoseconds)
+    throws InterruptedException
+```
+
+The first variant waits indefinitely for the _joined_ thread to finish. The joining thread (i.e., the one that invokes the `join()` method) waits for the joined thread (i.e, the one whose `join()` method is invoked) to finish.
+
+```java
+double[] array = new double[10000];                         // 1
+for (int i = 0; i < array.length; i++) {                    // 2
+  array[i] = Math.random();                                 // 3
+}                                                           // 4
+SortThread t = new SortThread(array);                       // 5
+t.start();                                                  // 6
+try {                                                       // 7
+  t.join();                                                 // 8
+  System.out.println("Minimum: " + array[0]);               // 9
+  System.out.println("Median: " + array[array.length/2]);   // 10
+  System.out.println("Maximum: " + array[array.length-1]);  // 11
+} catch (InterruptedException ex) {                         // 12
+}                                                           // 13
+```
+
+A thread that’s joined to another thread can be interrupted just like a sleeping thread if some other thread invokes its `interrupt()` method. The thread experiences this invocation as an `InterruptedException`. From that point forward, it executes as normal, starting from the `catch` block that caught the exception.
+
+Example 3-12. Avoid a race condition by joining to the thread that has a result you need
+
+```java
+import javax.xml.bind.DatatypeConverter;
+
+public class JoinDigestUserInterface {
+
+  public static void main(String[] args) {
+
+    ReturnDigest[] digestThreads = new ReturnDigest[args.length];
+
+    for (int i = 0; i < args.length; i++) {
+      // Calculate the digest
+      digestThreads[i] = new ReturnDigest(args[i]);
+      digestThreads[i].start();
+    }
+
+    for (int i = 0; i < args.length; i++) {
+      try {
+        digestThreads[i].join();
+        // Now print the result
+        StringBuffer result = new StringBuffer(args[i]);
+        result.append(": ");
+        byte[] digest = digestThreads[i].getDigest();
+        result.append(DatatypeConverter.printHexBinary(digest));
+        System.out.println(result);
+      } catch (InterruptedException ex) {
+        System.err.println("Thread Interrupted before completion");
+      }
+    }
+  }
+}
+```
+
+---
+
+ **==TIP**==
+
+==**Joining is perhaps not as important as it was prior to Java 5. In particular, many designs that used to require `join()` can now more easily be implemented using an `Executor` and a `Future` instead.==**
+
+---
+
+#### Waiting on an object
+
+A thread can _wait_ on an object it has locked. While waiting, it releases the lock on the object and pauses until it is notified by some other thread. Another thread changes the object in some way, notifies the thread waiting on that object, and then continues. This differs from joining in that neither the waiting nor the notifying thread has to finish before the other thread can continue. Waiting pauses execution until an object or resource reaches a certain state. Joining pauses execution until a thread finishes.
+
+Waiting on an object is one of the lesser-known ways a thread can pause. That’s because it doesn’t involve any methods in the `Thread` class. Instead, to wait on a particular object, the thread that wants to pause must first obtain the lock on the object using `synchronized` and then invoke one of the object’s three overloaded `wait()` methods:
+
+```java
+public final void wait() throws InterruptedException
+public final void wait(long milliseconds) throws InterruptedException
+public final void wait(long milliseconds, int nanoseconds)
+    throws InterruptedException
+```
+
+It remains asleep until one of three things happens:
+
+- The timeout expires.
+- The thread is interrupted.
+- The object is notified.
+
+_Interruption_ works the same way as `sleep()` and `join()`: some other thread invokes the thread’s `interrupt()` method. This causes an `InterruptedException`, and execution resumes in the `catch` block that catches the exception. The thread regains the lock on the object it was waiting on before the exception is thrown, however, so the thread may still be blocked for some time after the `interrupt()` method is invoked.
+
+The third possibility, _notification_, is new. Notification occurs when some other thread invokes the `notify()` or `notifyAll()` method on the object on which the thread is waiting. Both of these methods are in the `java.lang.Object` class:
+
+```java
+public final void notify()
+public final void notifyAll()
+```
+
+These must be invoked on the object the thread was waiting on, not generally on the `Thread` itself. Before notifying an object, a thread must first obtain the lock on the object using a synchronized method or block. The `notify()` method selects one thread more or less at random from the list of threads waiting on the object and wakes it up. The `notifyAll()` method wakes up every thread waiting on the given object.
+
+Once a waiting thread is notified, it attempts to regain the lock of the object it was waiting on. If it succeeds, execution resumes with the statement immediately following the invocation of `wait()`. If it fails, it blocks on the object until its lock becomes available; then execution resumes with the statement immediately following the invocation of `wait()`.
+
+```java
+ManifestFile m = new ManifestFile();
+JarThread    t = new JarThread(m, in);
+synchronized (m) {
+  t.start();
+  try {
+    m.wait();
+    // work with the manifest file...
+  } catch (InterruptedException ex) {
+    // handle exception...
+  }
+}
+```
+
+The `JarThread` class works like this:
+
+```java
+ManifestFile theManifest;
+InputStream in;
+
+public JarThread(Manifest m, InputStream in) {
+  theManifest = m;
+  this.in= in;
+}
+
+@Override
+public void run() {
+  synchronized (theManifest) {
+    // read the manifest from the stream in...
+    theManifest.notify();
+  }
+  // read the rest of the stream...
+}
+```
+
+Waiting and notification are more commonly used when multiple threads want to wait on the same object.
+
+**==When all threads waiting on one object are notified, all will wake up and try to get the lock on the object. However, only one can succeed immediately. That one continues; the rest are blocked until the first one releases the lock. If several threads are all waiting on the same object, a significant amount of time may pass before the last one gets its turn at the lock on the object and continues. It’s entirely possible that the object on which the thread was waiting will once again have been placed in an unacceptable state during this time.==** 
+
+**==Do not assume that just because the thread was notified, the object is now in the correct state. Check it explicitly if you can’t guarantee that once the object reaches a correct state it will never again reach an incorrect state.==**
+
+```java
+private List<String> entries;
+
+public void processEntry() {
+
+  synchronized (entries) { // must synchronize on the object we wait on
+    while (entries.isEmpty()) {
+      try {
+        entries.wait();
+        // We stopped waiting because entries.size() became non-zero
+        // However we don't know that it's still non-zero so we
+        // pass through the loop again to test its state now.
+      } catch (InterruptedException ex) {
+        // If interrupted, the last entry has been processed so
+        return;
+      }
+    }
+    String entry = entries.remove(entries.size()-1);
+    // process this entry...
+  }
+}
+```
+
+```java
+public void readLogFile() {
+  while (true) {
+    String entry = log.getNextEntry();
+    if (entry == null) {
+      // There are no more entries to add to the list so
+      // we interrupt all threads that are still waiting.
+      // Otherwise, they'll wait forever.
+      for (Thread thread : threads) thread.interrupt();
+      break;
+    }
+    synchronized (entries) {
+      entries.add(0, entry);
+      entries.notifyAll();
+    }
+  }
+}
+```
+
+#### Finish
+
+The final way a thread can give up control of the CPU in an orderly fashion is by _finishing_. When the `run()` method returns, the thread dies and other threads can take over. In network applications, this tends to occur with threads that wrap a single blocking operation, such as downloading a file from a server, so that the rest of the application won’t be blocked.
+
+Otherwise, **==if your `run()` method is so simple that it always finishes quickly enough without blocking, there’s a very real question of whether you should spawn a thread at all. There’s a nontrivial amount of overhead for the virtual machine in setting up and tearing down threads. If a thread is finishing in a small fraction of a second anyway, chances are it would finish even faster if you used a simple method call rather than a separate thread.==**
+
+## Thread Pools and Executors
+
+Adding multiple threads to a program dramatically improves performance, especially for I/O-bound programs such as most network programs. However, threads are not without overhead of their own. Starting a thread and cleaning up after a thread that has died takes a noticeable amount of work from the virtual machine, especially if a program spawns hundreds of threads Even if the threads finish quickly, this can overload the garbage collector or other parts of the VM and hurt performance, just like allocating thousands of any other kind of object every minute. Even more importantly, switching between running threads carries overhead. If the threads are blocking naturally—for instance, by waiting for data from the network—there’s no real penalty to this; but if the threads are CPU-bound, then the total task may finish more quickly if you can avoid a lot of switching between threads. Finally, and most importantly, although threads help make more efficient use of a computer’s limited CPU resources, there is still only a finite amount of resources to go around. Once you’ve spawned enough threads to use all the computer’s available idle time, spawning more threads just wastes MIPS and memory on thread management.
+
+The `Executors` class in `java.util.concurrent` makes it quite easy to set up thread pools. You simply submit each task as a `Runnable` object to the pool. You get back a `Future` object you can use to check on the progress of the task.
+
+Example 3-13. The ``GZipRunnable`` class
+
+```java
+import java.io.*;
+import java.util.zip.*;
+
+public class GZipRunnable implements Runnable {
+
+  private final File input;
+
+  public GZipRunnable(File input) {
+    this.input = input;
+  }
+
+  @Override
+  public void run() {
+    // don't compress an already compressed file
+    if (!input.getName().endsWith(".gz")) {
+      File output = new File(input.getParent(), input.getName() + ".gz");
+      if (!output.exists()) { // Don't overwrite an existing file
+        try ( // with resources; requires Java 7
+          InputStream in = new BufferedInputStream(new FileInputStream(input));
+        OutputStream out = new BufferedOutputStream(
+          new GZIPOutputStream(
+            new FileOutputStream(output)));
+         ) {
+            int b;
+            while ((b = in.read()) != -1) out.write(b);
+            out.flush();
+        } catch (IOException ex) {
+          System.err.println(ex);
+        }
+      }
+    }
+  }
+}
+```
+
+Also notice the buffering of both input and output. This is very important for performance in I/O-limited applications, and especially important in network programs. At worst, buffering has no impact on performance, while at best it can give you an order of magnitude speedup or more.
+
+Example 3-14 is the main program.
+
+Example 3-14. The ``GZipThread`` user interface class
+
+```java
+import java.io.*;
+import java.util.concurrent.*;
+
+public class GZipAllFiles {
+
+  public final static int THREAD_COUNT = 4;
+
+  public static void main(String[] args) {
+
+    ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
+
+    for (String filename : args) {
+      File f = new File(filename);
+      if (f.exists()) {
+        if (f.isDirectory()) {
+          File[] files = f.listFiles();
+          for (int i = 0; i < files.length; i++) {
+            if (!files[i].isDirectory()) { // don't recurse directories
+              Runnable task = new GZipRunnable(files[i]);
+              pool.submit(task);
+            }
+          }
+        } else {
+          Runnable task = new GZipRunnable(f);
+          pool.submit(task);
+        }
+      }
+    }
+
+    pool.shutdown();
+  }
+}
+```
+
+Once you have added all the files to the pool, you call `pool.shutdown()`. Chances are this happens while there’s still work to be done. This method does not abort pending jobs. It simply notifies the pool that no further tasks will be added to its internal queue and that it should shut down once it has finished all pending work.
+
+**==Shutting down like this is mostly atypical of the heavily threaded network programs you’ll write because it does have such a definite ending point: the point at which all files are processed. Most network servers continue indefinitely until shut down through an administration interface. In those cases, you may want to invoke `shutdownNow()` instead to abort currently processing tasks and skip any pending tasks.==**
+
+# Chapter 4. Internet Addresses
+
