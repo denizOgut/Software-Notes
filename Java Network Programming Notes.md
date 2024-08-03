@@ -2007,3 +2007,725 @@ Once you have added all the files to the pool, you call `pool.shutdown()`. Chan
 
 # Chapter 4. Internet Addresses
 
+Devices connected to the Internet are called _nodes_. Nodes that are computers are called _hosts_. Each node or host is identified by at least one unique number called an Internet address or an IP address. Most current IP addresses are 4-byte-long IPv4 addresses. However, a small but growing number of IP addresses are 16-byte-long IPv6 addresses. Both IPv4 and IPv6 addresses are ordered sequences of bytes, like an array. They aren’t numbers, and they aren’t ordered in any predictable or useful sense.
+
+An IPv4 address is normally written as four unsigned bytes, each ranging from 0 to 255, with the most significant byte first. Bytes are separated by periods for the convenience of human eyes. For example, the address for _login.ibiblio.org_ is 152.19.134.132. This is called the _dotted quad_ format.
+
+An IPv6 address is normally written as eight blocks of four hexadecimal digits separated by colons. For example, at the time of this writing, the address of _www.hamiltonweather.tk_ is _2400:cb00:2048:0001:0000:0000:6ca2:c665_
+
+IP addresses are great for computers, but they are a problem for humans, who have a hard time remembering long numbers. To avoid the need to carry around Rolodexes full of IP addresses, the Internet’s designers invented the Domain Name System (DNS). DNS associates hostnames that humans can remember (such as _login.ibiblio.org_) with IP addresses that computers can remember (such as _152.19.134.132_). Servers usually have at least one hostname. Clients often have a hostname, but often don’t, especially if their IP address is dynamically assigned at startup.
+
+---
+
+ **TIP**
+
+**Colloquially, people often use “Internet address” to mean a hostname (or even an email address, or full URL). In a book about network programming, it is crucial to be precise about addresses and hostnames. In this book, an address is always a numeric IP address, never a human-readable hostname.**
+
+---
+
+Some machines have multiple names. For instance, _www.beand.com_ and _xom.nu_ are really the same Linux box. The name _www.beand.com_ really refers to a website rather than a particular machine. In the past, when this website moved from one machine to another, the name was reassigned to the new machine so it always pointed to the site’s current server. This way, URLs around the Web don’t need to be updated just because the site has moved to a new host.
+
+On occasion, one name maps to multiple IP addresses. It is then the responsibility of the DNS server to randomly choose machines to respond to each request. This feature is most frequently used for very high-traffic websites, where it splits the load across multiple systems
+
+Every computer connected to the Internet should have access to a machine called a _domain name server_, generally a Unix box running special DNS software that knows the mappings between different hostnames and IP addresses. Most domain name servers only know the addresses of the hosts on their local network, plus the addresses of a few domain name servers at other sites. If a client asks for the address of a machine outside the local domain, the local domain name server asks a domain name server at the remote location and relays the answer to the requester.
+
+**==Most of the time, you can use hostnames and let DNS handle the translation to IP addresses.==**
+
+## The InetAddress Class
+
+The `java.net.InetAddress` class is Java’s high-level representation of an IP address, both IPv4 and IPv6. It is used by most of the other networking classes, including `Socket`, `ServerSocket`, `URL`, `DatagramSocket`, `DatagramPacket`, and more. **==Usually, it includes both a hostname and an IP address.==**
+
+### Creating New InetAddress Objects
+
+There are no public constructors in the `InetAddress` class. Instead, `InetAddress` has static factory methods that connect to a DNS server to resolve a hostname. The most common is `InetAddress.getByName()`.
+
+```java
+InetAddress address = InetAddress.getByName("www.oreilly.com");
+```
+
+If the DNS server can’t find the address, this method throws an `UnknownHostException`, a subclass of `IOException`.
+
+Example 4-1. A program that prints the address of www.oreilly.com
+
+```java
+import java.net.*;
+
+public class OReillyByName {
+
+  public static void main (String[] args) {
+    try {
+      InetAddress address = InetAddress.getByName("www.oreilly.com");
+      System.out.println(address);
+    } catch (UnknownHostException ex) {
+      System.out.println("Could not find www.oreilly.com");
+    }
+  }
+}
+```
+
+```shell
+% java OReillyByName
+www.oreilly.com/208.201.239.36
+```
+
+You can also do a reverse lookup by IP address.
+
+```java
+InetAddress address = InetAddress.getByName("208.201.239.100");
+System.out.println(address.getHostName());
+```
+
+If the address you look up does not have a hostname, `getHostName()` simply returns the dotted quad address you supplied. If, for some reason, you need all the addresses of a host, call `getAllByName()` instead, which returns an array:
+
+```java
+try {
+  InetAddress[] addresses = InetAddress.getAllByName("www.oreilly.com");
+  for (InetAddress address : addresses) {
+    System.out.println(address);
+  }
+} catch (UnknownHostException ex) {
+  System.out.println("Could not find www.oreilly.com");
+}
+```
+
+Finally, the `getLocalHost()` method returns an `InetAddress` object for the host on which your code is running:
+
+```java
+InetAddress me = InetAddress.getLocalHost();
+```
+
+This method tries to connect to DNS to get a real hostname and IP address such as “elharo.laptop.corp.com” and “192.1.254.68”; but if that fails it may return the _loopback_ address instead. This is the hostname “localhost” and the dotted quad address “127.0.0.1”.
+
+Example 4-2. Find the address of the local machine
+
+```java
+import java.net.*;
+
+public class MyAddress {
+
+  public static void main (String[] args) {
+    try {
+      InetAddress address = InetAddress.getLocalHost();
+      System.out.println(address);
+    } catch (UnknownHostException ex) {
+      System.out.println("Could not find this computer's address.");
+    }
+  }
+}
+```
+
+```shell
+% java MyAddress
+titan.oit.unc.edu/152.2.22.14
+```
+
+If you’re not connected to the Internet, and the system does not have a fixed IP address or domain name, you’ll probably see _localhost_ as the domain name and 127.0.0.1 as the IP address.
+
+If you know a numeric address, you can create an `InetAddress` object from that address without talking to DNS using `InetAddress.getByAddress()`. This method can create addresses for hosts that do not exist or cannot be resolved:
+
+```java
+public static InetAddress getByAddress(byte[] addr) throws UnknownHostException
+public static InetAddress getByAddress(String hostname, byte[] addr)
+    throws UnknownHostException
+```
+
+```java
+byte[] address = {107, 23, (byte) 216, (byte) 196};
+InetAddress lessWrong = InetAddress.getByAddress(address);
+InetAddress lessWrongWithname = InetAddress.getByAddress(
+   "lesswrong.com", address);
+```
+
+Unlike the other factory methods, these two methods make no guarantees that such a host exists or that the hostname is correctly mapped to the IP address. They throw an `UnknownHostException` only if a byte array of an illegal size (neither 4 nor 16 bytes long) is passed as the `address` argument.
+#### Caching
+
+Because DNS lookups can be relatively expensive the `InetAddress` class caches the results of lookups. Once it has the address of a given host, it won’t look it up again, even if you create a new `InetAddress` object for the same host. As long as IP addresses don’t change while your program is running, this is not a problem.
+
+Negative results (host not found errors) are slightly more problematic. It’s not uncommon for an initial attempt to resolve a host to fail, but the immediately following one to succeed. The first attempt timed out while the information was still in transit from the remote DNS server. Then the address arrived at the local server and was immediately available for the next request. For this reason, Java only caches unsuccessful DNS queries for 10 seconds.
+
+These times can be controlled by the system properties `networkaddress.cache.ttl` and `networkaddress.cache.negative.ttl`. The first of those, `networkaddress.cache.ttl`, specifies the number of seconds a successful DNS lookup will remain in Java’s cache. `networkaddress.cache.negative.ttl` is the number of seconds an unsuccessful lookup will be cached.
+
+Besides local caching inside the `InetAddress` class, the local host, the local domain name server, and other DNS servers elsewhere on the Internet also cache the results of various queries. Java provides no way to control this.
+
+#### Lookups by IP address
+
+When you call `getByName()` with an IP address string as an argument, it creates an `InetAddress` object for the requested IP address without checking with DNS. This means it’s possible to create `InetAddress` objects for hosts that don’t really exist and that you can’t connect to. The hostname of an `InetAddress` object created from a string containing an IP address is initially set to that string. A DNS lookup for the actual hostname is only performed when the hostname is requested, either explicitly via a `getHostName()` or implicitly by `toString()`. That’s how _www.oreilly.com_ was determined from the dotted quad address 208.201.239.37. If, at the time the hostname is requested and a DNS lookup is finally performed, the host with the specified IP address can’t be found, the hostname remains the original dotted quad string. However, no `UnknownHostException` is thrown.
+
+Hostnames are much more stable than IP addresses. If you have a choice between using a hostname such as _www.oreilly.com_ or an IP address such as 208.201.239.37, always choose the hostname. **==Use an IP address only when a hostname is not available.==**
+
+#### Security issues
+
+Creating a new `InetAddress` object from a hostname is potentially insecure because it requires a DNS lookup, which untrusted code cannot perform for arbitrary hosts due to security restrictions. This prevents untrusted applets from communicating covertly with third-party hosts via DNS. Untrusted code can only resolve its own codebase and localhost addresses, with the `checkConnect()` method in `SecurityManager` determining whether DNS resolution or network connections are permitted.
+
+```java
+public void checkConnect(String hostname, int port)
+```
+
+### Getter Methods
+
+The `InetAddress` class contains four getter methods that return the hostname as a string and the IP address as both a string and a byte array:
+
+```java
+public String getHostName()
+public String getCanonicalHostName()
+public byte[] getAddress()
+public String getHostAddress()
+```
+
+**==There are no corresponding `setHostName()` and `setAddress()` methods, which means that packages outside of `java.net` can’t change an `InetAddress` object’s fields behind its back. This makes `InetAddress` immutable and thus thread safe.==**
+
+```java
+InetAddress machine = InetAddress.getLocalHost();
+String localhost = machine.getHostName();
+```
+
+The `getCanonicalHostName()` method is similar, but it’s a bit more aggressive about contacting DNS. `getHostName()` will only call DNS if it doesn’t think it already knows the hostname. **==`getCanonicalHostName()` calls DNS if it can, and may replace the existing cached hostname==**. For example:
+
+```java
+InetAddress machine = InetAddress.getLocalHost();
+String localhost = machine.getCanonicalHostName();
+```
+
+The `getCanonicalHostName()` method is particularly useful when you’re starting with a dotted quad IP address rather than the hostname.
+
+Example 4-3. Given the address, find the hostname
+
+```java
+import java.net.*;
+
+public class ReverseTest {
+
+  public static void main (String[] args) throws UnknownHostException {
+    InetAddress ia = InetAddress.getByName("208.201.239.100");
+    System.out.println(ia.getCanonicalHostName());
+  }
+}
+```
+
+```shell
+% java ReverseTest
+oreilly.com
+```
+
+Example 4-4. Find the IP address of the local machine
+
+```java
+import java.net.*;
+
+public class MyAddress {
+
+  public static void main(String[] args) {
+    try {
+      InetAddress me = InetAddress.getLocalHost();
+      String dottedQuad = me.getHostAddress();
+      System.out.println("My address is " + dottedQuad);
+    } catch (UnknownHostException ex) {
+      System.out.println("I'm sorry. I don't know my own address.");
+    }
+  }
+}
+```
+
+```shell
+% java MyAddress
+My address is 152.2.22.14.
+```
+
+If you want to know the IP address of a machine (and you rarely do), then use the `getAddress()` method, which returns an IP address as an array of bytes in network byte order. The most significant byte (i.e., the first byte in the address’s dotted quad form) is the first byte in the array, or element zero. To be ready for IPv6 addresses, try not to assume anything about the length of this array. If you need to know the length of the array
+
+```java
+InetAddress me = InetAddress.getLocalHost();
+byte[] address = me.getAddress();
+```
+
+The bytes returned are unsigned, which poses a problem. Unlike C, Java doesn’t have an unsigned byte primitive data type. Bytes with values higher than 127 are treated as negative numbers. Therefore, if you want to do anything with the bytes returned by `getAddress()`, you need to promote the bytes to `int`s and make appropriate adjustments.
+
+```java
+int unsignedByte = signedByte < 0 ? signedByte + 256 : signedByte;
+```
+
+One reason to look at the raw bytes of an IP address is to determine the type of the address. Test the number of bytes in the array returned by `getAddress()` to determine whether you’re dealing with an IPv4 or IPv6 address
+
+Example 4-5. Determining whether an IP address is v4 or v6
+
+```java
+import java.net.*;
+
+public class AddressTests {
+
+  public static int getVersion(InetAddress ia) {
+    byte[] address = ia.getAddress();
+    if (address.length == 4) return 4;
+    else if (address.length == 16) return 6;
+    else return -1;
+  }
+}
+```
+
+### Address Types
+
+Some IP addresses and some patterns of addresses have special meanings. Java includes 10 methods for testing whether an `InetAddress` object meets any of these criteria:
+
+```java
+public boolean isAnyLocalAddress()
+public boolean isLoopbackAddress()
+public boolean isLinkLocalAddress()
+public boolean isSiteLocalAddress()
+public boolean isMulticastAddress()
+public boolean isMCGlobal()
+public boolean isMCNodeLocal()
+public boolean isMCLinkLocal()
+public boolean isMCSiteLocal()
+public boolean isMCOrgLocal()
+```
+
+The `isAnyLocalAddress()` method returns true if the address is a _wildcard address_, false otherwise. A wildcard address matches any address of the local system. This is important if the system has multiple network interfaces, as might be the case on a system with multiple Ethernet cards or an Ethernet card and an 802.11 WiFi interface.
+
+The `isLoopbackAddress()` method returns true if the address is the loopback address, false otherwise. The loopback address connects to the same computer directly in the IP layer without using any physical hardware. Thus, connecting to the loopback address enables tests to bypass potentially buggy or nonexistent Ethernet, PPP, and other drivers, helping to isolate problems.
+
+The `isLinkLocalAddress()` method returns true if the address is an IPv6 link-local address, false otherwise. This is an address used to help IPv6 networks self-configure, much like DHCP on IPv4 networks but without necessarily using a server.
+
+The `isSiteLocalAddress()` method returns true if the address is an IPv6 site-local address, false otherwise. Site-local addresses are similar to link-local addresses except that they may be forwarded by routers within a site or campus but should not be forwarded beyond that site
+
+The `isMulticastAddress()` method returns true if the address is a multicast address, false otherwise. Multicasting broadcasts content to all subscribed computers rather than to one particular computer.
+
+The `isMCGlobal()` method returns true if the address is a global multicast address, false otherwise. A global multicast address may have subscribers around the world.
+
+The `isMCOrgLocal()` method returns true if the address is an organization-wide multicast address, false otherwise. An organization-wide multicast address may have subscribers within all the sites of a company or organization, but not outside that organization.
+
+The `isMCSiteLocal()` method returns true if the address is a site-wide multicast address, false otherwise. Packets addressed to a site-wide address will only be transmitted within their local site.
+
+The `isMCLinkLocal()` method returns true if the address is a subnet-wide multicast address, false otherwise. Packets addressed to a link-local address will only be transmitted within their own subnet.
+
+The `isMCNodeLocal()` method returns true if the address is an interface-local multicast address, false otherwise. Packets addressed to an interface-local address are not sent beyond the network interface from which they originate, not even to a different network interface on the same node.
+
+---
+
+ **TIP**
+
+**The method name is out of sync with current terminology. Earlier drafts of the IPv6 protocol called this type of address “node-local,” hence the name “isMCNodeLocal.” The IPNG working group actually changed the name before this method was added to the JDK, but Sun didn’t get the memo in time.**
+
+---
+
+Example 4-6. Testing the characteristics of an IP address
+
+```java
+import java.net.*;
+
+public class IPCharacteristics {
+
+  public static void main(String[] args) {
+
+    try {
+      InetAddress address = InetAddress.getByName(args[0]);
+
+      if (address.isAnyLocalAddress()) {
+        System.out.println(address + " is a wildcard address.");
+      }
+      if (address.isLoopbackAddress()) {
+        System.out.println(address + " is loopback address.");
+      }
+
+      if (address.isLinkLocalAddress()) {
+        System.out.println(address + " is a link-local address.");
+      } else if (address.isSiteLocalAddress()) {
+        System.out.println(address + " is a site-local address.");
+      } else {
+        System.out.println(address + " is a global address.");
+      }
+
+      if (address.isMulticastAddress()) {
+        if (address.isMCGlobal()) {
+          System.out.println(address + " is a global multicast address.");
+        } else if (address.isMCOrgLocal()) {
+          System.out.println(address
+           + " is an organization wide multicast address.");
+        } else if (address.isMCSiteLocal()) {
+          System.out.println(address + " is a site wide multicast
+                             address.");
+        } else if (address.isMCLinkLocal()) {
+          System.out.println(address + " is a subnet wide multicast
+                             address.");
+        } else if (address.isMCNodeLocal()) {
+          System.out.println(address
+           + " is an interface-local multicast address.");
+        } else {
+          System.out.println(address + " is an unknown multicast
+                             address type.");
+        }
+      } else {
+        System.out.println(address + " is a unicast address.");
+      }
+    } catch (UnknownHostException ex) {
+      System.err.println("Could not resolve " + args[0]);
+    }
+  }
+}
+```
+
+```shell
+$ java  IPCharacteristics 127.0.0.1
+/127.0.0.1 is loopback address.
+/127.0.0.1 is a global address.
+/127.0.0.1 is a unicast address.
+$ java  IPCharacteristics 192.168.254.32
+/192.168.254.32 is a site-local address.
+/192.168.254.32 is a unicast address.
+$ java  IPCharacteristics www.oreilly.com
+www.oreilly.com/208.201.239.37 is a global address.
+www.oreilly.com/208.201.239.37 is a unicast address.
+$ java  IPCharacteristics 224.0.2.1
+/224.0.2.1 is a global address.
+/224.0.2.1 is a global multicast address.
+$ java  IPCharacteristics FF01:0:0:0:0:0:0:1
+/ff01:0:0:0:0:0:0:1 is a global address.
+/ff01:0:0:0:0:0:0:1 is an interface-local multicast address.
+$ java  IPCharacteristics FF05:0:0:0:0:0:0:101
+/ff05:0:0:0:0:0:0:101 is a global address.
+/ff05:0:0:0:0:0:0:101 is a site wide multicast address.
+$ java  IPCharacteristics 0::1
+/0:0:0:0:0:0:0:1 is loopback address.
+/0:0:0:0:0:0:0:1 is a global address.
+/0:0:0:0:0:0:0:1 is a unicast address.
+```
+
+### Testing Reachability
+
+The `InetAddress` class has two `isReachable()` methods that test whether a particular node is reachable from the current host (i.e., whether a network connection can be made). Connections can be blocked for many reasons, including firewalls, proxy servers, misbehaving routers, and broken cables, or simply because the remote host is not turned on when you try to connect.
+
+```java
+public boolean isReachable(int timeout) throws IOException
+public boolean isReachable(NetworkInterface interface, int ttl, int timeout)
+    throws IOException
+```
+
+These methods attempt to use traceroute (more specifically, ICMP echo requests) to find out if the specified address is reachable. If the host responds within `timeout` milliseconds, the methods return true; otherwise, they return false. An `IOException` will be thrown if there’s a network error. The second variant also lets you specify the local network interface the connection is made from and the “time-to-live” (the maximum number of network hops the connection will attempt before being discarded).
+
+### Object Methods
+
+Like every other class, `java.net.InetAddress` inherits from `java.lang.Object`. Thus, it has access to all the methods of that class. It overrides three methods to provide more specialized behavior:
+
+```java
+public boolean equals(Object o)
+public int hashCode()
+public String toString()
+```
+
+**==An object is equal to an `InetAddress` object only if it is itself an instance of the `InetAddress` class and it has the same IP address. It does not need to have the same hostname.==**
+
+Example 4-7. Are www.ibiblio.org and helios.ibiblio.org the same?
+
+```java
+import java.net.*;
+
+public class IBiblioAliases {
+
+  public static void main (String args[]) {
+    try {
+      InetAddress ibiblio = InetAddress.getByName("www.ibiblio.org");
+      InetAddress helios = InetAddress.getByName("helios.ibiblio.org");
+      if (ibiblio.equals(helios)) {
+        System.out.println
+            ("www.ibiblio.org is the same as helios.ibiblio.org");
+      } else {
+        System.out.println
+            ("www.ibiblio.org is not the same as helios.ibiblio.org");
+      }
+    } catch (UnknownHostException ex) {
+      System.out.println("Host lookup failed.");
+    }
+  }
+}
+```
+
+```shell
+% java IBiblioAliases 
+www.ibiblio.org is the same as helios.ibiblio.org
+```
+
+The `hashCode()` method is consistent with the `equals()` method. The `int` that `hashCode()` returns is calculated solely from the IP address. It does not take the hostname into account. If two `InetAddress` objects have the same address, then they have the same hash code, even if their hostnames are different.
+
+## Inet4Address and Inet6Address
+
+Java uses two classes, `Inet4Address` and `Inet6Address`, in order to distinguish IPv4 addresses from IPv6 addresses:
+
+```java
+public final class Inet4Address extends InetAddress
+public final class Inet6Address extends InetAddress
+```
+
+Most of the time, you really shouldn’t be concerned with whether an address is an IPv4 or IPv6 address. In the application layer where Java programs reside, you simply don’t need to know this  `Inet4Address` overrides several of the methods in `InetAddress` but doesn’t change their behavior in any public way. `Inet6Address` is similar, but it does add one new method not present in the superclass, `isIPv4CompatibleAddress()`:
+
+```java
+public boolean isIPv4CompatibleAddress()
+```
+
+This method returns true if and only if the address is essentially an IPv4 address stuffed into an IPv6 container
+
+## The NetworkInterface Class
+
+The `NetworkInterface` class represents a local IP address. This can either be a physical interface such as an additional Ethernet card (common on firewalls and routers) or it can be a virtual interface bound to the same physical hardware as the machine’s other IP addresses. The `NetworkInterface` class provides methods to enumerate all the local addresses, regardless of interface, and to create `InetAddress` objects from them. These `InetAddress` objects can then be used to create sockets, server sockets, and so forth.
+
+### Factory Methods
+
+Because `NetworkInterface` objects represent physical hardware and virtual addresses, they cannot be constructed arbitrarily. As with the `InetAddress` class, there are static factory methods that return the `NetworkInterface` object associated with a particular network interface. You can ask for a `NetworkInterface` by IP address, by name, or by enumeration.
+
+#### `public static NetworkInterface getByName(String name) throws SocketException`
+
+The `getByName()` method returns a `NetworkInterface` object representing the network interface with the particular name. If there’s no interface with that name, it returns null. **==The format of the names is platform dependent.==**
+
+```java
+try {
+  NetworkInterface ni = NetworkInterface.getByName("eth0");
+  if (ni == null) {
+    System.err.println("No such interface:  eth0");
+  }
+} catch (SocketException ex) {
+  System.err.println("Could not list sockets.");
+}
+```
+
+#### `public static NetworkInterface getByInetAddress(InetAddress address) throws SocketException`
+
+The `getByInetAddress()` method returns a `NetworkInterface` object representing the network interface bound to the specified IP address. If no network interface is bound to that IP address on the local host, it returns null.
+
+```java
+try {
+  InetAddress local = InetAddress.getByName("127.0.0.1");
+  NetworkInterface ni = NetworkInterface.getByInetAddress(local);
+  if (ni == null) {
+    System.err.println("That's weird. No local loopback address.");
+  }
+} catch (SocketException ex) {
+  System.err.println("Could not list network interfaces." );
+} catch (UnknownHostException ex) {
+  System.err.println("That's weird. Could not lookup 127.0.0.1.");
+}
+```
+
+#### ``public static Enumeration getNetworkInterfaces() throws SocketException``
+
+The `getNetworkInterfaces()` method returns a `java.util.Enumeration` listing all the network interfaces on the local host.
+
+Example 4-8. A program that lists all the network interfaces
+
+```java
+import java.net.*;
+import java.util.*;
+
+public class InterfaceLister {
+
+  public static void main(String[] args) throws SocketException {
+    Enumeration<NetworkInterface> interfaces = NetworkInterface.
+    getNetworkInterfaces();
+    while (interfaces.hasMoreElements()) {
+      NetworkInterface ni = interfaces.nextElement();
+      System.out.println(ni);
+    }
+  }
+}
+```
+
+```shell
+% java InterfaceLister
+name:eth1 (eth1) index: 3 addresses:
+/192.168.210.122;
+
+name:eth0 (eth0) index: 2 addresses:
+/152.2.210.122;
+
+name:lo (lo) index: 1 addresses:
+/127.0.0.1;
+```
+
+### Getter Methods
+
+Once you have a `NetworkInterface` object, you can inquire about its IP address and name. This is pretty much the only thing you can do with these objects.
+
+#### ``public Enumeration getInetAddresses()``
+
+A single network interface may be bound to more than one IP address. This situation isn’t common these days, but it does happen. The `getInetAddresses()` method returns a `java.util.Enumeration` containing an `InetAddress` object for each IP address the interface is bound to.
+
+```java
+NetworkInterface eth0 = NetworkInterrface.getByName("eth0");
+Enumeration addresses = eth0.getInetAddresses();
+while (addresses.hasMoreElements()) {
+  System.out.println(addresses.nextElement());
+}
+```
+
+#### public String getName()
+
+The `getName()` method returns the name of a particular `NetworkInterface` object, such as eth0 or lo.
+
+#### public String getDisplayName()
+
+The `getDisplayName()` method allegedly returns a more human-friendly name for the particular `NetworkInterface`—something like “Ethernet Card 0.” However, in my tests on Unix, it always returned the same string as `getName()`. On Windows, you may see slightly friendlier names such as “Local Area Connection” or “Local Area Connection 2.”
+
+## Some Useful Programs
+
+### SpamCheck
+
+Example 4-9. SpamCheck
+
+```java
+import java.net.*;
+
+public class SpamCheck {
+
+  public static final String BLACKHOLE = "sbl.spamhaus.org";
+
+  public static void main(String[] args) throws UnknownHostException {
+    for (String arg: args) {
+      if (isSpammer(arg)) {
+        System.out.println(arg + " is a known spammer.");
+      } else {
+        System.out.println(arg + " appears legitimate.");
+      }
+    }
+  }
+
+  private static boolean isSpammer(String arg) {
+    try {
+      InetAddress address = InetAddress.getByName(arg);
+      byte[] quad = address.getAddress();
+      String query = BLACKHOLE;
+      for (byte octet : quad) {
+        int unsignedByte = octet < 0 ? octet + 256 : octet;
+        query = unsignedByte + "." + query;
+      }
+      InetAddress.getByName(query);
+      return true;
+    } catch (UnknownHostException e) {
+      return false;
+    }
+  }
+}
+```
+
+```shell
+$ java SpamCheck 207.34.56.23 125.12.32.4 130.130.130.130
+207.34.56.23 appears legitimate.
+125.12.32.4 appears legitimate.
+130.130.130.130 appears legitimate.
+```
+
+### Processing Web Server Logfiles
+
+Example 4-10. Process web server logfiles
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class Weblog {
+
+  public static void main(String[] args) {
+    try (FileInputStream fin =  new FileInputStream(args[0]);
+      Reader in = new InputStreamReader(fin);
+      BufferedReader bin = new BufferedReader(in);) {
+
+      for (String entry = bin.readLine();
+        entry != null;
+        entry = bin.readLine()) {
+        // separate out the IP address
+        int index = entry.indexOf(' ');
+        String ip = entry.substring(0, index);
+        String theRest = entry.substring(index);
+
+        // Ask DNS for the hostname and print it out
+        try {
+          InetAddress address = InetAddress.getByName(ip);
+          System.out.println(address.getHostName() + theRest);
+        } catch (UnknownHostException ex) {
+          System.err.println(entry);
+        }
+      }
+    } catch (IOException ex) {
+      System.out.println("Exception: " + ex);
+    }
+  }
+}
+```
+
+Example 4-11. ``LookupTask``
+
+```java
+import java.net.*;
+import java.util.concurrent.Callable;
+
+public class LookupTask implements Callable<String> {
+
+  private String line;
+
+  public LookupTask(String line) {
+    this.line = line;
+  }
+
+  @Override
+  public String call() {
+    try {
+      // separate out the IP address
+      int index = line.indexOf(' ');
+      String address = line.substring(0, index);
+      String theRest = line.substring(index);
+      String hostname = InetAddress.getByName(address).getHostName();
+      return hostname + " " + theRest;
+    } catch (Exception ex) {
+      return line;
+    }
+  }
+}
+```
+
+Example 4-12. ``PooledWebLog``
+
+```java
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+// Requires Java 7 for try-with-resources and multi-catch
+public class PooledWeblog {
+
+  private final static int NUM_THREADS = 4;
+
+  public static void main(String[] args) throws IOException {
+    ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
+    Queue<LogEntry> results = new LinkedList<LogEntry>();
+
+    try (BufferedReader in = new BufferedReader(
+      new InputStreamReader(new FileInputStream(args[0]), "UTF-8"));) {
+      for (String entry = in.readLine(); entry != null; entry = in.readLine()) {
+        LookupTask task = new LookupTask(entry);
+        Future<String> future = executor.submit(task);
+        LogEntry result = new LogEntry(entry, future);
+        results.add(result);
+      }
+    }
+
+    // Start printing the results. This blocks each time a result isn't ready.
+    for (LogEntry result : results) {
+      try {
+        System.out.println(result.future.get());
+      } catch (InterruptedException | ExecutionException ex) {
+        System.out.println(result.original);
+      }
+    }
+
+    executor.shutdown();
+  }
+
+  private static class LogEntry {
+    String original;
+    Future<String> future;
+
+    LogEntry(String original, Future<String> future) {
+     this.original = original;
+     this.future = future;
+    }
+  }
+}
+```
+
+# Chapter 5. URLs and URIs
