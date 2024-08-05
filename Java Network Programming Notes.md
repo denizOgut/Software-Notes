@@ -2729,3 +2729,823 @@ public class PooledWeblog {
 ```
 
 # Chapter 5. URLs and URIs
+
+HTML is a _hypertext_ markup language because it includes a way to specify links to other documents identified by URLs. **==A URL unambiguously identifies the location of a resource on the Internet. A URL is the most common type of URI, or Uniform Resource Identifier. A URI can identify a resource by its network location, as in a URL, or by its name, number, or other characteristics.==**
+
+The `URL` class is the simplest way for a Java program to locate and retrieve data from the network. You do not need to worry about the details of the protocol being used, or how to communicate with the server; you simply tell Java the URL and it gets the data for you.
+
+## URIs
+
+A Uniform Resource Identifier (URI) is a string of characters in a particular syntax that identifies a resource. The resource identified may be a file on a server; but it may also be an email address, a news message, a book, a person’s name, an Internet host, the current stock price of Oracle, or something else.
+
+**==A resource is a thing that is identified by a URI. A URI is a string that identifies a resource.==** All you ever receive from a server is a _representation_ of a resource which comes in the form of bytes. However a single resource may have different representations. 
+
+---
+
+**TIP**
+
+**One of the key principles of good web architecture is to be profligate with URIs. If anyone might want to address something or refer to something, give it a URI (and in practice a URL). Just because a resource is a part of another resource, or a collection of other resources, or a state of another resource at a particular time, doesn’t mean it can’t have its own URI. For instance, in an email service, every user, every message received, every message sent, every filtered view of the inbox, every contact, every filter rule, and every single page a user might ever look at should have a unique URI.**
+
+**Although architecturally URIs are opaque strings, in practice it’s useful to design them with human-readable substructure. For instance, _http://mail.example.com/_ might be a particular mail server, _http://mail.example.com/johndoe_ might be John Doe’s mail box on that server, and _http://mail.example.com/johndoe?messageID=162977.1361. JavaMail.nobody%40meetup.com_ might be a particular message in that mailbox.**
+
+---
+
+The syntax of a URI is composed of a scheme and a scheme-specific part, separated by a colon, like this:
+
+```java
+scheme:scheme-specific-part
+```
+
+The syntax of the scheme-specific part depends on the scheme being used. Current schemes include:
+
+data
+
+Base64-encoded data included directly in a link; see RFC 2397
+
+file
+
+A file on a local disk
+
+ftp
+
+An FTP server
+
+http
+
+A World Wide Web server using the Hypertext Transfer Protocol
+
+mailto
+
+An email address
+
+magnet
+
+A resource available for download via peer-to-peer networks such as BitTorrent
+
+telnet
+
+A connection to a Telnet-based service
+
+urn
+
+A Uniform Resource Name
+
+There is no specific syntax that applies to the scheme-specific parts of all URIs. However, many have a hierarchical form, like this:
+
+```shell
+//authority/path?query
+```
+
+**==The _authority_ part of the URI names the authority responsible for resolving the rest of the URI==**. For instance, the URI _http://www.ietf.org/rfc/rfc3986.txt_ has the scheme _http_, the authority _www.ietf.org_, and the path _/rfc/rfc3986.txt_ (initial slash included). This means the server at www.ietf.org is responsible for mapping the path _/rfc/rfc3986.txt_ to a resource. This URI does not have a query part. The URI _http://www.powells.com/cgi-bin/biblio?inkey=62-1565928709-0_ has the scheme _http_, the authority _www.powells.com_, the path _/cgi-bin/biblio_, and the query `inkey=62-1565928709-0`.
+
+Although most current examples of URIs use an Internet host as an authority, future schemes may not. However, if the authority is an Internet host, optional usernames and ports may also be provided to make the authority more specific. For example, the URI _ftp://mp3:mp3@ci43198-a.ashvil1.nc.home.com:33/VanHalen-Jump.mp3_ has the authority _mp3:mp3@ci43198-a.ashvil1.nc.home.com:33_. This authority has the username _mp3_, the password _mp3_, the host _ci43198-a.ashvil1.nc.home.com_, and the port _33_. It has the scheme _ftp_ and the path _/VanHalen-Jump.mp3_.
+
+The path is a string that the authority can use to determine which resource is identified. **==Different authorities may interpret the same path to refer to different resources==**. For instance, the path _/index.html_ means one thing when the authority is _www.landoverbaptist.org_ and something very different when the authority is _www.churchofsatan.com_. The path may be hierarchical, in which case the individual parts are separated by forward slashes, and the _._ and _.._ operators are used to navigate the hierarchy.
+
+Some URIs aren’t at all hierarchical, at least in the filesystem sense. For example, _snews://secnews.netscape.com/netscape.devs-java_ has a path of _/netscape.devs-java_. Although there’s some hierarchy to the newsgroup names indicated by the period between _netscape_ and _devs-java_, it’s not encoded as part of the URI.
+
+### URLs
+
+A URL is a URI that, as well as identifying a resource, provides a specific network location for the resource that a client can use to retrieve a representation of that resource. **==By contrast, a generic URI may tell you what a resource is, but not actually tell you where or how to get that resource. In the physical world, it’s the difference between the title “Harry Potter and The Deathly Hallows” and the library location “Room 312, Row 28, Shelf 7”. In Java, it’s the difference between the `java.net.URI` class that only identifies resources and the `java.net.URL` class that can both identify and retrieve resources.==**
+
+The network location in a URL usually includes the protocol used to access a server (e.g., FTP, HTTP), the hostname or IP address of the server, and the path to the resource on that server. A typical URL looks like _http://www.ibiblio.org/javafaq/javatutorial.html_. This specifies that there is a file called _javatutorial.html_ in a directory called _javafaq_ on the server _www.ibiblio.org_, and that this file can be accessed via the HTTP protocol.
+
+The syntax of a URL is:
+
+```shell
+protocol://userInfo@host:port/path?query#fragment
+```
+
+Here the protocol is another word for what was called the scheme of the URI.
+
+In a URL, the protocol part can be _file_, _ftp_, _http_, _https_, _magnet_, _telnet_, or various other strings (though not _urn_).
+
+The _host_ part of a URL is the name of the server that provides the resource you want. It can be a hostname such as _www.oreilly.com_ or _utopia.poly.edu_ or an IP address, such as 204.148.40.9 or 128.238.3.21.
+
+The _userInfo_ is optional login information for the server. If present, it contains a username and, rarely, a password.
+
+The _port_ number is also optional. It’s not necessary if the service is running on its default port (port 80 for HTTP servers).
+
+Together, the userInfo, host, and port constitute the _authority_.
+
+**==The _path_ points to a particular resource on the specified server==**. It often looks like a filesystem path such as _/forum/index.php_. However, it may or may not actually map to a filesystem on the server. If it does map to a filesystem, the path is relative to the document root of the server, not necessarily to the root of the filesystem on the server. As a rule, servers that are open to the public do not show their entire filesystem to clients. Rather, they show only the contents of a specified directory. This directory is called the document root, and all paths and filenames are relative to it.
+
+The _query_ string provides additional arguments for the server. It’s commonly used only in _http_ URLs, where it contains form data for input to programs running on the server.
+
+Finally, the _fragment_ references a particular part of the remote resource. If the remote resource is HTML, the fragment identifier names an anchor in the HTML document.
+
+```java
+<h3 id="xtocid1902914">Comments</h3>
+```
+
+This tag identifies a particular point in a document. To refer to this point, a URL includes not only the document’s filename but the fragment identifier separated from the rest of the URL by a `#`:
+
+```shell
+http://www.cafeaulait.org/javafaq.html#xtocid1902914
+```
+
+### Relative URLs
+
+**==A URL tells a web browser a lot about a document: the protocol used to retrieve the document, the host where the document lives, and the path to the document on that host.==** Most of this information is likely to be the same for other URLs that are referenced in the document. Therefore, rather than requiring each URL to be specified in its entirety, a URL may inherit the protocol, hostname, and path of its parent document (i.e., the document in which it appears). URLs that aren’t complete but inherit pieces from their parent are called _relative_ URLs. In contrast, a completely specified URL is called an _absolute URL_. In a relative URL, any pieces that are missing are assumed to be the same as the corresponding pieces from the URL of the document in which the URL is found. For example, suppose that while browsing _http://www.ibiblio.org/javafaq/javatutorial.html_ you click on this hyperlink:
+
+```java
+<a href="javafaq.html">
+```
+
+The browser cuts _javatutorial.html_ off the end of _http://www.ibiblio.org/javafaq/javatutorial.html_ to get _http://www.ibiblio.org/javafaq/_. Then it attaches _javafaq.html_ onto the end of _http://www.ibiblio.org/javafaq/_ to get _http://www.ibiblio.org/javafaq/javafaq.html_. Finally, it loads that document.
+
+Relative URLs have a number of advantages. First—and least important—they save a little typing. More importantly, relative URLs allow a single document tree to be served by multiple protocols: for instance, both HTTP and FTP. HTTP might be used for direct surfing, while FTP could be used for mirroring the site. **==Most importantly of all, relative URLs allow entire trees of documents to be moved or copied from one site to another without breaking all the internal links.==**
+
+## The URL Class
+
+The `java.net.URL` class is an abstraction of a Uniform Resource Locator such as _http://www.lolcats.com/_ or _ftp://ftp.redhat.com/pub/_. It extends `java.lang.Object`, and it is a final class that cannot be subclassed. Rather than relying on inheritance to configure instances for different kinds of URLs, it uses the strategy design pattern. Protocol handlers are the strategies, and the `URL` class itself forms the context through which the different strategies are selected.
+
+Although storing a URL as a string would be trivial, it is helpful to think of URLs as objects with fields that include the scheme (a.k.a. the protocol), hostname, port, path, query string, and fragment identifier (a.k.a. the ref), each of which may be set independently.
+
+**==URLs are immutable. After a `URL` object has been constructed, its fields do not change. This has the side effect of making them thread safe.==**
+
+### Creating New URLs
+
+Unlike the `InetAddress`  you can construct instances of `java.net.URL`. The constructors differ in the information they require:
+
+```java
+public URL(String url) throws MalformedURLException
+public URL(String protocol, String hostname, String file)
+    throws MalformedURLException
+public URL(String protocol, String host, int port, String file)
+    throws MalformedURLException
+public URL(URL base, String relative) throws MalformedURLException
+```
+
+Exactly which protocols are supported is implementation dependent. The only protocols that have been available in all virtual machines are http and file, and the latter is notoriously flaky.
+
+---
+
+ **TIP**
+
+**If the protocol you need isn’t supported by a particular VM, you may be able to install a _protocol handler_ for that scheme to enable the URL class to speak that protocol. In practice, this is way more trouble than it’s worth. You’re better off using a library that exposes a custom API just for that protocol.**
+
+---
+
+Other than verifying that it recognizes the URL scheme, Java does not check the correctness of the URLs it constructs. The programmer is responsible for making sure that URLs created are valid.
+
+#### Constructing a URL from a string
+
+The simplest `URL` constructor just takes an absolute URL in string form as its single argument:
+
+```java
+public URL(String url) throws MalformedURLException
+```
+
+```java
+try {
+  URL u = new URL("http://www.audubon.org/");
+} catch (MalformedURLException ex)  {
+  System.err.println(ex);
+}
+```
+
+Example 5-1. Which protocols does a virtual machine support?
+
+```java
+import java.net.*;
+
+public class ProtocolTester {
+
+  public static void main(String[] args) {
+
+    // hypertext transfer protocol
+    testProtocol("http://www.adc.org");
+
+    // secure http
+    testProtocol("https://www.amazon.com/exec/obidos/order2/");
+
+    // file transfer protocol
+    testProtocol("ftp://ibiblio.org/pub/languages/java/javafaq/");
+
+    // Simple Mail Transfer Protocol
+    testProtocol("mailto:elharo@ibiblio.org");
+
+    // telnet
+    testProtocol("telnet://dibner.poly.edu/");
+
+    // local file access
+    testProtocol("file:///etc/passwd");
+
+    // gopher
+    testProtocol("gopher://gopher.anc.org.za/");
+
+    // Lightweight Directory Access Protocol
+    testProtocol(
+        "ldap://ldap.itd.umich.edu/o=University%20of%20Michigan,c=US?postalAddress");
+
+    // JAR
+    testProtocol(
+        "jar:http://cafeaulait.org/books/javaio/ioexamples/javaio.jar!"
+         + "/com/macfaq/io/StreamCopier.class");
+
+    // NFS, Network File System
+    testProtocol("nfs://utopia.poly.edu/usr/tmp/");
+
+    // a custom protocol for JDBC
+    testProtocol("jdbc:mysql://luna.ibiblio.org:3306/NEWS");
+
+    // rmi, a custom protocol for remote method invocation
+    testProtocol("rmi://ibiblio.org/RenderEngine");
+
+    // custom protocols for HotJava
+    testProtocol("doc:/UsersGuide/release.html");
+    testProtocol("netdoc:/UsersGuide/release.html");
+    testProtocol("systemresource://www.adc.org/+/index.html");
+    testProtocol("verbatim:http://www.adc.org/");
+  }
+
+  private static void testProtocol(String url) {
+    try {
+      URL u = new URL(url);
+      System.out.println(u.getProtocol() + " is supported");
+    } catch (MalformedURLException ex) {
+      String protocol = url.substring(0, url.indexOf(':'));
+      System.out.println(protocol + " is not supported");
+    }
+  }
+}
+```
+
+The results of this program depend on which virtual machine runs it.
+
+```text
+http is supported
+https is supported
+ftp is supported
+mailto is supported
+telnet is not supported
+file is supported
+gopher is not supported
+ldap is not supported
+jar is supported
+nfs is not supported
+jdbc is not supported
+rmi is not supported
+doc is not supported
+netdoc is supported
+systemresource is not supported
+verbatim is not supported
+```
+
+#### Constructing a URL from its component parts
+
+You can also build a `URL` by specifying the protocol, the hostname, and the file:
+
+```java
+public URL(String protocol, String hostname, String file)
+    throws MalformedURLException
+```
+
+```java
+try {
+  URL u = new URL("http", "www.eff.org", "/blueribbon.html#intro");
+} catch (MalformedURLException ex)  {
+  throw new RuntimeException("shouldn't happen; all VMs recognize http");
+}
+```
+
+This creates a `URL` object that points to _http://www.eff.org/blueribbon.html#intro_, using the default port for the HTTP protocol (port 80).
+
+For the rare occasions when the default port isn’t correct, the next constructor lets you specify the port explicitly as an `int`. The other arguments are the same.
+
+```java
+try {
+  URL u = new URL("http", "fourier.dur.ac.uk", 8000, "/~dma3mjh/jsci/");
+} catch (MalformedURLException ex)  {
+  throw new RuntimeException("shouldn't happen; all VMs recognize http");
+}
+```
+
+#### Constructing relative URLs
+
+This constructor builds an absolute `URL` from a relative `URL` and a base `URL`:
+
+```java
+public URL(URL base, String relative) throws MalformedURLException
+```
+
+```java
+try {
+  URL u1 = new URL("http://www.ibiblio.org/javafaq/index.html");
+  URL u2 = new URL (u1, "mailinglists.html");
+} catch (MalformedURLException ex) {
+  System.err.println(ex);
+}
+
+```
+
+#### Other sources of URL objects
+
+Besides the constructors discussed here, a number of other methods in the Java class library return `URL` objects. In applets, `getDocumentBase()` returns the `URL` of the page that contains the applet and `getCodeBase()` returns the `URL` of the applet _.class_ file.
+
+The `java.io.File` class has a `toURL()` method that returns a _file_ URL matching the given file
+
+Class loaders are used not only to load classes but also to load resources such as images and audio files. The static `ClassLoader.getSystemResource(String name)` method returns a `URL` from which a single resource can be read. The `ClassLoader.getSystemResources(String name)` method returns an `Enumeration` containing a list of `URL`s from which the named resource can be read. And finally, the instance method `getResource(String name)` searches the path used by the referenced class loader for a URL to the named resource.
+
+### Retrieving Data from a URL
+
+Naked URLs aren’t very exciting. What’s interesting is the data contained in the documents they point to. The `URL` class has several methods that retrieve data from a URL:
+
+```java
+public InputStream openStream() throws IOException
+public URLConnection openConnection() throws IOException
+public URLConnection openConnection(Proxy proxy) throws IOException
+public Object getContent() throws IOException
+public Object getContent(Class[] classes) throws IOException
+```
+
+The most basic and most commonly used of these methods is `openStream()`, which returns an `InputStream` from which you can read the data. If you need more control over the download process, call `openConnection()` instead, which gives you a `URLConnection` which you can configure, and then get an `InputStream` from it.
+
+#### ``public final InputStream openStream() throws IOException``
+
+The `openStream()` method connects to the resource referenced by the `URL`, performs any necessary handshaking between the client and the server, and returns an `InputStream` from which data can be read. The data you get from this `InputStream` is the raw (i.e., uninterpreted) content the `URL` references: ASCII if you’re reading an ASCII text file, raw HTML if you’re reading an HTML file, binary image data if you’re reading an image file, and so forth.
+
+```java
+try {
+  URL u = new URL("http://www.lolcats.com");
+  InputStream in = u.openStream();
+  int c;
+  while ((c = in.read()) != -1) System.out.write(c);
+  in.close();
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+As with most network streams, reliably closing the stream takes a bit of effort. In Java 6 and earlier, we use the dispose pattern: declare the stream variable outside the `try` block, set it to null, and then close it in the `finally` block if it’s not null.
+
+```java
+InputStream in = null
+try {
+  URL u = new URL("http://www.lolcats.com");
+  in = u.openStream();
+  int c;
+  while ((c = in.read()) != -1) System.out.write(c);
+} catch (IOException ex) {
+  System.err.println(ex);
+} finally {
+  try {
+    if (in != null) {
+      in.close();
+    }
+  } catch (IOException ex) {
+    // ignore
+  }
+}
+```
+
+Java 7 makes this somewhat cleaner by using a nested try-with-resources statement:
+
+```java
+try {
+  URL u = new URL("http://www.lolcats.com");
+  try (InputStream in = u.openStream()) {
+    int c;
+    while ((c = in.read()) != -1) System.out.write(c);
+  }
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+Example 5-2. Download a web page
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class SourceViewer {
+
+  public static void main (String[] args) {
+
+    if (args.length > 0) {
+      InputStream in = null;
+      try {
+        // Open the URL for reading
+        URL u = new URL(args[0]);
+        in = u.openStream();
+        // buffer the input to increase performance
+        in = new BufferedInputStream(in);
+        // chain the InputStream to a Reader
+        Reader r = new InputStreamReader(in);
+        int c;
+        while ((c = r.read()) != -1) {
+          System.out.print((char) c);
+        }
+      } catch (MalformedURLException ex) {
+        System.err.println(args[0] + " is not a parseable URL");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      } finally {
+        if (in != null) {
+          try {
+            in.close();
+          } catch (IOException e) {
+            // ignore
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```html
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+<title>oreilly.com -- Welcome to O'Reilly Media, Inc. -- computer books,
+software conferences, online publishing</title>
+<meta name="keywords" content="O'Reilly, oreilly, computer books, technical
+books, UNIX, unix, Perl, Java, Linux, Internet, Web, C, C++, Windows, Windows
+NT, Security, Sys Admin, System Administration, Oracle, PL/SQL, online books,
+books online, computer book online, e-books, ebooks, Perl Conference, Open Source
+Conference, Java Conference, open source, free software, XML, Mac OS X, .Net, dot
+net, C#, PHP, CGI, VB, VB Script, Java Script, javascript, Windows 2000, XP,
+```
+
+The shakiest part of this program is that it blithely assumes that the URL points to text, which is not necessarily true. It could well be pointing to a GIF or JPEG image, an MP3 sound file, or something else entirely. Even if does resolve to text, the document encoding may not be the same as the default encoding of the client system. The remote host and local client may not have the same default character set. As a general rule, for pages that use a character set radically different from ASCII, the HTML will include a `META` tag in the header specifying the character set in use. For instance, this `META` tag specifies the Big-5 encoding for Chinese:
+
+```java
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+```
+
+An XML document will likely have an XML declaration instead:
+
+```java
+<?xml version="1.0" encoding="Big5"?>
+```
+
+In practice, there’s no easy way to get at this information other than by parsing the file and looking for a header like this one, and even that approach is limited.
+
+#### ``public URLConnection openConnection() throws IOException``
+
+The `openConnection()` method opens a socket to the specified URL and returns a `URLConnection` object. A `URLConnection` represents an open connection to a network resource.
+
+
+```java
+try {
+  URL u = new URL("https://news.ycombinator.com/");
+  try {
+    URLConnection uc = u.openConnection();
+    InputStream in = uc.getInputStream();
+    // read from the connection...
+  } catch (IOException ex) {
+    System.err.println(ex);
+  }
+} catch (MalformedURLException ex) {
+  System.err.println(ex);
+}
+```
+
+The `URLConnection` gives you access to everything sent by the server: in addition to the document itself in its raw form (e.g., HTML, plain text, binary image data), you can access all the metadata specified by the protocol.
+
+An overloaded variant of this method specifies the proxy server to pass the connection through:
+
+```java
+public URLConnection openConnection(Proxy proxy) throws IOException
+```
+
+This overrides any proxy server set with the usual `socksProxyHost`, `socksProxyPort`, `http.proxyHost`, `http.proxyPort`, `http.nonProxyHosts`, and similar system properties. If the protocol handler does not support proxies, the argument is ignored and the connection is made directly if possible.
+
+#### ``public final Object getContent() throws IOException
+``
+The `getContent()` method is the third way to download data referenced by a URL. The `getContent()` method retrieves the data referenced by the URL and tries to make it into some type of object. If the URL refers to some kind of text such as an ASCII or HTML file, the object returned is usually some sort of `InputStream`. If the URL refers to an image such as a GIF or a JPEG file, `getContent()` usually returns a `java.awt.ImageProducer`. What unifies these two disparate classes is that they are not the thing itself but a means by which a program can construct the thing:
+
+```java
+URL u = new URL("http://mesola.obspm.fr/");
+Object o = u.getContent();
+// cast the Object to the appropriate type
+// work with the Object...
+```
+
+Example 5-3. Download an object
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class ContentGetter {
+
+  public static void main (String[] args) {
+
+    if  (args.length > 0) {
+      // Open the URL for reading
+      try {
+        URL u = new URL(args[0]);
+        Object o = u.getContent();
+        System.out.println("I got a " + o.getClass().getName());
+      } catch (MalformedURLException ex) {
+        System.err.println(args[0] + " is not a parseable URL");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+    }
+  }
+}
+```
+
+```text
+% java ContentGetter http://www.oreilly.com/ I got a
+sun.net.www.protocol.http.HttpURLConnection$HttpInputStream
+```
+
+the biggest problems with using `getContent()`: it’s hard to predict what kind of object you’ll get. You could get some kind of `InputStream` or an `ImageProducer` or perhaps an `AudioClip`; it’s easy to check using the `instanceof` operator. This information should be enough to let you read a text file or display an image.
+
+#### ``public final Object getContent(Class[] classes) throws IOException``
+
+A URL’s content handler may provide different views of a resource. This overloaded variant of the `getContent()` method lets you choose which class you’d like the content to be returned as. The method attempts to return the URL’s content in the first available format.
+
+```java
+URL u = new URL("http://www.nwu.org");
+Class<?>[] types = new Class[3];
+types[0] = String.class;
+types[1] = Reader.class;
+types[2] = InputStream.class;
+Object o = u.getContent(types);
+```
+
+If the content handler knows how to return a string representation of the resource, then it returns a `String`. If it doesn’t know how to return a string representation of the resource, then it returns a `Reader`. And if it doesn’t know how to present the resource as a reader, then it returns an `InputStream`.
+
+```java
+if (o instanceof String) {
+  System.out.println(o);
+} else if (o instanceof Reader) {
+  int c;
+  Reader r = (Reader) o;
+  while ((c = r.read()) != -1) System.out.print((char) c);
+  r.close();
+} else if (o instanceof InputStream) {
+  int c;
+  InputStream in = (InputStream) o;
+  while ((c = in.read()) != -1) System.out.write(c);
+  in.close();
+} else {
+  System.out.println("Error: unexpected type " + o.getClass());
+}
+```
+
+### Splitting a URL into Pieces
+
+**==URLs are composed of five pieces:**==
+
+- ==**The scheme, also known as the protocol**==
+- ==**The authority**==
+- ==**The path**==
+- ==**The fragment identifier, also known as the section or ref**==
+- ==**The query string==**
+
+Read-only access to these parts of a URL is provided by nine public methods: `getFile()`, `getHost()`, `getPort()`, `getProtocol()`, `getRef()`, `getQuery()`, `getPath()`, `getUserInfo()`, and `getAuthority()`.
+
+#### public String ``getProtocol()``
+
+The `getProtocol()` method returns a `String` containing the scheme of the URL (e.g., “http”, “https”, or “file”). For example, this code fragment prints _https_:
+
+```java
+URL u = new URL("https://xkcd.com/727/");
+System.out.println(u.getProtocol());
+```
+
+#### public int ``getPort()``
+
+The `getPort()` method returns the port number specified in the URL as an `int`. If no port was specified in the `URL`, `getPort()` returns -1 to signify that the URL does not specify the port explicitly, and will use the default port for the protocol.
+
+```java
+URL u = new URL("http://www.ncsa.illinois.edu/AboutUs/");
+System.out.println("The port part of " + u + " is " + u.getPort());
+```
+
+#### public int ``getDefaultPort()``
+
+The `getDefaultPort()` method returns the default port used for this `URL`’s protocol when none is specified in the URL. If no default port is defined for the protocol, then `getDefaultPort()` returns -1.
+
+#### public String ``getFile()``
+
+The `getFile()` method returns a `String` that contains the path portion of a URL; remember that Java does not break a URL into separate path and file parts. Everything from the first slash (/) after the hostname until the character preceding the # sign that begins a fragment identifier is considered to be part of the file.
+
+```java
+URL page = this.getDocumentBase();
+System.out.println("This page's path is " + page.getFile());
+```
+
+If the URL does not have a file part, Java sets the file to the empty string.
+
+#### public String ``getPath()``
+
+The `getPath()` method is a near synonym for `getFile()`; that is, it returns a `String` containing the path and file portion of a URL. However, unlike `getFile()`, it does not include the query string in the `String` it returns, just the path.
+
+---
+ **WARNING**
+
+**Note that the `getPath()` method does not return only the directory path and `getFile()` does not return only the filename, as you might expect. Both `getPath()` and `getFile()` return the full path and filename. The only difference is that `getFile()` also returns the query string and `getPath()` does not.**
+
+---
+#### public String ``getRef()``
+
+The `getRef()` method returns the fragment identifier part of the URL. If the URL doesn’t have a fragment identifier, the method returns `null`.
+
+```java
+URL u = new URL(
+    "http://www.ibiblio.org/javafaq/javafaq.html#xtocid1902914");
+System.out.println("The fragment ID of " + u + " is " + u.getRef());
+```
+
+#### public String ``getQuery()``
+
+The `getQuery()` method returns the query string of the URL. If the URL doesn’t have a query string, the method returns `null`.
+
+```java
+URL u = new URL(
+    "http://www.ibiblio.org/nywc/compositions.phtml?category=Piano");
+System.out.println("The query string of " + u + " is " + u.getQuery());
+```
+
+#### public String ``getUserInfo()``
+
+Some URLs include usernames and occasionally even password information. This information comes after the scheme and before the host; an @ symbol delimits it. For instance, in the URL _http://elharo@java.oreilly.com/_, the user info is _elharo_. Some URLs also include passwords in the user info. For instance, in the URL _ftp://mp3:secret@ftp.example.com/c%3a/stuff/mp3/_, the user info is _mp3:secret_. However, most of the time, including a password in a URL is a security risk. If the URL doesn’t have any user info, `getUserInfo()` returns `null`.
+
+#### public String ``getAuthority()``
+
+Between the scheme and the path of a URL, you’ll find the authority. This part of the URI indicates the authority that resolves the resource. In the most general case, the authority includes the user info, the host, and the port.
+
+Example 5-4. The parts of a URL
+
+```java
+import java.net.*;
+
+public class URLSplitter {
+
+  public static void main(String args[]) {
+
+    for (int i = 0; i < args.length; i++) {
+      try {
+        URL u = new URL(args[i]);
+        System.out.println("The URL is " + u);
+        System.out.println("The scheme is " + u.getProtocol());
+        System.out.println("The user info is " + u.getUserInfo());
+
+        String host = u.getHost();
+        if (host != null) {
+          int atSign = host.indexOf('@');
+          if (atSign != -1) host = host.substring(atSign+1);
+          System.out.println("The host is " + host);
+        } else {
+          System.out.println("The host is null.");
+        }
+
+        System.out.println("The port is " + u.getPort());
+        System.out.println("The path is " + u.getPath());
+        System.out.println("The ref is " + u.getRef());
+        System.out.println("The query string is " + u.getQuery());
+      } catch (MalformedURLException ex) {
+        System.err.println(args[i] + " is not a URL I understand.");
+      }
+      System.out.println();
+    }
+  }
+}
+```
+
+```text
+% java URLSplitter    \
+ftp://mp3:mp3@138.247.121.61:21000/c%3a/                 \
+http://www.oreilly.com                                   \
+http://www.ibiblio.org/nywc/compositions.phtml?category=Piano \
+http://admin@www.blackstar.com:8080/                     \
+
+The URL is ftp://mp3:mp3@138.247.121.61:21000/c%3a/
+The scheme is ftp
+The user info is mp3:mp3
+The host is 138.247.121.61
+The port is 21000
+The path is /c%3a/
+The ref is null
+The query string is null
+
+The URL is http://www.oreilly.com
+The scheme is http
+The user info is null
+The host is www.oreilly.com
+The port is -1
+The path is
+The ref is null
+The query string is null
+
+The URL is http://www.ibiblio.org/nywc/compositions.phtml?category=Piano
+The scheme is http
+The user info is null
+The host is www.ibiblio.org
+The port is -1
+The path is /nywc/compositions.phtml
+The ref is null
+The query string is category=Piano
+
+The URL is http://admin@www.blackstar.com:8080/
+The scheme is http
+The user info is admin
+The host is www.blackstar.com
+The port is 8080
+The path is /
+The ref is null
+The query string is null
+```
+
+### Equality and Comparison
+
+The `URL` class contains the usual `equals()` and `hashCode()` methods. These behave almost as you’d expect. **==Two URLs are considered equal if and only if both `URL`s point to the same resource on the same host, port, and path, with the same fragment identifier and query string. However there is one surprise here. The `equals()` method actually tries to resolve the host with DNS==** so that, for example, it can tell that _http://www.ibiblio.org/_ and _http://ibiblio.org/_ are the same.
+
+---
+
+ **==WARNING**==
+
+==**This means that `equals()` on a `URL` is potentially _a blocking I/O operation_! For this reason, you should avoid storing `URL`s in data structure that depend on `equals()` such as `java.util.HashMap`. Prefer `java.net.URI` for this, and convert back and forth from `URI`s to `URL`s when necessary.==**
+
+---
+
+On the other hand, `equals()` does not go so far as to actually compare the resources identified by two URLs.
+
+Example 5-5. Are _http://www.ibiblio.org_ and _http://ibiblio.org_ the same?
+
+```java
+import java.net.*;
+
+public class URLEquality {
+
+  public static void main (String[] args) {
+    try {
+      URL www = new URL ("http://www.ibiblio.org/");
+      URL ibiblio = new URL("http://ibiblio.org/");
+      if (ibiblio.equals(www)) {
+        System.out.println(ibiblio + " is the same as " + www);
+      } else {
+        System.out.println(ibiblio + " is not the same as " + www);
+      }
+    } catch (MalformedURLException ex) {
+      System.err.println(ex);
+    }
+  }
+}
+```
+
+**==`URL` does not implement `Comparable`.==**
+
+The `URL` class also has a `sameFile()` method that checks whether two URLs point to the same resource:
+
+```java
+public boolean sameFile(URL other)
+```
+
+The comparison is essentially the same as with `equals()`, DNS queries included, except that `sameFile()` does not consider the fragment identifier.
+
+```java
+URL u1 = new URL("http://www.ncsa.uiuc.edu/HTMLPrimer.html#GS");
+URL u2 = new URL("http://www.ncsa.uiuc.edu/HTMLPrimer.html#HD");
+if (u1.sameFile(u2)) {
+  System.out.println(u1 + " is the same file as \n" + u2);
+} else {
+  System.out.println(u1 + " is not the same file as \n" + u2);
+}
+```
+
+```text
+http://www.ncsa.uiuc.edu/HTMLPrimer.html#GS is the same file as
+http://www.ncsa.uiuc.edu/HTMLPrimer.html#HD
+```
+
+### Conversion
+
+`URL` has three methods that convert an instance to another form: `toString()`, `toExternalForm()`, and `toURI()`.
+
+Like all good classes, `java.net.URL` has a `toString()` method. The `String` produced by `toString()` is always an absolute URL, such as _http://www.cafeaulait.org/javatutorial.html_. It’s uncommon to call `toString()` explicitly. Print statements call `toString()` implicitly. Outside of print statements, it’s more proper to use `toExternalForm()` instead:
+
+```java
+public String toExternalForm()
+```
+
+The `toExternalForm()` method converts a `URL` object to a string that can be used in an HTML link or a web browser’s Open URL dialog.
+
+**==The `toExternalForm()` method returns a human-readable `String` representing the URL. It is identical to the `toString()` method. In fact, all the `toString()` method does is return `toExternalForm()`.==**
+
+Finally, the `toURI()` method converts a `URL` object to an equivalent `URI` object:
+
+```java
+public URI toURI() throws URISyntaxException
+```
+
+In the meantime, the main thing you need to know is that the `URI` class provides much more accurate, specification-conformant behavior than the `URL` class. For operations like absolutization and encoding, you should prefer the `URI` class where you have the option. You should also prefer the `URI` class if you need to store URLs in a hashtable or other data structure, since its `equals()` method is not blocking. The `URL` class should be used primarily when you want to download content from a server.
+
+## The URI Class
+
+A URI is a generalization of a URL that includes not only Uniform Resource Locators but also Uniform Resource Names (URNs). Most URIs used in practice are URLs, but most specifications and standards such as XML are defined in terms of URIs. In Java, URIs are represented by the `java.net.URI` class. This class differs from the `java.net.URL` class in three important ways:
+
+- ==**The `URI` class is purely about identification of resources and parsing of URIs. It provides no methods to retrieve a representation of the resource identified by its URI.**==
+- ==**The `URI` class is more conformant to the relevant specifications than the `URL` class.**==
+- ==**A `URI` object can represent a relative URI. The `URL` class absolutizes all URIs before storing them.==**
+
+**==In brief, a `URL` object is a representation of an application layer protocol for network retrieval, whereas a `URI` object is purely for string parsing and manipulation. The `URI` class has no network retrieval capabilities. The `URL` class has some string parsing methods, such as `getFile()` and `getRef()`, but many of these are broken and don’t always behave exactly as the relevant specifications say they should.==**
