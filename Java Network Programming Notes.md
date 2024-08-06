@@ -3549,3 +3549,487 @@ A URI is a generalization of a URL that includes not only Uniform Resource Locat
 - ==**A `URI` object can represent a relative URI. The `URL` class absolutizes all URIs before storing them.==**
 
 **==In brief, a `URL` object is a representation of an application layer protocol for network retrieval, whereas a `URI` object is purely for string parsing and manipulation. The `URI` class has no network retrieval capabilities. The `URL` class has some string parsing methods, such as `getFile()` and `getRef()`, but many of these are broken and don’t always behave exactly as the relevant specifications say they should.==**
+
+
+### Constructing a URI
+
+URIs are built from strings. You can either pass the entire URI to the constructor in a single string, or the individual pieces:
+
+```java
+public URI(String uri) throws URISyntaxException
+public URI(String scheme, String schemeSpecificPart, String fragment)
+    throws URISyntaxException
+public URI(String scheme, String host, String path, String fragment)
+    throws URISyntaxException
+public URI(String scheme, String authority, String path, String query,
+    String fragment) throws URISyntaxException
+public URI(String scheme, String userInfo, String host, int port,
+    String path, String query, String fragment) throws URISyntaxException
+```
+
+**==Unlike the `URL` class, the `URI` class does not depend on an underlying protocol handler. As long as the URI is syntactically correct, Java does not need to understand its protocol in order to create a representative `URI` object.==**
+
+The first constructor creates a new `URI` object from any convenient string.
+
+```java
+URI voice = new URI("tel:+1-800-9988-9938");
+URI web   = new URI("http://www.xml.com/pub/a/2003/09/17/stax.html#id=_hbc");
+URI book  = new URI("urn:isbn:1-565-92870-9");
+```
+
+If the string argument does not follow URI syntax rules—for example, if the URI begins with a colon—this constructor throws a `URISyntaxException`. This is a checked exception, so either catch it or declare that the method where the constructor is invoked can throw it. However, one syntax rule is not checked. In contradiction to the URI specification, the characters used in the URI are not limited to ASCII. They can include other Unicode characters, such as ø and é.
+
+The second constructor that takes a scheme specific part is mostly used for nonhierarchical URIs. The scheme is the URI’s protocol, such as http, urn, tel, and so forth. It must be composed exclusively of ASCII letters and digits and the three punctuation characters `+`, `-`, and `.`. It must begin with a letter. Passing null for this argument omits the scheme, thus creating a relative
+
+```java
+URI absolute = new URI("http", "//www.ibiblio.org" , null);
+URI relative = new URI(null, "/javafaq/index.shtml", "today");
+```
+
+Because the `URI` class encodes illegal characters with percent escapes, there’s effectively no syntax error you can make in this part.
+
+Finally, the third argument contains the fragment identifier, if any. Again, characters that are forbidden in a fragment identifier are escaped automatically. Passing null for this argument simply omits the fragment identifier.
+
+The third constructor is used for hierarchical URIs such as http and ftp URLs. The host and path together (separated by a /) form the scheme-specific part for this URI.
+
+```java
+URI today= new URI("http", "www.ibiblio.org", "/javafaq/index.html", "today");
+```
+
+If the constructor cannot form a legal hierarchical URI from the supplied pieces—for instance, if there is a scheme so the URI has to be absolute but the path doesn’t start with /—then it throws a `URISyntaxException`.
+
+The fourth constructor is basically the same as the third, with the addition of a query string.
+
+```java
+URI today = new URI("http", "www.ibiblio.org", "/javafaq/index.html",
+    "referrer=cnet&date=2014-02-23",  "today");
+```
+
+The fifth constructor is the master hierarchical URI constructor that the previous two invoke. It divides the authority into separate user info, host, and port parts, each of which has its own syntax rules.
+
+```java
+URI styles = new URI("ftp", "anonymous:elharo@ibiblio.org",
+    "ftp.oreilly.com",  21, "/pub/stylesheet", null, null);
+```
+
+### The Parts of the URI
+
+**==A URI reference has up to three parts: a scheme, a scheme-specific part, and a fragment identifier==**. The general format is:
+
+```java
+scheme:scheme-specific-part:fragment
+```
+
+If the scheme is omitted, the URI reference is relative. If the fragment identifier is omitted, the URI reference is a pure URI. The `URI` class has getter methods that return these three parts of each `URI` object. The `getRawFoo()` methods return the encoded forms of the parts of the URI, while the equivalent `getFoo()` methods first decode any percent-escaped characters and then return the decoded part:
+
+```java
+public String getScheme()
+public String getSchemeSpecificPart()
+public String getRawSchemeSpecificPart()
+public String getFragment()
+public String getRawFragment()
+```
+
+---
+
+ **TIP**
+
+**There’s no `getRawScheme()` method because the URI specification requires that all scheme names be composed exclusively of URI-legal ASCII characters and does not allow percent escapes in scheme names.**
+
+---
+
+A URI that has a scheme is an _absolute_ URI. A URI without a scheme is _relative_. The `isAbsolute()` method returns true if the URI is absolute, false if it’s relative:
+
+```java
+public boolean isAbsolute()
+```
+
+in many useful URIs, including the very common _file_ and _http_ URLs, the scheme-specific part has a particular hierarchical format divided into an authority, a path, and a query string. The authority is further divided into user info, host, and port. The `isOpaque()` method returns false if the URI is hierarchical, true if it’s not hierarchical—that is, if it’s opaque:
+
+```java
+public boolean isOpaque()
+```
+
+**==If the URI is opaque, all you can get is the scheme, scheme-specific part, and fragment identifier==**. However, if the URI is hierarchical, there are getter methods for all the different parts of a hierarchical URI:
+
+```java
+public String getAuthority()
+public String getFragment()
+public String getHost()
+public String getPath()
+public String getPort()
+public String getQuery()
+public String getUserInfo()
+```
+
+```java
+public String getRawAuthority()
+public String getRawFragment()
+public String getRawPath()
+public String getRawQuery()
+public String getRawUserInfo()
+```
+
+---
+
+ **==TIP**==
+
+==**There are no `getRawPort()` and `getRawHost()` methods because these components are always guaranteed to be made up of ASCII characters.==**
+
+---
+
+For various technical reasons that don’t have a lot of practical impact, Java can’t always initially detect syntax errors in the authority component. The immediate symptom of this failing is normally an inability to return the individual parts of the authority, port, host, and user info. In this event, you can call `parseServerAuthority()` to force the authority to be reparsed:
+
+```java
+public URI parseServerAuthority() throws URISyntaxException
+```
+
+The original `URI` does not change (`URI` objects are immutable), but the `URI` returned will have separate authority parts for user info, host, and port. If the authority cannot be parsed, a `URISyntaxException` is thrown.
+
+Example 5-6. The parts of a URI
+
+```java
+import java.net.*;
+
+public class URISplitter {
+
+  public static void main(String args[]) {
+
+    for (int i = 0; i < args.length; i++) {
+      try {
+        URI u = new URI(args[i]);
+        System.out.println("The URI is " + u);
+        if (u.isOpaque()) {
+          System.out.println("This is an opaque URI.");
+          System.out.println("The scheme is " + u.getScheme());
+          System.out.println("The scheme specific part is "
+              + u.getSchemeSpecificPart());
+          System.out.println("The fragment ID is " + u.getFragment());
+        } else {
+          System.out.println("This is a hierarchical URI.");
+          System.out.println("The scheme is " + u.getScheme());
+          try {
+            u = u.parseServerAuthority();
+            System.out.println("The host is " + u.getHost());
+            System.out.println("The user info is " + u.getUserInfo());
+            System.out.println("The port is " + u.getPort());
+          } catch (URISyntaxException ex) {
+            // Must be a registry based authority
+            System.out.println("The authority is " + u.getAuthority());
+          }
+          System.out.println("The path is " + u.getPath());
+          System.out.println("The query string is " + u.getQuery());
+          System.out.println("The fragment ID is " + u.getFragment());
+        }
+      } catch (URISyntaxException ex) {
+        System.err.println(args[i] + " does not seem to be a URI.");
+      }
+      System.out.println();
+    }
+  }
+}
+```
+
+```text
+% java URISplitter tel:+1-800-9988-9938 \
+  http://www.xml.com/pub/a/2003/09/17/stax.html#id=_hbc \
+  urn:isbn:1-565-92870-9
+The URI is tel:+1-800-9988-9938
+This is an opaque URI.
+The scheme is tel
+The scheme specific part is +1-800-9988-9938
+The fragment ID is null
+
+The URI is http://www.xml.com/pub/a/2003/09/17/stax.html#id=_hbc
+This is a hierarchical URI.
+The scheme is http
+The host is www.xml.com
+The user info is null
+The port is -1
+The path is /pub/a/2003/09/17/stax.html
+The query string is null
+The fragment ID is id=_hbc
+
+The URI is urn:isbn:1-565-92870-9
+This is an opaque URI.
+The scheme is urn
+The scheme specific part is isbn:1-565-92870-9
+The fragment ID is null
+```
+
+### Resolving Relative URIs
+
+The `URI` class has three methods for converting back and forth between relative and absolute URIs:
+
+```java
+public URI resolve(URI uri)
+public URI resolve(String uri)
+public URI relativize(URI uri)
+```
+
+**==The `resolve()` methods compare the `uri` argument to this `URI` and use it to construct a new `URI` object that wraps an absolute URI.==**
+
+```java
+URI absolute = new URI("http://www.example.com/");
+URI relative = new URI("images/logo.png");
+URI resolved = absolute.resolve(relative);
+```
+
+After they’ve executed, `resolved` contains the absolute URI _http://www.example.com/images/logo.png_.
+
+If the invoking `URI` does not contain an absolute URI itself, the `resolve()` method resolves as much of the URI as it can and returns a new relative URI object as a result.
+
+```java
+URI top = new URI("javafaq/books/");
+URI resolved = top.resolve("jnp3/examples/07/index.html");
+```
+
+After they’ve executed, `resolved` now contains the relative URI _javafaq/books/jnp3/examples/07/index.html_ with no scheme or authority.
+
+It’s also possible to reverse this procedure; that is, to go from an absolute URI to a relative one. The `relativize()` method creates a new `URI` object from the `uri` argument that is relative to the invoking `URI`. The argument is not changed.
+
+```java
+URI absolute = new URI("http://www.example.com/images/logo.png");
+URI top = new URI("http://www.example.com/");
+URI relative = top.relativize(absolute);
+```
+
+### Equality and Comparison
+
+URIs are tested for equality pretty much as you’d expect. It’s not quite direct string comparison. **==Equal URIs must both either be hierarchical or opaque==**. The scheme and authority parts are compared without considering case. That is, _http_ and _HTTP_ are the same scheme, and _www.example.com_ is the same authority as _www.EXAMPLE.com_.
+
+The `hashCode()` method is consistent with equals. Equal URIs do have the same hash code and unequal URIs are fairly unlikely to share the same hash code.
+
+URI implements `Comparable`, and thus URIs can be ordered. The ordering is based on string comparison of the individual parts, in this sequence:
+
+1. ==**If the schemes are different, the schemes are compared, without considering case.**==
+2. ==**Otherwise, if the schemes are the same, a hierarchical URI is considered to be less than an opaque URI with the same scheme.**==
+3. ==**If both URIs are opaque URIs, they’re ordered according to their scheme-specific parts.**==
+4. ==**If both the scheme and the opaque scheme-specific parts are equal, the URIs are compared by their fragments.**==
+5. ==**If both URIs are hierarchical, they’re ordered according to their authority components, which are themselves ordered according to user info, host, and port, in that order. Hosts are case insensitive.**==
+6. ==**If the schemes and the authorities are equal, the path is used to distinguish them.**==
+7. ==**If the paths are also equal, the query strings are compared.**==
+8. ==**If the query strings are equal, the fragments are compared.==**
+
+URIs are not comparable to any type except themselves. Comparing a `URI` to anything except another `URI` causes a `ClassCastException`.
+
+### String Representations
+
+Two methods convert URI objects to strings, `toString()` and `toASCIIString()`:
+
+```java
+public String toString()
+public String toASCIIString()
+```
+
+The `toString()` method returns an _unencoded_ string form of the `URI` (i.e., characters like é and \ are not percent escaped). Therefore, the result of calling this method is not guaranteed to be a syntactically correct URI, though it is in fact a syntactically correct IRI. This form is sometimes useful for display to human beings, but usually not for retrieval.
+
+The `toASCIIString()` method returns an _encoded_ string form of the `URI`. Characters like é and \ are always percent escaped whether or not they were originally escaped. This is the string form of the URI you should use most of the time
+
+## x-www-form-urlencoded
+
+One of the challenges faced by the designers of the Web was dealing with the differences between operating systems. These differences can cause problems with URLs:
+
+ **==To solve these problems, characters used in URLs must come from a fixed subset of ASCII, specifically:**==
+
+- ==**The capital letters A–Z**==
+- ==**The lowercase letters a–z**==
+- ==**The digits 0–9**==
+- ==**The punctuation characters - _ . ! ~ * ' (and ,)**==
+
+==**The characters : / & ? @ # ; $ + = and % may also be used, but only for their specified purposes.==** If these characters occur as part of a path or query string, they and all other characters should be encoded.
+
+The `URL` class does not encode or decode automatically. You can construct `URL` objects that use illegal ASCII and non-ASCII characters and/or percent escapes. Such characters and escapes are not automatically encoded or decoded when output by methods such as `getPath()` and `toExternalForm()`. You are responsible for making sure all such characters are properly encoded in the strings used to construct a `URL` object.
+
+Luckily, Java provides `URLEncoder` and `URLDecoder` classes to cipher strings in this format.
+
+### URLEncoder
+
+To URL encode a string, pass the string and the character set name to the `URLEncoder.encode()` method.
+
+```java
+String encoded = URLEncoder.encode("This*string*has*asterisks", "UTF-8");
+```
+
+`URLEncoder.encode()` returns a copy of the input string with a few changes.
+
+Example 5-7. x-www-form-urlencoded strings
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class EncoderTest {
+
+  public static void main(String[] args) {
+
+    try {
+      System.out.println(URLEncoder.encode("This string has spaces",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This*string*has*asterisks",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This%string%has%percent%signs",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This+string+has+pluses",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This/string/has/slashes",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This\"string\"has\"quote\"marks",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This:string:has:colons",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This~string~has~tildes",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This(string)has(parentheses)",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This.string.has.periods",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This=string=has=equals=signs",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("This&string&has&ampersands",
+                                              "UTF-8"));
+      System.out.println(URLEncoder.encode("Thiséstringéhasé
+                                              non-ASCII characters", "UTF-8"));
+    } catch (UnsupportedEncodingException ex) {
+      throw new RuntimeException("Broken VM does not support UTF-8");
+    }
+  }
+}
+```
+
+```text
+% javac -encoding UTF8 EncoderTest
+% java EncoderTest
+This+string+has+spaces
+This*string*has*asterisks
+This%25string%25has%25percent%25signs
+This%2Bstring%2Bhas%2Bpluses
+This%2Fstring%2Fhas%2Fslashes
+This%22string%22has%22quote%22marks
+This%3Astring%3Ahas%3Acolons
+This%7Estring%7Ehas%7Etildes
+This%28string%29has%28parentheses%29
+This.string.has.periods
+This%3Dstring%3Dhas%3Dequals%3Dsigns
+This%26string%26has%26ampersands
+This%C3%A9string%C3%A9has%C3%A9non-ASCII+characters
+```
+
+Notice in particular that this method encodes the forward slash, the ampersand, the equals sign, and the colon. It does not attempt to determine how these characters are being used in a URL. Consequently, you have to encode URLs piece by piece rather than encoding an entire URL in one method call. This is an important point, because the most common use of `URLEncoder` is preparing query strings for communicating with server-side programs that use `GET`.
+
+```java
+https://www.google.com/search?hl=en&as_q=Java&as_epq=I/O
+```
+
+This code fragment encodes it:
+
+```java
+String query = URLEncoder.encode(
+    "https://www.google.com/search?hl=en&as_q=Java&as_epq=I/O", "UTF-8");
+System.out.println(query);
+```
+
+Unfortunately, the output is:
+
+```java
+https%3A%2F%2Fwww.google.com%2Fsearch%3Fhl%3Den%26as_q%3DJava%26as_epq%3DI%2FO
+```
+
+The problem is that `URLEncoder.encode()` encodes blindly. It can’t distinguish between special characters used as part of the URL or query string, like `/` and `=`, and characters that need to be encoded. Consequently, URLs need to be encoded a piece at a time like this:
+
+```java
+String url = "https://www.google.com/search?";
+url += URLEncoder.encode("hl", "UTF-8");
+url += "=";
+url += URLEncoder.encode("en", "UTF-8");
+url += "&";
+url += URLEncoder.encode("as_q", "UTF-8");
+url += "=";
+url += URLEncoder.encode("Java", "UTF-8");
+url += "&";
+url += URLEncoder.encode("as_epq", "UTF-8");
+url += "=";
+url += URLEncoder.encode("I/O", "UTF-8");
+
+System.out.println(url);
+```
+
+```text
+https://www.google.com/search?hl=en&as_q=Java&as_epq=I%2FO
+```
+
+Example 5-8. The ``QueryString`` class
+
+```java
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
+public class QueryString {
+
+  private StringBuilder query = new StringBuilder();
+
+  public QueryString() {
+  }
+
+  public synchronized void add(String name, String value) {
+    query.append('&');
+    encode(name, value);
+  }
+
+  private synchronized void encode(String name, String value) {
+    try {
+      query.append(URLEncoder.encode(name, "UTF-8"));
+      query.append('=');
+      query.append(URLEncoder.encode(value, "UTF-8"));
+    } catch (UnsupportedEncodingException ex) {
+      throw new RuntimeException("Broken VM does not support UTF-8");
+    }
+  }
+
+  public synchronized String getQuery() {
+    return query.toString();
+  }
+
+  @Override
+  public String toString() {
+    return getQuery();
+  }
+}
+```
+
+```java
+QueryString qs = new QueryString();
+qs.add("hl", "en");
+qs.add("as_q", "Java");
+qs.add("as_epq", "I/O");
+String url = "http://www.google.com/search?" + qs;
+System.out.println(url);
+```
+
+### URLDecoder
+
+The corresponding `URLDecoder` class has a static `decode()` method that decodes strings encoded in x-www-form-url-encoded format. That is, it converts all plus signs to spaces and all percent escapes to their corresponding character:
+
+```java
+public static String decode(String s, String encoding)
+    throws UnsupportedEncodingException
+```
+
+```java
+String input = "https://www.google.com/" +
+    "search?hl=en&as_q=Java&as_epq=I%2FO";
+String output = URLDecoder.decode(input, "UTF-8");
+System.out.println(output);
+
+```
+
+## Proxies
+
+Many systems access the Web and sometimes other non-HTTP parts of the Internet through _proxy servers_. A proxy server receives a request for a remote server from a local client. The proxy server makes the request to the remote server and forwards the result back to the local client. Sometimes this is done for security reasons, such as to prevent remote hosts from learning private details about the local network configuration. Other times it’s done to prevent users from accessing forbidden sites by filtering outgoing requests and limiting which sites can be viewed.
+
+Java programs based on the `URL` class can work through most common proxy servers and protocols. Indeed, this is one reason you might want to choose to use the `URL` class rather than rolling your own HTTP or other client on top of raw sockets.
+
+### System Properties
+
+For basic operations, all you have to do is set a few system properties to point to the addresses of your local proxy servers. If you are using a pure HTTP proxy, set `http.proxyHost` to the domain name or the IP address of your proxy server and `http.proxyPort` to the port of the proxy server (the default is 80). There are several ways to do this, including calling `System.setProperty()` from within your Java code or using the `-D` options when launching the program.
+
