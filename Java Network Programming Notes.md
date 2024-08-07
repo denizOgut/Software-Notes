@@ -4033,3 +4033,852 @@ Java programs based on the `URL` class can work through most common proxy serv
 
 For basic operations, all you have to do is set a few system properties to point to the addresses of your local proxy servers. If you are using a pure HTTP proxy, set `http.proxyHost` to the domain name or the IP address of your proxy server and `http.proxyPort` to the port of the proxy server (the default is 80). There are several ways to do this, including calling `System.setProperty()` from within your Java code or using the `-D` options when launching the program.
 
+```java
+%  java -Dhttp.proxyHost=192.168.254.254  -Dhttp.proxyPort=9000
+com.domain.Program
+```
+
+If the proxy requires a username and password, you’ll need to install an `Authenticator`
+
+If you want to exclude a host from being proxied and connect directly instead, set the `http.nonProxyHosts` system property to its hostname or IP address. To exclude multiple hosts, separate their names by vertical bars.
+
+```java
+System.setProperty("http.proxyHost", "192.168.254.254");
+System.setProperty("http.proxyPort", "9000");
+System.setProperty("http.nonProxyHosts", "java.oreilly.com|xml.oreilly.com");
+```
+
+If you are using an FTP proxy server, set the `ftp.proxyHost`, `ftp.proxyPort`, and `ftp.nonProxyHosts` properties in the same way.
+
+Java does not support any other application layer proxies, but if you’re using a transport layer SOCKS proxy for all TCP connections, you can identify it with the `socksProxyHost` and `socksProxyPort` system properties. Java does not provide an option for non-proxying with SOCKS. It’s an all-or-nothing decision.
+
+### The Proxy Class
+
+The `Proxy` class allows more fine-grained control of proxy servers from within a Java program. Specifically, it allows you to choose different proxy servers for different remote hosts. The proxies themselves are represented by instances of the `java.net.Proxy` class. There are still only three kinds of proxies, HTTP, SOCKS, and direct connections (no proxy at all), represented by three constants in the `Proxy.Type` enum:
+
+- ==**`Proxy.Type.DIRECT`**==
+- ==**`Proxy.Type.HTTP`**==
+- ==**`Proxy.Type.SOCKS`==**
+
+Besides its type, the other important piece of information about a proxy is its address and port, given as a `SocketAddress` object.
+
+```java
+SocketAddress address = new InetSocketAddress("proxy.example.com", 80);
+Proxy proxy = new Proxy(Proxy.Type.HTTP, address);
+```
+
+### The ProxySelector Class
+
+Each running virtual machine has a single `java.net.ProxySelector` object it uses to locate the proxy server for different connections. The default `ProxySelector` merely inspects the various system properties and the URL’s protocol to decide how to connect to different hosts. However, you can install your own subclass of `ProxySelector` in place of the default selector and use it to choose different proxies based on protocol, host, path, time of day, or other criteria.
+
+The key to this class is the abstract `select()` method:
+
+```java
+public abstract List<Proxy> select(URI uri)
+```
+
+Java passes this method a `URI` object (not a `URL` object) representing the host to which a connection is needed. For a connection made with the URL class, this object typically has the form _http://www.example.com/_ or _ftp://ftp.example.com/pub/files/_
+
+The second abstract method in this class you must implement is `connectFailed()`:
+
+```java
+public void connectFailed(URI uri, SocketAddress address, IOException ex)
+```
+
+This is a callback method used to warn a program that the proxy server isn’t actually making the connection.
+
+Example 5-9. A ``ProxySelector`` that remembers what it can connect to
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class LocalProxySelector extends ProxySelector {
+
+  private List<URI> failed = new ArrayList<URI>();
+
+  public List<Proxy> select(URI uri) {
+
+    List<Proxy> result = new ArrayList<Proxy>();
+    if (failed.contains(uri)
+        || !"http".equalsIgnoreCase(uri.getScheme())) {
+      result.add(Proxy.NO_PROXY);
+    } else {
+      SocketAddress proxyAddress
+          = new InetSocketAddress( "proxy.example.com", 8000);
+      Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddress);
+      result.add(proxy);
+    }
+
+    return result;
+  }
+
+  public void connectFailed(URI uri, SocketAddress address, IOException ex) {
+    failed.add(uri);
+  }
+}
+```
+
+As I said, each virtual machine has exactly one `ProxySelector`. To change the `ProxySelector`, pass the new selector to the static `ProxySelector.setDefault()` method
+
+```java
+ProxySelector selector = new LocalProxySelector():
+ProxySelector.setDefault(selector);
+```
+
+From this point forward, all connections opened by that virtual machine will ask the `ProxySelector` for the right proxy to use. You normally shouldn’t use this in code running in a shared environment.
+
+## Communicating with Server-Side Programs Through GET
+
+The `URL` class makes it easy for Java applets and applications to communicate with server-side programs such as CGIs, servlets, PHP pages, and others that use the `GET` method.
+
+All you need to know is what combination of names and values the program expects to receive. Then you can construct a URL with a query string that provides the requisite names and values. All names and values must be x-www-form-url-encoded—as by the `URLEncoder.encode()` method
+
+Many programs are designed to process form input. If this is the case, it’s straightforward to figure out what input the program expects. The method the form uses should be the value of the `METHOD` attribute of the `FORM` element. This value should be either `GET`, in which case you use the process described here, or `POST`, in which case you use the process. The part of the URL that precedes the query string is given by the value of the `ACTION` attribute of the `FORM` element. Note that this may be a relative URL, in which case you’ll need to determine the corresponding absolute URL. Finally, the names in the name-value pairs are simply the values of the `NAME` attributes of the `INPUT` elements. The values of the pairs are whatever the user types into the form.
+
+```html
+<form name="search" action="http://www.google.com/search" method="get">
+  <input name="q" />
+  <input type="hidden" value="cafeconleche.org" name="domains" />
+  <input type="hidden" name="sitesearch" value="cafeconleche.org" />
+  <input type="hidden" name="sitesearch2" value="cafeconleche.org" />
+   <br />
+   <input type="image" height="22" width="55"
+      src="images/search_blue.gif" alt="search" border="0"
+      name="search-image" />
+</form>
+```
+
+In some cases, the program you’re talking to may not be able to handle arbitrary text strings for values of particular inputs. However, since the form is meant to be read and filled in by human beings, it should provide sufficient clues to figure out what input is expected; for instance, that a particular field is supposed to be a two-letter state abbreviation or a phone number. Sometimes the inputs may not have such obvious names. There may not even be a form, just links to follow. In this case, you have to do some experimenting, first copying some existing values and then tweaking them to see what values are and aren’t accepted. You don’t need to do this in a Java program. You can simply edit the URL in the address or location bar of your web browser window.
+
+---
+
+ **==TIP**==
+
+==**The likelihood that other hackers may experiment with your own server-side programs in such a fashion is a good reason to make them extremely robust against unexpected input.==**
+
+---
+
+Regardless of how you determine the set of name-value pairs the server expects, communicating with it once you know them is simple. All you have to do is create a query string that includes the necessary name-value pairs, then form a URL that includes that query string. Send the query string to the server and read its response using the same methods you use to connect to a server and retrieve a static HTML page. There’s no special protocol to follow once the URL is constructed.
+
+The Open Directory interface is a simple form with one input field named `search`; input typed in this field is sent to a program at _http://search.dmoz.org/cgi-bin/search_, which does the actual search. The HTML for the form looks like this:
+
+```java
+<form class="center mb1em" action="search" method="GET">
+  <input style="*vertical-align:middle;" size="45" name="q" value="" class="qN">
+  <input style="*vertical-align:middle; *padding-top:1px;" value="Search"
+        class="btn" type="submit">
+  <a href="search?type=advanced"><span class="advN">advanced</span></a>
+</form>
+```
+
+Example 5-10. Do an Open Directory search
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class DMoz {
+
+  public static void main(String[] args) {
+
+    String target = "";
+    for (int i = 0; i < args.length; i++) {
+      target += args[i] + " ";
+    }
+    target = target.trim();
+
+    QueryString query = new QueryString();
+    query.add("q", target);
+    try {
+      URL u = new URL("http://www.dmoz.org/search/?" + query)
+      try (InputStream in = new BufferedInputStream(u.openStream())) {
+        InputStreamReader theHTML = new InputStreamReader(in);
+        int c;
+        while ((c = theHTML.read()) != -1) {
+          System.out.print((char) c);
+        }
+      }
+    } catch (MalformedURLException ex) {
+      System.err.println(ex);
+    } catch (IOException ex) {
+      System.err.println(ex);
+    }
+  }
+}
+```
+
+## Accessing Password-Protected Sites
+
+Many popular sites require a username and password for access. Some sites, such as the W3C member pages, implement this through HTTP authentication. Others, such as the _New York Times_ website, implement it through cookies and HTML forms. Java’s `URL` class can access sites that use HTTP authentication, although you’ll of course need to tell it which username and password to use.
+
+Supporting sites that use nonstandard, cookie-based authentication is more challenging, not least because this varies a lot from one site to another. Implementing cookie authentication is hard short of implementing a complete web browser with full HTML forms and cookie support Accessing sites protected by standard HTTP authentication is much easier.
+
+### The Authenticator Class
+
+The `java.net` package includes an `Authenticator` class you can use to provide a username and password for sites that protect themselves using HTTP authentication:
+
+```java
+public abstract class Authenticator extends Object
+```
+
+Since `Authenticator` is an abstract class, you must subclass it. Different subclasses may retrieve the information in different ways.
+
+To make the `URL` class use the subclass, install it as the default authenticator by passing it to the static `Authenticator.setDefault()` method:
+
+```java
+public static void setDefault(Authenticator a)
+```
+
+For example, if you’ve written an `Authenticator` subclass named `DialogAuthenticator`, you’d install it like this:
+
+```java
+Authenticator.setDefault(new DialogAuthenticator());
+```
+
+You only need to do this once. From this point forward, when the `URL` class needs a username and password, it will ask the `DialogAuthenticator` using the static `Authenticator.requestPasswordAuthentication()` method:
+
+```java
+public static PasswordAuthentication requestPasswordAuthentication(
+    InetAddress address, int port, String protocol, String prompt, String scheme)
+    throws SecurityException
+```
+
+The `address` argument is the host for which authentication is required. The `port` argument is the port on that host, and the `protocol` argument is the application layer protocol by which the site is being accessed. The HTTP server provides the `prompt`. It’s typically the name of the realm for which authentication is required. The `scheme` is the authentication scheme being used. 
+
+Untrusted applets are not allowed to ask the user for a name and password. Trusted applets can do so, but only if they possess the `requestPasswordAuthentication` `NetPermission`. Otherwise, `Authenticator.requestPasswordAuthentication()` throws a `SecurityException`.
+
+The `Authenticator` subclass must override the `getPasswordAuthentication()` method. Inside this method, you collect the username and password from the user or some other source and return it as an instance of the `java.net.PasswordAuthentication` class:
+
+```java
+protected PasswordAuthentication getPasswordAuthentication()
+```
+
+If you don’t want to authenticate this request, return `null`, and Java will tell the server it doesn’t know how to authenticate the connection. If you submit an incorrect username or password, Java will call `getPasswordAuthentication()` again to give you another chance to provide the right data. You normally have five tries to get the username and password correct; after that, `openStream()` throws a `ProtocolException`.
+
+Usernames and passwords are cached within the same virtual machine session. Once you set the correct password for a realm, you shouldn’t be asked for it again unless you’ve explicitly deleted the password by zeroing out the `char` array that contains it.
+
+You can get more details about the request by invoking any of these methods inherited from the `Authenticator` superclass:
+
+```java
+protected final InetAddress getRequestingSite()
+protected final int         getRequestingPort()
+protected final String      getRequestingProtocol()
+protected final String      getRequestingPrompt()
+protected final String      getRequestingScheme()
+protected final String      getRequestingHost()
+protected final String      getRequestingURL()
+protected Authenticator.RequestorType getRequestorType()
+```
+
+These methods either return the information as given in the last call to `requestPasswordAuthentication()` or return `null` if that information is not available.
+
+The `getRequestingURL()` method returns the complete URL for which authentication has been requested—an important detail if a site uses different names and passwords for different files. The `getRequestorType()` method returns one of the two named constants (i.e., `Authenticator.RequestorType.PROXY` or `Authenticator.RequestorType.SERVER`) to indicate whether the server or the proxy server is requesting the authentication.
+
+### The PasswordAuthentication Class
+
+`PasswordAuthentication` is a very simple final class that supports two read-only properties: username and password. The username is a `String`. The password is a `char` array so that the password can be erased when it’s no longer needed. A `String` would have to wait to be garbage collected before it could be erased, and even then it might still exist somewhere in memory on the local system, possibly even on disk if the block of memory that contained it had been swapped out to virtual memory at one point. Both username and password are set in the constructor:
+
+```java
+public PasswordAuthentication(String userName, char[] password)
+```
+
+Each is accessed via a `getter` method:
+
+```java
+public String getUserName()
+public char[] getPassword()
+```
+
+### The JPasswordField Class
+
+One useful tool for asking users for their passwords in a more or less secure fashion is the `JPasswordField` component from Swing:
+
+```java
+public class JPasswordField extends JTextField
+```
+
+his lightweight component behaves almost exactly like a text field. However, anything the user types into it is echoed as an asterisk. This way, the password is safe from anyone looking over the user’s shoulder at what’s being typed on the screen.
+
+`JPasswordField` also stores the passwords as a `char` array so that when you’re done with the password you can overwrite it with zeros. It provides the `getPassword()` method to return this:
+
+```java
+public char[] getPassword()
+```
+
+Example 5-11. A GUI authenticator
+
+```java
+import java.awt.*;
+import java.awt.event.*;
+import java.net.*;
+import javax.swing.*;
+
+public class DialogAuthenticator extends Authenticator {
+
+  private JDialog passwordDialog;
+  private JTextField usernameField = new JTextField(20);
+  private JPasswordField passwordField = new JPasswordField(20);
+  private JButton okButton = new JButton("OK");
+  private JButton cancelButton = new JButton("Cancel");
+  private JLabel mainLabel
+      = new JLabel("Please enter username and password: ");
+
+  public DialogAuthenticator() {
+    this("", new JFrame());
+  }
+
+  public DialogAuthenticator(String username) {
+    this(username, new JFrame());
+  }
+
+  public DialogAuthenticator(JFrame parent) {
+    this("", parent);
+  }
+
+  public DialogAuthenticator(String username, JFrame parent) {
+    this.passwordDialog = new JDialog(parent, true);
+    Container pane = passwordDialog.getContentPane();
+    pane.setLayout(new GridLayout(4, 1));
+
+    JLabel userLabel = new JLabel("Username: ");
+    JLabel passwordLabel = new JLabel("Password: ");
+    pane.add(mainLabel);
+    JPanel p2 = new JPanel();
+    p2.add(userLabel);
+    p2.add(usernameField);
+    usernameField.setText(username);
+    pane.add(p2);
+    JPanel p3 = new JPanel();
+    p3.add(passwordLabel);
+    p3.add(passwordField);
+    pane.add(p3);
+    JPanel p4 = new JPanel();
+    p4.add(okButton);
+    p4.add(cancelButton);
+    pane.add(p4);
+    passwordDialog.pack();
+
+    ActionListener al = new OKResponse();
+    okButton.addActionListener(al);
+    usernameField.addActionListener(al);
+    passwordField.addActionListener(al);
+    cancelButton.addActionListener(new CancelResponse());
+  }
+
+  private void show() {
+    String prompt = this.getRequestingPrompt();
+    if (prompt == null) {
+      String site     = this.getRequestingSite().getHostName();
+      String protocol = this.getRequestingProtocol();
+      int    port     = this.getRequestingPort();
+      if (site != null & protocol != null) {
+        prompt = protocol + "://" + site;
+        if (port > 0) prompt += ":" + port;
+      } else {
+        prompt = "";
+      }
+    }
+
+    mainLabel.setText("Please enter username and password for "
+        + prompt + ": ");
+    passwordDialog.pack();
+    passwordDialog.setVisible(true);
+  }
+
+  PasswordAuthentication response = null;
+
+  class OKResponse implements ActionListener {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      passwordDialog.setVisible(false);
+      // The password is returned as an array of
+      // chars for security reasons.
+      char[] password = passwordField.getPassword();
+      String username = usernameField.getText();
+      // Erase the password in case this is used again.
+      passwordField.setText("");
+      response = new PasswordAuthentication(username, password);
+    }
+  }
+
+  class CancelResponse implements ActionListener {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      passwordDialog.setVisible(false);
+      // Erase the password in case this is used again.
+      passwordField.setText("");
+      response = null;
+    }
+  }
+
+  public PasswordAuthentication getPasswordAuthentication() {
+    this.show();
+    return this.response;
+  }
+}
+```
+
+Example 5-12. A program to download password-protected web pages
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class SecureSourceViewer {
+
+  public static void main (String args[]) {
+
+    Authenticator.setDefault(new DialogAuthenticator());
+
+    for (int i = 0; i < args.length; i++) {
+      try {
+        // Open the URL for reading
+        URL u = new URL(args[i]);
+        try (InputStream in = new BufferedInputStream(u.openStream())) {
+          // chain the InputStream to a Reader
+          Reader r = new InputStreamReader(in);
+          int c;
+          while ((c = r.read()) != -1) {
+            System.out.print((char) c);
+          }
+        }
+      } catch (MalformedURLException ex) {
+        System.err.println(args[0] + " is not a parseable URL");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+
+      // print a blank line to separate pages
+      System.out.println();
+    }
+
+    // Since we used the AWT, we have to explicitly exit.
+    System.exit(0);
+  }
+}
+```
+
+
+# Chapter 6. HTTP
+
+**==The Hypertext Transfer Protocol (HTTP) is a standard that defines how a web client talks to a server and how data is transferred from the server back to the client.==** Although HTTP is usually thought of as a means of transferring HTML files and the pictures embedded in them, HTTP is data format agnostic. It can be used to transfer TIFF pictures, Microsoft Word documents, Windows _.exe_ files, or anything else that can be represented in bytes.
+
+## The Protocol
+
+HTTP is the standard protocol for communication between web browsers and web servers. HTTP specifies how a client and server establish a connection, how the client requests data from the server, how the server responds to that request, and finally, how the connection is closed. **==HTTP connections use the TCP/IP protocol for data transfer. For each request from client to server, there is a sequence of four steps:**==
+
+1. ==**The client opens a TCP connection to the server on port 80, by default; other ports may be specified in the URL.**==
+2. ==**The client sends a message to the server requesting the resource at a specified path. The request includes a header, and optionally (depending on the nature of the request) a blank line followed by data for the request.**==
+3. ==**The server sends a response to the client. The response begins with a response code, followed by a header full of metadata, a blank line, and the requested document or an error message.**==
+4. ==**The server closes the connection.==**
+
+This is the basic HTTP 1.0 procedure. In HTTP 1.1 and later, multiple requests and responses can be sent in series over a single TCP connection. That is, steps 2 and 3 can repeat multiple times in between steps 1 and 4. Furthermore, in HTTP 1.1, requests and responses can be sent in multiple chunks. This is more scalable.
+
+Each request and response has the same basic form: a header line, an HTTP header containing metadata, a blank line, and then a message body. A typical client request looks something like this:
+
+```http
+GET /index.html HTTP/1.1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:20.0)
+ Gecko/20100101 Firefox/20.0
+Host: en.wikipedia.org
+Connection: keep-alive
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+```
+
+`GET` requests like this one do not contain a message body, so the request ends with a blank line.
+
+The first line is called the _request line_, and includes a method, a path to a resource, and the version of HTTP. The method specifies the operation being requested. The `GET` method asks the server to return a representation of a resource. _/index.html_ is the path to the resource requested from the server. `HTTP/1.1` is the version of the protocol that the client understands.
+
+Although the request line is all that is required, a client request usually includes other information as well in a header. Each line takes the following form:
+
+```java
+Keyword: Value
+```
+
+Keywords are not case sensitive. Values sometimes are and sometimes aren’t. Both keywords and values should be ASCII only. If a value is too long, you can add a space or tab to the beginning of the next line and continue it.
+
+Lines in the header are terminated by a carriage-return linefeed pair.
+
+The last keyword in this example is `Accept`, which tells the server the types of data the client can handle (though servers often ignore this).
+
+`MIME` types are classified at two levels: a type and a subtype. The type shows very generally what kind of data is contained: is it a picture, text, or movie? The subtype identifies the specific type of data: GIF image, JPEG image, TIFF image. For example, HTML’s content type is `text/html`; the type is `text`, and the subtype is `html`. The content type for a JPEG image is `image/jpeg`; the type is `image`, and the subtype is `jpeg`. Eight top-level types have been defined:
+
+- ==**text/* for human-readable words**==
+- ==**image/* for pictures**==
+- ==**model/* for 3D models such as VRML files**==
+- ==**audio/* for sound**==
+- ==**video/* for moving pictures, possibly including sound**==
+- ==**application/* for binary data**==
+- ==**message/* for protocol-specific envelopes such as email messages and HTTP responses**==
+- ==**multipart/* for containers of multiple documents and resources==**
+
+Each of these has many different subtypes.
+
+Finally, the request is terminated with a blank line—that is, two carriage return/linefeed pairs, `\r\n\r\n`.
+
+Once the server sees that blank line, it begins sending its response to the client over the same connection. The response begins with a status line, followed by a header describing the response using the same “name: value” syntax as the request header, a blank line, and the requested resource
+
+```http
+HTTP/1.1 200 OK
+Date: Sun, 21 Apr 2013 15:12:46 GMT
+Server: Apache
+Connection: close
+Content-Type: text/html; charset=ISO-8859-1
+Content-length: 115
+
+<html>
+<head>
+<title>
+A Sample HTML file
+</title>
+</head>
+<body>
+The rest of the document goes here
+</body>
+</html>
+```
+
+The first line indicates the protocol the server is using (`HTTP/1.1`), followed by a response code. `200 OK` is the most common response code, indicating that the request was successful. The other header lines identify the date the request was made in the server’s time frame, the server software (Apache), a promise that the server will close the connection when it’s finished sending, the MIME media type, and the length of the document delivered
+
+**==Regardless of version, a response code from 100 to 199 always indicates an informational response, 200 to 299 always indicates success, 300 to 399 always indicates redirection, 400 to 499 always indicates a client error, and 500 to 599 indicates a server error.==**
+
+### Keep-Alive
+
+HTTP 1.0 opens a new connection for each request. In practice, the time taken to open and close all the connections in a typical web session can outweigh the time taken to transmit the data, especially for sessions with many small documents. This is even more problematic for encrypted HTTPS connections using SSL or TLS, because the handshake to set up a secure socket is substantially more work than setting up a regular socket.
+
+In HTTP 1.1 and later, the server doesn’t have to close the socket after it sends its response. It can leave it open and wait for a new request from the client on the same socket. Multiple requests and responses can be sent in series over a single TCP connection. However, the lockstep pattern of a client request followed by a server response remains the same.
+
+A client indicates that it’s willing to reuse a socket by including a _Connection_ field in the HTTP request header with the value _Keep-Alive_:
+
+```java
+Connection: Keep-Alive
+```
+
+The `URL` class transparently supports HTTP Keep-Alive unless explicitly turned off. That is, it will reuse a socket if you connect to the same server again before the server has closed the connection. You can control Java’s use of HTTP Keep-Alive with several system properties:
+
+- Set `http.keepAlive` to “true or false” to enable/disable HTTP Keep-Alive. (It is enabled by default.)
+- Set `http.maxConnections` to the number of sockets you’re willing to hold open at one time. The default is 5.
+- Set `http.keepAlive.remainingData` to true to let Java clean up after abandoned connections (Java 6 or later). It is false by default.
+- Set `sun.net.http.errorstream.enableBuffering` to true to attempt to buffer the relatively short error streams from 400- and 500-level responses, so the connection can be freed up for reuse sooner. It is false by default.
+- Set `sun.net.http.errorstream.bufferSize` to the number of bytes to use for buffering error streams. The default is 4,096 bytes.
+- Set `sun.net.http.errorstream.timeout` to the number of milliseconds before timing out a read from the error stream. It is 300 milliseconds by default.
+
+The defaults are reasonable, except that you probably do want to set `sun.net.http.errorstream.enableBuffering` to true unless you want to read the error streams from failed requests.
+
+---
+
+ **NOTE**
+
+**HTTP 2.0, which is mostly based on the SPDY protocol invented at Google, further optimizes HTTP transfers through header compression, pipelining requests and responses, and asynchronous connection multiplexing. However, these optimizations are usually performed in a translation layer that shields application programmers from the details, so the code you write will still mostly follow the preceding steps 1–4. Java does not yet support HTTP 2.0; but when the capability is added, your programs shouldn’t need to change to take advantage of it, as long as you access HTTP servers via the `URL` and `URLConnection` classes.**
+
+---
+
+## HTTP Methods
+
+**==Communication with an HTTP server follows a request-response pattern: one stateless request followed by one stateless response. Each HTTP request has two or three parts:**==
+
+- ==**A start line containing the HTTP method and a path to the resource on which the method should be executed**==
+- ==**A header of name-value fields that provide meta-information such as authentication credentials and preferred formats to be used in the request**==
+- ==**A request body containing a representation of a resource (`POST` and `PUT` only)==**
+
+There are four main HTTP methods, four verbs if you will, that identify the operations that can be performed:
+
+- `GET`
+- `POST`
+- `PUT`
+- `DELETE`
+
+These four methods are not arbitrary. They have specific semantics that applications should adhere to. The `GET` method retrieves a representation of a resource. `GET` is side-effect free, and can be repeated without concern if it fails. Furthermore, its output is often cached, though that can be controlled with the right headers, as you’ll see shortly. In a properly architected system, `GET` requests can be bookmarked and prefetched without concern.
+
+By contrast, a well-behaved browser or web spider will not `POST` to a link without explicit user action.
+
+The `PUT` method uploads a representation of a resource to the server at a known URL. It is not side-effect free, but it is _idempotent_. That is, it can be repeated without concern if it fails. Putting the same document in the same place on the same server twice in a row leaves the server in the same state as only putting it once.
+
+The `DELETE` method removes a resource from a specified URL. It, too, is not side-effect free, but is idempotent. If you aren’t sure whether a delete request succeeded—for instance, because the socket disconnected after you sent the request but before you received a response—just send the request again. Deleting the same resource twice is not a mistake.
+
+The `POST` method is the most general method. It too uploads a representation of a resource to a server at a known URL, but it does not specify what the server is to do with the newly supplied resource.
+
+In practice, `POST` is vastly overused on the Web today. Any safe operation that does not commit the user to anything should use `GET` rather than `POST`. Only operations that commit the user should use `POST`.
+
+In addition to these four main HTTP methods, a few others are used in special circumstances. The most common such method is `HEAD`, which acts like a `GET` except it only returns the header for the resource, not the actual data. This is commonly used to check the modification date of a file, to see whether a copy stored in the local cache is still valid.
+
+The other two that Java supports are `OPTIONS`, which lets the client ask the server what it can do with a specified resource; and `TRACE`, which echoes back the client request for debugging purposes, especially when proxy servers are misbehaving. Different servers recognize other nonstandard methods including `COPY` and `MOVE`, but Java does not send these.
+
+The `URL` class described in the previous chapter uses `GET` to communicate with HTTP servers. The `URLConnection` class can use all four of these methods.
+
+## The Request Body
+
+The `GET` method retrieves a representation of a resource identified by a URL. The exact location of the resource you want to `GET` from a server is specified by the various parts of the path and query string. How different paths and query strings map to different resources is determined by the server. The `URL` class doesn’t really care about that. As long as it knows the URL, it can download from it.
+
+`POST` and `PUT` are more complex. In these cases, the client supplies the representation of the resource, in addition to the path and the query string. T**==he representation of the resource is sent in the body of the request, after the header. That is, it sends these four items in order:**==
+
+1. ==**A starter line including the method, path and query string, and HTTP version**==
+2. ==**An HTTP header**==
+3. ==**A blank line (two successive carriage return/linefeed pairs)**==
+4. ==**The body==**
+
+```http
+POST /cgi-bin/register.pl HTTP 1.0
+Date: Sun, 27 Apr 2013 12:32:36
+Host: www.cafeaulait.org
+Content-type: application/x-www-form-urlencoded
+Content-length: 54
+
+username=Elliotte+Harold&email=elharo%40ibiblio.org
+```
+
+In general, the body can contain arbitrary bytes. However, the HTTP header should include two fields that specify the nature of the body:
+
+- A Content-length field that specifies how many bytes are in the body (54 in the preceding example)
+- A Content-type field that specifies the MIME media type of the bytes (_application/x-www-form-urlencoded_ in the preceeding example).
+
+The _application/x-www-form-urlencoded_ MIME type used in the preceding example is common because it’s how web browsers encode most form submissions. Thus it’s used by a lot of server-side programs that talk to browsers. However, it’s hardly the only possible type you can send in the body.
+
+```html
+PUT /blog/software-development/the-power-of-pomodoros/ HTTP/1.1
+Host: elharo.com
+User-Agent: AtomMaker/1.0
+Authorization: Basic ZGFmZnk6c2VjZXJldA==
+Content-Type: application/atom+xml;type=entry
+Content-Length: 322
+
+<?xml version="1.0"?>
+<entry xmlns="http://www.w3.org/2005/Atom">
+ <title>The Power of Pomodoros</title>
+ <id>urn:uuid:101a41a6-722b-4d9b-8afb-ccfb01d77499</id>
+ <updated>2013-02-22T19:40:52Z</updated>
+ <author><name>Elliotte Harold</name></author>
+ <content>I hadn’t paid much attention to Pomodoro...</content>
+</entry>
+```
+
+## Cookies
+
+Many websites use small strings of text known as _cookies_ to store persistent client-side state between connections. **==Cookies are passed from server to client and back again in the HTTP headers of requests and responses.==** Cookies can be used by a server to indicate session IDs, shopping cart contents, login credentials, user preferences, and more.
+
+Usually the cookie values do not contain the data but merely point to it on the server.
+
+Cookies are limited to non-whitespace ASCII text, and may not contain commas or semicolons.
+
+To set a cookie in a browser, the server includes a `Set-Cookie` header line in the HTTP header. For example, this HTTP header sets the cookie “cart” to the value “ATVPDKIKX0DER”:
+
+```http
+HTTP/1.1 200 OK
+Content-type: text/html
+Set-Cookie: cart=ATVPDKIKX0DER
+```
+
+If a browser makes a second request to the same server, it will send the cookie back in a `Cookie` line in the HTTP request header like so:
+
+```http
+GET /index.html HTTP/1.1
+Host: www.example.org
+Cookie: cart=ATVPDKIKX0DER
+Accept: text/html
+```
+
+As long as the server doesn’t reuse cookies, this enables it to track individual users and sessions across multiple, otherwise stateless, HTTP connections.
+
+Servers can set more than one cookie.
+
+```http
+Set-Cookie:skin=noskin
+Set-Cookie:ubid-main=176-5578236-9590213
+Set-Cookie:session-token=Zg6afPNqbaMv2WmYFOv57zCU1O6Ktr
+Set-Cookie:session-id-time=2082787201l
+Set-Cookie:session-id=187-4969589-3049309
+```
+
+In addition to a simple name=value pair, cookies can have several attributes that control their scope including expiration date, path, domain, port, version, and security options. For example, this request sets a user cookie for the entire _foo.example.com_ domain:
+
+```http
+Set-Cookie: user=elharo;Domain=.foo.example.com
+```
+
+The browser will echo this cookie back not just to _www.foo.example.com_, but also to _lothar.foo.example.com_, _eliza.foo.example.com_, _enoch.foo.example.com_, and any other host somewhere in the _foo.example.com_ domain. However, a server can only set cookies for domains it immediately belongs to. _www.foo.example.com_ cannot set a cookie for _www.oreilly.com_, _example.com_, or _.com_, no matter how it sets the domain.
+
+---
+
+ **NOTE**
+
+**Websites work around this restriction by embedding an image or other content hosted on one domain in a page hosted at a second domain. The cookies set by the embedded content, not the page itself, are called _third-party cookies_. Many users block all third-party cookies, and some web browsers are starting to block them by default for privacy reasons.**
+
+---
+
+Cookies are also scoped by path, so they’re returned for some directories on the server, but not all. The default scope is the original URL and any subdirectories. For instance, if a cookie is set for the URL _http://www.cafeconleche.org/XOM/_, the cookie also applies in _http://www.cafeconleche.org/XOM/apidocs/_, but not in _http://www.cafeconleche.org/slides/_ or _http://www.cafeconleche.org/_. However, the default scope can be changed using a `Path` attribute in the cookie.
+
+```http
+Set-Cookie: user=elharo; Path=/restricted
+```
+
+When requesting a document in the subtree _/restricted_ from the same server, the client echoes that cookie back. However, it does not use the cookie in other directories on the site.
+
+A cookie can include both a domain and a path. For instance, this cookie applies in the _/restricted_ path on any servers within the _example.com_ domain:
+
+```http
+Set-Cookie: user=elharo;Path=/restricted;Domain=.example.com
+```
+
+**==The order of the different cookie attributes doesn’t matter, as long as they’re all separated by semicolons and the cookie’s own name and value come first. However, this isn’t true when the client is sending the cookie back to the server.==** In this case, the path must precede the domain, like so:
+
+```http
+Cookie: user=elharo; Path=/restricted;Domain=.foo.example.com
+```
+
+A cookie can be set to expire at a certain point in time by setting the `expires` attribute to a date in the form Wdy, DD-Mon-YYYY HH:MM:SS GMT. Weekday and month are given as three-letter abbreviations. The rest are numeric, padded with initial zeros if necessary. In the pattern language used by `java.text.SimpleDateFormat`, this is `E, dd-MMM-yyyy H:m:s z`.
+
+```http
+Set-Cookie: user=elharo; expires=Wed, 21-Dec-2015 15:23:00 GMT
+```
+
+The browser should remove this cookie from its cache after that date has passed.
+
+The `Max-Age` attribute that sets the cookie to expire after a certain number of seconds have passed instead of at a specific moment. For instance, this cookie expires one hour (3,600 seconds) after it’s first set:
+
+```http
+Set-Cookie: user="elharo"; Max-Age=3600
+```
+
+Because cookies can contain sensitive information such as passwords and session keys, some cookie transactions should be secure. Most of the time this means using HTTPS instead of HTTP; but whatever it means, each cookie can have a secure attribute with no value, like so:
+
+```http
+Set-Cookie: key=etrogl7*;Domain=.foo.example.com; secure
+```
+
+Browsers are supposed to refuse to send such cookies over insecure channels.
+
+For additional security against cookie-stealing attacks like XSRF, cookies can set the `HttpOnly` attribute. This tells the browser to only return the cookie via HTTP and HTTPS and specifically _not_ by JavaScript:
+
+```http
+Set-Cookie: key=etrogl7*;Domain=.foo.example.com; secure; httponly
+```
+
+Here’s a complete set of cookies sent by Amazon:
+
+```http
+Set-Cookie: skin=noskin; path=/; domain=.amazon.com;
+ expires=Fri, 03-May-2013 21:46:43 GMT
+Set-Cookie: ubid-main=176-5578236-9590213; path=/;
+ domain=.amazon.com; expires=Tue, 01-Jan-2036 08:00:01 GMT
+Set-Cookie: session-token=Zg6afPNqbaMv2WmYFOv57zCU1O6KtrMMdskcmllbZ
+ cY4q6t0PrMywqO82PR6AgtfIJhtBABhomNUW2dITwuLfOZuhXILp7Toya+
+ AvWaYJxpfY1lj4ci4cnJxiuUZTev1WV31p5bcwzRM1Cmn3QOCezNNqenhzZD8TZUnOL/9Ya;
+ path=/; domain=.amazon.com; expires=Thu, 28-Apr-2033 21:46:43 GMT
+Set-Cookie: session-id-time=2082787201l; path=/; domain=.amazon.com;
+ expires=Tue, 01-Jan-2036 08:00:01 GMT
+Set-Cookie: session-id=187-4969589-3049309; path=/; domain=.amazon.com;
+ expires=Tue, 01-Jan-2036 08:00:01 GMT
+```
+### CookieManager
+
+Java 5 includes an abstract `java.net.CookieHandler` class that defines an API for storing and retrieving cookies. However, it does not include an implementation of that abstract class, so it requires a lot of grunt work. Java 6 fleshes this out by adding a concrete `java.net.CookieManager` subclass of `CookieHandler` that you can use. However, it is not turned on by default. Before Java will store and return cookies, you need to enable it:
+
+```java
+CookieManager manager = new CookieManager();
+CookieHandler.setDefault(manager);
+```
+
+If all you want is to receive cookies from sites and send them back to those sites, you’re done. That’s all there is to it. After installing a `CookieManager` with those two lines of code, Java will store any cookies sent by HTTP servers you connect to with the `URL` class, and will send the stored cookies back to those same servers in subsequent requests.
+
+However, you may wish to be a bit more careful about whose cookies you accept. You can do this by specifying a `CookiePolicy`. **==Three policies are predefined:**==
+
+- ==**`CookiePolicy.ACCEPT_ALL` All cookies allowed**==
+- ==**`CookiePolicy.ACCEPT_NONE` No cookies allowed**==
+- ==**`CookiePolicy.ACCEPT_ORIGINAL_SERVER` Only first party cookies allowed==**
+
+```java
+CookieManager manager = new CookieManager();
+manager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
+CookieHandler.setDefault(manager);
+```
+
+That is, it will only accept cookies for the server that you’re talking to, not for any server on the Internet.
+
+If you want more fine-grained control, for instance to allow cookies from some known domains but not others, you can implement the `CookiePolicy` interface yourself and override the `shouldAccept()` method:
+
+```java
+public boolean shouldAccept(URI uri, HttpCookie cookie)
+```
+
+Example 6-1. A cookie policy that blocks all .gov cookies but allows others
+
+```java
+import java.net.*;
+
+public class NoGovernmentCookies implements CookiePolicy {
+
+  @Override
+  public boolean shouldAccept(URI uri, HttpCookie cookie) {
+    if (uri.getAuthority().toLowerCase().endsWith(".gov")
+        || cookie.getDomain().toLowerCase().endsWith(".gov")) {
+      return false;
+    }
+    return true;
+  }
+}
+```
+
+### CookieStore
+
+It is sometimes necessary to put and get cookies locally. For instance, when an application quits, it can save the cookie store to disk and load those cookies again when it next starts up. You can retrieve the store in which the `CookieManager` saves its cookies with the `getCookieStore()` method:
+
+```java
+CookieStore store = manager.getCookieStore();
+```
+
+The `CookieStore` class allows you to add, remove, and list cookies so you can control the cookies that are sent outside the normal flow of HTTP requests and responses:
+
+```java
+public void add(URI uri, HttpCookie cookie)
+public List<HttpCookie> get(URI uri)
+public List<HttpCookie> getCookies()
+public List<URI> getURIs()
+public boolean remove(URI uri, HttpCookie cookie)
+public boolean removeAll()
+```
+
+Example 6-2. The ``HTTPCookie`` class
+
+```java
+package java.net;
+
+public class HttpCookie implements Cloneable {
+  public HttpCookie(String name, String value)
+
+  public boolean hasExpired()
+  public void setComment(String comment)
+  public String getComment()
+  public void setCommentURL(String url)
+  public String getCommentURL()
+  public void setDiscard(boolean discard)
+  public boolean getDiscard()
+  public void setPortlist(String ports)
+  public String getPortlist()
+  public void setDomain(String domain)
+  public String getDomain()
+  public void setMaxAge(long expiry)
+  public long getMaxAge()
+  public void setPath(String path)
+  public String getPath()
+  public void setSecure(boolean flag)
+  public boolean getSecure()
+  public String getName()
+  public void setValue(String value)
+  public String getValue()
+  public int getVersion()
+  public void setVersion(int v)
+
+  public static boolean domainMatches(String domain, String host)
+  public static List<HttpCookie> parse(String header)
+
+  public String toString()
+  public boolean equals(Object obj)
+  public int hashCode()
+  public Object clone()
+}
+```
+
+#  Chapter 7. URLConnections
