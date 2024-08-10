@@ -4882,3 +4882,1029 @@ public class HttpCookie implements Cloneable {
 ```
 
 #  Chapter 7. URLConnections
+
+`URLConnection` is an abstract class that represents an active connection to a resource specified by a URL. The `URLConnection` class has two different but related purposes. **==First, it provides more control over the interaction with a server (especially an HTTP server) than the `URL` class.==** A `URLConnection` can inspect the header sent by the server and respond accordingly. It can set the header fields used in the client request. Finally, a `URLConnection` can send data back to a web server with `POST`, `PUT`, and other HTTP request methods.
+
+**==Second, the `URLConnection` class is part of Java’s _protocol handler_ mechanism, which also includes the `URLStreamHandler` class. The idea behind protocol handlers is simple: they separate the details of processing a protocol from processing particular data types, providing user interfaces, and doing the other work that a monolithic web browser performs.==** The base `java.net.URLConnection` class is abstract; to implement a specific protocol, you write a subclass. These subclasses can be loaded at runtime by applications.
+
+Only abstract `URLConnection` classes are present in the `java.net` package. The concrete subclasses are hidden inside the `sun.net` package hierarchy. Many of the methods and fields as well as the single constructor in the `URLConnection` class are _protected_. In other words, they can only be accessed by instances of the `URLConnection` class or its subclasses. It is rare to instantiate `URLConnection` objects directly in your source code; instead, the runtime environment creates these objects as needed, depending on the protocol in use. The class (which is unknown at compile time) is then instantiated using the `forName()` and `newInstance()` methods of the `java.lang.Class` class.
+
+---
+
+ **TIP**
+
+**`URLConnection` does not have the best-designed API in the Java class library. One of several problems is that the `URLConnection` class is too closely tied to the HTTP protocol. For instance, it assumes that each file transferred is preceded by a MIME header or something very much like one. However, most classic protocols such as FTP and SMTP don’t use MIME headers.**
+
+---
+
+## Opening URLConnections
+
+A program that uses the `URLConnection` class directly follows this basic sequence of steps:
+
+1. ==**Construct a `URL` object.**==
+2. ==**Invoke the `URL` object’s `openConnection()` method to retrieve a `URLConnection` object for that URL.**==
+3. ==**Configure the `URLConnection`.**==
+4. ==**Read the header fields.**==
+5. ==**Get an input stream and read data.**==
+6. ==**Get an output stream and write data.**==
+7. ==**Close the connection.==**
+
+You don’t always perform all these steps. For instance, if the default setup for a particular kind of URL is acceptable, you can skip step 3. If you only want the data from the server and don’t care about any metainformation, or if the protocol doesn’t provide any metainformation, you can skip step 4. If you only want to receive data from the server but not send data to the server, you’ll skip step 6. Depending on the protocol, steps 5 and 6 may be reversed or interlaced.
+
+The single constructor for the `URLConnection` class is protected:
+
+```java
+protected URLConnection(URL url)
+```
+
+Consequently, unless you’re subclassing `URLConnection` to handle a new kind of URL (i.e., writing a protocol handler), you create one of these objects by invoking the `openConnection()` method of the `URL` class.
+
+```java
+try {
+  URL u = new URL("http://www.overcomingbias.com/");
+  URLConnection uc = u.openConnection();
+  // read from the URL...
+} catch (MalformedURLException ex) {
+  System.err.println(ex);
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+The `URLConnection` class is declared abstract. However, **==all but one of its methods are implemented. the single method that subclasses must implement is `connect()`==**, which makes a connection to a server and thus depends on the type of service (HTTP, FTP, and so on).
+
+```java
+public abstract void connect() throws IOException
+```
+
+When a `URLConnection` is first constructed, it is unconnected; that is, the local and remote host cannot send and receive data. There is no socket connecting the two hosts. The `connect()` method establishes a connection—normally using TCP sockets but possibly through some other mechanism—between the local and remote host so they can send and receive data. However, `getInputStream()`, `getContent()`, `getHeaderField()`, and other methods that require an open connection will call `connect()` if the connection isn’t yet open.
+
+## Reading Data from a Server
+
+The following is the minimal set of steps needed to retrieve data from a URL using a `URLConnection` object:
+
+1. ==**Construct a `URL` object.**==
+2. ==**Invoke the `URL` object’s `openConnection()` method to retrieve a `URLConnection` object for that URL.**==
+3. ==**Invoke the `URLConnection`’s `getInputStream()` method.**==
+4. ==**Read from the input stream using the usual stream API.==**
+
+The `getInputStream()` method returns a generic `InputStream` that lets you read and parse the data that the server sends.
+
+Example 7-1. Download a web page with a ``URLConnection``
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class SourceViewer2 {
+
+  public static void main (String[] args) {
+    if  (args.length > 0) {
+      try {
+        // Open the URLConnection for reading
+        URL u = new URL(args[0]);
+        URLConnection uc = u.openConnection();
+        try (InputStream raw = uc.getInputStream()) { // autoclose
+          InputStream buffer = new BufferedInputStream(raw);
+          // chain the InputStream to a Reader
+          Reader reader = new InputStreamReader(buffer);
+          int c;
+          while ((c = reader.read()) != -1) {
+            System.out.print((char) c);
+          }
+        }
+      } catch (MalformedURLException ex) {
+        System.err.println(args[0] + " is not a parseable URL");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+    }
+  }
+}
+```
+
+The differences between `URL` and `URLConnection` aren’t apparent with just a simple input stream as in this example. **==The biggest differences between the two classes are:**==
+
+- ==**`URLConnection` provides access to the HTTP header.**==
+- ==**`URLConnection` can configure the request parameters sent to the server.**==
+- ==**`URLConnection` can write data to the server as well as read data from the server.==**
+
+## Reading the Header
+
+HTTP servers provide a substantial amount of information in the header that precedes each response.
+
+```http
+HTTP/1.1 301 Moved Permanently
+Date: Sun, 21 Apr 2013 15:12:46 GMT
+Server: Apache
+Location: http://www.ibiblio.org/
+Content-Length: 296
+Connection: close
+Content-Type: text/html; charset=iso-8859-1
+```
+
+In general, an HTTP header may include the content type of the requested document, the length of the document in bytes, the character set in which the content is encoded, the date and time, the date the content expires, and the date the content was last modified. However, the information depends on the server; some servers send all this information for each request, others send some information, and a few don’t send anything. The methods of this section allow you to query a `URLConnection` to find out what metadata the server has provided.
+
+### Retrieving Specific Header Fields
+
+The first six methods request specific, particularly common fields from the header. These are:
+
+- Content-type
+- Content-length
+- Content-encoding
+- Date
+- Last-modified
+- Expires
+
+#### ``public String getContentType()``
+
+The `getContentType()` method returns the MIME media type of the response body. It relies on the web server to send a valid content type. It throws no exceptions and returns `null` if the content type isn’t available. `text/html` will be the most common content type you’ll encounter when connecting to web servers.
+
+If the content type is some form of text, this header may also contain a character set part identifying the document’s character encoding.
+
+```http
+Content-type: text/html; charset=UTF-8
+```
+
+
+Example 7-2. Download a web page with the correct character set
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class EncodingAwareSourceViewer {
+
+  public static void main (String[] args) {
+    for (int i = 0; i < args.length; i++) {
+      try {
+        // set default encoding
+        String encoding = "ISO-8859-1";
+        URL u = new URL(args[i]);
+        URLConnection uc = u.openConnection();
+        String contentType = uc.getContentType();
+        int encodingStart = contentType.indexOf("charset=");
+        if (encodingStart != -1) {
+            encoding = contentType.substring(encodingStart + 8);
+        }
+        InputStream in = new BufferedInputStream(uc.getInputStream());
+        Reader r = new InputStreamReader(in, encoding);
+        int c;
+        while ((c = r.read()) != -1) {
+          System.out.print((char) c);
+        }
+        r.close();
+      } catch (MalformedURLException ex) {
+        System.err.println(args[0] + " is not a parseable URL");
+      } catch (UnsupportedEncodingException ex) {
+        System.err.println(
+            "Server sent an encoding Java does not support: " + ex.getMessage());
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+    }
+  }
+}
+```
+
+#### ``public int getContentLength()``
+
+The `getContentLength()` method tells you how many bytes there are in the content. If there is no Content-length header, `getContentLength()` returns –1. The method throws no exceptions. It is used when you need to know exactly how many bytes to read or when you need to create a buffer large enough to hold the data in advance.
+
+As networks get faster and files get bigger, it is actually possible to find resources whose size exceeds the maximum `int` value (about 2.1 billion bytes). In this case, `getContentLength()` returns –1. Java 7 adds a `getContentLengthLong()` method that works just like `getContentLength()` except that it returns a `long` instead of an `int` and thus can handle much larger resources:
+
+```java
+public long getContentLengthLong // Java 7
+```
+
+HTTP servers don’t always close the connection exactly where the data is finished; therefore, you don’t know when to stop reading. To download a binary file, it is more reliable to use a `URLConnection`’s `getContentLength()` method to find the file’s length, then read exactly the number of bytes indicated.
+
+Example 7-3. Downloading a binary file from a website and saving it to disk
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class BinarySaver {
+
+  public static void main (String[] args) {
+    for (int i = 0; i < args.length; i++) {
+      try {
+        URL root = new URL(args[i]);
+        saveBinaryFile(root);
+      } catch (MalformedURLException ex) {
+        System.err.println(args[i] + " is not URL I understand.");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+    }
+  }
+
+  public static void saveBinaryFile(URL u) throws IOException {
+    URLConnection uc = u.openConnection();
+    String contentType = uc.getContentType();
+    int contentLength = uc.getContentLength();
+    if (contentType.startsWith("text/") || contentLength == -1 ) {
+      throw new IOException("This is not a binary file.");
+    }
+
+    try (InputStream raw = uc.getInputStream()) {
+      InputStream in  = new BufferedInputStream(raw);
+      byte[] data = new byte[contentLength];
+      int offset = 0;
+      while (offset < contentLength) {
+         int bytesRead = in.read(data, offset, data.length - offset);
+         if (bytesRead == -1) break;
+         offset += bytesRead;
+      }
+
+      if (offset != contentLength) {
+        throw new IOException("Only read " + offset
+            + " bytes; Expected " + contentLength + " bytes");
+      }
+      String filename = u.getFile();
+      filename = filename.substring(filename.lastIndexOf('/') + 1);
+      try (FileOutputStream fout = new FileOutputStream(filename)) {
+        fout.write(data);
+        fout.flush();
+      }
+    }
+  }
+}
+```
+
+`saveBinaryFile()` opens a `URLConnection` `uc` to the `URL`. It puts the type into the variable `contentType` and the content length into the variable `contentLength`. Next, an `if` statement checks whether the content type is `text` or the Content-length field is missing or invalid (`contentLength == -1`). If either of these is `true`, an `IOException` is thrown. If these checks are both `false`, you have a binary file of known length: that’s what you want.
+
+Now that you have a genuine binary file on your hands, you prepare to read it into an array of bytes called `data`. `data` is initialized to the number of bytes required to hold the binary object, `contentLength`. Ideally, you would like to fill `data` with a single call to `read()` but you probably won’t get all the bytes at once, so the read is placed in a loop. The number of bytes read up to this point is accumulated into the `offset` variable, which also keeps track of the location in the `data` array at which to start placing the data retrieved by the next call to `read()`. The loop continues until `offset` equals or exceeds `contentLength`; that is, the array has been filled with the expected number of bytes. You also break out of the `while` loop if `read()` returns –1, indicating an unexpected end of stream. The `offset` variable now contains the total number of bytes read, which should be equal to the content length. If they are not equal, an error has occurred, so `saveBinaryFile()` throws an `IOException`. This is the general procedure for reading binary files from HTTP connections.
+
+#### ``public String getContentEncoding()``
+
+The `getContentEncoding()` method returns a `String` that tells you how the content is encoded. If the content is sent unencoded (as is commonly the case with HTTP servers), this method returns `null`. It throws no exceptions. The most commonly used content encoding on the Web is probably x-gzip, which can be straightforwardly decoded using a `java.util.zip.GZipInputStream`.
+
+---
+ **TIP**
+
+**The content encoding is not the same as the character encoding. The character encoding is determined by the Content-type header or information internal to the document, and specifies how characters are encoded in bytes. Content encoding specifies how the bytes are encoded in other bytes.**
+
+---
+
+#### ``public long getDate()``
+
+The `getDate()` method returns a `long` that tells you when the document was sent, in milliseconds since midnight, Greenwich Mean Time (GMT), January 1, 1970. You can convert it to a `java.util.Date`.
+
+```java
+Date documentSent = new Date(uc.getDate());
+```
+
+#### ``public long getExpiration()``
+
+Some documents have server-based expiration dates that indicate when the document should be deleted from the cache and reloaded from the server. `getExpiration()` is very similar to `getDate()`, differing only in how the return value is interpreted. It returns a `long` indicating the number of milliseconds after 12:00 A.M., GMT, January 1, 1970, at which the document expires. If the HTTP header does not include an Expiration field, `getExpiration()` returns 0, which means that the document does not expire and can remain in the cache indefinitely.
+
+#### ``public long getLastModified()``
+
+The final date method, `getLastModified()`, returns the date on which the document was last modified. Again, the date is given as the number of milliseconds since midnight, GMT, January 1, 1970. If the HTTP header does not include a Last-modified field (and many don’t), this method returns 0.
+
+Example 7-4. Return the header
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class HeaderViewer {
+
+  public static void main(String[] args) {
+    for (int i = 0; i < args.length; i++) {
+      try {
+        URL u = new URL(args[0]);
+        URLConnection uc = u.openConnection();
+        System.out.println("Content-type: " + uc.getContentType());
+        if (uc.getContentEncoding() != null) {
+          System.out.println("Content-encoding: "
+              + uc.getContentEncoding());
+        }
+        if (uc.getDate() != 0) {
+          System.out.println("Date: " + new Date(uc.getDate()));
+        }
+        if (uc.getLastModified() != 0) {
+          System.out.println("Last modified: "
+              + new Date(uc.getLastModified()));
+        }
+        if (uc.getExpiration() != 0) {
+          System.out.println("Expiration date: "
+              + new Date(uc.getExpiration()));
+        }
+        if (uc.getContentLength() != -1) {
+          System.out.println("Content-length: " + uc.getContentLength());
+        }
+      } catch (MalformedURLException ex) {
+        System.err.println(args[i] + " is not a URL I understand");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+      System.out.println();
+    }
+  }
+}
+```
+
+Here’s the result when used to look at _http://www.oreilly.com_:
+
+```http
+% **`java HeaderViewer http://www.oreilly.com`**
+Content-type: text/html; charset=utf-8
+Date: Fri May 31 18:08:09 EDT 2013
+Last modified: Fri May 31 17:04:14 EDT 2013
+Expiration date: Fri May 31 22:08:09 EDT 2013
+Content-length: 83273
+```
+
+### Retrieving Arbitrary Header Fields
+
+The last six methods requested specific fields from the header, but there’s no theoretical limit to the number of header fields a message can contain. If the requested header is found, it is returned. Otherwise, the method returns `null`.
+
+#### ``public String getHeaderField(String name)``
+
+The `getHeaderField()` method returns the value of a named header field. The name of the header is not case sensitive and does not include a closing colon.
+
+```java
+String contentType = uc.getHeaderField("content-type");
+String contentEncoding = uc.getHeaderField("content-encoding"));
+
+String data = uc.getHeaderField("date");
+String expires = uc.getHeaderField("expires");
+String contentLength = uc.getHeaderField("Content-length");
+```
+
+**==Do not assume the value returned by `getHeaderField()` is valid. You must check to make sure it is nonnull.==**
+#### ``public String getHeaderFieldKey(int n)``
+
+This method returns the key (i.e., the field name) of the _n_th header field (e.g., `Content-length` or `Server`). The request method is header zero and has a null key. The first header is one.
+
+```java
+String header6 = uc.getHeaderFieldKey(6);
+```
+
+#### ``public String getHeaderField(int n)``
+
+This method returns the value of the _n_th header field. In HTTP, the starter line containing the request method and path is header field zero and the first actual header is one.
+
+Example 7-5. Print the entire HTTP header
+```java
+import java.io.*;
+import java.net.*;
+
+public class AllHeaders {
+
+  public static void main(String[] args) {
+    for (int i = 0; i < args.length; i++) {
+      try {
+        URL u = new URL(args[i]);
+        URLConnection uc = u.openConnection();
+        for (int j = 1; ; j++) {
+          String header = uc.getHeaderField(j);
+          if (header == null) break;
+          System.out.println(uc.getHeaderFieldKey(j) + ": " + header);
+        }
+      } catch (MalformedURLException ex) {
+        System.err.println(args[i] + " is not a URL I understand.");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+      System.out.println();
+    }
+  }
+}
+```
+
+```http
+% java AllHeaders http://www.oreilly.com
+Date: Sat, 04 May 2013 11:28:26 GMT
+Server: Apache
+Last-Modified: Sat, 04 May 2013 07:35:04 GMT
+Accept-Ranges: bytes
+Content-Length: 80366
+Content-Type: text/html; charset=utf-8
+Cache-Control: max-age=14400
+Expires: Sat, 04 May 2013 15:28:26 GMT
+Vary: Accept-Encoding
+Keep-Alive: timeout=3, max=100
+Connection: Keep-Alive
+```
+
+Besides the headers with named getter methods, this server also provides Server, Accept-Ranges, Cache-control, Vary, Keep-Alive, and Connection headers. Other servers may have different sets of headers.
+
+#### ``public long getHeaderFieldDate(String name, long default)``
+
+This method first retrieves the header field specified by the `name` argument and tries to convert the string to a `long` that specifies the milliseconds since midnight, January 1, 1970, GMT. `getHeaderFieldDate()` can be used to retrieve a header field that represents a date (e.g., the Expires, Date, or Last-modified headers). To convert the string to an integer, `getHeaderFieldDate()` uses the `parseDate()` method of `java.util.Date`. The `parseDate()` method does a decent job of understanding and converting most common date formats, but it can be stumped—for instance, if you ask for a header field that contains something other than a date. If `parseDate()` doesn’t understand the date or if `getHeaderFieldDate()` is unable to find the requested header field, `getHeaderFieldDate()` returns the `default` argument.
+
+```java
+Date expires = new Date(uc.getHeaderFieldDate("expires", 0));
+long lastModified = uc.getHeaderFieldDate("last-modified", 0);
+Date now = new Date(uc.getHeaderFieldDate("date", 0));
+```
+
+#### ``public int getHeaderFieldInt(String name, int default)``
+
+This method retrieves the value of the header field `name` and tries to convert it to an `int`. If it fails, either because it can’t find the requested header field or because that field does not contain a recognizable integer, `getHeaderFieldInt()` returns the `default` argument. This method is often used to retrieve the `Content-length` field.
+
+```java
+int contentLength = uc.getHeaderFieldInt("content-length", -1);
+```
+
+## Caches
+
+Web browsers have been caching pages and images for years. If a logo is repeated on every page of a site, the browser normally loads it from the remote server only once, stores it in its cache, and reloads it from the cache whenever it’s needed rather than requesting it from the remote server every time the logo is encountered.
+
+By default, the assumption is that a page accessed with `GET` over HTTP can and should be cached. A page accessed with HTTPS or `POST` usually shouldn’t be. However, HTTP headers can adjust this:
+
+- ==**An Expires header (primarily for HTTP 1.0) indicates that it’s OK to cache this representation until the specified time.**==
+- ==**The Cache-control header (HTTP 1.1) offers fine-grained cache policies:**==
+    
+    - ==**``max-age=[_`seconds`_]``: Number of seconds from now before the cached entry should expire**==
+    - ==**``s-maxage=[_`seconds`_]``: Number of seconds from now before the cached entry should expire from a shared cache. Private caches can store the entry for longer.**==
+    - ==**`public`: OK to cache an authenticated response. Otherwise authenticated responses are not cached.**==
+    - ==**`private`: Only single user caches should store the response; shared caches should not.**==
+    - ==**`no-cache`: Not quite what it sounds like. The entry may still be cached, but the client should reverify the state of the resource with an ETag or Last-modified header on each access.**==
+    - ==**`no-store`: Do not cache the entry no matter what.**==
+    
+    ==**Cache-control overrides Expires if both are present. A server can send multiple Cache-control headers in a single header as long as they don’t conflict.**==
+    
+- ==**The Last-modified header is the date when the resource was last changed. A client can use a `HEAD` request to check this and only come back for a full `GET` if its local cached copy is older than the Last-modified date.**==
+- ==**The ETag header (HTTP 1.1) is a unique identifier for the resource that changes when the resource does. A client can use a `HEAD` request to check this and only come back for a full `GET` if its local cached copy has a different ETag.==**
+
+```http
+HTTP/1.1 200 OK
+Date: Sun, 21 Apr 2013 15:12:46 GMT
+Server: Apache
+Connection: close
+Content-Type: text/html; charset=ISO-8859-1
+Cache-control: max-age=604800
+Expires: Sun, 28 Apr 2013 15:12:46 GMT
+Last-modified: Sat, 20 Apr 2013 09:55:04 GMT
+ETag: "67099097696afcf1b67e"
+```
+
+Example 7-6. How to inspect a Cache-control header
+
+```java
+import java.util.Date;
+import java.util.Locale;
+
+
+public class CacheControl {
+
+  private Date maxAge = null;
+  private Date sMaxAge = null;
+  private boolean mustRevalidate = false;
+  private boolean noCache = false;
+  private boolean noStore = false;
+  private boolean proxyRevalidate = false;
+  private boolean publicCache = false;
+  private boolean privateCache = false;
+
+  public CacheControl(String s) {
+    if (s == null || !s.contains(":")) {
+      return; // default policy
+    }
+
+    String value = s.split(":")[1].trim();
+    String[] components = value.split(",");
+
+    Date now = new Date();
+    for (String component : components) {
+      try {
+        component = component.trim().toLowerCase(Locale.US);
+        if (component.startsWith("max-age=")) {
+          int secondsInTheFuture = Integer.parseInt(component.substring(8));
+          maxAge = new Date(now.getTime() + 1000 * secondsInTheFuture);
+        } else if (component.startsWith("s-maxage=")) {
+          int secondsInTheFuture = Integer.parseInt(component.substring(8));
+          sMaxAge = new Date(now.getTime() + 1000 * secondsInTheFuture);
+        } else if (component.equals("must-revalidate")) {
+          mustRevalidate = true;
+        } else if (component.equals("proxy-revalidate")) {
+          proxyRevalidate = true;
+        } else if (component.equals("no-cache")) {
+          noCache = true;
+        } else if (component.equals("public")) {
+          publicCache = true;
+        } else if (component.equals("private")) {
+          privateCache = true;
+        }
+      } catch (RuntimeException ex) {
+        continue;
+      }
+    }
+  }
+
+  public Date getMaxAge() {
+    return maxAge;
+  }
+
+  public Date getSharedMaxAge() {
+    return sMaxAge;
+  }
+
+  public boolean mustRevalidate() {
+    return mustRevalidate;
+  }
+
+  public boolean proxyRevalidate() {
+    return proxyRevalidate;
+  }
+
+  public boolean noStore() {
+    return noStore;
+  }
+
+  public boolean noCache() {
+    return noCache;
+  }
+
+  public boolean publicCache() {
+    return publicCache;
+  }
+
+  public boolean privateCache() {
+    return privateCache;
+  }
+}
+```
+
+A client can take advantage of this information:
+
+- If a representation of the resource is available in the local cache, and its expiry date has not arrived, just use it. Don’t even bother talking to the server.
+- If a representation of the resource is available in the local cache, but the expiry date has arrived, check the server with `HEAD` to see if the resource has changed before performing a full `GET`.
+
+### Web Cache for Java
+
+By default, Java does not cache anything. To install a system-wide cache of the `URL` class will use, you need the following:
+
+- ==**A concrete subclass of `ResponseCache`**==
+- ==**A concrete subclass of `CacheRequest`**==
+- ==**A concrete subclass of `CacheResponse`==**
+
+You install your subclass of `ResponseCache` that works with your subclass of `CacheRequest` and `CacheResponse` by passing it to the static method `ResponseCache.setDefault()`. This installs your cache object as the system default. A Java virtual machine can only support a single shared cache.
+
+Once a cache is installed whenever the system tries to load a new URL, it will first look for it in the cache. If the cache returns the desired content, the `URLConnection` won’t need to connect to the remote server. However, if the requested data is not in the cache, the protocol handler will download it. After it’s done so, it will put its response into the cache so the content is more quickly available the next time that URL is loaded.
+
+Two abstract methods in the `ResponseCache` class store and retrieve data from the system’s single cache:
+
+```java
+public abstract CacheResponse get(URI uri, String requestMethod,
+    Map<String, List<String>> requestHeaders) throws IOException
+public abstract CacheRequest put(URI uri, URLConnection connection)
+    throws IOException
+```
+
+Example 7-7. The ``CacheRequest`` class
+
+```java
+package java.net;
+
+public abstract class CacheRequest {
+  public abstract OutputStream getBody() throws IOException;
+  public abstract void abort();
+}
+```
+
+Example 7-8. A concrete ``CacheRequest`` subclass
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class SimpleCacheRequest extends CacheRequest {
+
+  private ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+  @Override
+  public OutputStream getBody() throws IOException {
+    return out;
+  }
+
+  @Override
+  public void abort() {
+    out.reset();
+  }
+
+  public byte[] getData() {
+    if (out.size() == 0) return null;
+    else return out.toByteArray();
+  }
+}
+```
+
+Example 7-9. The ``CacheResponse`` class
+
+```java
+public abstract class CacheResponse {
+  public abstract Map<String, List<String>> getHeaders() throws IOException;
+  public abstract InputStream getBody() throws IOException;
+}
+```
+
+Example 7-10. A concrete ``CacheResponse`` subclass
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class SimpleCacheResponse extends CacheResponse {
+
+  private final Map<String, List<String>> headers;
+  private final SimpleCacheRequest request;
+  private final Date expires;
+  private final CacheControl control;
+
+  public SimpleCacheResponse(
+      SimpleCacheRequest request, URLConnection uc, CacheControl control)
+      throws IOException {
+
+    this.request = request;
+    this.control = control;
+    this.expires = new Date(uc.getExpiration());
+    this.headers = Collections.unmodifiableMap(uc.getHeaderFields());
+  }
+
+  @Override
+  public InputStream getBody() {
+    return new ByteArrayInputStream(request.getData());
+  }
+
+  @Override
+  public Map<String, List<String>> getHeaders()
+      throws IOException {
+      return headers;
+  }
+
+  public CacheControl getControl() {
+    return control;
+  }
+
+  public boolean isExpired() {
+    Date now = new Date();
+    if (control.getMaxAge().before(now)) return true;
+    else if (expires != null && control.getMaxAge() != null) {
+      return expires.before(now);
+    } else {
+      return false;
+    }
+  }
+}
+```
+
+Finally, you need a simple `ResponseCache` subclass that stores and retrieves the cached values as requested while paying attention to the original Cache-control header.
+
+Example 7-11. An in-memory ``ResponseCache``
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+public class MemoryCache extends ResponseCache {
+
+  private final Map<URI, SimpleCacheResponse> responses
+      = new ConcurrentHashMap<URI, SimpleCacheResponse>();
+  private final int maxEntries;
+
+  public MemoryCache() {
+    this(100);
+  }
+
+  public MemoryCache(int maxEntries) {
+    this.maxEntries = maxEntries;
+  }
+
+  @Override
+  public CacheRequest put(URI uri, URLConnection conn)
+      throws IOException {
+
+     if (responses.size() >= maxEntries) return null;
+
+     CacheControl control = new CacheControl(conn.getHeaderField("Cache-Control"));
+     if (control.noStore()) {
+       return null;
+     } else if (!conn.getHeaderField(0).startsWith("GET ")) {
+       // only cache GET
+       return null;
+     }
+
+     SimpleCacheRequest request = new SimpleCacheRequest();
+     SimpleCacheResponse response = new SimpleCacheResponse(request, conn, control);
+
+     responses.put(uri, response);
+     return request;
+  }
+
+  @Override
+  public CacheResponse get(URI uri, String requestMethod,
+      Map<String, List<String>> requestHeaders)
+      throws IOException {
+
+     if ("GET".equals(requestMethod)) {
+       SimpleCacheResponse response = responses.get(uri);
+       // check expiration date
+       if (response != null && response.isExpired()) {
+         responses.remove(response);
+         response = null;
+       }
+       return response;
+     } else {
+       return null;
+     }
+  }
+}
+```
+
+Java only allows one URL cache at a time. To install or change the cache, use the static `ResponseCache.setDefault()` and `ResponseCache.getDefault()` methods:
+
+```java
+public static ResponseCache getDefault()
+public static void setDefault(ResponseCache responseCache)
+```
+
+These set the single cache used by all programs running within the same Java virtual machine.
+
+```java
+ResponseCache.setDefault(new MemoryCache());
+```
+
+Each retrieved resource stays in the `HashMap` until it expires. This example waits for an expired document to be requested again before it deletes it from the cache. A more sophisticated implementation could use a low-priority thread to scan for expired documents and remove them to make way for others. Instead of or in addition to this, an implementation might cache the representations in a queue and remove the oldest documents or those closest to their expiration date as necessary to make room for new ones. An even more sophisticated implementation could track how often each document in the store was accessed and expunge only the oldest and least-used documents.
+
+You could implement a cache on top of the filesystem instead of on top of the Java Collections API. You could also store the cache in a database, and you could do a lot of less-common things as well. For instance, you could redirect requests for certain URLs to a local server rather than a remote server halfway around the world, in essence using a local web server as the cache. Or a `ResponseCache` could load a fixed set of files at launch time and then only serve those out of memory. This might be useful for a server that processes many different SOAP requests, all of which adhere to a few common schemas that can be stored in the cache. The abstract `ResponseCache` class is flexible enough to support all of these and other usage patterns.
+
+## Configuring the Connection
+
+The `URLConnection` class has seven protected instance fields that define exactly how the client makes the request to the server. These are:
+
+```java
+protected URL     url;
+protected boolean doInput = true;
+protected boolean doOutput = false;
+protected boolean allowUserInteraction = defaultAllowUserInteraction;
+protected boolean useCaches = defaultUseCaches;
+protected long    ifModifiedSince = 0;
+protected boolean connected = false;
+```
+
+Because these fields are all protected, their values are accessed and modified via obviously named setter and getter methods:
+
+```java
+public URL     getURL()
+public void    setDoInput(boolean doInput)
+public boolean getDoInput()
+public void    setDoOutput(boolean doOutput)
+public boolean getDoOutput()
+public void    setAllowUserInteraction(boolean allowUserInteraction)
+public boolean getAllowUserInteraction()
+public void    setUseCaches(boolean useCaches)
+public boolean getUseCaches()
+public void    setIfModifiedSince(long ifModifiedSince)
+public long    getIfModifiedSince()
+```
+
+can modify these fields only before the `URLConnection` is connected (before you try to read content or headers from the connection). Most of the methods that set fields throw an `IllegalStateException` if they are called while the connection is open. **==In general, you can set the properties of a `URLConnection` object only before the connection is opened.==**
+
+There are also some getter and setter methods that define the default behavior for all instances of `URLConnection`. These are:
+
+```java
+public boolean            getDefaultUseCaches()
+public void               setDefaultUseCaches(boolean defaultUseCaches)
+public static void        setDefaultAllowUserInteraction(
+   boolean defaultAllowUserInteraction)
+public static boolean     getDefaultAllowUserInteraction()
+public static FileNameMap getFileNameMap()
+public static void        setFileNameMap(FileNameMap map)
+```
+
+Unlike the instance methods, these methods can be invoked at any time. The new defaults will apply only to `URLConnection` objects constructed after the new default values are set.
+
+### protected URL url
+
+The `url` field specifies the URL that this `URLConnection` connects to. The constructor sets it when the `URLConnection` is created and it should not change thereafter. You can retrieve the value by calling the `getURL()` method.
+
+Example 7-12. Print the URL of a ``URLConnection`` to _http://www.oreilly.com/_
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class URLPrinter {
+
+  public static void main(String[] args) {
+    try {
+      URL u = new URL("http://www.oreilly.com/");
+      URLConnection uc = u.openConnection();
+      System.out.println(uc.getURL());
+    } catch (IOException ex) {
+      System.err.println(ex);
+    }
+  }
+}
+```
+
+### ``protected boolean connected``
+
+The boolean field `connected` is `true` if the connection is open and `false` if it’s closed. Because the connection has not yet been opened when a new `URLConnection` object is created, its initial value is `false`. This variable can be accessed only by instances of `java.net.URLConnection` and its subclasses.
+
+**==There are no methods that directly read or change the value of `connected`. However, any method that causes the `URLConnection` to connect should set this variable to true, including `connect()`, `getInputStream()`, and `getOutputStream()`. Any method that causes the `URLConnection` to disconnect should set this field to false.==** There are no such methods in `java.net.URLConnection`, but some of its subclasses, such as `java.net.HttpURLConnection`, have `disconnect()` methods.
+
+If you subclass `URLConnection` to write a protocol handler, you are responsible for setting `connected` to `true` when you are connected and resetting it to `false` when the connection closes. Many methods in `java.net.URLConnection` read this variable to determine what they can do. If it’s set incorrectly, your program will have severe bugs that are not easy to diagnose.
+
+### ``protected boolean allowUserInteraction``
+
+Some `URLConnection`s need to interact with a user. This variable is protected, but the public `getAllowUserInteraction()` method can read its value and the public `setAllowUserInteraction()` method can change it:
+
+```java
+public void    setAllowUserInteraction(boolean allowUserInteraction)
+public boolean getAllowUserInteraction()
+```
+
+The value `true` indicates that user interaction is allowed; `false` indicates that there is no user interaction. The value may be read at any time but may be set only before the `URLConnection` is connected. Calling `setAllowUserInteraction()` when the `URLConnection` is connected throws an `IllegalStateException`.
+
+```java
+URL u = new URL("http://www.example.com/passwordProtectedPage.html");
+URLConnection uc = u.openConnection();
+uc.setAllowUserInteraction(true);
+InputStream in = uc.getInputStream();
+```
+
+The static methods `getDefaultAllowUserInteraction()` and `setDefaultAllowUserInteraction()` determine the default behavior for `URLConnection` objects that have not set `allowUserInteraction` explicitly. Because the `allowUserInteraction` field is `static` (i.e., a class variable instead of an instance variable), setting it changes the default behavior for all instances of the `URLConnection` class that are created after `setDefaultAllowUserInteraction()` is called.
+
+For instance, the following code fragment checks to see whether user interaction is allowed by default with `getDefaultAllowUserInteraction()`. If user interaction is not allowed by default, the code uses `setDefaultAllowUserInteraction()` to make allowing user interaction the default behavior:
+
+```java
+if (!URLConnection.getDefaultAllowUserInteraction()) {
+  URLConnection.setDefaultAllowUserInteraction(true);
+}
+```
+
+### ``protected boolean doInput``
+A `URLConnection` can be used for reading from a server, writing to a server, or both. The protected boolean field `doInput` is `true` if the `URLConnection` can be used for reading, `false` if it cannot be. The default is `true`. To access this protected variable, use the public `getDoInput()` and `setDoInput()` methods:
+
+```java
+public void    setDoInput(boolean doInput)
+public boolean getDoInput()
+```
+
+```java
+try {
+  URL u = new URL("http://www.oreilly.com");
+  URLConnection uc = u.openConnection();
+  if (!uc.getDoInput()) {
+    uc.setDoInput(true);
+  }
+  // read from the connection...
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+### ``protected boolean doOutput``
+
+Programs can use a `URLConnection` to send output back to the server. The protected boolean field `doOutput` is `true` if the `URLConnection` can be used for writing, `false` if it cannot be; it is `false` by default. To access this protected variable, use the `getDoOutput()` and `setDoOutput()` methods:
+
+```java
+public void    setDoOutput(boolean dooutput)
+public boolean getDoOutput()
+```
+
+```java
+try {
+  URL u = new URL("http://www.oreilly.com");
+  URLConnection uc = u.openConnection();
+  if (!uc.getDoOutput()) {
+    uc.setDoOutput(true);
+  }
+  // write to the connection...
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+### ``protected boolean ifModifiedSince``
+
+Many clients, especially web browsers and proxies, keep caches of previously retrieved documents. If the user asks for the same document again, it can be retrieved from the cache. However, it may have changed on the server since it was last retrieved. The only way to tell is to ask the server. Clients can include an If-Modified-Since in the client request HTTP header. This header includes a date and time. If the document has changed since that time, the server should send it. Otherwise, it should not. Typically, this time is the last time the client fetched the document.
+
+```http
+GET / HTTP/1.1
+Host: login.ibiblio.org:56452
+Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+Connection: close
+If-Modified-Since: Fri, 31 Oct 2014 19:22:07 GMT
+```
+
+The client then loads the document from its cache. Not all web servers respect the If-Modified-Since field. Some will send the document whether it’s changed or not.
+
+The `ifModifiedSince` field in the `URLConnection` class specifies the date (in milliseconds since midnight, Greenwich Mean Time, January 1, 1970), which will be placed in the If-Modified-Since header field. Because `ifModifiedSince` is `protected`, programs should call the `getIfModifiedSince()` and `setIfModifiedSince()` methods to read or modify it:
+
+```java
+public long getIfModifiedSince()
+public void setIfModifiedSince(long ifModifiedSince)
+```
+
+Example 7-13. Set ``ifModifiedSince`` to 24 hours prior to now
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class Last24 {
+
+  public static void main (String[] args) {
+
+    // Initialize a Date object with the current date and time
+    Date today = new Date();
+    long millisecondsPerDay = 24 * 60 * 60 * 1000;
+
+    for (int i = 0; i < args.length; i++) {
+      try {
+        URL u = new URL(args[i]);
+        URLConnection uc = u.openConnection();
+        System.out.println("Original if modified since: "
+            + new Date(uc.getIfModifiedSince()));
+        uc.setIfModifiedSince((new Date(today.getTime()
+            - millisecondsPerDay)).getTime());
+        System.out.println("Will retrieve file if it's modified since "
+            + new Date(uc.getIfModifiedSince()));
+        try (InputStream in = new BufferedInputStream(uc.getInputStream())) {
+          Reader r = new InputStreamReader(in);
+          int c;
+          while ((c = r.read()) != -1) {
+            System.out.print((char) c);
+          }
+          System.out.println();
+        }
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+    }
+  }
+}
+```
+
+### ``protected boolean useCaches``
+
+Some clients, notably web browsers, can retrieve a document from a local cache, rather than retrieving it from a server. Applets may have access to the browser’s cache. Standalone applications can use the `java.net.ResponseCache` class. The `useCaches` variable determines whether a cache will be used if it’s available. The default value is `true`, meaning that the cache will be used; `false` means the cache won’t be used. Because `useCaches` is `protected`, programs access it using the `getUseCaches()` and `setUseCaches()` methods:
+
+```java
+public void    setUseCaches(boolean useCaches)
+public boolean getUseCaches()
+```
+
+This code fragment disables caching to ensure that the most recent version of the document is retrieved by setting `useCaches` to `false`:
+
+```java
+try {
+  URL u = new URL("http://www.sourcebot.com/");
+  URLConnection uc = u.openConnection();
+  uc.setUseCaches(false);
+  // read the document...
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+Two methods define the initial value of the `useCaches` field, `getDefaultUseCaches()` and `setDefaultUseCaches()`:
+
+```java
+public void    setDefaultUseCaches(boolean useCaches)
+public boolean getDefaultUseCaches()
+```
+
+Although nonstatic, these methods do set and get a static field that determines the default behavior for all instances of the `URLConnection` class created after the change. The next code fragment disables caching by default; after this code runs, `URLConnection`s that want caching must enable it explicitly using `setUseCaches(true)`:
+
+```java
+if (uc.getDefaultUseCaches()) {
+  uc.setDefaultUseCaches(false);
+}
+```
+
+### Timeouts
+
+Four methods query and modify the timeout values for connections; that is, how long the underlying socket will wait for a response from the remote end before throwing a `SocketTimeoutException`.
+
+```java
+public void setConnectTimeout(int timeout)
+public int  getConnectTimeout()
+public void setReadTimeout(int timeout)
+public int  getReadTimeout()
+```
+
+The `setConnectTimeout()`/`getConnectTimeout()` methods control how long the socket waits for the initial connection. The `setReadTimeout()`/`getReadTimeout()` methods control how long the input stream waits for data to arrive. All four methods measure timeouts in milliseconds. All four interpret zero as meaning never time out. Both setter methods throw an `IllegalArgumentException` if the timeout is negative.
+
+```java
+URL u = new URL("http://www.example.org");
+URLConnuction uc = u.openConnection();
+uc.setConnectTimeout(30000);
+uc.setReadTimeout(45000);
+```
+
+## Configuring the Client Request HTTP Header
+
