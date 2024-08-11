@@ -5908,3 +5908,716 @@ uc.setReadTimeout(45000);
 
 ## Configuring the Client Request HTTP Header
 
+An HTTP client (e.g., a browser) sends the server a request line and a header.
+
+```http
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Charset:ISO-8859-1,utf-8;q=0.7,*;q=0.3
+Accept-Encoding:gzip,deflate,sdch
+Accept-Language:en-US,en;q=0.8
+Cache-Control:max-age=0
+Connection:keep-alive
+Cookie:reddit_first=%7B%22firsttime%22%3A%20%22first%22%7D
+DNT:1
+Host:lesswrong.com
+User-Agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.31
+    (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31
+```
+
+A web server can use this information to serve different pages to different clients, to get and set cookies, to authenticate users through passwords, and more. Placing different fields in the header that the client sends and the server responds with does all of this.
+
+---
+
+ **TIP**
+
+**It’s important to understand that this is _not the HTTP header that the server sends to the client_ that is read by the various `getHeaderField()` and `getHeaderFieldKey()` methods discussed previously. This is the _HTTP header that the client sends to the server_.**
+
+
+---
+
+Each `URLConnection` sets a number of different name-value pairs in the header by default.
+
+```http
+User-Agent: Java/1.7.0_17
+Host: httpbin.org
+Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+Connection: close
+```
+
+You add headers to the HTTP header using the `setRequestProperty()` method before you open the connection:
+
+```java
+public void setRequestProperty(String name, String value)
+```
+
+The `setRequestProperty()` method adds a field to the header of this `URLConnection` with a specified name and value. This method can be used only before the connection is opened. It throws an `IllegalStateException` if the connection is already open. The `getRequestProperty()` method returns the value of the named field of the HTTP header used by this `URLConnection`.
+
+HTTP allows a single named request property to have multiple values. In this case, the separate values will be separated by commas.
+
+---
+ **TIP**
+
+**These methods only really have meaning when the URL being connected to is an _HTTP_ URL, because only the HTTP protocol makes use of headers like this. Though they could possibly have other meanings in other protocols, such as NNTP, this is really just an example of poor API design. These methods should be part of the more specific `HttpURLConnection` class, not the generic `URLConnection` class.**
+
+---
+
+For instance, web servers and clients store some limited persistent information with cookies. A cookie is a collection of name-value pairs. The server sends a cookie to a client using the response HTTP header. From that point forward, whenever the client requests a URL from that server, it includes a Cookie field in the HTTP request header that looks like this:
+
+```http
+Cookie: username=elharo; password=ACD0X9F23JJJn6G; session=100678945
+```
+
+This particular Cookie field sends three name-value pairs to the server. There’s no limit to the number of name-value pairs that can be included in any one cookie. Given a `URLConnection` object `uc`, you could add this cookie to the connection, like this:
+
+```http
+uc.setRequestProperty("Cookie",
+    "username=elharo; password=ACD0X9F23JJJn6G; session=100678945");
+```
+
+You can set the same property to a new value, but this changes the existing property value. To add an additional property value, use the `addRequestProperty()` method instead:
+
+```java
+public void addRequestProperty(String name, String value)
+```
+
+There’s no fixed list of legal headers. Servers usually ignore any headers they don’t recognize. HTTP does put a few restrictions on the content of the names and values of header fields. For instance, the names can’t contain whitespace and the values can’t contain any line breaks. Java enforces the restrictions on fields containing line breaks, but not much else. If a field contains a line break, `setRequestProperty()` and `addRequestProperty()` throw an `IllegalArgumentException`. Otherwise, it’s quite easy to make a `URLConnection` send malformed headers to the server, so be careful.
+
+If, for some reason, you need to inspect the headers in a `URLConnection`, there’s a standard getter method:
+
+```java
+public String getRequestProperty(String name)
+```
+
+Java also includes a method to get all the request properties for a connection as a `Map`:
+
+```java
+public Map<String,List<String>> getRequestProperties()
+```
+
+The keys are the header field names. The values are lists of property values. Both names and values are stored as strings.
+
+## Writing Data to a Server
+
+Sometimes you need to write data to a `URLConnection`, for example, when you submit a form to a web server using `POST` or upload a file using `PUT`. The `getOutputStream()` method returns an `OutputStream` on which you can write data for transmission to a server:
+
+```java
+public OutputStream getOutputStream()
+```
+
+A `URLConnection` doesn’t allow output by default, so you have to call `setDoOutput(true)` before asking for an output stream. When you set `doOutput` to true for an _http_ URL, the request method is changed from `GET` to `POST`.
+
+Once you have an `OutputStream`, buffer it by chaining it to a `BufferedOutputStream` or a `BufferedWriter`. You may also chain it to a `DataOutputStream`, an `OutputStreamWriter`, or some other class that’s more convenient to use than a raw `OutputStream`. For example:
+
+```java
+try {
+  URL u = new URL("http://www.somehost.com/cgi-bin/acgi");
+  // open the connection and prepare it to POST
+  URLConnection uc = u.openConnection();
+  uc.setDoOutput(true);
+
+  OutputStream raw = uc.getOutputStream();
+  OutputStream buffered = new BufferedOutputStream(raw);
+  OutputStreamWriter out = new OutputStreamWriter(buffered, "8859_1");
+  out.write("first=Julie&middle=&last=Harting&work=String+Quartet\r\n");
+  out.flush();
+  out.close();
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+Sending data with `POST` is almost as easy as with `GET`. Invoke `setDoOutput(true)` and use the `URLConnection`’s `getOutputStream()` method to write the query string rather than attaching it to the URL. Java buffers all the data written onto the output stream until the stream is closed. This enables it to calculate the value for the Content-length header. The complete transaction, including client request and server response
+
+```http
+% telnet www.cafeaulait.org 80
+Trying 152.19.134.41...
+Connected to www.cafeaulait.org.
+Escape character is '^]'.
+POST /books/jnp3/postquery.phtml HTTP/1.0
+Accept: text/plain
+Content-type: application/x-www-form-urlencoded
+Content-length: 63
+Connection: close
+Host: www.cafeaulait.org
+
+username=Elliotte+Rusty+Harold&email=elharo%40ibiblio%2eorg
+HTTP/1.1 200 OK
+Date: Sat, 04 May 2013 13:27:24 GMT
+Server: Apache
+Content-Style-Type: text/css
+Content-Length: 864
+Connection: close
+Content-Type: text/html; charset=utf-8
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Query Results</title>
+</head>
+<body>
+
+<h1>Query Results</h1>
+
+<p>You submitted the following name/value pairs:</p>
+
+<ul>
+<li>username = Elliotte Rusty Harold</li>
+<li>email = elharo@ibiblio.org</li>
+</ul>
+
+<hr />
+Last Modified July 25, 2012
+
+</body>
+</html>
+Connection closed by foreign host.
+```
+
+For that matter, as long as you control both the client and the server, you can use any other sort of data encoding you like.
+
+Example 7-14. Posting a form
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class FormPoster {
+
+  private URL url;
+  // from Chapter 5, Example 5-8
+  private QueryString query = new QueryString();
+
+  public FormPoster (URL url) {
+    if (!url.getProtocol().toLowerCase().startsWith("http")) {
+      throw new IllegalArgumentException(
+          "Posting only works for http URLs");
+    }
+    this.url = url;
+  }
+
+  public void add(String name, String value) {
+    query.add(name, value);
+  }
+
+  public URL getURL() {
+    return this.url;
+  }
+
+  public InputStream post() throws IOException {
+
+    // open the connection and prepare it to POST
+    URLConnection uc = url.openConnection();
+    uc.setDoOutput(true);
+    try (OutputStreamWriter out
+        = new OutputStreamWriter(uc.getOutputStream(), "UTF-8")) {
+
+      // The POST line, the Content-type header,
+      // and the Content-length headers are sent by the URLConnection.
+      // We just need to send the data
+      out.write(query.toString());
+      out.write("\r\n");
+      out.flush();
+    }
+
+    // Return the response
+    return uc.getInputStream();
+  }
+
+  public static void main(String[] args) {
+    URL url;
+    if (args.length > 0) {
+      try {
+        url = new URL(args[0]);
+      } catch (MalformedURLException ex) {
+        System.err.println("Usage: java FormPoster url");
+        return;
+      }
+    } else {
+      try {
+        url = new URL(
+            "http://www.cafeaulait.org/books/jnp4/postquery.phtml");
+      } catch (MalformedURLException ex) { // shouldn't happen
+        System.err.println(ex);
+        return;
+      }
+    }
+
+    FormPoster poster = new FormPoster(url);
+    poster.add("name", "Elliotte Rusty Harold");
+    poster.add("email", "elharo@ibiblio.org");
+
+    try (InputStream in = poster.post()) {
+      // Read the response
+      Reader r = new InputStreamReader(in);
+      int c;
+      while((c = r.read()) != -1) {
+        System.out.print((char) c);
+      }
+      System.out.println();
+    } catch (IOException ex) {
+      System.err.println(ex);
+    }
+  }
+}
+```
+
+```http
+% java -classpath .:jnp4e.jar FormPoster
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+        <title>Query Results</title>
+</head>
+<body>
+
+<h1>Query Results</h1>
+
+<p>You submitted the following name/value pairs:</p>
+
+<ul>
+<li>name = Elliotte Rusty Harold</li>
+<li>email = elharo@ibiblio.org
+</li>
+</ul>
+
+<hr />
+Last Modified May 10, 2013
+
+</body>
+</html>
+
+```
+
+To summarize, posting data to a form requires these steps:
+
+1. ==**Decide what name-value pairs you’ll send to the server-side program.**==
+2. ==**Write the server-side program that will accept and process the request. If it doesn’t use any custom data encoding, you can test this program using a regular HTML form and a web browser.**==
+3. ==**Create a query string in your Java program. The string should look like this:**==
+    
+    ==**name1=value1&name2=value2&name3=value3**==
+    
+    ==**Pass each name and value in the query string to `URLEncoder.encode()` before adding it to the query string.**==
+    
+4. ==**Open a `URLConnection` to the URL of the program that will accept the data.**==
+5. ==**Set `doOutput` to `true` by invoking `setDoOutput(true)`.**==
+6. ==**Write the query string onto the `URLConnection`’s `OutputStream`.**==
+7. ==**Close the `URLConnection`’s `OutputStream`.**==
+8. ==**Read the server response from the `URLConnection`’s `InputStream`.==**
+
+`GET` should only be used for safe operations that can be bookmarked and linked to. `POST` should be used for unsafe operations that should not be bookmarked or linked to.
+
+## Security Considerations for URLConnections
+
+`URLConnection` objects are subject to all the usual security restrictions about making network connections, reading or writing files, and so forth. For instance, a `URLConnection` can be created by an untrusted applet only if the `URLConnection` is pointing to the host that the applet came from. However, the details can be a little tricky because different URL schemes and their corresponding connections can have different security implications.
+
+**==Before attempting to connect a URL, you may want to know whether the connection will be allowed==**. For this purpose, the `URLConnection` class has a `getPermission()` method:
+
+```java
+public Permission getPermission() throws IOException
+```
+
+This returns a `java.security.Permission` object that specifies what permission is needed to connect to the URL. It returns `null` if no permission is needed (e.g., there’s no security manager in place). Subclasses of `URLConnection` return different subclasses of `java.security.Permission`. For instance, if the underlying URL points to _www.gwbush.com_, `getPermission()` returns a `java.net.SocketPermission` for the host _www.gwbush.com_ with the connect and resolve actions.
+
+## Guessing MIME Media Types
+
+If this were the best of all possible worlds, every protocol and every server would use standard MIME types to correctly specify the type of file being transferred. Unfortunately, that’s not the case. Not only do we have to deal with older protocols such as FTP that predate MIME, but many HTTP servers that should use MIME don’t provide MIME headers at all or lie and provide headers that are incorrect (usually because the server has been misconfigured). The `URLConnection` class provides two static methods to help programs figure out the MIME type of some data; you can use these if the content type just isn’t available or if you have reason to believe that the content type you’re given isn’t correct. The first of these is `URLConnection.guessContentTypeFromName()`:
+
+```java
+public static String guessContentTypeFromName(String name)
+```
+
+This method tries to guess the content type of an object based upon the extension in the filename portion of the object’s URL. It returns its best guess about the content type as a `String`. This guess is likely to be correct; people follow some fairly regular conventions when thinking up filenames.
+
+The guesses are determined by the _content-types.properties_ file, normally located in the _jre/lib_ directory. On Unix, Java may also look at the _mailcap_ file to help it guess.
+
+This method is not infallible by any means
+
+The second MIME type guesser method is `URLConnection.guessContentTypeFromStream()`:
+
+```java
+public static String guessContentTypeFromStream(InputStream in)
+```
+
+This method tries to guess the content type by looking at the first few bytes of data in the stream. For this method to work, the `InputStream` must support marking so that you can return to the beginning of the stream after the first bytes have been read. Java inspects the first 16 bytes of the `InputStream`, although sometimes fewer bytes are needed to make an identification.
+
+## HttpURLConnection
+
+The `java.net.HttpURLConnection` class is an abstract subclass of `URLConnection`; it provides some additional methods that are helpful when working specifically with _http_ URLs. In particular, it contains methods to get and set the request method, decide whether to follow redirects, get the response code and message, and figure out whether a proxy server is being used. It also includes several dozen mnemonic constants matching the various HTTP response codes. Finally, it overrides the `getPermission()` method from the `URLConnection` superclass, although it doesn’t change the semantics of this method at all.
+
+Because this class is abstract and its only constructor is protected, you can’t directly create instances of `HttpURLConnection`. However, if you construct a `URL` object using an _http_ URL and invoke its `openConnection()` method, the `URLConnection` object returned will be an instance of `HttpURLConnection`. Cast that `URLConnection` to `HttpURLConnection` like this:
+
+```java
+URL u = new URL("http://lesswrong.com/");
+URLConnection uc = u.openConnection();
+HttpURLConnection http = (HttpURLConnection) uc;
+//****
+URL u = new URL("http://lesswrong.com/");
+HttpURLConnection http = (HttpURLConnection) u.openConnection();
+```
+
+### The Request Method
+
+When a web client contacts a web server, the first thing it sends is a request line. Typically, this line begins with `GET` and is followed by the path of the resource that the client wants to retrieve and the version of the HTTP protocol that the client understands.
+
+```http
+GET /catalog/jfcnut/index.html HTTP/1.0
+```
+
+By default, `HttpURLConnection` uses the `GET` method. However, you can change this with the `setRequestMethod()` method:
+
+```java
+public void setRequestMethod(String method) throws ProtocolException
+```
+
+The method argument should be one of these seven case-sensitive strings:
+
+- `GET`
+- `POST`
+- `HEAD`
+- `PUT`
+- `DELETE`
+- `OPTIONS`
+- `TRACE`
+
+If it’s some other method, then a `java.net.ProtocolException`, a subclass of `IOException`, is thrown. However, it’s generally not enough to simply set the request method. Depending on what you’re trying to do, you may need to adjust the HTTP header and provide a message body as well.
+
+---
+
+ **TIP**
+
+**Some web servers support additional, nonstandard request methods. For instance, WebDAV requires servers to support `PROPFIND`, `PROPPATCH`, `MKCOL`, `COPY`, `MOVE`, `LOCK`, and `UNLOCK`. However, Java doesn’t support any of these.**
+
+---
+
+#### HEAD
+
+The `HEAD` function is possibly the simplest of all the request methods. It behaves much like `GET`. However, it tells the server only to return the HTTP header, not to actually send the file. The most common use of this method is to check whether a file has been modified since the last time it was cached.
+
+Example 7-15. Get the time when a URL was last changed
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+ public class LastModified {
+
+  public static void main(String[] args) {
+    for (int i = 0; i < args.length; i++) {
+      try {
+        URL u = new URL(args[i]);
+        HttpURLConnection http = (HttpURLConnection) u.openConnection();
+        http.setRequestMethod("HEAD");
+        System.out.println(u + " was last modified at "
+            + new Date(http.getLastModified()));
+      } catch (MalformedURLException ex) {
+        System.err.println(args[i] + " is not a URL I understand");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+      System.out.println();
+    }
+  }
+}
+```
+
+It wasn’t absolutely necessary to use the `HEAD` method here. You’d have gotten the same results with `GET`. But if you used `GET`, the entire file at _http://www.ibiblio.org/xml/_ would have been sent across the network, whereas all you cared about was one line in the header. When you can use `HEAD`, it’s much more efficient to do so.
+
+#### DELETE
+
+The `DELETE` method removes a file at a specified URL from a web server. Because this request is an obvious security risk, not all servers will be configured to support it, and those that are will generally demand some sort of authentication. A typical `DELETE` request looks like this:
+
+```http
+DELETE /javafaq/2008march.html HTTP/1.1
+Host: www.ibiblio.org
+Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+Connection: close
+```
+
+```http
+HTTP/1.1 405 Method Not Allowed
+Date: Sat, 04 May 2013 13:22:12 GMT
+Server: Apache
+Allow: GET,HEAD,POST,OPTIONS,TRACE
+Content-Length: 334
+Connection: close
+Content-Type: text/html; charset=iso-8859-1
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>405 Method Not Allowed</title>
+</head><body>
+<h1>Method Not Allowed</h1>
+<p>The requested method DELETE is not allowed for the URL
+   /javafaq/2008march.html.</p>
+<hr>
+<address>Apache Server at www.ibiblio.org Port 80</address>
+</body></html>
+```
+
+#### PUT
+
+```http
+PUT /blog/wp-app.php/service/pomdoros.html HTTP/1.1
+Host: www.elharo.com
+Authorization: Basic ZGFmZnk6c2VjZXJldA==
+Content-Type: application/atom+xml;type=entry
+Content-Length: 329
+If-Match: "e180ee84f0671b1"
+
+<?xml version="1.0" ?>
+<entry xmlns="http://www.w3.org/2005/Atom">
+ <title>The Power of Pomodoros</title>
+ <id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>
+ <updated>2013-02-23T19:22:11Z</updated>
+ <author><name>Elliotte Harold</name></author>
+ <content>Until recently, I hadn't paid much attention to...</content>
+</entry>
+```
+
+As with deleting files, some sort of authentication is usually required and the server must be specially configured to support `PUT`. The details vary from server to server. Most web servers do not support `PUT` out of the box.
+
+#### OPTIONS
+
+The `OPTIONS` request method asks what options are supported for a particular URL. If the request URL is an asterisk (*), the request applies to the server as a whole rather than to one particular URL on the server.
+
+```http
+OPTIONS /xml/ HTTP/1.1
+Host: www.ibiblio.org
+Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+Connection: close
+```
+
+The server responds to an `OPTIONS` request by sending an HTTP header with a list of the commands allowed on that URL.
+
+```http
+HTTP/1.1 200 OK
+Date: Sat, 04 May 2013 13:52:53 GMT
+Server: Apache
+Allow: GET,HEAD,POST,OPTIONS,TRACE
+Content-Style-Type: text/css
+Content-Length: 0
+Connection: close
+Content-Type: text/html; charset=utf-8
+```
+
+The list of legal commands is found in the Allow field. However, in practice these are just the commands the server understands, not necessarily the ones it will actually perform on that URL.
+
+#### TRACE
+
+The `TRACE` request method sends the HTTP header that the server received from the client. The main reason for this information is to see what any proxy servers between the server and client might be changing.
+
+```http
+TRACE /xml/ HTTP/1.1
+Hello: Push me
+Host: www.ibiblio.org
+Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+Connection: close
+```
+
+```http
+HTTP/1.1 200 OK
+Date: Sat, 04 May 2013 14:41:40 GMT
+Server: Apache
+Connection: close
+Content-Type: message/http
+
+TRACE /xml/ HTTP/1.1
+Hello: Push me
+Host: www.ibiblio.org
+Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+Connection: close
+```
+
+### Disconnecting from the Server
+
+HTTP 1.1 supports persistent connections that allow multiple requests and responses to be sent over a single TCP socket. However, when Keep-Alive is used, the server won’t immediately close a connection simply because it has sent the last byte of data to the client. The client may, after all, send another request. Servers will time out and close the connection in as little as 5 seconds of inactivity. However, **==it’s still preferred for the client to close the connection as soon as it knows it’s done.==**
+
+The `HttpURLConnection` class transparently supports HTTP Keep-Alive unless you explicitly turn it off. That is, it will reuse sockets if you connect to the same server again before the server has closed the connection. Once you know you’re done talking to a particular host, the `disconnect()` method enables a client to break the connection:
+
+```java
+public abstract void disconnect()
+```
+
+If any streams are still open on this connection, `disconnect()` closes them. However, the reverse is not true. Closing a stream on a persistent connection does not close the socket and disconnect.
+
+### Handling Server Responses
+
+The first line of an HTTP server’s response includes a numeric code and a message indicating what sort of response is made. For instance, the most common response is 200 OK, indicating that the requested document was found. For example:
+
+```http
+HTTP/1.1 200 OK
+Cache-Control:max-age=3, must-revalidate
+Connection:Keep-Alive
+Content-Type:text/html; charset=UTF-8
+Date:Sat, 04 May 2013 14:01:16 GMT
+Keep-Alive:timeout=5, max=200
+Server:Apache
+Transfer-Encoding:chunked
+Vary:Accept-Encoding,Cookie
+WP-Super-Cache:Served supercache file from PHP
+
+<HTML>
+<HEAD>
+rest of document follows...
+```
+
+Often all you need from the response message is the numeric response code. `HttpURLConnection` also has a `getResponseCode()` method to return this as an `int`:
+
+```java
+public int getResponseCode() throws IOException
+```
+
+The text string that follows the response code is called the _response message_ and is returned by the aptly named `getResponseMessage()` method:
+
+```java
+public String getResponseMessage() throws IOException
+```
+
+Example 7-16. A ``SourceViewer`` that includes the response code and message
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class SourceViewer3 {
+
+  public static void main (String[] args) {
+    for (int i = 0; i < args.length; i++) {
+      try {
+        // Open the URLConnection for reading
+        URL u = new URL(args[i]);
+        HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+        int code = uc.getResponseCode();
+        String response = uc.getResponseMessage();
+        System.out.println("HTTP/1.x " + code + " " + response);
+        for (int j = 1; ; j++) {
+          String header = uc.getHeaderField(j);
+          String key = uc.getHeaderFieldKey(j);
+          if (header == null || key == null) break;
+          System.out.println(uc.getHeaderFieldKey(j) + ": " + header);
+        }
+        System.out.println();
+
+        try (InputStream in = new BufferedInputStream(uc.getInputStream())) {
+          // chain the InputStream to a Reader
+          Reader r = new InputStreamReader(in);
+          int c;
+          while ((c = r.read()) != -1) {
+            System.out.print((char) c);
+          }
+        }
+      } catch (MalformedURLException ex) {
+        System.err.println(args[0] + " is not a parseable URL");
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+    }
+  }
+}
+```
+
+#### Error conditions
+
+On occasion, the server encounters an error but returns useful information in the message body nonetheless.
+
+The `getErrorStream()` method returns an `InputStream` containing this page or `null` if no error was encountered or no data returned:
+
+```java
+public InputStream getErrorStream()
+```
+
+Generally, you’ll invoke `getErrorStream()` inside a `catch` block after `getInputStream()` has failed.
+
+Example 7-17. Download a web page with a ``URLConnection``
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class SourceViewer4 {
+
+  public static void main (String[] args) {
+    try {
+      URL u = new URL(args[0]);
+      HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+      try (InputStream raw = uc.getInputStream()) {
+        printFromStream(raw);
+      } catch (IOException ex) {
+        printFromStream(uc.getErrorStream());
+      }
+    } catch (MalformedURLException ex) {
+      System.err.println(args[0] + " is not a parseable URL");
+    } catch (IOException ex) {
+      System.err.println(ex);
+    }
+  }
+
+  private static void printFromStream(InputStream raw) throws IOException {
+    try (InputStream buffer = new BufferedInputStream(raw)) {
+      Reader reader = new InputStreamReader(buffer);
+      int c;
+      while ((c = reader.read()) != -1) {
+        System.out.print((char) c);
+      }
+    }
+  }
+}
+```
+
+#### Redirects
+
+The 300-level response codes all indicate some sort of redirect; that is, the requested resource is no longer available at the expected location but it may be found at some other location. When encountering such a response, most browsers automatically load the document from its new location. However, this can be a security risk, because it has the potential to move the user from a trusted site to an untrusted one, perhaps without the user even noticing.
+
+By default, an `HttpURLConnection` follows redirects. However, the `HttpURLConnection` class has two static methods that let you decide whether to follow redirects:
+
+```java
+public static boolean getFollowRedirects()
+public static void    setFollowRedirects(boolean follow)
+```
+
+The `getFollowRedirects()` method returns `true` if redirects are being followed, `false` if they aren’t. With an argument of `true`, the `setFollowRedirects()` method makes `HttpURLConnection` objects follow redirects. With an argument of `false`, it prevents them from following redirects. Because these are static methods, they change the behavior of all `HttpURLConnection` objects constructed after the method is invoked. The `setFollowRedirects()` method may throw a `SecurityException` if the security manager disallows the change. Applets especially are not allowed to change this value.
+
+Java has two methods to configure redirection on an instance-by-instance basis. These are:
+
+```java
+public boolean getInstanceFollowRedirects()
+public void    setInstanceFollowRedirects(boolean followRedirects)
+```
+
+### Proxies
+
+Many users behind firewalls or using AOL or other high-volume ISPs access the Web through proxy servers. The `usingProxy()` method tells you whether the particular `HttpURLConnection` is going through a proxy server:
+
+```java
+public abstract boolean usingProxy()
+```
+
+It returns `true` if a proxy is being used, `false` if not. In some contexts, the use of a proxy server may have security implications.
+
+### Streaming Mode
+
+Every request sent to an HTTP server has an HTTP header. One field in this header is the Content-length (i.e., the number of bytes in the body of the request). The header comes before the body. However, to write the header you need to know the length of the body, which you may not have yet. Normally, the way Java solves this catch-22 is by caching everything you write onto the `OutputStream` retrieved from the `HttpURLConnection` until the stream is closed. At that point, it knows how many bytes are in the body so it has enough information to write the Content-length header.
+
+This scheme is fine for small requests sent in response to typical web forms. However, it’s burdensome for responses to very long forms or some SOAP messages. It’s very wasteful and slow for medium or large documents sent with HTTP `PUT`. It’s much more efficient if Java doesn’t have to wait for the last byte of data to be written before sending the first byte of data over the network. Java offers two solutions to this problem. If you know the size of your data—for instance, you’re uploading a file of known size using HTTP `PUT`—you can tell the `HttpURLConnection` object the size of that data. If you don’t know the size of the data in advance, you can use chunked transfer encoding instead. In chunked transfer encoding, the body of the request is sent in multiple pieces, each with its own separate content length. To turn on chunked transfer encoding, just pass the size of the chunks you want to the `setChunkedStreamingMode()` method before you connect the URL:
+
+```java
+public void setChunkedStreamingMode(int chunkLength)
+```
+
+As long as you’re using the `URLConnection` class instead of raw sockets and as long as the server supports chunked transfer encoding, it should all just work without any further changes to your code. However, chunked transfer encoding does get in the way of authentication and redirection. If you’re trying to send chunked files to a redirected URL or one that requires password authentication, an `HttpRetryException` will be thrown.
+
+don’t use chunked transfer encoding unless you really need it. As with most performance advice, this means you shouldn’t implement this optimization until measurements prove the nonstreaming default is a bottleneck.
+
+If you do happen to know the size of the request data in advance, you can optimize the connection by providing this information to the `HttpURLConnection` object. If you do this, Java can start streaming the data over the network immediately. Otherwise, it has to cache everything you write in order to determine the content length, and only send it over the network after you’ve closed the stream. If you know exactly how big your data is, pass that number to the `setFixedLengthStreamingMode()` method:
+
+```java
+public void setFixedLengthStreamingMode(int contentLength)
+public void setFixedLengthStreamingMode(long contentLength) // Java 7
+```
+
+Because this number can actually be larger than the maximum size of an `int`, in Java 7 and later you can use a `long` instead.
+
+Java will use this number in the Content-length HTTP header field. However, if you then try to write more or less than the number of bytes given here, Java will throw an `IOException`. Of course, that happens later, when you’re writing data, not when you first call this method. The `setFixedLengthStreamingMode()` method itself will throw an `IllegalArgumentException` if you pass in a negative number, or an `IllegalStateException` if the connection is connected or has already been set to chunked transfer encoding.
+
+Fixed-length streaming mode is transparent on the server side. Servers neither know nor care how the Content-length was set, as long as it’s correct. However, like chunked transfer encoding, streaming mode does interfere with authentication and redirection. If either of these is required for a given URL, an `HttpRetryException` will be thrown; you have to manually retry. Therefore, don’t use this mode unless you really need it.
+
+# Chapter 8. Sockets for Clients
