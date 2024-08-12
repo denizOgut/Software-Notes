@@ -7469,3 +7469,397 @@ public void setTrafficClass(int trafficClass) throws SocketException
 
 ## Socket Exceptions
 
+```java
+public class SocketException extends IOException
+```
+
+However, knowing that a problem occurred is often not sufficient to deal with the problem. There are several subclasses of `SocketException` that provide more information about what went wrong and why:
+
+```java
+public class BindException extends SocketException
+public class ConnectException extends SocketException
+public class NoRouteToHostException extends SocketException
+```
+
+A `BindException` is thrown if you try to construct a `Socket` or `ServerSocket` object on a local port that is in use or that you do not have sufficient privileges to use. A `ConnectException` is thrown when a connection is refused at the remote host, which usually happens because the host is busy or no process is listening on that port. Finally, a `NoRouteToHostException` indicates that the connection has timed out.
+
+The `java.net` package also includes `ProtocolException`, which is a direct subclass of `IOException`:
+
+```java
+public class ProtocolException extends IOException
+```
+
+This is thrown when data is received from the network that somehow violates the TCP/IP specification.
+
+None of these exception classes have any special methods you wouldn’t find in any other exception class, but you can take advantage of these subclasses to provide more informative error messages or to decide whether retrying the offending operation is likely to be successful.
+
+## Sockets in GUI Applications
+
+### Whois
+
+Whois is a simple directory service protocol defined in RFC 954; it was originally designed to keep track of administrators responsible for Internet hosts and domains. A whois client connects to one of several central servers and requests directory information for a person or persons; it can usually give you a phone number, an email address
+
+The basic structure of the whois protocol is:
+
+1. The client opens a TCP socket to port 43 on the server.
+2. The client sends a search string terminated by a carriage return/linefeed pair (\r\n). The search string can be a name, a list of names, or a special command, as discussed shortly. You can also search for domain names, like _www.oreilly.com_ or _netscape.com_, which give you information about a network.
+3. The server sends an unspecified amount of human-readable information in response to the command and closes the connection.
+4. The client displays this information to the user.
+
+Table 8-3. Whois prefixes
+
+| Prefix            | Meaning                                                                        |
+| ----------------- | ------------------------------------------------------------------------------ |
+| Domain            | Find only domain records.                                                      |
+| Gateway           | Find only gateway records.                                                     |
+| Group             | Find only group records.                                                       |
+| Host              | Find only host records.                                                        |
+| Network           | Find only network records.                                                     |
+| Organization      | Find only organization records.                                                |
+| Person            | Find only person records.                                                      |
+| ASN               | Find only autonomous system number records.                                    |
+| Handle or !       | Search only for matching handles.                                              |
+| Mailbox or @      | Search only for matching email addresses.                                      |
+| Name or :         | Search only for matching names.                                                |
+| Expand or *       | Search only for group records and show all individuals in that group.          |
+| Full or =         | Show complete record for each match.                                           |
+| Partial or suffix | Match records that start with the given string.                                |
+| Summary or $      | Show just the summary, even if there’s only one match.                         |
+| SUBdisplay or %   | Show the users of the specified host, the hosts on the specified network, etc. |
+
+A good whois client doesn’t rely on users remembering arcane keywords; rather, it shows them the options. Supplying this requires a graphical user interface for end users and a better API for client programmers.
+
+### A Network Client Library
+
+It’s best to think of network protocols like whois in terms of the bits and bytes that move across the network, whether as packets, datagrams, or streams. No network protocol neatly fits into a GUI (with the arguable exception of the Remote Framebuffer Protocol used by VNC and X11). It’s usually best to encapsulate the network code into a separate library that the GUI code can invoke as needed.
+
+Example 8-7. The Whois class
+
+```java
+import java.net.*;
+import java.io.*;
+
+public class Whois {
+
+  public final static int DEFAULT_PORT = 43;
+  public final static String DEFAULT_HOST = "whois.internic.net";
+
+  private int port = DEFAULT_PORT;
+  private InetAddress host;
+
+  public Whois(InetAddress host, int port) {
+    this.host = host;
+    this.port = port;
+  }
+
+  public Whois(InetAddress host) {
+    this(host, DEFAULT_PORT);
+  }
+
+  public Whois(String hostname, int port)
+   throws UnknownHostException {
+    this(InetAddress.getByName(hostname), port);
+  }
+
+  public Whois(String hostname) throws UnknownHostException {
+    this(InetAddress.getByName(hostname), DEFAULT_PORT);
+  }
+
+  public Whois() throws UnknownHostException {
+    this(DEFAULT_HOST, DEFAULT_PORT);
+  }
+
+  // Items to search for
+  public enum SearchFor {
+    ANY("Any"), NETWORK("Network"), PERSON("Person"), HOST("Host"),
+    DOMAIN("Domain"), ORGANIZATION("Organization"), GROUP("Group"),
+    GATEWAY("Gateway"), ASN("ASN");
+
+    private String label;
+
+    private SearchFor(String label) {
+      this.label = label;
+    }
+  }
+
+  // Categories to search in
+  public enum SearchIn {
+    ALL(""), NAME("Name"), MAILBOX("Mailbox"), HANDLE("!");
+
+    private String label;
+
+    private SearchIn(String label) {
+      this.label = label;
+    }
+  }
+
+  public String lookUpNames(String target, SearchFor category,
+      SearchIn group, boolean exactMatch) throws IOException {
+
+    String suffix = "";
+    if (!exactMatch) suffix = ".";
+
+    String prefix = category.label + " " + group.label;
+    String query = prefix + target + suffix;
+
+    Socket socket = new Socket();
+    try {
+      SocketAddress address = new InetSocketAddress(host, port);
+      socket.connect(address);
+      Writer out
+          = new OutputStreamWriter(socket.getOutputStream(), "ASCII");
+      BufferedReader in = new BufferedReader(new
+          InputStreamReader(socket.getInputStream(), "ASCII"));
+      out.write(query + "\r\n");
+      out.flush();
+
+      StringBuilder response = new StringBuilder();
+      String theLine = null;
+      while ((theLine = in.readLine()) != null) {
+        response.append(theLine);
+        response.append("\r\n");
+      }
+      return response.toString();
+    } finally {
+      socket.close();
+    }
+  }
+
+  public InetAddress getHost() {
+    return this.host;
+  }
+
+  public void setHost(String host)
+      throws UnknownHostException {
+    this.host = InetAddress.getByName(host);
+  }
+}
+```
+
+Example 8-8. A graphical Whois client interface
+
+```java
+import java.awt.*;
+import java.awt.event.*;
+import java.net.*;
+import javax.swing.*;
+
+public class WhoisGUI extends JFrame {
+
+  private JTextField searchString = new JTextField(30);
+  private JTextArea names = new JTextArea(15, 80);
+  private JButton findButton = new JButton("Find");;
+  private ButtonGroup searchIn = new ButtonGroup();
+  private ButtonGroup searchFor = new ButtonGroup();
+  private JCheckBox exactMatch = new JCheckBox("Exact Match", true);
+  private JTextField chosenServer = new JTextField();
+  private Whois server;
+
+  public WhoisGUI(Whois whois) {
+    super("Whois");
+    this.server = whois;
+    Container pane = this.getContentPane();
+
+    Font f = new Font("Monospaced", Font.PLAIN, 12);
+    names.setFont(f);
+    names.setEditable(false);
+
+    JPanel centerPanel = new JPanel();
+    centerPanel.setLayout(new GridLayout(1, 1, 10, 10));
+    JScrollPane jsp = new JScrollPane(names);
+    centerPanel.add(jsp);
+    pane.add("Center", centerPanel);
+
+    // You don't want the buttons in the south and north
+    // to fill the entire sections so add Panels there
+    // and use FlowLayouts in the Panel
+    JPanel northPanel = new JPanel();
+    JPanel northPanelTop = new JPanel();
+    northPanelTop.setLayout(new FlowLayout(FlowLayout.LEFT));
+    northPanelTop.add(new JLabel("Whois: "));
+    northPanelTop.add("North", searchString);
+    northPanelTop.add(exactMatch);
+    northPanelTop.add(findButton);
+    northPanel.setLayout(new BorderLayout(2,1));
+    northPanel.add("North", northPanelTop);
+    JPanel northPanelBottom = new JPanel();
+    northPanelBottom.setLayout(new GridLayout(1,3,5,5));
+    northPanelBottom.add(initRecordType());
+    northPanelBottom.add(initSearchFields());
+    northPanelBottom.add(initServerChoice());
+    northPanel.add("Center", northPanelBottom);
+
+    pane.add("North", northPanel);
+
+    ActionListener al = new LookupNames();
+    findButton.addActionListener(al);
+    searchString.addActionListener(al);
+  }
+
+  private JPanel initRecordType() {
+    JPanel p = new JPanel();
+    p.setLayout(new GridLayout(6, 2, 5, 2));
+    p.add(new JLabel("Search for:"));
+    p.add(new JLabel(""));
+
+    JRadioButton any = new JRadioButton("Any", true);
+    any.setActionCommand("Any");
+    searchFor.add(any);
+    p.add(any);
+
+    p.add(this.makeRadioButton("Network"));
+    p.add(this.makeRadioButton("Person"));
+    p.add(this.makeRadioButton("Host"));
+    p.add(this.makeRadioButton("Domain"));
+    p.add(this.makeRadioButton("Organization"));
+    p.add(this.makeRadioButton("Group"));
+    p.add(this.makeRadioButton("Gateway"));
+    p.add(this.makeRadioButton("ASN"));
+
+    return p;
+  }
+
+  private JRadioButton makeRadioButton(String label) {
+    JRadioButton button = new JRadioButton(label, false);
+    button.setActionCommand(label);
+    searchFor.add(button);
+    return button;
+  }
+
+  private JRadioButton makeSearchInRadioButton(String label) {
+    JRadioButton button = new JRadioButton(label, false);
+    button.setActionCommand(label);
+    searchIn.add(button);
+    return button;
+  }
+
+  private JPanel initSearchFields() {
+    JPanel p = new JPanel();
+    p.setLayout(new GridLayout(6, 1, 5, 2));
+    p.add(new JLabel("Search In: "));
+
+    JRadioButton all = new JRadioButton("All", true);
+    all.setActionCommand("All");
+    searchIn.add(all);
+    p.add(all);
+
+    p.add(this.makeSearchInRadioButton("Name"));
+    p.add(this.makeSearchInRadioButton("Mailbox"));
+    p.add(this.makeSearchInRadioButton("Handle"));
+
+    return p;
+  }
+
+  private JPanel initServerChoice() {
+    final JPanel p = new JPanel();
+    p.setLayout(new GridLayout(6, 1, 5, 2));
+    p.add(new JLabel("Search At: "));
+
+    chosenServer.setText(server.getHost().getHostName());
+    p.add(chosenServer);
+    chosenServer.addActionListener( new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent event) {
+        try {
+          server = new Whois(chosenServer.getText());
+        } catch (UnknownHostException ex) {
+           JOptionPane.showMessageDialog(p,
+             ex.getMessage(), "Alert", JOptionPane.ERROR_MESSAGE);
+        }
+      }
+    } );
+
+    return p;
+  }
+
+  private class LookupNames implements ActionListener {
+
+    @Override
+    public void actionPerformed(ActionEvent event) {
+      names.setText("");
+      SwingWorker<String, Object> worker = new Lookup();
+      worker.execute();
+    }
+  }
+
+  private class Lookup extends SwingWorker<String, Object> {
+
+    @Override
+    protected String doInBackground() throws Exception {
+      Whois.SearchIn group = Whois.SearchIn.ALL;
+      Whois.SearchFor category = Whois.SearchFor.ANY;
+
+      String searchForLabel = searchFor.getSelection().getActionCommand();
+      String searchInLabel = searchIn.getSelection().getActionCommand();
+
+      if (searchInLabel.equals("Name")) group = Whois.SearchIn.NAME;
+      else if (searchInLabel.equals("Mailbox")) {
+        group = Whois.SearchIn.MAILBOX;
+      } else if (searchInLabel.equals("Handle")) {
+        group = Whois.SearchIn.HANDLE;
+      }
+
+      if (searchForLabel.equals("Network")) {
+        category = Whois.SearchFor.NETWORK;
+      } else if (searchForLabel.equals("Person")) {
+        category = Whois.SearchFor.PERSON;
+      } else if (searchForLabel.equals("Host")) {
+        category = Whois.SearchFor.HOST;
+      } else if (searchForLabel.equals("Domain")) {
+        category = Whois.SearchFor.DOMAIN;
+      } else if (searchForLabel.equals("Organization")) {
+        category = Whois.SearchFor.ORGANIZATION;
+      } else if (searchForLabel.equals("Group")) {
+        category = Whois.SearchFor.GROUP;
+      } else if (searchForLabel.equals("Gateway")) {
+        category = Whois.SearchFor.GATEWAY;
+      } else if (searchForLabel.equals("ASN")) {
+        category = Whois.SearchFor.ASN;
+      }
+
+      server.setHost(chosenServer.getText());
+      return server.lookUpNames(searchString.getText(),
+         category, group, exactMatch.isSelected());
+    }
+
+    @Override
+    protected void done() {
+      try {
+        names.setText(get());
+      } catch (Exception ex) {
+        JOptionPane.showMessageDialog(WhoisGUI.this,
+            ex.getMessage(), "Lookup Failed", JOptionPane.ERROR_MESSAGE);
+      }
+    }
+  }
+
+  public static void main(String[] args) {
+    try {
+      Whois server = new Whois();
+      WhoisGUI a = new WhoisGUI(server);
+      a.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+      a.pack();
+      EventQueue.invokeLater(new FrameShower(a));
+    } catch (UnknownHostException ex) {
+      JOptionPane.showMessageDialog(null, "Could not locate default host "
+          + Whois.DEFAULT_HOST, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
+  private static class FrameShower implements Runnable {
+
+    private final Frame frame;
+
+    FrameShower(Frame frame) {
+      this.frame = frame;
+    }
+
+    @Override
+    public void run() {
+     frame.setVisible(true);
+    }
+  }
+}
+```
+
+# Chapter 9. Sockets for Servers
