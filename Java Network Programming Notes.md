@@ -6621,3 +6621,851 @@ Java will use this number in the Content-length HTTP header field. However, if y
 Fixed-length streaming mode is transparent on the server side. Servers neither know nor care how the Content-length was set, as long as it’s correct. However, like chunked transfer encoding, streaming mode does interfere with authentication and redirection. If either of these is required for a given URL, an `HttpRetryException` will be thrown; you have to manually retry. Therefore, don’t use this mode unless you really need it.
 
 # Chapter 8. Sockets for Clients
+
+**==Data is transmitted across the Internet in packets of finite size called _datagrams_. Each datagram contains a _header_ and a _payload_. The header contains the address and port to which the packet is going, the address and port from which the packet came, a checksum to detect data corruption, and various other housekeeping information used to ensure reliable transmission. The payload contains the data itself.==** However, because datagrams have a finite length, it’s often necessary to split the data across multiple packets and reassemble it at the destination. It’s also possible that one or more packets may be lost or corrupted in transit and need to be retransmitted or that packets arrive out of order and need to be reordered. Keeping track of this—splitting the data into packets, generating headers, parsing the headers of incoming packets, keeping track of what packets have and haven’t been received, and so on—is a lot of work and requires a lot of intricate code.
+
+Sockets allow the programmer to treat a network connection as just another stream onto which bytes can be written and from which bytes can be read. Sockets shield the programmer from low-level details of the network, such as error detection, packet sizes, packet splitting, packet retransmission, network addresses, and more.
+
+## Using Sockets
+
+A socket is a connection between two hosts. It can perform seven basic operations:
+
+- ==**Connect to a remote machine**==
+- ==**Send data**==
+- ==**Receive data**==
+- ==**Close a connection**==
+- ==**Bind to a port**==
+- ==**Listen for incoming data**==
+- ==**Accept connections from remote machines on the bound port==**
+
+Java’s `Socket` class, which is used by both clients and servers, has methods that correspond to the first four of these operations. The last three operations are needed only by servers, which wait for clients to connect to them. They are implemented by the `ServerSocket` class, which is discussed in the next chapter. Java programs normally use client sockets in the following fashion:
+
+- ==**The program creates a new socket with a constructor.**==
+- ==**The socket attempts to connect to the remote host.==**
+
+Once the connection is established, the local and remote hosts get input and output streams from the socket and use those streams to send data to each other. This connection is **==_full-duplex_. Both hosts can send and receive data simultaneously. What the data means depends on the protocol==**; different commands are sent to an FTP server than to an HTTP server. There will normally be some agreed-upon handshaking followed by the transmission of data from one to the other.
+
+When the transmission of data is complete, one or both sides close the connection. Some protocols, such as HTTP 1.0, require the connection to be closed after each request is serviced. Others, such as FTP and HTTP 1.1, allow multiple requests to be processed in a single connection.
+
+### Investigating Protocols with Telnet
+
+**==The sockets themselves are simple enough; however, the protocols to communicate with different servers make life complex.==**
+
+### Reading from Servers with Sockets
+
+Let’s begin with a simple example. You’re going to connect to the daytime server at the National Institute for Standards and Technology (NIST) and ask it for the current time. This protocol is defined in [RFC 867](https://tools.ietf.org/html/rfc867). Reading that, you see that the daytime server listens on port 13, and that the server sends the time in a human-readable format and closes the connection
+
+```http
+$ telnet time.nist.gov 13
+Trying 129.6.15.28...
+Connected to time.nist.gov.
+Escape character is '^]'.
+
+56375 13-03-24 13:37:50 50 0 0 888.8 UTC(NIST) *
+Connection closed by foreign host.
+```
+
+The line “56375 13-03-24 13:37:50 50 0 0 888.8 UTC(NIST)” is sent by the daytime server. When you read the `Socket`’s `InputStream`, this is what you will get. The other lines are produced either by the Unix shell or by the Telnet program.
+
+how to retrieve this same data programmatically using sockets. First, open a socket to _time.nist.gov_ on port 13:
+
+```java
+Socket socket = new Socket("time.nist.gov", 13);
+```
+
+This doesn’t just create the object. It actually makes the connection across the network. If the connection times out or fails because the server isn’t listening on port 13, then the constructor throws an `IOException`
+
+```java
+try (Socket socket = new Socket("time.nist.gov", 13)) {
+  // read from the socket...
+} catch (IOException ex) {
+  System.err.println("Could not connect to time.nist.gov");
+}
+```
+
+**==The next step is optional but highly recommended. Set a timeout on the connection using the `setSoTimeout()` method.==** Timeouts are measured in milliseconds, so this statement sets the socket to time out after 15 seconds of non-responsiveness:
+
+```java
+socket.setSoTimeout(15000);
+```
+
+Setting a timeout on the socket means that each read from or write to the socket will take at most a certain number of milliseconds. If a server hangs while you’re connected to it, you will be notified with a `SocketTimeoutException`. Exactly how long a timeout to set depends on the needs of your application and how responsive you expect the server to be
+
+Once you’ve opened the socket and set its timeout, call `getInputStream()` to return an `InputStream` you can use to read bytes from the socket. In general, a server can send any bytes at all; but in this specific case, the protocol specifies that those bytes must be ASCII:
+
+```java
+InputStream in = socket.getInputStream();
+StringBuilder time = new StringBuilder();
+InputStreamReader reader = new InputStreamReader(in, "ASCII");
+for (int c = reader.read(); c != -1; c = reader.read()) {
+  time.append((char) c);
+}
+System.out.println(time);
+```
+
+Example 8-1. A daytime protocol client
+
+```java
+import java.net.*;
+import java.io.*;
+
+public class DaytimeClient {
+
+  public static void main(String[] args) {
+
+    String hostname = args.length > 0 ? args[0] : "time.nist.gov";
+    Socket socket = null;
+    try {
+      socket = new Socket(hostname, 13);
+      socket.setSoTimeout(15000);
+      InputStream in = socket.getInputStream();
+      StringBuilder time = new StringBuilder();
+      InputStreamReader reader = new InputStreamReader(in, "ASCII");
+      for (int c = reader.read(); c != -1; c = reader.read()) {
+        time.append((char) c);
+      }
+      System.out.println(time);
+    } catch (IOException ex) {
+      System.err.println(ex);
+    } finally {
+      if (socket != null) {
+        try {
+          socket.close();
+        } catch (IOException ex) {
+          // ignore
+        }
+      }
+    }
+  }
+}
+```
+
+**==In most network programs like this, the real effort is in speaking the protocol and comprehending the data formats.==**
+
+Example 8-2. Construct a Date by talking to _time.nist.gov_
+
+```java
+import java.net.*;
+import java.text.*;
+import java.util.Date;
+import java.io.*;
+
+public class Daytime {
+
+  public Date getDateFromNetwork() throws IOException, ParseException {
+    try (Socket socket = new Socket("time.nist.gov", 13)) {
+      socket.setSoTimeout(15000);
+      InputStream in = socket.getInputStream();
+      StringBuilder time = new StringBuilder();
+      InputStreamReader reader = new InputStreamReader(in, "ASCII");
+      for (int c = reader.read(); c != -1; c = reader.read()) {
+        time.append((char) c);
+      }
+      return parseDate(time.toString());
+    }
+  }
+
+  static Date parseDate(String s) throws ParseException {
+    String[] pieces = s.split(" ");
+    String dateTime = pieces[1] + " " + pieces[2] + " UTC";
+    DateFormat format = new SimpleDateFormat("yy-MM-dd hh:mm:ss z");
+    return format.parse(dateTime);
+  }
+}
+```
+
+When reading data from the network, it’s important to keep in mind that not all protocols use ASCII or even text.
+
+---
+**TIP**
+
+**The RFC never actually comes out and says that this is the format used. It specifies 32 bits and assumes you know that all network protocols use big-endian numbers. The fact that the number is unsigned can be determined only by calculating the wraparound date for signed and unsigned integers and comparing it to the date given in the specification (2036). To make matters worse, the specification gives an example of a negative time that can’t actually be sent by time servers that follow the protocol. Time is a relatively old protocol, standardized in the early 1980s before the IETF was as careful about such issues as it is today. Nonetheless, if you find yourself implementing a not particularly well-specified protocol, you may have to do a significant amount of testing against existing implementations to figure out what you need to do. In the worst case, different implementations may behave differently.**
+
+---
+
+ Java program that connects to time servers must read the raw bytes and interpret them appropriately.
+
+Example 8-3. A time protocol client
+
+```java
+import java.net.*;
+import java.text.*;
+import java.util.Date;
+import java.io.*;
+
+public class Time {
+
+  private static final String HOSTNAME = "time.nist.gov";
+
+  public static void main(String[] args) throws IOException, ParseException {
+    Date d = Time.getDateFromNetwork();
+    System.out.println("It is " + d);
+  }
+
+  public static Date getDateFromNetwork() throws IOException, ParseException {
+    // The time protocol sets the epoch at 1900,
+    // the Java Date class at 1970. This number
+    // converts between them.
+
+    long differenceBetweenEpochs = 2208988800L;
+
+    // If you'd rather not use the magic number, uncomment
+    // the following section which calculates it directly.
+    /*
+    TimeZone gmt = TimeZone.getTimeZone("GMT");
+    Calendar epoch1900 = Calendar.getInstance(gmt);
+    epoch1900.set(1900, 01, 01, 00, 00, 00);
+    long epoch1900ms = epoch1900.getTime().getTime();
+    Calendar epoch1970 = Calendar.getInstance(gmt);
+    epoch1970.set(1970, 01, 01, 00, 00, 00);
+    long epoch1970ms = epoch1970.getTime().getTime();
+
+    long differenceInMS = epoch1970ms - epoch1900ms;
+    long differenceBetweenEpochs = differenceInMS/1000;
+    */
+
+    Socket socket = null;
+    try {
+      socket = new Socket(HOSTNAME, 37);
+      socket.setSoTimeout(15000);
+
+      InputStream raw = socket.getInputStream();
+
+      long secondsSince1900 = 0;
+      for (int i = 0; i < 4; i++) {
+        secondsSince1900 = (secondsSince1900 << 8) | raw.read();
+      }
+
+      long secondsSince1970
+                = secondsSince1900 - differenceBetweenEpochs;
+      long msSince1970 = secondsSince1970 * 1000;
+      Date time = new Date(msSince1970);
+
+      return time;
+    } finally {
+      try {
+        if (socket != null) socket.close();
+      }
+      catch (IOException ex) {}
+    }
+  }
+}
+```
+
+### Writing to Servers with Sockets
+
+Writing to a server is not noticeably harder than reading from one. You simply ask the socket for an output stream as well as an input stream. most protocols are designed so that the client is either reading or writing over a socket, not both at the same time. In the most common pattern, the client sends a request. Then the server responds. The client may send another request, and the server responds again. This continues until one side or the other is done, and closes the connection.
+
+One simple bidirectional TCP protocol is _dict_, defined in [RFC 2229](https://tools.ietf.org/html/rfc2229). In this protocol, the client opens a socket to port 2628 on the dict server and sends commands such as “DEFINE eng-lat gold”.
+
+It’s not hard to implement this protocol in Java. First, open a socket to a dict server—_dict.org__ is a good one—on port 2628:
+
+```java
+Socket socket = new Socket("dict.org", 2628);
+```
+```java
+socket.setSoTimeout(15000);
+```
+```java
+OutputStream out = socket.getOutputStream();
+```
+
+The `getOutputStream()` method returns a raw `OutputStream` for writing data from your application to the other end of the socket. You usually chain this stream to a more convenient class like `DataOutputStream` or `OutputStreamWriter` before using it.
+
+```java
+Writer writer = new OutputStreamWriter(out, "UTF-8");
+```
+
+```java
+writer.write("DEFINE eng-lat gold\r\n");
+```
+
+```java
+writer.flush();
+```
+
+The server should now respond with a definition. You can read that using the socket’s input stream:
+
+```java
+InputStream in = socket.getInputStream();
+BufferedReader reader = new BufferedReader(
+  new InputStreamReader(in, "UTF-8"));
+for (String line = reader.readLine();
+  !line.equals(".");
+  line = reader.readLine()) {
+    System.out.println(line);
+}
+```
+
+When you see a period on a line by itself, you know the definition is complete. You can then send the quit over the output stream:
+
+```java
+writer.write("quit\r\n");
+writer.flush();
+```
+
+Example 8-4. A network-based English-to-Latin translator
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class DictClient {
+
+  public static final String SERVER = "dict.org";
+  public static final int PORT = 2628;
+  public static final int TIMEOUT = 15000;
+
+  public static void main(String[] args) {
+
+    Socket socket = null;
+    try {
+      socket = new Socket(SERVER, PORT);
+      socket.setSoTimeout(TIMEOUT);
+      OutputStream out = socket.getOutputStream();
+      Writer writer = new OutputStreamWriter(out, "UTF-8");
+      writer = new BufferedWriter(writer);
+      InputStream in = socket.getInputStream();
+      BufferedReader reader = new BufferedReader(
+          new InputStreamReader(in, "UTF-8"));
+
+      for (String word : args) {
+        define(word, writer, reader);
+      }
+
+      writer.write("quit\r\n");
+      writer.flush();
+    } catch (IOException ex) {
+      System.err.println(ex);
+    } finally { // dispose
+      if (socket != null) {
+        try {
+          socket.close();
+        } catch (IOException ex) {
+          // ignore
+        }
+      }
+    }
+  }
+
+  static void define(String word, Writer writer, BufferedReader reader)
+      throws IOException, UnsupportedEncodingException {
+    writer.write("DEFINE eng-lat " + word + "\r\n");
+    writer.flush();
+
+    for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+      if (line.startsWith("250 ")) { // OK
+        return;
+      } else if (line.startsWith("552 ")) { // no match
+        System.out.println("No definition found for " + word);
+        return;
+      }
+      else if (line.matches("\\d\\d\\d .*")) continue;
+      else if (line.trim().equals(".")) continue;
+      else System.out.println(line);
+    }
+  }
+}
+```
+
+Example 8-4 is line oriented. It reads a line of input from the console, sends it to the server, and waits to read a line of output it gets back.
+
+#### Half-closed sockets
+
+The `close()` method shuts down both input and output from the socket. On occasion, you may want to shut down only half of the connection, either input or output. The `shutdownInput()` and `shutdownOutput()` methods close only half the connection:
+
+```java
+public void shutdownInput() throws IOException
+public void shutdownOutput() throws IOException
+```
+
+**==Neither actually closes the socket. Instead, they adjust the stream connected to the socket so that it thinks it’s at the end of the stream.==** Further reads from the input stream after shutting down input return –1. Further writes to the socket after shutting down output throw an `IOException`.
+
+```java
+try (Socket connection = new Socket("www.oreilly.com", 80)) {
+  Writer out = new OutputStreamWriter(
+           connection.getOutputStream(), "8859_1");
+  out.write("GET / HTTP 1.0\r\n\r\n");
+  out.flush();
+  connection.shutdownOutput();
+  // read the response...
+} catch (IOException ex) {
+  ex.printStackTrace();
+}
+```
+
+**==The shutdown methods simply affect the socket’s streams. They don’t release the resources associated with the socket, such as the port it occupies.==**
+
+The `isInputShutdown()` and `isOutputShutdown()` methods tell you whether the input and output streams are open or closed, respectively. You can use these (rather than `isConnected()` and `isClosed()`) to more specifically ascertain whether you can read from or write to a socket:
+
+```java
+public boolean isInputShutdown()
+public boolean isOutputShutdown()
+```
+
+## Constructing and Connecting Sockets
+
+The `java.net.Socket` class is Java’s fundamental class for performing client-side TCP operations. Other client-oriented classes that make TCP network connections such as `URL`, `URLConnection`, `Applet`, and `JEditorPane` all ultimately end up invoking the methods of this class.
+
+### Basic Constructors
+
+Each `Socket` constructor specifies the host and the port to connect to. **==Hosts may be specified as an `InetAddress` or a `String`.==** Remote ports are specified as `int` values from 1 to 65535:
+
+```java
+public Socket(String host, int port) throws UnknownHostException, IOException
+public Socket(InetAddress host, int port) throws IOException
+```
+
+```java
+try {
+  Socket toOReilly = new Socket("www.oreilly.com", 80);
+  // send and receive data...
+} catch (UnknownHostException ex) {
+  System.err.println(ex);
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+Because this constructor doesn’t just create a `Socket` object but also tries to connect the socket to the remote host, you can use the object to determine whether connections to a particular port are allowed
+
+Example 8-5. Find out which of the first 1024 ports seem to be hosting TCP servers on a specified host
+
+```java
+import java.net.*;
+import java.io.*;
+
+public class LowPortScanner {
+
+  public static void main(String[] args) {
+
+    String host = args.length > 0 ? args[0] : "localhost";
+
+    for (int i = 1; i < 1024; i++) {
+      try {
+        Socket s = new Socket(host, i);
+        System.out.println("There is a server on port " + i + " of "
+         + host);
+        s.close();
+      } catch (UnknownHostException ex) {
+        System.err.println(ex);
+        break;
+      } catch (IOException ex) {
+        // must not be a server on this port
+      }
+    }
+  }
+}
+```
+
+```text
+$ java LowPortScanner
+There is a server on port 21 of localhost
+There is a server on port 22 of localhost
+There is a server on port 23 of localhost
+There is a server on port 25 of localhost
+There is a server on port 37 of localhost
+There is a server on port 111 of localhost
+There is a server on port 139 of localhost
+There is a server on port 210 of localhost
+There is a server on port 515 of localhost
+There is a server on port 873 of localhost
+```
+
+Three constructors create unconnected sockets. These provide more control over exactly how the underlying socket behaves, for instance by choosing a different proxy server or an encryption scheme:
+
+```java
+public Socket()
+public Socket(Proxy proxy)
+protected Socket(SocketImpl impl)
+```
+
+### Picking a Local Interface to Connect From
+
+Two constructors specify both the host and port to connect _to_ and the interface and port to connect _from_:
+
+```java
+public Socket(String host, int port, InetAddress interface, int localPort)
+      throws IOException, UnknownHostException
+public Socket(InetAddress host, int port, InetAddress interface, int localPort)
+      throws IOException
+```
+
+This socket connects _to_ the host and port specified in the first two arguments. It connects _from_ the local network interface and port specified by the last two arguments. The network interface may be either physical (e.g., an Ethernet card) or virtual (a multihomed host with more than one IP address).
+
+Selecting a particular network interface from which to send data is uncommon, but a need does come up occasionally. One situation where you might want to explicitly choose the local address would be on a router/firewall that uses dual Ethernet ports. Incoming connections would be accepted on one interface, processed, and forwarded to the local network from the other interface. Suppose you were writing a program to periodically dump error logs to a printer or send them over an internal mail server. You’d want to make sure you used the inward-facing network interface instead of the outward-facing network interface. For example:
+
+```java
+try {
+  InetAddress inward = InetAddress.getByName("router");
+  Socket socket = new Socket("mail", 25, inward, 0);
+  // work with the sockets...
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+### Constructing Without Connecting
+
+Sometimes you want to split those operations. If you give no arguments to the `Socket` constructor, it has nowhere to connect to:
+
+```java
+public Socket()
+```
+
+You can connect later by passing a `SocketAddress` to one of the `connect()` methods.
+
+```java
+try {
+  Socket socket = new Socket();
+  // fill in socket options
+  SocketAddress address = new InetSocketAddress("time.nist.gov", 13);
+  socket.connect(address);
+  // work with the sockets...
+} catch (IOException ex) {
+  System.err.println(ex);
+}
+```
+
+```java
+public void connect(SocketAddress endpoint, int timeout) throws IOException
+```
+
+The default, 0, means wait forever.
+
+The no-args constructor throws no exceptions so it enables you to avoid the annoying null check when closing a socket in a `finally` block. With the original constructor, most code looks like this:
+
+```java
+Socket socket = null;
+try {
+  socket = new Socket(SERVER, PORT);
+  // work with the socket...
+} catch (IOException ex) {
+  System.err.println(ex);
+} finally {
+  if (socket != null) {
+    try {
+      socket.close();
+    } catch (IOException ex) {
+      // ignore
+    }
+  }
+}
+```
+
+With the no-args constructor, it looks like this:
+
+```java
+Socket socket = new Socket();
+SocketAddress address = new InetSocketAddress(SERVER, PORT);
+try {
+  socket.connect(address);
+  // work with the socket...
+} catch (IOException ex) {
+  System.err.println(ex);
+} finally {
+  try {
+    socket.close();
+  } catch (IOException ex) {
+    // ignore
+  }
+}
+```
+
+### Socket Addresses
+
+The `SocketAddress` class represents a connection endpoint. It is an empty abstract class with no methods aside from a default constructor. At least theoretically, the `SocketAddress` class can be used for both TCP and non-TCP sockets. In practice, only TCP/IP sockets are currently supported and the socket addresses you actually use are all instances of `InetSocketAddress`.
+
+**==The primary purpose of the `SocketAddress` class is to provide a convenient store for transient socket connection information such as the IP address and port that can be reused to create new sockets, even after the original socket is disconnected and garbage collected.==** To this end, the `Socket` class offers two methods that return `SocketAddress` objects
+
+```java
+public SocketAddress getRemoteSocketAddress()
+public SocketAddress getLocalSocketAddress()
+```
+
+Both of these methods return null if the socket is not yet connected.
+
+```java
+Socket socket = new Socket("www.yahoo.com", 80);
+SocketAddress yahoo = socket.getRemoteSocketAddress();
+socket.close();
+```
+
+```java
+Socket socket2 = new Socket();
+socket2.connect(yahoo);
+```
+
+The `InetSocketAddress` class (which is the only subclass of `SocketAddress` in the JDK, and the only subclass I’ve ever encountered) is usually created with a host and a port (for clients) or just a port (for servers):
+
+```java
+public InetSocketAddress(InetAddress address, int port)
+public InetSocketAddress(String host, int port)
+public InetSocketAddress(int port)
+```
+
+You can also use the static factory method `InetSocketAddress.createUnresolved()` to skip looking up the host in DNS:
+
+```java
+public static InetSocketAddress createUnresolved(String host, int port)
+```
+
+`InetSocketAddress` has a few getter methods you can use to inspect the object:
+
+```java
+public final InetAddress getAddress()
+public final int         getPort()
+public final String      getHostName()
+```
+
+### Proxy Servers
+
+The last constructor creates an unconnected socket that connects through a specified proxy server:
+
+```java
+public Socket(Proxy proxy)
+```
+
+Normally, the proxy server a socket uses is controlled by the `socksProxyHost` and `socksProxyPort` system properties, and these properties apply to all sockets in the system. However, a socket created by this constructor will use the specified proxy server instead. Most notably, you can pass `Proxy.NO_PROXY` for the argument to bypass all proxy servers completely and connect directly to the remote host. Of course, if a firewall prevents direct connections, there’s nothing Java can do about it; and the connection will fail.
+
+```java
+SocketAddress proxyAddress = new InetSocketAddress("myproxy.example.com", 1080);
+Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddress)
+Socket s = new Socket(proxy);
+SocketAddress remote = new InetSocketAddress("login.ibiblio.org", 25);
+s.connect(remote);
+```
+
+SOCKS is the only low-level proxy type Java understands.
+
+## Getting Information About a Socket
+
+`Socket` objects have several properties that are accessible through getter methods:
+
+- ==**Remote address**==
+- ==**Remote port**==
+- ==**Local address**==
+- ==**Local port==**
+
+Here are the getter methods for accessing these properties:
+
+```java
+public InetAddress getInetAddress()
+public int getPort()
+public InetAddress getLocalAddress()
+public int getLocalPort()
+```
+
+**==There are no setter methods. These properties are set as soon as the socket connects, and are fixed from there on.==**
+
+Unlike the remote port, which (for a client socket) is usually a “well-known port” that has been preassigned by a standards committee, the local port is usually chosen by the system at runtime from the available unused ports. This way, many different clients on a system can access the same service at the same time. The local port is embedded in outbound IP packets along with the local host’s IP address, so the server can send data back to the right port on the client.
+
+Example 8-6. Get a socket’s information
+```java
+import java.net.*;
+import java.io.*;
+
+public class SocketInfo {
+
+  public static void main(String[] args) {
+
+    for (String host : args) {
+      try {
+        Socket theSocket = new Socket(host, 80);
+        System.out.println("Connected to " + theSocket.getInetAddress()
+            + " on port "  + theSocket.getPort() + " from port "
+            + theSocket.getLocalPort() + " of "
+            + theSocket.getLocalAddress());
+      }  catch (UnknownHostException ex) {
+        System.err.println("I can't find " + host);
+      } catch (SocketException ex) {
+        System.err.println("Could not connect to " + host);
+      } catch (IOException ex) {
+        System.err.println(ex);
+      }
+    }
+  }
+}
+```
+
+### Closed or Connected?
+
+The `isClosed()` method returns true if the socket is closed, false if it isn’t. If you’re uncertain about a socket’s state, you can check it with this method rather than risking an `IOException`.
+
+```java
+if (socket.isClosed()) {
+  // do something...
+} else {
+  // do something else...
+}
+```
+
+However, this is not a perfect test. If the socket has never been connected in the first place, `isClosed()` returns false, even though the socket isn’t exactly open.
+
+The `Socket` class also has an `isConnected()` method. The name is a little misleading. It does not tell you if the socket is currently connected to a remote host (like if it is unclosed). **==Instead, it tells you whether the socket has ever been connected to a remote host.==**
+
+```java
+boolean connected = socket.isConnected() && ! socket.isClosed();
+```
+
+Finally, the `isBound()` method tells you whether the socket successfully bound to the outgoing port on the local system. Whereas `isConnected()` refers to the remote end of the socket, `isBound()` refers to the local end. This isn’t very important yet.
+
+### ``toString()``
+
+The `Socket` class overrides only one of the standard methods from `java.lang.Object`: `toString()`. The `toString()` method produces a string that looks like this:
+
+```text
+Socket[addr=www.oreilly.com/198.112.208.11,port=80,localport=50055]
+```
+
+---
+
+**==TIP**==
+
+==**Because sockets are transitory objects that typically last only as long as the connection they represent, there’s not much reason to store them in hash tables or compare them to each other. Therefore, `Socket` does not override `equals()` or `hashCode()`, and the semantics for these methods are those of the `Object` class. Two `Socket` objects are equal to each other if and only if they are the same object.==**
+
+---
+
+## Setting Socket Options
+
+Socket options specify how the native sockets on which the Java `Socket` class relies send and receive data. Java supports nine options for client-side sockets:
+
+- TCP_NODELAY
+- SO_BINDADDR
+- SO_TIMEOUT
+- SO_LINGER
+- SO_SNDBUF
+- SO_RCVBUF
+- SO_KEEPALIVE
+- OOBINLINE
+- IP_TOS
+
+### TCP_NODELAY
+
+```JAVA
+public void setTcpNoDelay(boolean on) throws SocketException
+public boolean getTcpNoDelay() throws SocketException
+```
+
+Setting TCP_NODELAY to true ensures that packets are sent as quickly as possible regardless of their size. Normally, small (one-byte) packets are combined into larger packets before being sent. Before sending another packet, the local host waits to receive acknowledgment of the previous packet from the remote system. This is known as _Nagle’s algorithm_. The problem with Nagle’s algorithm is that if the remote system doesn’t send acknowledgments back to the local system fast enough, applications that depend on the steady transfer of small parcels of information may slow down. This issue is especially problematic for GUI programs such as games or network computer applications where the server needs to track client-side mouse movement in real time
+
+`setTcpNoDelay(true)` turns off buffering for the socket. `setTcpNoDelay(false)` turns it back on. `getTcpNoDelay()` returns `true` if buffering is off and `false` if buffering is on.
+
+```java
+if (!s.getTcpNoDelay()) s.setTcpNoDelay(true);
+```
+
+### SO_LINGER
+
+```java
+public void setSoLinger(boolean on, int seconds) throws SocketException
+public int getSoLinger() throws SocketException
+```
+
+The SO_LINGER option specifies what to do with datagrams that have not yet been sent when a socket is closed. By default, the `close()` method returns immediately; but the system still tries to send any remaining data. If the linger time is set to zero, any unsent packets are thrown away when the socket is closed. If SO_LINGER is turned on and the linger time is any positive value, the `close()` method blocks while waiting the specified number of seconds for the data to be sent and the acknowledgments to be received. When that number of seconds has passed, the socket is closed and any remaining data is not sent, acknowledgment or no.
+
+```java
+if (s.getTcpSoLinger() == -1) s.setSoLinger(true, 240);
+```
+
+### SO_TIMEOUT
+
+```java
+public void setSoTimeout(int milliseconds) throws SocketException
+public int getSoTimeout() throws SocketException
+```
+
+Normally when you try to read data from a socket, the `read()` call blocks as long as necessary to get enough bytes. By setting SO_TIMEOUT, you ensure that the call will not block for more than a fixed number of milliseconds. When the timeout expires, an `InterruptedIOException` is thrown, and you should be prepared to catch it. However, the socket is still connected. Although this `read()` call failed, you can try to read from the socket again. The next call may succeed.
+
+```java
+if (s.getSoTimeout() == 0) s.setSoTimeout(180000);
+```
+
+### SO_RCVBUF and SO_SNDBUF
+
+TCP uses buffers to improve network performance. Larger buffers tend to improve performance for reasonably fast (say, 10Mbps and up) connections whereas slower, dial-up connections do better with smaller buffers. Generally, transfers of large, continuous blocks of data, which are common in file transfer protocols such as FTP and HTTP, benefit from large buffers, whereas the smaller transfers of interactive sessions, such as Telnet and many games, do not.
+
+**==Maximum achievable bandwidth equals buffer size divided by latency.==**
+
+You can increase speed by decreasing latency. However, latency is a function of the network hardware and other factors outside the control of your application. On the other hand, you do control the buffer size.
+
+---
+**TIP**
+
+**You can use ping to check the latency to a particular host manually, or you can time a call to `InetAddress.isReachable()` from inside your program.**
+
+---
+
+The SO_RCVBUF option controls the suggested send buffer size used for network input. The SO_SNDBUF option controls the suggested send buffer size used for network output:
+
+```java
+public void setReceiveBufferSize(int size)
+    throws SocketException, IllegalArgumentException
+public int getReceiveBufferSize() throws SocketException
+public void setSendBufferSize(int size)
+    throws SocketException, IllegalArgumentException
+public int getSendBufferSize() throws SocketException
+```
+
+The `setReceiveBufferSize()`/`setSendBufferSize` methods suggest a number of bytes to use for buffering output on this socket. However, the underlying implementation is free to ignore or adjust this suggestion.
+
+These methods throw an `IllegalArgumentException` if the argument is less than or equal to zero. Although they’re also declared to throw `SocketException`, they probably won’t in practice, because a `SocketException` is thrown for the same reason as `IllegalArgumentException` and the check for the `IllegalArgumentException` is made first.
+
+In general, if you find your application is not able to fully utilize the available bandwidth try increasing the buffer sizes. By contrast, if you’re dropping packets and experiencing congestion, try decreasing the buffer size. However, most of the time, unless you’re really taxing the network in one direction or the other, the defaults are fine
+
+### SO_KEEPALIVE
+
+If SO_KEEPALIVE is turned on, the client occasionally sends a data packet over an idle connection (most commonly once every two hours), just to make sure the server hasn’t crashed. If the server fails to respond to this packet, the client keeps trying for a little more than 11 minutes until it receives a response. If it doesn’t receive a response within 12 minutes, the client closes the socket. Without SO_KEEPALIVE, an inactive client could live more or less forever without noticing that the server had crashed. These methods turn SO_KEEPALIVE on and off and determine its current state:
+
+```java
+public void setKeepAlive(boolean on) throws SocketException
+public boolean getKeepAlive() throws SocketException
+```
+
+The default for SO_KEEPALIVE is false.
+
+### OOBINLINE
+
+TCP includes a feature that sends a single byte of “urgent” data out of band. This data is sent immediately. Furthermore, the receiver is notified when the urgent data is received and may elect to process the urgent data before it processes any other data that has already been received. Java supports both sending and receiving such urgent data. The sending method is named, obviously enough, `sendUrgentData()`:
+
+```java
+public void sendUrgentData(int data) throws IOException
+```
+
+This method sends the lowest-order byte of its argument almost immediately. If necessary, any currently cached data is flushed first.
+
+By default, Java ignores urgent data received from a socket. However, if you want to receive urgent data inline with regular data, you need to set the OOBINLINE option to true using these methods:
+
+```java
+public void setOOBInline(boolean on) throws SocketException
+public boolean getOOBInline() throws SocketException
+```
+
+Once OOBINLINE is turned on, any urgent data that arrives will be placed on the socket’s input stream to be read in the usual way. Java does not distinguish it from nonurgent data. That makes it less than ideally useful, but if you have a particular byte (e.g., a Ctrl-C) that has special meaning to your program and never shows up in the regular data stream, then this would enable you to send it more quickly.
+
+### SO_REUSEADDR
+
+When a socket is closed, it may not immediately release the local port, especially if a connection was open when the socket was closed. It can sometimes wait for a small amount of time to make sure it receives any lingering packets that were addressed to the port that were still crossing the network when the socket was closed. The system won’t do anything with any of the late packets it receives. It just wants to make sure they don’t accidentally get fed into a new process that has bound to the same port.
+
+This isn’t a big problem on a random port, but it can be an issue if the socket has bound to a well-known port because it prevents any other socket from using that port in the meantime. If the SO_REUSEADDR is turned on (it’s turned off by default), another socket is allowed to bind to the port even while data may be outstanding for the previous socket.
+
+In Java this option is controlled by these two methods:
+
+```java
+public void setReuseAddress(boolean on) throws SocketException
+public boolean getReuseAddress() throws SocketException
+```
+
+### IP_TOS Class of Service
+
+Different types of Internet service have different performance needs. For instance, video chat needs relatively high bandwidth and low latency for good performance, whereas email can be passed over low-bandwidth connections and even held up for several hours without major harm. VOIP needs less bandwidth than video but minimum jitter. It might be wise to price the different classes of service differentially so that people won’t ask for the highest class of service automatically. After all, if sending an overnight letter cost the same as sending a package via media mail, we’d all just use FedEx overnight, which would quickly become congested and overwhelmed. The Internet is no different.
+
+The class of service is stored in an eight-bit field called IP_TOS in the IP header. Java lets you inspect and set the value a socket places in this field using these two methods:
+
+```java
+public int getTrafficClass() throws SocketException
+public void setTrafficClass(int trafficClass) throws SocketException
+```
+
+## Socket Exceptions
+
