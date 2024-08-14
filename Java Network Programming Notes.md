@@ -7863,3 +7863,1248 @@ public class WhoisGUI extends JFrame {
 ```
 
 # Chapter 9. Sockets for Servers
+
+client sockets themselves aren’t enough; clients aren’t much use unless they can talk to a server, and the ``Socket`` class is not sufficient for writing servers. To create a ``Socket``, you need to know the Internet host to which you want to connect. When you’re writing a server, you don’t know in advance who will contact you; and even if you did, you wouldn’t know when that host wanted to contact you. In other words, **==servers are like receptionists who sit by the phone and wait for incoming calls. They don’t know who will call or when, only that when the phone rings, they have to pick it up and talk to whoever is there. You can’t program that behavior with the ``Socket`` class alone.==**
+
+For servers that accept connections, Java provides a ``ServerSocket`` class that represents server sockets. In essence, a server socket’s job is to sit by the phone and wait for incoming calls. More technically, a server socket runs on the server and listens for incoming TCP connections. Each server socket listens on a particular port on the server machine. When a client on a remote host attempts to connect to that port, the server wakes up, negotiates the connection between the client and the server, and returns a regular ``Socket`` object representing the socket between the two hosts. In other words, server sockets wait for connections while client sockets initiate connections.
+
+## Using ``ServerSockets``
+
+The ``ServerSocket`` class contains everything needed to write servers in Java. It has constructors
+that create new ``ServerSocket`` objects, methods that listen for connections on a specified port, methods that configure the various server socket options, and the usual miscellaneous methods such as ``toString()``.
+In Java, the basic life cycle of a server program is this:
+
+1. ==**A new ``ServerSocket`` is created on a particular port using a ``ServerSocket()`` constructor.**==
+2. ==**The ``ServerSocket`` listens for incoming connection attempts on that port using its ``accept()`` method. accept() blocks until a client attempts to make a connection, at which point accept() returns a Socket object connecting the client and the server.**==
+3. ==**Depending on the type of server, either the Socket’s ``getInputStream()`` method, ``getOutputStream()`` method, or both are called to get input and output streams that communicate with the client.**==
+4. ==**The server and the client interact according to an agreed-upon protocol until it is time to close the connection.**==
+5. ==**The server, the client, or both close the connection.**==
+6. ==**The server returns to step 2 and waits for the next connection.==**
+
+```java
+ServerSocket server = new ServerSocket(13);
+Socket connection = server.accept();
+```
+
+The ``accept()`` call blocks. That is, the program stops here and waits, possibly for hours or days, until a client connects on port 13. When a client does connect, the ``accept()`` method returns a ``Socket`` object.
+
+Note that the connection is returned a ``java.net.Socket`` object, the same as you used for clients. Because the daytime protocol requires text, chain this to an ``OutputStreamWriter``:
+
+```java
+OutputStream out = connection.getOutputStream();
+Writer writer = new OutputStreamWriter(writer, "ASCII");
+```
+
+
+```java
+Date now = new Date();
+out.write(now.toString() +"\r\n");
+```
+
+**==Do note, however, the use of a carriage return/linefeed pair to terminate the line. This is almost always what you want in a network server.==** You should explicitly choose this rather than using the system line separator,
+
+```java
+out.flush();
+connection.close();
+```
+
+If the client closes the connection while the server is still operating, the input and/or output streams that connect the server to the client throw an ``InterruptedIOException`` on the next read or write. In either case, the server should then get ready to process the next incoming connection.
+
+Of course, you’ll want to do all this repeatedly, so you’ll put this all inside a loop. Each pass through the loop invokes the ``accept()`` method once. This returns a ``Socket`` object representing the connection between the remote client and the local server. Interaction with the client takes place through this ``Socket`` object.
+
+```java
+ServerSocket server = new ServerSocket(port);
+while (true) {
+    try (Socket connection = server.accept()) {
+        Writer out = new OutputStreamWriter(connection.getOutputStream());
+        Date now = new Date();
+        out.write(now.toString() + "\r\n");
+        out.flush();
+    } catch (IOException ex) {
+        // problem with one client; don't shut down the server
+        System.err.println(ex.getMessage());
+    }
+}
+```
+
+This is called an iterative server. There’s one big loop, and in each pass through the loop a single connection is completely processed.
+
+When exception handling is added, the code becomes somewhat more convoluted. It’s important to distinguish between exceptions that should probably shut down the server and log an error message, and exceptions that should just close that active connection. **==Exceptions within the scope of a particular connection should close that connection, but not affect other connections or shut down the server==**. Exceptions outside the scope of an individual request probably should shut down the server. To organize this, nest the ``try`` blocks:
+
+```java
+ServerSocket server = null;
+try {
+    server = new ServerSocket(port);
+    while (true) {
+        Socket connection = null;
+        try {
+            connection = server.accept();
+            Writer out = new OutputStreamWriter(connection.getOutputStream());
+            Date now = new Date();
+            out.write(now.toString() + "\r\n");
+            out.flush();
+            connection.close();
+        } catch (IOException ex) {
+            // this request only; ignore
+        } finally {
+            try {
+                if (connection != null) connection.close();
+            } catch (IOException ex) {}
+        }
+    }
+} catch (IOException ex) {
+    ex.printStackTrace();
+} finally {
+    try {
+        if (server != null) server.close();
+    } catch (IOException ex) {}
+}
+```
+
+**==Always close a socket when you’re finished with it.==**
+
+Example 9-1. A daytime server
+
+```java
+import java.net.*;
+import java.io.*;
+import java.util.Date;
+public class DaytimeServer {
+    public final static int PORT = 13;
+    public static void main(String[] args) {
+        try (ServerSocket server = new ServerSocket(PORT)) {
+            while (true) {
+                try (Socket connection = server.accept()) {
+                    Writer out = new OutputStreamWriter(connection.getOutputStream());
+                    Date now = new Date();
+                    out.write(now.toString() + "\r\n");
+                    out.flush();
+                    connection.close();
+                } catch (IOException ex) {}
+            }
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+---
+
+**The command for stopping a program manually depends on your system; under Unix, Windows, and many other systems, Ctrl-C will do the job. If you are running the server in the background on a Unix system, stop it by finding the server’s process ID and killing it with the kill command (kill pid ).**
+
+---
+
+**If you run this program on Unix (including Linux and Mac OS X), you need to run it as root in order to connect to port 13. If you don’t want to or can’t run it as root, change the port number to something above 1024—say, 1313.**
+
+---
+
+### Serving Binary Data
+
+Sending binary, non-text data is not significantly harder. You just use an ``OutputStream`` that writes a byte array rather than a ``Writer`` that writes a ``String``.
+
+Example 9-2. A time server
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.Date;
+public class TimeServer {
+    public final static int PORT = 37;
+    public static void main(String[] args) {
+        // The time protocol sets the epoch at 1900,
+        // the Date class at 1970. This number
+        // converts between them.
+        long differenceBetweenEpochs = 2208988800 L;
+        try (ServerSocket server = new ServerSocket(PORT)) {
+            while (true) {
+                try (Socket connection = server.accept()) {
+                    OutputStream out = connection.getOutputStream();
+                    Date now = new Date();
+                    long msSince1970 = now.getTime();
+                    long secondsSince1970 = msSince1970 / 1000;
+                    long secondsSince1900 = secondsSince1970 +
+                        differenceBetweenEpochs;
+                    byte[] time = new byte[4];
+                    time[0] = (byte)((secondsSince1900 & 0x00000000FF000000 L) >> 24);
+                    time[1] = (byte)((secondsSince1900 & 0x0000000000FF0000 L) >> 16);
+                    time[2] = (byte)((secondsSince1900 & 0x000000000000FF00 L) >> 8);
+                    time[3] = (byte)(secondsSince1900 & 0x00000000000000FF L);
+                    out.write(time);
+                    out.flush();
+                } catch (IOException ex) {
+                    System.err.println(ex.getMessage());
+                }
+            }
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+### Multithreaded Servers
+
+Java programs should spawn a thread to interact with the client so that the server can be ready to process the next connection sooner. A thread places a far smaller load on the server than a complete child process.
+
+The operating system stores incoming connection requests addressed to a particular port in a first-in, first-out queue. By default, Java sets the length of this queue to 50, although it can vary from operating system to operating system.
+
+``ServerSocket`` constructors allow you to change the length of the queue if its default length isn’t large enough. However, you won’t be able to increase the queue beyond the maximum size that the operating system supports. Whatever the queue size, though, you want to be able to empty it faster than new connections are coming in, even if it takes a while to process each connection.
+
+**==The solution here is to give each connection its own thread, separate from the thread that accepts incoming connections into the queue.==**
+
+Example 9-3. A multithreaded daytime server
+
+```java
+import java.net.*;
+import java.io.*;
+import java.util.Date;
+public class MultithreadedDaytimeServer {
+    public final static int PORT = 13;
+    public static void main(String[] args) {
+        try (ServerSocket server = new ServerSocket(PORT)) {
+            while (true) {
+                try {
+                    Socket connection = server.accept();
+                    Thread task = new DaytimeThread(connection);
+                    task.start();
+                } catch (IOException ex) {}
+            }
+        } catch (IOException ex) {
+            System.err.println("Couldn't start server");
+        }
+    }
+    private static class DaytimeThread extends Thread {
+        private Socket connection;
+        DaytimeThread(Socket connection) {
+            this.connection = connection;
+        }
+        @Override
+        public void run() {
+            try {
+                Writer out = new OutputStreamWriter(connection.getOutputStream());
+                Date now = new Date();
+                out.write(now.toString() + "\r\n");
+                out.flush();
+            } catch (IOException ex) {
+                System.err.println(ex);
+            } finally {
+                try {
+                    connection.close();
+                } catch (IOException e) {
+                    // ignore;
+                }
+            }
+        }
+    }
+}
+```
+
+There’s actually a denial-of-service attack on this server though. Because Example 9-3 spawns a new thread for each connection, numerous roughly simultaneous incoming connections can cause it to spawn an indefinite number of threads. Eventually, the Java virtual machine will run out of memory and crash. A better approach is to use a fixed thread pool  to limit the potential resource usage. Fifty threads should be plenty.
+
+Example 9-4. A daytime server using a thread pool
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.*;
+public class PooledDaytimeServer {
+    public final static int PORT = 13;
+    public static void main(String[] args) {
+        ExecutorService pool = Executors.newFixedThreadPool(50);
+        try (ServerSocket server = new ServerSocket(PORT)) {
+            while (true) {
+                try {
+                    Socket connection = server.accept();
+                    Callable < Void > task = new DaytimeTask(connection);
+                    pool.submit(task);
+                } catch (IOException ex) {}
+            }
+        } catch (IOException ex) {
+            System.err.println("Couldn't start server");
+        }
+    }
+    private static class DaytimeTask implements Callable < Void > {
+        private Socket connection;
+        DaytimeTask(Socket connection) {
+            this.connection = connection;
+        }
+        @Override
+        public Void call() {
+            try {
+                Writer out = new OutputStreamWriter(connection.getOutputStream());
+                Date now = new Date();
+                out.write(now.toString() + "\r\n");
+                out.flush();
+            } catch (IOException ex) {
+                System.err.println(ex);
+            } finally {
+                try {
+                    connection.close();
+                } catch (IOException e) {
+                    // ignore;
+                }
+            }
+            return null;
+        }
+    }
+}
+```
+
+Example 9-4 is structured much like Example 9-3. The single difference is that it uses a ``Callable`` rather than a ``Thread`` subclass, and rather than starting threads it submits these callables to an executor service preconfigured with 50 threads.
+
+### Writing to Servers with Sockets
+
+In the examples so far, the server has only written to client sockets. It hasn’t read from them. Most protocols, however, require the server to do both. This isn’t hard. You’ll accept a connection as before, but this time ask for both an ``InputStream`` and an ``OutputStream``. Read from the client using the ``InputStream`` and write to it using the ``OutputStream``. The main trick is understanding the protocol: when to write and when to read.
+
+The echo protocol, defined in RFC 862, is one of the simplest interactive TCP services. The client opens a socket to port 7 on the echo server and sends data. The server sends the data back. This continues until the client closes the connection. The echo protocol is useful for testing the network to make sure that data is not mangled by a misbehaving router or firewall.
+
+```telnet
+$ telnet rama.poly.edu 7
+Trying 128.238.10.212...
+Connected to rama.poly.edu.
+Escape character is '^]'.
+This is a test
+This is a test
+This is another test
+This is another test
+9876543210
+9876543210
+^]
+telnet> close
+Connection closed.
+```
+
+This sample is line oriented because that’s how Telnet works. It reads a line of input from the console, sends it to the server, then waits to read a line of output it gets back.
+
+Unlike daytime and time, in the echo protocol the client is responsible for closing the connection. This makes it even more important to support asynchronous operation with many threads because a single client can remain connected indefinitely
+
+Example 9-5. An echo server
+
+```java
+import java.nio.*;
+import java.nio.channels.*;
+import java.net.*;
+import java.util.*;
+import java.io.IOException;
+public class EchoServer {
+    public static int DEFAULT_PORT = 7;
+    public static void main(String[] args) {
+        int port;
+        try {
+            port = Integer.parseInt(args[0]);
+        } catch (RuntimeException ex) {
+            port = DEFAULT_PORT;
+        }
+        System.out.println("Listening for connections on port " + port);
+        ServerSocketChannel serverChannel;
+        Selector selector;
+        try {
+            serverChannel = ServerSocketChannel.open();
+            ServerSocket ss = serverChannel.socket();
+            InetSocketAddress address = new InetSocketAddress(port);
+            ss.bind(address);
+            serverChannel.configureBlocking(false);
+            selector = Selector.open();
+            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return;
+        }
+        while (true) {
+            try {
+                selector.select();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                break;
+            }
+            Set < SelectionKey > readyKeys = selector.selectedKeys();
+            Iterator < SelectionKey > iterator = readyKeys.iterator();
+            while (iterator.hasNext()) {
+                SelectionKey key = iterator.next();
+                iterator.remove();
+                try {
+                    if (key.isAcceptable()) {
+                        ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                        SocketChannel client = server.accept();
+                        System.out.println("Accepted connection from " + client);
+                        client.configureBlocking(false);
+                        SelectionKey clientKey = client.register(
+                            selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+                        ByteBuffer buffer = ByteBuffer.allocate(100);
+                        clientKey.attach(buffer);
+                    }
+                    if (key.isReadable()) {
+                        SocketChannel client = (SocketChannel) key.channel();
+                        ByteBuffer output = (ByteBuffer) key.attachment();
+                        client.read(output);
+                    }
+                    if (key.isWritable()) {
+                        SocketChannel client = (SocketChannel) key.channel();
+                        ByteBuffer output = (ByteBuffer) key.attachment();
+                        output.flip();
+                        client.write(output);
+                        output.compact();
+                    }
+                } catch (IOException ex) {
+                    key.cancel();
+                    try {
+                        key.channel().close();
+                    } catch (IOException cex) {}
+                }
+            }
+        }
+    }
+}
+```
+
+### Closing Server Sockets
+
+If you’re finished with a server socket, you should close it, especially if the program is going to continue to run for some time. This frees up the port for other programs that may wish to use it. Closing a ``ServerSocket`` should not be confused with closing a ``Socket``. **==Closing a ``ServerSocket`` frees a port on the local host, allowing another server to bind to the port; it also breaks all currently open sockets that the ``ServerSocket`` has accepted.==**
+
+Server sockets are closed automatically when a program dies, so it’s not absolutely necessary to close them in programs that terminate shortly after the ``ServerSocket`` is no longer needed.
+
+```java
+ServerSocket server = null;
+try {
+    server = new ServerSocket(port);
+    // ... work with the server socket
+} finally {
+    if (server != null) {
+        try {
+            server.close();
+        } catch (IOException ex) {
+            // ignore
+        }
+    }
+}
+```
+
+```java
+ServerSocket server = new ServerSocket();
+try {
+    SocketAddress address = new InetSocketAddress(port);
+    server.bind(address);
+    // ... work with the server socket
+} finally {
+    try {
+        server.close();
+    } catch (IOException ex) {
+        // ignore
+    }
+}
+```
+
+```java
+try (ServerSocket server = new ServerSocket(port)) {
+    // ... work with the server socket
+}
+```
+
+After a server socket has been closed, it cannot be reconnected, even to the same port. The ``isClosed()`` method returns true if the ``ServerSocket`` has been closed, false if it hasn’t:
+
+```java
+public boolean isClosed()
+```
+
+``ServerSocket`` objects that were created with the no-args ``ServerSocket()`` constructor and not yet bound to a port are not considered to be closed. Invoking ``isClosed()`` on these objects returns false. The ``isBound()`` method tells you whether the ``ServerSock`` et has been bound to a port:
+
+```java
+public boolean isBound()
+```
+
+As with the ``isBound()`` method of the Socket class discussed in the Chapter 8, the name is a little misleading. ``isBound()`` returns true if the ``ServerSocket`` has ever been bound to a port, even if it’s currently closed. If you need to test whether a ``ServerSocket`` is open, you must check both that ``isBound()`` returns true and that ``isClosed()`` returns false.
+
+```java
+public static boolean isOpen(ServerSocket ss) {
+	return ss.isBound() && !ss.isClosed();
+}
+```
+
+## Logging
+
+Servers run unattended for long periods of time. It’s often important to debug what happened when in a server long after the fact. For this reason, it’s advisable to store server logs for at least some period of time.
+### What to Log
+
+**==There are two primary things you want to store in your logs:**==
+==**• Requests**==
+==**• Server errors==**
+
+Indeed, servers often keep two different logfiles for these two different items.
+
+The error log contains mostly unexpected exceptions that occurred while the server was running. The error log does not contain client errors, such as a client that unexpectedly disconnects or sends a malformed request. These go into the request log. **==The error log is exclusively for unexpected exceptions.==**
+
+The general rule of thumb for error logs is that every line in the error log should be looked at and resolved. The ideal number of entries in an error log is zero. Error logs that fill up with too many false alarms rapidly become ignored and useless.
+
+For the same reason, do not keep debug logs in production. Do not log every time you enter a method, every time a condition is met, and so on.
+
+Do not follow the common antipattern of logging everything you can think of just in case someone might need it someday. In practice, programmers are terrible at guessing in advance which log messages they might need for debugging production problems. Once a problem occurs, it is sometimes obvious what messages you need; but it is rare to be able to anticipate this in advance. Adding “just in case” messages to logfiles usually means that when a problem does occur, you’re frantically hunting for the relevant messages in an even bigger sea of irrelevant data.
+
+### How To Log
+
+```java
+private final static Logger auditLogger = Logger.getLogger("requests");
+```
+
+**==Loggers are thread safe, so there’s no problem storing them in a shared static field.==** Once you have a logger, you can write to it using any of several methods. The most basic is ``log()``.
+
+```java
+catch (RuntimeException ex) {
+	logger.log(Level.SEVERE, "unexpected error " + ex.getMessage(), ex);
+}
+```
+
+There are seven levels defined as named constants in ``java.util.logging.Level`` in descending order of seriousness:
+
+`• Level.SEVERE (highest value)`
+`• Level.WARNING`
+`• Level.INFO`
+`• Level.CONFIG`
+`• Level.FINE`
+`• Level.FINER`
+`• Level.FINEST (lowest value)`
+
+You can use any format that’s convenient for the individual log records. Generally, each record should contain a timestamp, the client address, and any information specific to the request that was being processed. If the log message represents an error, include the specific exception that was thrown. Java fills in the location in the code where the message was logged automatically, so you don’t need to worry about that.
+
+Example 9-6. A daytime server that logs requests and errors
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.Date;
+import java.util.concurrent.*;
+import java.util.logging.*;
+public class LoggingDaytimeServer {
+    public final static int PORT = 13;
+    private final static Logger auditLogger = Logger.getLogger("requests");
+    private final static Logger errorLogger = Logger.getLogger("errors");
+    public static void main(String[] args) {
+        ExecutorService pool = Executors.newFixedThreadPool(50);
+        try (ServerSocket server = new ServerSocket(PORT)) {
+            while (true) {
+                try {
+                    Socket connection = server.accept();
+                    Callable < Void > task = new DaytimeTask(connection);
+                    pool.submit(task);
+                } catch (IOException ex) {
+                    errorLogger.log(Level.SEVERE, "accept error", ex);
+                } catch (RuntimeException ex) {
+                    errorLogger.log(Level.SEVERE, "unexpected error " + ex.getMessage(), ex);
+                }
+            } catch (IOException ex) {
+                errorLogger.log(Level.SEVERE, "Couldn't start server", ex);
+            } catch (RuntimeException ex) {
+                errorLogger.log(Level.SEVERE, "Couldn't start server: " + ex.getMessage(), ex);
+            }
+        }
+        private static class DaytimeTask implements Callable < Void > {
+            private Socket connection;
+            DaytimeTask(Socket connection) {
+                this.connection = connection;
+            }
+            @Override
+            public Void call() {
+                try {
+                    Date now = new Date();
+                    // write the log entry first in case the client disconnects
+                    auditLogger.info(now + " " + connection.getRemoteSocketAddress());
+                    Writer out = new OutputStreamWriter(connection.getOutputStream());
+                    out.write(now.toString() + "\r\n");
+                    out.flush();
+                } catch (IOException ex) {
+                    // client disconnected; ignore;
+                } finally {
+                    try {
+                        connection.close();
+                    } catch (IOException ex) {
+                        // ignore;
+                    }
+                }
+                return null;
+            }
+        }
+    }
+```
+
+## Constructing Server Sockets
+
+There are four public ``ServerSocket`` constructors:
+
+```java
+public ServerSocket(int port) throws BindException, IOException
+public ServerSocket(int port, int queueLength) throws BindException, IOException
+public ServerSocket(int port, int queueLength, InetAddress bindAddress) throws IOException
+public ServerSocket() throws IOException
+```
+
+These constructors specify the port, the length of the queue used to hold incoming connection requests, and the local network interface to bind to. They pretty much all do the same thing, though some use default values for the queue length and the address to bind to.
+
+```java
+ServerSocket httpd = new ServerSocket(80);
+ServerSocket httpd = new ServerSocket(80, 50);
+```
+
+**==If you try to expand the queue past the operating system’s maximum queue length, the maximum queue length is used instead.==**
+
+By default, if a host has multiple network interfaces or IP addresses, the server socket listens on the specified port on all the interfaces and IP addresses. However, you can add a third argument to bind only to one particular local IP address. That is, the server socket only listens for incoming connections on the specified address; it won’t listen for connections that come in through the host’s other addresses.
+
+```java
+InetAddress local = InetAddress.getByName("192.168.210.122");
+ServerSocket httpd = new ServerSocket(5776, 10, local);
+```
+
+In all three constructors, you can pass 0 for the port number so the system will select an available port for you. A port chosen by the system like this is sometimes called an anonymous port because you don’t know its number in advance (though you can find out after the port has been chosen). This is often useful in multi-socket protocols such as FTP.
+
+All these constructors throw an ``IOException``, specifically, a ``BindException``, if the socket cannot be created and bound to the requested port. An ``IOException`` when creating a ``ServerSocket`` almost always means one of two things. Either another server socket, possibly from a completely different program, is already using the requested port, or you’re trying to connect to a port from 1 to 1023 on Unix
+
+Example 9-8. Look for local ports
+
+```java
+import java.io.*;
+import java.net.*;
+public class LocalPortScanner {
+    public static void main(String[] args) {
+        for (int port = 1; port <= 65535; port++) {
+            try {
+                // the next line will fail and drop into the catch block if
+                // there is already a server running on the port
+                ServerSocket server = new ServerSocket(port);
+            } catch (IOException ex) {
+                System.out.println("There is a server on port " + port + ".");
+            }
+        }
+    }
+}
+```
+
+```text
+D:\JAVA\JNP4\examples\9>java LocalPortScanner
+There is a server on port 135.
+There is a server on port 1025.
+There is a server on port 1026.
+There is a server on port 1027.
+There is a server on port 1028.
+```
+
+### Constructing Without Binding
+
+The no-args constructor creates a ``ServerSocket`` object but does not actually bind it to a port, so it cannot initially accept any connections. It can be bound later using the ``bind()`` methods:
+
+```java
+public void bind(SocketAddress endpoint) throws IOException
+public void bind(SocketAddress endpoint, int queueLength) throws IOException
+```
+
+The primary use for this feature is to allow programs to set server socket options before binding to a port. Some options are fixed after the server socket has been bound.
+
+```java
+ServerSocket ss = new ServerSocket();
+// set socket options...
+SocketAddress http = new InetSocketAddress(80);
+ss.bind(http);
+```
+
+You can also pass ``null`` for the ``SocketAddress`` to select an arbitrary port. This is like passing 0 for the port number in the other constructors.
+## Getting Information About a Server Socket
+
+The ``ServerSocket`` class provides two getter methods that tell you the local address and port occupied by the server socket. These are useful if you’ve opened a server socket on an anonymous port and/or an unspecified network interface.
+
+```java
+public InetAddress getInetAddress()
+```
+
+This method returns the address being used by the server (the local host). If the local host has a single IP address (as most do), this is the address returned by ``InetAddress.getLocalHost()``. If the local host has more than one IP address, the specific address returned is one of the host’s IP addresses. You can’t predict which address you will get.
+
+```java
+ServerSocket httpd = new ServerSocket(80);
+InetAddress ia = httpd.getInetAddress();
+public int getLocalPort()
+```
+
+The ``ServerSocket`` constructors allow you to listen on an unspecified port by passing 0 for the port number. This method lets you find out what port you’re listening on. You might use this in a peer-to-peer multi-socket program where you already have a means to inform other peers of your location.
+
+Example 9-9. A random port
+
+```java
+import java.io.*;
+import java.net.*;
+public class RandomPort {
+    public static void main(String[] args) {
+        try {
+            ServerSocket server = new ServerSocket(0);
+            System.out.println("This server runs on port " +
+                server.getLocalPort());
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+```text
+$ java RandomPort
+This server runs on port 1154
+D:\JAVA\JNP4\examples\9>java RandomPort
+This server runs on port 1155
+D:\JAVA\JNP4\examples\9>java RandomPort
+This server runs on port 1156
+```
+
+If the ``ServerSocket`` has not yet bound to a port, ``getLocalPort()`` returns –1.
+
+As with most Java objects, you can also just print out a ``ServerSocket`` using its to ``String()`` method. A String returned by a ``ServerSocket``’s ``toString()`` method looks like this:
+
+```java
+ServerSocket[addr=0.0.0.0,port=0,localport=5776]
+```
+
+## Socket Options
+
+Socket options specify how the native sockets on which the ``ServerSocket`` class relies send and receive data.
+
+`• SO_TIMEOUT`
+`• SO_REUSEADDR`
+`• SO_RCVBUF`
+
+### SO_TIMEOUT
+
+``SO_TIMEOUT`` is the amount of time, in milliseconds, that ``accept()`` waits for an incoming connection before throwing a ``java.io.InterruptedIOException``. If SO_TIMEOUT is 0, ``accept()`` will never time out. The default is to never time out.
+Setting ``SO_TIMEOUT`` is uncommon. If you want to change this, the ``setSoTimeout()`` method sets the ``SO_TIMEOUT`` field for this server socket object:
+
+```java
+public void setSoTimeout(int timeout) throws SocketException
+public int getSoTimeout() throws IOException
+```
+
+The countdown starts when ``accept()`` is invoked. When the timeout expires, ``accept()`` throws a ``SocketTimeoutException``, a subclass of ``IOException``.
+
+```java
+try (ServerSocket server = new ServerSocket(port)) {
+    server.setSoTimeout(30000); // block for no more than 30 seconds
+    try {
+        Socket s = server.accept();
+        // handle the connection
+        // ...
+    } catch (SocketTimeoutException ex) {
+        System.err.println("No connection within 30 seconds");
+    }
+} catch (IOException ex) {
+    System.err.println("Unexpected IOException: " + e);
+}
+```
+
+```java
+public void printSoTimeout(ServerSocket server) {
+    int timeout = server.getSoTimeOut();
+    if (timeout > 0) {
+        System.out.println(server + " will time out after " +
+            timeout + "milliseconds.");
+    } else if (timeout == 0) {
+        System.out.println(server + " will never time out.");
+    } else {
+        System.out.println("Impossible condition occurred in " + server);
+        System.out.println("Timeout cannot be less than zero.");
+    }
+}
+```
+
+### SO_REUSEADDR
+
+The ``SO_REUSEADDR`` option for server sockets is very similar to the same option for client sockets, discussed in the previous chapter. It determines whether a new socket will be allowed to bind to a previously used port while there might still be data traversing the network addressed to the old socket. As you probably expect, there are two methods to get and set this option:
+
+```java
+public boolean getReuseAddress() throws SocketException
+public void setReuseAddress(boolean on) throws SocketException
+```
+
+The default value is platform dependent. This code fragment determines the default value by creating a new ``ServerSocket`` and then calling ``getReuseAddress()``:
+
+```java
+ServerSocket ss = new ServerSocket(10240);
+System.out.println("Reusable: " + ss.getReuseAddress());
+```
+
+### SO_RCVBUF
+
+The ``SO_RCVBUF`` option sets the default receive buffer size for client sockets accepted by the server socket.
+
+```java
+public int getReceiveBufferSize() throws SocketException
+public void setReceiveBufferSize(int size) throws SocketException
+```
+
+Setting ``SO_RCVBUF`` on a server socket is like calling ``setReceiveBufferSize()`` on each individual socket returned by ``accept()``
+
+```java
+ServerSocket ss = new ServerSocket();
+int receiveBufferSize = ss.getReceiveBufferSize();
+if (receiveBufferSize < 131072) {
+	ss.setReceiveBufferSize(131072);
+}
+ss.bind(new InetSocketAddress(8000));
+//...
+```
+
+### Class of Service
+
+different types of Internet services have different performance needs. For instance, live streaming video of sports needs relatively high bandwidth. On the other hand, a movie might still need high bandwidth but be able to tolerate more delay and latency. Email can be passed over low-bandwidth connections and even held up for several hours without major harm.
+
+**==Four general traffic classes are defined for TCP:**==
+
+==**• Low cost**==
+==**• High reliability**==
+==**• Maximum throughput**==
+==**• Minimum delay==**
+
+These traffic classes can be requested for a given ``Socket``.
+The ``setPerformancePreferences()`` method expresses the relative preferences given to connection time, latency, and bandwidth for sockets accepted on this server:
+
+```java
+public void setPerformancePreferences(int connectionTime, int latency, int bandwidth)
+```
+
+For instance, by setting ``connectionTime`` to 2, ``latency`` to 1, and ``bandwidth`` to 3, you indicate that maximum bandwidth is the most important characteristic, minimum latency is the least important, and connection time is in the middle:
+
+```java
+ss.setPerformancePreferences(2, 1, 3);
+```
+
+## HTTP Servers
+
+HTTP is a large protocol. A full-featured HTTP server must respond to requests for files, convert URLs into filenames on the local system, respond to POST and GET requests, handle requests for files that don’t exist, interpret MIME types, and much, much more. However, many HTTP servers don’t need all of these features. For example, many sites simply display an “under construction” message. Clearly, Apache is overkill for a site like this. Such a site is a candidate for a custom server that does only one thing. Java’s network class library makes writing simple servers like this almost trivial.
+
+Finally, Java isn’t a bad language for full-featured web servers meant to compete with the likes of Apache or IIS. Even if you believe CPU-intensive Java programs are slower than CPU-intensive C and C++ programs (something I very much doubt is true in modern VMs), most HTTP servers are limited by network bandwidth and latency, not by CPU speed. Consequently, Java’s other advantages, such as its half-compiled/half-interpreted nature, dynamic class loading, garbage collection, and memory protection really get a chance to shine.
+
+### A Single-File Server
+
+Example 9-10. An HTTP server that serves a single file
+
+```java
+import java.io.*;
+import java.net.*;
+import java.nio.charset.Charset;
+import java.nio.file.*;
+import java.util.concurrent.*;
+import java.util.logging.*;
+public class SingleFileHTTPServer {
+    private static final Logger logger = Logger.getLogger("SingleFileHTTPServer");
+    private final byte[] content;
+    private final byte[] header;
+    private final int port;
+    private final String encoding;
+    public SingleFileHTTPServer(String data, String encoding,
+        String mimeType, int port) throws UnsupportedEncodingException {
+        this(data.getBytes(encoding), encoding, mimeType, port);
+    }
+    public SingleFileHTTPServer(
+        byte[] data, String encoding, String mimeType, int port) {
+        this.content = data;
+        this.port = port;
+        this.encoding = encoding;
+        String header = "HTTP/1.0 200 OK\r\n" +
+            "Server: OneFile 2.0\r\n" +
+            "Content-length: " + this.content.length + "\r\n" +
+            "Content-type: " + mimeType + "; charset=" + encoding + "\r\n\r\n";
+        this.header = header.getBytes(Charset.forName("US-ASCII"));
+    }
+    public void start() {
+        ExecutorService pool = Executors.newFixedThreadPool(100);
+        try (ServerSocket server = new ServerSocket(this.port)) {
+            logger.info("Accepting connections on port " + server.getLocalPort());
+            logger.info("Data to be sent:");
+            logger.info(new String(this.content, encoding));
+            while (true) {
+                try {
+                    Socket connection = server.accept();
+                    pool.submit(new HTTPHandler(connection));
+                } catch (IOException ex) {
+                    logger.log(Level.WARNING, "Exception accepting connection", ex);
+                } catch (RuntimeException ex) {
+                    logger.log(Level.SEVERE, "Unexpected error", ex);
+                }
+            }
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Could not start server", ex);
+        }
+    }
+    private class HTTPHandler implements Callable < Void > {
+        private final Socket connection;
+        HTTPHandler(Socket connection) {
+            this.connection = connection;
+        }
+        @Override
+        public Void call() throws IOException {
+            try {
+                OutputStream out = new BufferedOutputStream(
+                    connection.getOutputStream()
+                );
+                InputStream in = new BufferedInputStream(
+                    connection.getInputStream()
+                );
+                // read the first line only; that's all we need
+                StringBuilder request = new StringBuilder(80);
+                while (true) {
+                    int c = in .read();
+                    if (c == '\r' || c == '\n' || c == -1) break;
+                    request.append((char) c);
+                }
+                // If this is HTTP/1.0 or later send a MIME header
+                if (request.toString().indexOf("HTTP/") != -1) {
+                    out.write(header);
+                }
+                out.write(content);
+                out.flush();
+            } catch (IOException ex) {
+                logger.log(Level.WARNING, "Error writing to client", ex);
+            } finally {
+                connection.close();
+            }
+            return null;
+        }
+    }
+    public static void main(String[] args) {
+        // set the port to listen on
+        int port;
+        try {
+            port = Integer.parseInt(args[1]);
+            if (port < 1 || port > 65535) port = 80;
+        } catch (RuntimeException ex) {
+            port = 80;
+        }
+        String encoding = "UTF-8";
+        if (args.length > 2) encoding = args[2];
+        try {
+            Path path = Paths.get(args[0]);;
+            byte[] data = Files.readAllBytes(path);
+            String contentType = URLConnection.getFileNameMap().getContentTypeFor(args[0]);
+            SingleFileHTTPServer server = new SingleFileHTTPServer(data, encoding,
+                contentType, port);
+            server.start();
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            System.out.println(
+                "Usage: java SingleFileHTTPServer filename port encoding");
+        } catch (IOException ex) {
+            logger.severe(ex.getMessage());
+        }
+    }
+}
+```
+
+### A Redirector
+
+Example 9-11. An HTTP redirector
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.logging.*;
+public class Redirector {
+    private static final Logger logger = Logger.getLogger("Redirector");
+    private final int port;
+    private final String newSite;
+    public Redirector(String newSite, int port) {
+        this.port = port;
+        this.newSite = newSite;
+    }
+    public void start() {
+        try (ServerSocket server = new ServerSocket(port)) {
+            logger.info("Redirecting connections on port " +
+                server.getLocalPort() + " to " + newSite);
+            while (true) {
+                try {
+                    Socket s = server.accept();
+                    Thread t = new RedirectThread(s);
+                    t.start();
+                } catch (IOException ex) {
+                    logger.warning("Exception accepting connection");
+                } catch (RuntimeException ex) {
+                    logger.log(Level.SEVERE, "Unexpected error", ex);
+                }
+            }
+        } catch (BindException ex) {
+            logger.log(Level.SEVERE, "Could not start server.", ex);
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Error opening server socket", ex);
+        }
+    }
+    private class RedirectThread extends Thread {
+        private final Socket connection;
+        RedirectThread(Socket s) {
+            this.connection = s;
+        }
+        public void run() {
+            try {
+                Writer out = new BufferedWriter(
+                    new OutputStreamWriter(
+                        connection.getOutputStream(), "US-ASCII"
+                    )
+                );
+                Reader in = new InputStreamReader(
+                    new BufferedInputStream(
+                        connection.getInputStream()
+                    )
+                );
+                // read the first line only; that's all we need
+                StringBuilder request = new StringBuilder(80);
+                while (true) {
+                    int c = in .read();
+                    if (c == '\r' || c == '\n' || c == -1) break;
+                    request.append((char) c);
+                }
+                String get = request.toString();
+                String[] pieces = get.split("\\w*");
+                String theFile = pieces[1];
+                // If this is HTTP/1.0 or later send a MIME header
+                if (get.indexOf("HTTP") != -1) {
+                    out.write("HTTP/1.0 302 FOUND\r\n");
+                    Date now = new Date();
+                    out.write("Date: " + now + "\r\n");
+                    out.write("Server: Redirector 1.1\r\n");
+                    out.write("Location: " + newSite + theFile + "\r\n");
+                    out.write("Content-type: text/html\r\n\r\n");
+                    out.flush();
+                }
+                // Not all browsers support redirection so we need to
+                // produce HTML that says where the document has moved to.
+                out.write("<HTML><HEAD><TITLE>Document moved</TITLE></HEAD>\r\n");
+                out.write("<BODY><H1>Document moved</H1>\r\n");
+                out.write("The document " + theFile +
+                    " has moved to\r\n<A HREF=\"" + newSite + theFile + "\">" +
+                    newSite + theFile +
+                    "</A>.\r\n Please update your bookmarks<P>");
+                out.write("</BODY></HTML>\r\n");
+                out.flush();
+                logger.log(Level.INFO,
+                    "Redirected " + connection.getRemoteSocketAddress());
+            } catch (IOException ex) {
+                logger.log(Level.WARNING,
+                    "Error talking to " + connection.getRemoteSocketAddress(), ex);
+            } finally {
+                try {
+                    connection.close();
+                } catch (IOException ex) {}
+            }
+        }
+    }
+    public static void main(String[] args) {
+        int thePort;
+        String theSite;
+        try {
+            theSite = args[0];
+            // trim trailing slash
+            if (theSite.endsWith("/")) {
+                theSite = theSite.substring(0, theSite.length() - 1);
+            }
+        } catch (RuntimeException ex) {
+            System.out.println(
+                "Usage: java Redirector http://www.newsite.com/ port");
+            return;
+        }
+        try {
+            thePort = Integer.parseInt(args[1]);
+        } catch (RuntimeException ex) {
+            thePort = 80;
+        }
+        Redirector redirector = new Redirector(theSite, thePort);
+        redirector.start();
+    }
+}
+```
+
+### A Full-Fledged HTTP Server
+
+Example 9-12. The JHTTP web server
+```java
+import java.io.*;
+import java.net.*;
+import java.util.concurrent.*;
+import java.util.logging.*;
+public class JHTTP {
+    private static final Logger logger = Logger.getLogger(
+        JHTTP.class.getCanonicalName());
+    private static final int NUM_THREADS = 50;
+    private static final String INDEX_FILE = "index.html";
+    private final File rootDirectory;
+    private final int port;
+    public JHTTP(File rootDirectory, int port) throws IOException {
+        if (!rootDirectory.isDirectory()) {
+            throw new IOException(rootDirectory +
+                " does not exist as a directory");
+        }
+        this.rootDirectory = rootDirectory;
+        this.port = port;
+    }
+    public void start() throws IOException {
+        ExecutorService pool = Executors.newFixedThreadPool(NUM_THREADS);
+        try (ServerSocket server = new ServerSocket(port)) {
+            logger.info("Accepting connections on port " + server.getLocalPort());
+            logger.info("Document Root: " + rootDirectory);
+            while (true) {
+                try {
+                    Socket request = server.accept();
+                    Runnable r = new RequestProcessor(
+                        rootDirectory, INDEX_FILE, request);
+                    pool.submit(r);
+                } catch (IOException ex) {
+                    logger.log(Level.WARNING, "Error accepting connection", ex);
+                }
+            }
+        }
+    }
+    public static void main(String[] args) {
+        // get the Document root
+        File docroot;
+        try {
+            docroot = new File(args[0]);
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            System.out.println("Usage: java JHTTP docroot port");
+            return;
+        }
+        // set the port to listen on
+        int port;
+        try {
+            port = Integer.parseInt(args[1]);
+            if (port < 0 || port > 65535) port = 80;
+        } catch (RuntimeException ex) {
+            port = 80;
+        }
+        try {
+            JHTTP webserver = new JHTTP(docroot, port);
+            webserver.start();
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Server could not start", ex);
+        }
+    }
+}
+```
+
+Example 9-13. The runnable class that handles HTTP requests
+
+```java
+import java.io.*;
+import java.net.*;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.logging.*;
+public class RequestProcessor implements Runnable {
+    private final static Logger logger = Logger.getLogger(
+        RequestProcessor.class.getCanonicalName());
+    private File rootDirectory;
+    private String indexFileName = "index.html";
+    private Socket connection;
+    public RequestProcessor(File rootDirectory,
+        String indexFileName, Socket connection) {
+        if (rootDirectory.isFile()) {
+            throw new IllegalArgumentException(
+                "rootDirectory must be a directory, not a file");
+        }
+        try {
+            rootDirectory = rootDirectory.getCanonicalFile();
+        } catch (IOException ex) {}
+        this.rootDirectory = rootDirectory;
+        if (indexFileName != null) this.indexFileName = indexFileName;
+        this.connection = connection;
+    }
+    @Override
+    public void run() {
+        // for security checks
+        String root = rootDirectory.getPath();
+        try {
+            OutputStream raw = new BufferedOutputStream(
+                connection.getOutputStream()
+            );
+            Writer out = new OutputStreamWriter(raw);
+            Reader in = new InputStreamReader(
+                new BufferedInputStream(
+                    connection.getInputStream()
+                ), "US-ASCII"
+            );
+            StringBuilder requestLine = new StringBuilder();
+            while (true) {
+                int c = in .read();
+                if (c == '\r' || c == '\n') break;
+                requestLine.append((char) c);
+            }
+            String get = requestLine.toString();
+            logger.info(connection.getRemoteSocketAddress() + " " + get);
+            String[] tokens = get.split("\\s+");
+            String method = tokens[0];
+            String version = "";
+            if (method.equals("GET")) {
+                String fileName = tokens[1];
+                if (fileName.endsWith("/")) fileName += indexFileName;
+                String contentType =
+                    URLConnection.getFileNameMap().getContentTypeFor(fileName);
+                if (tokens.length > 2) {
+                    version = tokens[2];
+                }
+                File theFile = new File(rootDirectory,
+                    fileName.substring(1, fileName.length()));
+                if (theFile.canRead()
+                    // Don't let clients outside the document root
+                    &&
+                    theFile.getCanonicalPath().startsWith(root)) {
+                    byte[] theData = Files.readAllBytes(theFile.toPath());
+                    if (version.startsWith("HTTP/")) { // send a MIME header
+                        sendHeader(out, "HTTP/1.0 200 OK", contentType, theData.length);
+                    }
+                    // send the file; it may be an image or other binary data
+                    // so use the underlying output stream
+                    // instead of the writer
+                    raw.write(theData);
+                    raw.flush();
+                } else { // can't find the file
+                    String body = new StringBuilder("<HTML>\r\n")
+                        .append("<HEAD><TITLE>File Not Found</TITLE>\r\n")
+                        .append("</HEAD>\r\n")
+                        .append("<BODY>")
+                        .append("<H1>HTTP Error 404: File Not Found</H1>\r\n")
+                        .append("</BODY></HTML>\r\n").toString();
+                    if (version.startsWith("HTTP/")) { // send a MIME header
+                        sendHeader(out, "HTTP/1.0 404 File Not Found",
+                            "text/html; charset=utf-8", body.length());
+                    }
+                    out.write(body);
+                    out.flush();
+                }
+            } else { // method does not equal "GET"
+                String body = new StringBuilder("<HTML>\r\n")
+                    .append("<HEAD><TITLE>Not Implemented</TITLE>\r\n")
+                    .append("</HEAD>\r\n")
+                    .append("<BODY>")
+                    .append("<H1>HTTP Error 501: Not Implemented</H1>\r\n")
+                    .append("</BODY></HTML>\r\n").toString();
+                if (version.startsWith("HTTP/")) { // send a MIME header
+                    sendHeader(out, "HTTP/1.0 501 Not Implemented",
+                        "text/html; charset=utf-8", body.length());
+                }
+                out.write(body);
+                out.flush();
+            }
+        } catch (IOException ex) {
+            logger.log(Level.WARNING,
+                "Error talking to " + connection.getRemoteSocketAddress(), ex);
+        } finally {
+            try {
+                connection.close();
+            } catch (IOException ex) {}
+        }
+    }
+    private void sendHeader(Writer out, String responseCode,
+        String contentType, int length)
+    throws IOException {
+        out.write(responseCode + "\r\n");
+        Date now = new Date();
+        out.write("Date: " + now + "\r\n");
+        out.write("Server: JHTTP 2.0\r\n");
+        out.write("Content-length: " + length + "\r\n");
+        out.write("Content-type: " + contentType + "\r\n\r\n");
+        out.flush();
+    }
+}
+```
+
+# CHAPTER 10 Secure Sockets
+
