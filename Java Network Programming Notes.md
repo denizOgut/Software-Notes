@@ -9108,3 +9108,531 @@ public class RequestProcessor implements Runnable {
 
 # CHAPTER 10 Secure Sockets
 
+To make Internet connections more fundamentally secure, sockets can be encrypted. This allows transactions to be confidential, authenticated, and accurate.
+
+However, encryption is a complex subject. Performing it properly requires a detailed understanding not only of the mathematical algorithms used to encrypt data, but also of the protocols used to exchange keys and encrypted data.
+
+The Java Secure Sockets Extension (JSSE) can secure network communications using the Secure Sockets Layer (SSL) Version 3 and Transport Layer Security (TLS) protocols and their associated algorithms. SSL is a security protocol that enables web browsers and other TCP clients to talk to HTTP and other TCP servers using various levels of confidentiality and authentication.
+## Secure Communications
+
+Confidential communication through an open channel such as the public Internet absolutely requires that data be encrypted. Most encryption schemes that lend themselves to computer implementation are based on the notion of a key, a slightly more general kind of password that’s not limited to text. Using keys with more bits makes messages exponentially more difficult to decrypt by brute-force guessing of the key.
+
+In traditional secret key (or symmetric) encryption, the same key is used to encrypt and decrypt the data. Both the sender and the receiver have to know the single key.
+
+In public key (or asymmetric) encryption, different keys are used to encrypt and decrypt the data. One key, called the public key, encrypts the data. This key can be given to anyone. A different key, called the private key, is used to decrypt the data. This must be kept secret but needs to be possessed by only one of the correspondents.
+
+Asymmetric encryption can also be used for authentication and message integrity checking.
+
+Public-key encryption is more CPU-intensive and slower than secret-key encryption. To address this, instead of encrypting the entire communication using public-key encryption, one party encrypts a secret key with the recipient's public key and sends it over. The recipient decrypts it using their private key. Both parties can now use the shared secret key to encrypt their communication more efficiently, while keeping it secure from any third party.
+
+An attacker can exploit the protocol used to send and receive messages, even without breaking the encryption or bypassing key length security. The attacker intercepts and replaces a public key with their own, tricking the sender into encrypting messages with the attacker's key instead of the intended recipient's. The attacker then decrypts the message, re-encrypts it with the correct key, and forwards it to the recipient—this is a **==man-in-the-middle attack==**. To defend against this, both parties verify and retrieve public keys from a trusted certification authority, which complicates the attack but doesn't eliminate the risk entirely.
+
+the theory and practice of encryption and authentication, both algorithms and protocols, is a challenging field that’s fraught with mines and pitfalls to surprise the amateur cryptographer. It is much easier to design a bad encryption algorithm or protocol than a good one. And it’s not always obvious which algorithms and protocols are good and which aren’t.
+
+JSSE allows you to create sockets and server sockets that transparently handle the negotiations and encryption necessary for secure communication. All you have to do is send your data over the same streams and sockets you’re familiar with from previous chapters. The Java Secure Socket Extension is divided into four packages:
+
+**``javax.net.ssl``**  
+- The abstract classes that define Java’s API for secure network communication.
+
+**``javax.net``**  
+- The abstract socket factory classes used instead of constructors to create secure sockets.
+
+**``java.security.cert``**  
+- The classes for handling the public-key certificates needed for SSL.
+
+**``com.sun.net.ssl``**  
+- The concrete classes that implement the encryption algorithms and protocols in Sun’s reference implementation of the JSSE. Technically, these are not part of the JSSE standard. Other implementers may replace this package with one of their own, such as one that uses native code to speed up the CPU-intensive key generation and encryption process.
+
+## Creating Secure Client Sockets
+
+If you don’t care very much about the underlying details, using an encrypted ``SSL`` socket to talk to an existing secure server is truly straightforward. Rather than constructing a ``java.net.Socket`` object with a constructor, you get one from a ``javax.net.ssl.SSLSocketFactory`` using its ``createSocket()`` method. ``SSLSocketFacto ry`` is an abstract class that follows the abstract factory design pattern. You get an instance of it by invoking the static ``SSLSocketFactory.getDefault()`` method:
+
+```java
+SocketFactory factory = SSLSocketFactory.getDefault();
+Socket socket = factory.createSocket("login.ibiblio.org", 7000);
+```
+
+This either returns an instance of ``SSLSocketFactory`` or throws an ``InstantiationException`` if no concrete subclass can be found. Once you have a reference to the factory, use one of these five overloaded ``createSocket()`` methods to build an ``SSLSocket``:
+
+```java
+public abstract Socket createSocket(String host, int port)
+throws IOException, UnknownHostException
+public abstract Socket createSocket(InetAddress host, int port)
+throws IOException
+public abstract Socket createSocket(String host, int port,
+    InetAddress interface, int localPort)
+throws IOException, UnknownHostException
+public abstract Socket createSocket(InetAddress host, int port,
+    InetAddress interface, int localPort)
+throws IOException, UnknownHostException
+public abstract Socket createSocket(Socket proxy, String host, int port,
+    boolean autoClose) throws IOException
+```
+
+The last ``createSocket()`` method, however, is a little different. It begins with an existing ``Socket`` object that’s connected to a proxy server. It returns a ``Socket`` that tunnels through this proxy server to the specified host and port. The ``autoClose`` argument determines whether the underlying proxy socket should be closed when this socket is closed. If ``autoClose`` is true, the underlying socket will be closed; if false, it won’t be.
+
+The Socket that all these methods return will really be a ``javax.net.ssl.SSLSocket``, a subclass of ``java.net.Socket``. However, you don’t need to know that. Once the secure socket has been created, you use it just like any other socket, through its ``getInputStream()``, ``getOutputStream()``, and other methods.
+
+before sending this order, you should encrypt it. The simplest way to do that without burdening either the server or the client with a lot of complicated, error-prone encryption code is to use a secure socket. The following code sends the order over a secure socket:
+
+```http
+Name: John Smith
+Product-ID: 67X-89
+Address: 1280 Deniston Blvd, NY NY 10003
+Card number: 4000-1234-5678-9017
+Expires: 08/05
+```
+
+```java
+SSLSocketFactory factory
+    = (SSLSocketFactory) SSLSocketFactory.getDefault();
+Socket socket = factory.createSocket("login.ibiblio.org", 7000);
+Writer out = new OutputStreamWriter(socket.getOutputStream(),
+    "US-ASCII");
+out.write("Name: John Smith\r\n");
+out.write("Product-ID: 67X-89\r\n");
+out.write("Address: 1280 Deniston Blvd, NY NY 10003\r\n");
+out.write("Card number: 4000-1234-5678-9017\r\n");
+out.write("Expires: 08/05\r\n");
+out.flush();
+```
+
+**==Only the first three statements in the ``try`` block are noticeably different from what you’d do with an insecure socket.==**
+
+Example 10-1. ``HTTPSClient``
+
+```java
+import java.io.*;
+import javax.net.ssl.*;
+public class HTTPSClient {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Usage: java HTTPSClient2 host");
+            return;
+        }
+        int port = 443; // default https port
+        String host = args[0];
+        SSLSocketFactory factory
+            = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocket socket = null;
+        try {
+            socket = (SSLSocket) factory.createSocket(host, port);
+            // enable all the suites
+            String[] supported = socket.getSupportedCipherSuites();
+            socket.setEnabledCipherSuites(supported);
+            Writer out = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
+            // https requires the full URL in the GET line
+            out.write("GET http://" + host + "/ HTTP/1.1\r\n");
+            out.write("Host: " + host + "\r\n");
+            out.write("\r\n");
+            out.flush();
+            // read response
+            BufferedReader in = new BufferedReader(
+                new InputStreamReader(socket.getInputStream()));
+            // read the header
+            String s;
+            while (!(s = in .readLine()).equals("")) {
+                System.out.println(s);
+            }
+            System.out.println();
+            // read the length
+            String contentLength = in .readLine();
+            int length = Integer.MAX_VALUE;
+            try {
+                length = Integer.parseInt(contentLength.trim(), 16);
+            } catch (NumberFormatException ex) {
+                // This server doesn't send the content-length
+                // in the first line of the response body
+            }
+            System.out.println(contentLength);
+            int c;
+            int i = 0;
+            while ((c = in .read()) != -1 && i++ < length) {
+                System.out.write(c);
+            }
+            System.out.println();
+        } catch (IOException ex) {
+            System.err.println(ex);
+        } finally {
+            try {
+                if (socket != null) socket.close();
+            } catch (IOException e) {}
+        }
+    }
+}
+```
+
+When you run this program, you may notice that it’s slower to respond than you expect. There’s a noticeable amount of both CPU and network overhead involved in generating and exchanging the public keys.
+
+## Choosing the Cipher Suites
+
+Different implementations of the JSSE support different combinations of authentication and encryption algorithms.
+
+---
+**TIP**
+
+**The stock JSSE bundled with the JDK actually does have code for stronger 256-bit encryption, but it’s disabled unless you install the JCE Unlimited Strength Jurisdiction Policy Files. I don’t even want to begin trying to explain the legal briar patch that makes this necessary.**
+
+---
+
+The ``getSupportedCipherSuites()`` method in ``SSLSocketFactory`` tells you which combination of algorithms is available on a given socket:
+
+```java
+public abstract String[] getSupportedCipherSuites()
+```
+
+However, not all cipher suites that are understood are necessarily allowed on the connection. Some may be too weak and consequently disabled. The ``getEnabledCipherSuites()`` method of ``SSLSocketFactory`` tells you which suites this socket is willing to use:
+
+```java
+public abstract String[] getEnabledCipherSuites()
+```
+
+The actual suite used is negotiated between the client and server at connection time. It’s possible that the client and the server won’t agree on any suite. It’s also possible that although a suite is enabled on both client and server, one or the other or both won’t have the keys and certificates needed to use the suite. In either case, the ``createSocket()`` method will throw an ``SSLException``, a subclass of ``IOException``. You can change the suites the client attempts to use via the ``setEnabledCipherSuites()`` method:
+
+```java
+public abstract void setEnabledCipherSuites(String[] suites)
+```
+
+## Event Handlers
+
+Network communications are slow compared to the speed of most computers. Authenticated network communications are even slower. The necessary key generation and setup for a secure connection can easily take several seconds. Consequently, you may want to deal with the connection asynchronously. JSSE uses the standard Java event model to notify programs when the handshaking between client and server is complete. The pattern is a familiar one. In order to get notifications of handshake-complete events, simply implement the ``HandshakeCompletedListener`` interface:
+
+```java
+public interface HandshakeCompletedListener extends java.util.EventListener
+```
+
+This interface declares the ``handshakeCompleted()`` method:
+
+```java
+public void handshakeCompleted(HandshakeCompletedEvent event)
+```
+
+This method receives as an argument a ``HandshakeCompletedEvent``:
+
+```java
+public class HandshakeCompletedEvent extends java.util.EventObject
+```
+
+The ``HandshakeCompletedEvent`` class provides four methods for getting information about the event:
+
+```java
+public SSLSession getSession()
+public String getCipherSuite()
+public X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException 
+public SSLSocket getSocket()
+```
+
+Particular ``HandshakeCompletedListener`` objects register their interest in ``handshakecompleted`` events from a particular ``SSLSocket`` via its ``addHandshakeCompletedListener()`` and``removeHandshakeCompletedListener()`` methods:
+
+```java
+public abstract void addHandshakeCompletedListener(HandshakeCompletedListener listener)
+public abstract void removeHandshakeCompletedListener(HandshakeCompletedListener listener) throws IllegalArgumentException
+```
+
+```java
+import javax.net.ssl.*;
+import java.io.*;
+import java.security.cert.X509Certificate;
+
+public class SSLHandshakeExample {
+    public static void main(String[] args) throws Exception {
+        // Create SSL socket to a server
+        SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocket socket = (SSLSocket) factory.createSocket("example.com", 443);
+
+        // Add a handshake completed listener to the socket
+        socket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
+            @Override
+            public void handshakeCompleted(HandshakeCompletedEvent event) {
+                // Handshake completed, print some details
+                System.out.println("Handshake completed!");
+                System.out.println("Cipher Suite: " + event.getCipherSuite());
+                
+                // Print peer certificates
+                try {
+                    X509Certificate[] certs = event.getPeerCertificateChain();
+                    for (X509Certificate cert : certs) {
+                        System.out.println("Certificate Subject: " + cert.getSubjectDN());
+                    }
+                } catch (SSLPeerUnverifiedException e) {
+                    System.out.println("Peer not verified.");
+                }
+            }
+        });
+
+        // Start SSL handshake
+        socket.startHandshake();
+
+        // Send a request to the server (for example, HTTP GET)
+        PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+        out.println("GET / HTTP/1.1");
+        out.println("Host: example.com");
+        out.println("Connection: close");
+        out.println();
+        out.flush();
+
+        // Read and print the response
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        String line;
+        while ((line = in.readLine()) != null) {
+            System.out.println(line);
+        }
+
+        // Close resources
+        out.close();
+        in.close();
+        socket.close();
+    }
+}
+```
+
+## Session Management
+
+Web connections tend to be transitory; Because of the high overhead involved in handshaking between two hosts for secure communications, SSL allows sessions to be established that extend over multiple sockets. **==Different sockets within the same session use the same set of public and private keys.==** If the secure connection to Amazon.com takes seven sockets, all seven will be established within the same session and use the same keys. Only the first socket within that session will have to endure the overhead of key generation and exchange.
+
+**==If you open multiple secure sockets to one host on one port within a reasonably short period of time, JSSE will reuse the session’s keys automatically==**. However, in high-security applications, you may want to disallow session-sharing between sockets or force reauthentication of a session. In the JSSE, sessions are represented by instances of the ``SSLSession`` interface; you can use the methods of this interface to check the times the session was created and last accessed, invalidate the session, and get various information about the session:
+
+```java
+public byte[] getId()
+public SSLSessionContext getSessionContext()
+public long getCreationTime()
+public long getLastAccessedTime()
+public void invalidate()
+public void putValue(String name, Object value)
+public Object getValue(String name)
+public void removeValue(String name)
+public String[] getValueNames()
+public X509Certificate[] getPeerCertificateChain()
+throws SSLPeerUnverifiedException
+public String getCipherSuite()
+public String getPeerHost()
+```
+
+The ``getSession()`` method of ``SSLSocket`` returns the Session this socket belongs to:
+
+```java
+public abstract SSLSession getSession()
+```
+
+**==However, sessions are a trade-off between performance and security. It is more secure to renegotiate the key for each and every transaction.==** If you’ve got really spectacular hardware and are trying to protect your systems from an equally determined, rich, motivated, and competent adversary, you may want to avoid sessions. To prevent a socket from creating a session that passes false to ``setEnableSessionCreation()``, use:
+
+```java
+public abstract void setEnableSessionCreation(boolean allowSessions)
+```
+
+The ``getEnableSessionCreation()`` method returns true if multi-socket sessions are allowed, false if they’re not:
+
+```java
+public abstract boolean getEnableSessionCreation()
+```
+
+On rare occasions, you may even want to reauthenticate a connection (i.e., throw away all the certificates and keys that have previously been agreed to and start over with a new session). The ``startHandshake(``) method does this:
+
+```java
+public abstract void startHandshake() throws IOException
+```
+
+## Client Mode 
+
+**==It’s a rule of thumb that in most secure communications, the server is required to authenticate itself using the appropriate certificate. However, the client is not==**. That is, when I buy a book from Amazon using its secure server, it has to prove to my browser’s satisfaction that it is indeed Amazon and not Joe Random Hacker. However, I do not have to prove to Amazon that I am Elliotte Rusty Harold. For the most part, this is as it should be, because purchasing and installing the trusted certificates necessary for authentication is a fairly user-hostile experience that readers shouldn’t have to go through just to buy the latest Nutshell Handbook. However, this asymmetry can lead to credit card fraud. To avoid problems like this, sockets can be required to authenticate themselves. This strategy wouldn’t work for a service open to the general public. However, it might be reasonable in certain internal, high-security applications.
+
+The ``setUseClientMode()`` method determines whether the socket needs to use authentication in its first handshake. The name of the method is a little misleading. It can be used for both client- and server-side sockets. However, when true is passed in, it means the socket is in client mode (whether it’s on the client side or not) and will not offer to authenticate itself. When ``false`` is passed, it will try to authenticate itself:
+
+```java
+public abstract void setUseClientMode(boolean mode) throws IllegalArgumentException
+```
+
+This property can be set only once for any given socket. Attempting to set it a second time throws an ``IllegalArgumentException``.
+
+The ``getUseClientMode()`` method simply tells you whether this socket will use authentication in its first handshake:
+
+```java
+public abstract boolean getUseClientMode()
+```
+
+A secure socket on the server side (i.e., one returned by the ``accept()`` method of an ``SSLServerSocket``) uses the ``setNeedClientAuth()`` method to require that all clients connecting to it authenticate themselves (or not):
+
+```java
+public abstract void setNeedClientAuth(boolean needsAuthentication) throws IllegalArgumentException
+```
+
+The ``getNeedClientAuth()`` method returns true if the socket requires authentication from the client side, false otherwise:
+
+```java
+public abstract boolean getNeedClientAuth()
+```
+
+## Creating Secure Server Sockets
+
+Secure client sockets are only half of the equation. The other half is SSL-enabled server sockets. These are instances of the ``javax.net.SSLServerSocket`` class:
+
+```java
+public abstract class SSLServerSocket extends ServerSocket
+```
+
+Like ``SSLSocket``, all the constructors in this class are protected and instances are created by an abstract factory class, ``javax.net.SSLServerSocketFactory``:
+
+```java
+public abstract class SSLServerSocketFactory extends ServerSocketFactory
+```
+
+Also like ``SSLSocketFactory``, an instance of ``SSLServerSocketFactory`` is returned by a static ``SSLServerSocketFactory.getDefault()`` method:
+
+```java
+public static ServerSocketFactory getDefault()
+```
+
+```java
+public abstract ServerSocket createServerSocket(int port) throws IOException
+public abstract ServerSocket createServerSocket(int port, int queueLength) throws IOException
+public abstract ServerSocket createServerSocket(int port, int queueLength, InetAddress interface) throws IOException
+```
+
+The factory that ``SSLServerSocketFactory.getDefault()`` returns generally only supports server authentication. It does not support encryption. To get encryption as well, server-side secure sockets require more initialization and setup. Exactly how this setup is performed is implementation dependent. In Sun’s reference implementation, a ``com.sun.net.ssl.SSLContext`` object is responsible for creating fully configured and initialized secure server sockets. The details vary from JSSE implementation to JSSE implementation, but to create a secure server socket in the reference implementation, you have to:
+
+1. **Generate public keys and certificates** using `keytool`.
+2. **Pay for certificate authentication** by a trusted third party such as Comodo.
+3. **Create an `SSLContext`** for the algorithm you'll be using.
+4. **Create a `TrustManagerFactory`** for the source of certificate material you'll be using.
+5. **Create a `KeyManagerFactory`** for the type of key material you'll be using.
+6. **Create a `KeyStore` object** for the key and certificate database (Oracle's default is JKS).
+7. **Fill the `KeyStore` object** with keys and certificates, e.g., by loading them from the filesystem using the passphrase they're encrypted with.
+8. **Initialize the `KeyManagerFactory`** with the `KeyStore` and its passphrase.
+9. **Initialize the `SSLContext`** with the necessary key managers from the `KeyManagerFactory`, trust managers from the `TrustManagerFactory`, and a source of randomness. (The last two can be `null` if you're willing to accept the defaults.)
+
+Example 10-2. ``SecureOrderTaker``
+
+```java
+import java.io.*;
+import java.net.*;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.util.Arrays;
+import javax.net.ssl.*;
+public class SecureOrderTaker {
+    public final static int PORT = 7000;
+    public final static String algorithm = "SSL";
+    public static void main(String[] args) {
+        try {
+            SSLContext context = SSLContext.getInstance(algorithm);
+            // The reference implementation only supports X.509 keys
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+            // Oracle's default kind of key store
+            KeyStore ks = KeyStore.getInstance("JKS");
+            // For security, every key store is encrypted with a
+            // passphrase that must be provided before we can load
+            // it from disk. The passphrase is stored as a char[] array
+            // so it can be wiped from memory quickly rather than
+            // waiting for a garbage collector.
+            char[] password = System.console().readPassword();
+            ks.load(new FileInputStream("jnp4e.keys"), password);
+            kmf.init(ks, password);
+            context.init(kmf.getKeyManagers(), null, null);
+            // wipe the password
+            Arrays.fill(password, '0');
+            SSLServerSocketFactory factory
+                = context.getServerSocketFactory();
+            SSLServerSocket server
+                = (SSLServerSocket) factory.createServerSocket(PORT);
+            // add anonymous (non-authenticated) cipher suites
+            String[] supported = server.getSupportedCipherSuites();
+            String[] anonCipherSuitesSupported = new String[supported.length];
+            int numAnonCipherSuitesSupported = 0;
+            for (int i = 0; i < supported.length; i++) {
+                if (supported[i].indexOf("_anon_") > 0) {
+                    anonCipherSuitesSupported[numAnonCipherSuitesSupported++] =
+                        supported[i];
+                }
+            }
+            String[] oldEnabled = server.getEnabledCipherSuites();
+            String[] newEnabled = new String[oldEnabled.length +
+                numAnonCipherSuitesSupported];
+            System.arraycopy(oldEnabled, 0, newEnabled, 0, oldEnabled.length);
+            System.arraycopy(anonCipherSuitesSupported, 0, newEnabled,
+                oldEnabled.length, numAnonCipherSuitesSupported);
+            server.setEnabledCipherSuites(newEnabled);
+            // Now all the set up is complete and we can focus
+            // on the actual communication.
+            while (true) {
+                // This socket will be secure,
+                // but there's no indication of that in the code!
+                try (Socket theConnection = server.accept()) {
+                    InputStream in = theConnection.getInputStream();
+                    int c;
+                    while ((c = in .read()) != -1) {
+                        System.out.write(c);
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        } catch (IOException | KeyManagementException |
+            KeyStoreException | NoSuchAlgorithmException |
+            CertificateException | UnrecoverableKeyException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+```
+
+## Configuring ``SSLServerSockets``
+
+Like `SSLSocket`, `SSLServerSocket` provides methods to choose cipher suites, manage sessions, and establish whether clients are required to authenticate themselves. Most of these methods are similar to those in `SSLSocket`, but they operate on the server side and set the defaults for sockets accepted by an `SSLServerSocket`. Once an `SSLSocket` has been accepted, it is possible to use the methods of `SSLSocket` to configure individual sockets rather than applying the settings to all sockets accepted by the `SSLServerSocket`.
+
+### Choosing the Cipher Suites
+
+The ``SSLServerSocket`` class has the same three methods for determining which cipher suites are supported and enabled as ``SSLSocket`` does:
+
+```java
+public abstract String[] getSupportedCipherSuites()
+public abstract String[] getEnabledCipherSuites()
+public abstract void setEnabledCipherSuites(String[] suites)
+```
+
+These use the same suite names as the similarly named methods in ``SSLSocket``. The difference is that these methods apply to all sockets accepted by the ``SSLServerSocket`` rather than to just one ``SSLSocket``.
+
+```java
+String[] supported = server.getSupportedCipherSuites();
+String[] anonCipherSuitesSupported = new String[supported.length];
+int numAnonCipherSuitesSupported = 0;
+for (int i = 0; i < supported.length; i++) {
+	if (supported[i].indexOf("_anon_") > 0) {
+		anonCipherSuitesSupported[numAnonCipherSuitesSupported++] = supported[i];
+	}
+	String[] oldEnabled = server.getEnabledCipherSuites();
+	String[] newEnabled = new String[oldEnabled.length + numAnonCipherSuitesSupported];
+	System.arraycopy(oldEnabled, 0, newEnabled, 0, oldEnabled.length);
+	System.arraycopy(anonCipherSuitesSupported, 0, newEnabled,
+	oldEnabled.length, numAnonCipherSuitesSupported);
+	server.setEnabledCipherSuites(newEnabled);
+```
+
+### Session Management
+
+Both the client and server must agree to establish a session. On the server side, the `setEnableSessionCreation()` method is used to specify whether session creation will be allowed, and the `getEnableSessionCreation()` method is used to determine whether session creation is currently permitted.
+
+```java
+public abstract void setEnableSessionCreation(boolean allowSessions)
+public abstract boolean getEnableSessionCreation()
+```
+
+Session creation is enabled by default. If the server disallows session creation, then a client that wants a session will still be able to connect. It just won’t get a session and will have to handshake again for every socket. Similarly, if the client refuses sessions but the server allows them, they’ll still be able to talk to each other but without sessions
+
+### Client Mode
+
+The `SSLServerSocket` class provides two methods for determining and specifying whether client sockets are required to authenticate themselves to the server. By passing `true` to the `setNeedClientAuth()` method, you enforce that only connections where the client can authenticate itself will be accepted. By passing `false`, you specify that client authentication is not required, which is the default. To check the current state of this property, the `getNeedClientAuth()` method can be used.
+
+```java
+public abstract void setNeedClientAuth(boolean flag)
+public abstract boolean getNeedClientAuth()
+```
+
+The `setUseClientMode()` method allows a program to specify that, even though an `SSLServerSocket` has been created, it should be treated as a client in the communication, particularly with respect to authentication and other negotiations.
+
+```java
+public abstract void setUseClientMode(boolean flag)
+public abstract boolean getUseClientMode()
+```
+
+# CHAPTER 11 Nonblocking I/O
+
