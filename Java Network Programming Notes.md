@@ -9636,3 +9636,1043 @@ public abstract boolean getUseClientMode()
 
 # CHAPTER 11 Nonblocking I/O
 
+Compared to CPUs and memory or even disks, networks are slow. A high-end modern PC is capable of moving data between the CPU and main memory at speeds of around six gigabytes per second. By contrast, the theoretical maximum on today’s fastest local area networks tops out at about 150 megabytes per second, though many LANs only support speeds ten to a hundred times slower than that. 
+
+CPUs and disks are likely to remain several orders of magnitude faster than networks for the foreseeable future. The last thing you want to do in these circumstances is make the blazingly fast CPU wait for the (relatively) molasses-slow network.
+
+The traditional approach in Java to optimize CPU performance when dealing with network operations involves the use of buffering and multithreading. This technique allows multiple threads to generate data concurrently for different network connections, storing the data in buffers until the network is ready to transmit it. While this method is effective for simple servers and clients with moderate performance requirements, it does come with drawbacks. The overhead of managing multiple threads, including the significant memory cost (around one megabyte of RAM per thread), can be substantial. On high-traffic servers handling thousands of requests per second, dedicating a thread to each connection may not be feasible. A more efficient strategy is to have a single thread manage multiple connections. This thread can identify connections that are ready to receive data, quickly send as much data as the connection can handle, and then move on to the next available connection, reducing the overhead and improving performance.
+
+To work well, this approach needs to be supported by the underlying operating system. Fortunately, pretty much every modern operating system you’re likely to be using as a high-volume server supports such nonblocking I/O. However, it might not be well supported on some client systems of interest, such as tablets, cell phones, and the like. Indeed, the ``java.nio`` package that provides this support is not part of any current or planned Java ME profiles, though it is found in Android. However, the whole new I/O API is designed for and only really matters on servers, which is why I haven’t done more than allude to it until we began talking about servers. Client and even peer-to-peer systems rarely need to process so many simultaneous connections that multithreaded, stream-based I/O becomes a noticeable bottleneck.
+
+## An Example Client
+
+Although the new I/O APIs aren’t specifically designed for clients, they do work for them. In particular, many clients can be implemented with one connection at a time, so I can introduce channels and buffers before talking about selectors and nonblocking I/O.
+
+A simple client for the character generator protocol defined in RFC 864 will demonstrate the basics. This protocol is designed for testing clients. The server listens for connections on port 19. When a client connects, the server sends a continuous sequence of characters until the client disconnects. Any input from the client is ignored. The RFC does not specify which character sequence to send, but recommends that the server use a recognizable pattern
+
+```text
+!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh
+"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghi
+#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghij
+$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijk
+%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijkl
+&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklm
+```
+
+When implementing a client that utilizes the new I/O APIs, start by calling the static factory method `SocketChannel.open()` to create a new `java.nio.channels.SocketChannel` object. The argument for this method is a `java.net.SocketAddress` object that specifies the host and port to connect to.
+
+```java
+SocketAddress rama = new InetSocketAddress("rama.poly.edu", 19);
+SocketChannel client = SocketChannel.open(rama);
+```
+
+The channel is opened in blocking mode, so the next line of code won’t execute until the connection is established. If the connection can’t be established, an ``IOException`` is thrown.
+
+If this were a traditional client, you’d now ask for the socket’s input and/or output streams. However, it’s not. With a channel you write directly to the channel itself. Rather than writing byte arrays, you write ``ByteBuffer`` objects. so you’ll create a ``ByteBuffer`` that has a 74-byte capacity using the static ``allocate()`` method:
+
+```java
+ByteBuffer buffer = ByteBuffer.allocate(74);
+```
+
+Pass this `ByteBuffer` object to the channel’s `read()` method. The channel fills this buffer with the data it reads from the socket. It returns the number of bytes it successfully read and stored in the buffer.
+
+```java
+int bytesRead = client.read(buffer);
+```
+
+By default, this will read at least one byte or return –1 to indicate the end of the data, exactly as an ``InputStream`` does. It will often read more bytes if more bytes are available to be read.
+
+Assuming there is some data in the buffer—that is, `n > 0`—this data can be copied to `System.out`. There are ways to extract a byte array from a `ByteBuffer` that can then be written to a traditional `OutputStream` such as `System.out`. However, it’s more informative to stick with a pure, channel-based solution. Such a solution requires wrapping the `OutputStream` `System.out` in a channel using the `Channels` utility class, specifically, its `newChannel()` method.
+
+```java
+WritableByteChannel output = Channels.newChannel(System.out);
+```
+
+You can then write the data that was read onto this output channel connected to `System.out`. **==However, before you do that, you have to flip the buffer so that the output channel starts from the beginning of the data that was read rather than the end.==**
+
+```java
+buffer.flip();
+output.write(buffer);
+```
+
+You don’t have to tell the output channel how many bytes to write. Buffers keep track of how many bytes they contain. However, in general, the output channel is not guaranteed to write all the bytes in the buffer. In this specific case, though, it’s a blocking channel, so it will either write all the bytes or throw an `IOException`. **==You shouldn’t create a new buffer for each read and write, as that would degrade performance. Instead, reuse the existing buffer. You’ll need to clear the buffer before reading into it again.==**
+
+```java
+buffer.clear();
+```
+
+Flipping leaves the data in the buffer intact, but prepares it for writing rather than reading. Clearing resets the buffer to a pristine state.
+
+Example 11-1. A channel-based chargen client
+
+```java
+import java.nio.*;
+import java.nio.channels.*;
+import java.net.*;
+import java.io.IOException;
+public class ChargenClient {
+    public static int DEFAULT_PORT = 19;
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Usage: java ChargenClient host [port]");
+            return;
+        }
+        int port;
+        try {
+            port = Integer.parseInt(args[1]);
+        } catch (RuntimeException ex) {
+            port = DEFAULT_PORT;
+        }
+        try {
+            SocketAddress address = new InetSocketAddress(args[0], port);
+            SocketChannel client = SocketChannel.open(address);
+            ByteBuffer buffer = ByteBuffer.allocate(74);
+            WritableByteChannel out = Channels.newChannel(System.out);
+            while (client.read(buffer) != -1) {
+                buffer.flip();
+                out.write(buffer);
+                buffer.clear();
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+```
+
+```text
+$ java ChargenClient rama.poly.edu
+!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefg
+!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefgh
+"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghi
+#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghij
+$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijk
+%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijkl
+&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklm
+```
+
+To change the blocking mode, pass `true` (to block) or `false` (to not block) to the `configureBlocking()` method.
+
+```java
+client.configureBlocking(false);
+```
+
+```java
+while (true) {
+    // Put whatever code here you want to run every pass through the loop
+    // whether anything is read or not
+    int n = client.read(buffer);
+    if (n > 0) {
+        buffer.flip();
+        out.write(buffer);
+        buffer.clear();
+    } else if (n == -1) {
+        // This shouldn't happen unless the server is misbehaving.
+        break;
+    }
+}
+```
+
+## An Example Server
+
+Handling servers requires a third new component in addition to the buffers and channels used for the client. Specifically, you need selectors, which allow the server to identify all the connections that are ready to receive output or send input.
+
+When implementing a server that utilizes the new I/O APIs, begin by calling the static factory method `ServerSocketChannel.open()` to create a new `ServerSocketChannel` object.
+
+```java
+ServerSocketChannel serverChannel = ServerSocketChannel.open();
+```
+
+Initially, this channel is not actually listening on any port. To bind it to a port, retrieve its `ServerSocket` peer object with the `socket()` method and then use the `bind()` method on that peer.
+
+```java
+ServerSocket ss = serverChannel.socket();
+ss.bind(new InetSocketAddress(19));
+```
+
+In Java 7 and later, you can bind directly without retrieving the underlying ``java.net.ServerSocket``:
+
+```java
+serverChannel.bind(new InetSocketAddress(19));
+```
+
+The server socket channel is now listening for incoming connections on port 19. To accept a connection, call the `accept()` method, which returns a `SocketChannel` object.
+
+```java
+SocketChannel clientChannel = serverChannel.accept();
+```
+
+**==On the server side, you’ll definitely want to make the client channel nonblocking to allow the server to process multiple simultaneous connections:==**
+
+```java
+clientChannel.configureBlocking(false);
+```
+
+A non-blocking `accept()` returns `null` almost immediately if there are no incoming connections. Be sure to check for that, or you’ll encounter a `NullPointerException` when trying to use the socket.
+
+There are now two open channels: a server channel and a client channel. Both need to be processed and can run indefinitely. Additionally, processing the server channel will create more open client channels.
+
+In the new I/O API, you create a `Selector` that enables the program to iterate over all the connections ready to be processed. To construct a new `Selector`, simply call the static `Selector.open()` factory method.
+
+```java
+Selector selector = Selector.open();
+```
+
+Next, you need to register each channel with the selector that monitors it using the channel’s `register()` method. When registering, specify the operation you’re interested in by using a named constant from the `SelectionKey` class.
+
+```java
+serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+```
+
+For the client channels, you want to know something a little different—specifically, whether they’re ready to have data written onto them.
+
+```java
+SelectionKey key = clientChannel.register(selector, SelectionKey.OP_WRITE);
+```
+
+Both `register()` methods return a `SelectionKey` object. However, you’ll primarily need to use that key for the client channels, as there can be more than one of them. Each `SelectionKey` has an attachment of arbitrary `Object` type, which is typically used to hold an object that indicates the current state of the connection.
+
+```java
+byte[] rotation = new byte[95*2];
+for (byte i = ' '; i <= '~'; i++) {
+	rotation[i - ' '] = i;
+	rotation[i + 95 - ' '] = i;
+}
+```
+
+```java
+ByteBuffer buffer = ByteBuffer.allocate(74);
+buffer.put(rotation, 0, 72);
+buffer.put((byte) '\r');
+buffer.put((byte) '\n');
+buffer.flip();
+key2.attach(buffer);
+```
+
+To check whether anything is ready to be acted on, call the selector’s `select()` method. For a long-running server, this typically goes in an infinite loop.
+
+```java
+while (true) {
+	selector.select ();
+	// process selected keys...
+}
+```
+
+Assuming the selector finds a ready channel, its `selectedKeys()` method returns a `java.util.Set` containing one `SelectionKey` object for each ready channel. Otherwise, it returns an empty set.
+
+```java
+Set < SelectionKey > readyKeys = selector.selectedKeys();
+Iterator iterator = readyKeys.iterator();
+while (iterator.hasNext()) {
+    SelectionKey key = iterator.next();
+    // Remove key from set so we don't process it twice
+    iterator.remove();
+    // operate on the channel...
+}
+```
+
+Removing the key from the set indicates to the `Selector` that you’ve handled the associated channel, so the `Selector` doesn’t need to keep returning it every time you call `select()`. The `Selector` will re-add the channel to the ready set when `select()` is called again if the channel becomes ready again. **==It’s crucial to remove the key from the ready set at this point.==**
+
+If the ready channel is the server channel, the program accepts a new `SocketChannel` and adds it to the selector. If the ready channel is a socket channel, the program writes as much of the buffer as possible onto the channel. If no channels are ready, the `Selector` waits for one. In this setup, one thread, the main thread, processes multiple simultaneous connections.
+
+```java
+try {
+    if (key.isAcceptable()) {
+        ServerSocketChannel server = (ServerSocketChannel) key.channel();
+        SocketChannel connection = server.accept();
+        connection.configureBlocking(false);
+        connection.register(selector, SelectionKey.OP_WRITE);
+        // set up the buffer for the client...
+    } else if (key.isWritable()) {
+        SocketChannel client = (SocketChannel) key.channel();
+        // write data to client...
+    }
+}
+```
+
+Writing the data onto the channel is straightforward. Retrieve the key’s attachment, cast it to `ByteBuffer`, and call `hasRemaining()` to check if there’s any unwritten data left in the buffer. If there is, write it. Otherwise, refill the buffer with the next line of data from the rotation array and write that.
+
+```java
+ByteBuffer buffer = (ByteBuffer) key.attachment();
+if (!buffer.hasRemaining()) {
+	// Refill the buffer with the next line
+	// Figure out where the last line started
+	buffer.rewind();
+	int first = buffer.get();
+	// Increment to the next character
+	buffer.rewind();
+	int position = first - ' ' + 1;
+	buffer.put(rotation, position, 72);
+	buffer.put((byte) '\r');
+	buffer.put((byte) '\n');
+	buffer.flip();
+}
+client.write(buffer);
+```
+
+```java
+catch (IOException ex) {
+    key.cancel();
+    try {
+        key.channel().close();
+    } catch (IOException cex) {
+        // ignore
+    }
+}
+```
+
+Example 11-2. A nonblocking chargen server
+
+```java
+import java.nio.*;
+import java.nio.channels.*;
+import java.net.*;
+import java.util.*;
+import java.io.IOException;
+public class ChargenServer {
+    public static int DEFAULT_PORT = 19;
+    public static void main(String[] args) {
+        int port;
+        try {
+            port = Integer.parseInt(args[0]);
+        } catch (RuntimeException ex) {
+            port = DEFAULT_PORT;
+        }
+        System.out.println("Listening for connections on port " + port);
+        byte[] rotation = new byte[95 * 2];
+        for (byte i = ' '; i <= '~'; i++) {
+            rotation[i - ' '] = i;
+            rotation[i + 95 - ' '] = i;
+        }
+        ServerSocketChannel serverChannel;
+        Selector selector;
+        try {
+            serverChannel = ServerSocketChannel.open();
+            ServerSocket ss = serverChannel.socket();
+            InetSocketAddress address = new InetSocketAddress(port);
+            ss.bind(address);
+            serverChannel.configureBlocking(false);
+            selector = Selector.open();
+            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return;
+        }
+        while (true) {
+            try {
+                selector.select();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                break;
+            }
+            Set < SelectionKey > readyKeys = selector.selectedKeys();
+            Iterator < SelectionKey > iterator = readyKeys.iterator();
+            while (iterator.hasNext()) {
+                SelectionKey key = iterator.next();
+                iterator.remove();
+                try {
+                    if (key.isAcceptable()) {
+                        ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                        SocketChannel client = server.accept();
+                        System.out.println("Accepted connection from " + client);
+                        client.configureBlocking(false);
+                        SelectionKey key2 = client.register(selector, SelectionKey.OP_WRITE);
+                        ByteBuffer buffer = ByteBuffer.allocate(74);
+                        buffer.put(rotation, 0, 72);
+                        buffer.put((byte)
+                            '\r');
+                        buffer.put((byte)
+                            '\n');
+                        buffer.flip();
+                        key2.attach(buffer);
+                    } else if (key.isWritable()) {
+                        SocketChannel client = (SocketChannel) key.channel();
+                        ByteBuffer buffer = (ByteBuffer) key.attachment();
+                        if (!buffer.hasRemaining()) {
+                            // Refill the buffer with the next line
+                            buffer.rewind();
+                            // Get the old first character
+                            int first = buffer.get();
+                            // Get ready to change the data in the buffer
+                            buffer.rewind();
+                            // Find the new first characters position in rotation
+                            int position = first - ' ' + 1;
+                            // copy the data from rotation into the buffer
+                            buffer.put(rotation, position, 72);
+                            // Store a line break at the end of the buffer
+                            buffer.put((byte)
+                                '\r');
+                            buffer.put((byte)
+                                '\n');
+                            // Prepare the buffer for writing
+                            buffer.flip();
+                        }
+                        client.write(buffer);
+                    }
+                } catch (IOException ex) {
+                    key.cancel();
+                    try {
+                        key.channel().close();
+                    } catch (IOException cex) {}
+                }
+            }
+        }
+    }
+}
+```
+
+## Buffers
+
+It's recommended to always buffer your streams, as having a sufficiently large buffer can greatly impact the performance of network programs. **==In the new I/O model, buffering is not optional; all I/O operations are buffered. The buffers themselves are fundamental parts of the API. Instead of writing data to output streams and reading data from input streams, you read and write data from buffers.==**
+
+**==From a programming perspective, the key difference between streams and channels is that streams are byte-based, while channels are block-based.==** A stream is designed to provide one byte at a time, in sequence, although arrays of bytes can be used for efficiency. In contrast, a channel deals with blocks of data stored in buffers. Data is read from or written to a channel one buffer at a time.
+
+Another significant difference is that channels and buffers often support both reading and writing operations on the same object. However, this isn't always the case. For example, a channel pointing to a file on a CD-ROM can be read but not written, and a channel connected to a socket with shutdown input can be written to but not read from. Attempting to write to a read-only channel or read from a write-only channel will throw an `UnsupportedOperationException`. Nonetheless, in many network programs, you can both read from and write to the same channels.
+
+You can think of a buffer as a fixed-size list of elements of a particular, typically primitive, data type, similar to an array. However, it’s not necessarily an array internally; sometimes it is, and sometimes it isn’t. Java provides specific subclasses of `Buffer` for each primitive data type except `boolean`: `ByteBuffer`, `CharBuffer`, `ShortBuffer`, `IntBuffer`, `LongBuffer`, `FloatBuffer`, and `DoubleBuffer`. The methods in each subclass are tailored with appropriately typed return values and argument lists.
+
+Network programs use `ByteBuffer` almost exclusively, although occasionally a program might use a view that overlays the `ByteBuffer` with one of the other types.
+
+Besides holding its list of data, each buffer tracks four key pieces of information. All buffers, regardless of their type, have the same methods to set and get these values:
+
+1. **Capacity**: The total number of elements the buffer can hold.
+```java
+public final int position()
+public final Buffer position(int newPosition)
+```
+2. **Position**: The index of the next element to be read or written.
+```java
+public final int capacity()
+```
+3. **Limit**: The index of the first element that should not be read or written.
+```java
+public final int limit()
+public final Buffer limit(int newLimit)
+```
+4. **Mark**: An optional index that can be set and later used to reset the position to a specific point.
+```java
+public final Buffer mark()
+public final Buffer reset()
+```
+
+Unlike reading from an `InputStream`, reading from a buffer does not alter the buffer’s data. You can set the position either forward or backward, allowing you to start reading from a specific location in the buffer.
+
+The common `Buffer` superclass provides a few other methods that operate based on these common properties. For instance, the `clear()` method "empties" the buffer by setting the position to zero and the limit to the capacity. This prepares the buffer to be completely refilled with new data.
+
+```java
+public final Buffer clear()
+```
+
+However, the `clear()` method does not remove the old data from the buffer. The data remains present and can still be read using absolute `get` methods or by changing the limit and position again.
+
+The `rewind()` method sets the position to zero but does not change the limit:
+
+```java
+public final Buffer rewind()
+```
+
+This allows the buffer to be reread from the beginning.
+
+The `flip()` method sets the limit to the current position and the position to zero:
+
+```java
+public final Buffer flip()
+```
+
+It is used when you want to prepare a buffer for reading after you have just filled it.
+
+Finally, there are two methods that provide information about the buffer without changing it:
+
+- The `remaining()` method returns the number of elements between the current position and the limit:
+
+  ```java
+  public final int remaining()
+  ```
+
+- The `hasRemaining()` method returns `true` if there are any elements remaining (i.e., if the number of remaining elements is greater than zero):
+
+  ```java
+  public final boolean hasRemaining()
+  ```
+### Creating Buffers
+
+The buffer class hierarchy is based on inheritance but not really on polymorphism, at least not at the top level
+
+Each typed buffer class has several factory methods that create implementation-specific subclasses of that type in various ways. Empty buffers are typically created using `allocate` methods, while buffers that are prefilled with data are created using `wrap` methods. The `allocate` methods are often useful for input, and the `wrap` methods are normally used for output.
+
+#### Allocation
+
+The basic `allocate()` method simply returns a new, empty buffer with a specified fixed capacity:
+
+```java
+public static Buffer allocate(int capacity)
+```
+
+```markdown
+ByteBuffer buffer1 = ByteBuffer.allocate(100);
+IntBuffer buffer2 = IntBuffer.allocate(100);
+```
+
+The cursor is positioned at the beginning of the buffer (i.e., the position is 0). A buffer created by `allocate()` will be implemented on top of a Java array, which can be accessed by the `array()` and `arrayOffset()` methods. For example, you could read a large chunk of data into a buffer using a channel and then retrieve the array from the buffer to pass to other methods:
+
+```java
+byte[] data1 = buffer1.array();
+int[] data2 = buffer2.array();
+```
+
+The `array()` method does expose the buffer’s private data, so use it with caution. Changes to the backing array are reflected in the buffer and vice versa. The normal pattern here is to fill the buffer with data, retrieve its backing array, and then operate on the array. This isn’t a problem as long as you don’t write to the buffer after you’ve started working with the array.
+
+#### Direct Allocation
+
+The `ByteBuffer` class (but not the other buffer classes) has an additional `allocateDirect()` method that may not create a backing array for the buffer. The VM may implement a directly allocated `ByteBuffer` using direct memory access to the buffer on an Ethernet card, kernel memory, or something else. It’s not required, but it’s allowed, and this can improve performance for I/O operations. From an API perspective, `allocateDirect()` is used exactly like `allocate()`:
+
+```java
+ByteBuffer buffer = ByteBuffer.allocateDirect(100);
+```
+
+Direct buffers may be faster on some virtual machines, especially if the buffer is large (roughly a megabyte or more). However, direct buffers are more expensive to create than indirect buffers, so they should only be allocated when the buffer is expected to be around for a while.
+
+#### Wrapping
+
+If you already have an array of data that you want to output, you'll typically wrap a buffer around it instead of allocating a new buffer and copying its components into it one at a time. For example:
+
+```java
+byte[] data = "Some data".getBytes("UTF-8");
+ByteBuffer buffer1 = ByteBuffer.wrap(data);
+
+char[] text = "Some text".toCharArray();
+CharBuffer buffer2 = CharBuffer.wrap(text);
+```
+
+### Filling and Draining
+
+**==Buffers are designed for sequential access==**. Each buffer has a current position, identified by the `position()` method, which is somewhere between zero and the number of elements in the buffer, inclusive. The buffer’s position is incremented by one each time an element is read from or written to the buffer.
+
+```java
+CharBuffer buffer = CharBuffer.allocate(12);
+buffer.put('H');
+buffer.put('e');
+buffer.put('l');
+buffer.put('l');
+buffer.put('o');
+```
+
+The position of the buffer is now 5. This process is called filling the buffer. You can only fill the buffer up to its capacity. If you attempt to fill it beyond its initially set capacity, the `put()` method will throw a `BufferOverflowException`. 
+
+Before you can read the data you wrote back out, you need to flip the buffer:
+
+```java
+buffer.flip();
+```
+
+This sets the limit to the position (5 in this example) and resets the position to 0, the start of the buffer. Now you can drain the buffer into a new string:
+
+```java
+String result = "";
+while (buffer.hasRemaining()) {
+    result += (char) buffer.get();
+}
+```
+
+Each call to `get()` moves the position forward by one. When the position reaches the limit, `hasRemaining()` returns `false`. This process is called draining the buffer.
+
+Buffer classes also have absolute methods that allow you to fill and drain at specific positions within the buffer without updating the position. For example, `ByteBuffer` has the following methods:
+
+```java
+public abstract byte get(int index);
+public abstract ByteBuffer put(int index, byte b);
+```
+
+```markdown
+CharBuffer buffer = CharBuffer.allocate(12);
+buffer.put(0, 'H');
+buffer.put(1, 'e');
+buffer.put(2, 'l');
+buffer.put(3, 'l');
+buffer.put(4, 'o');
+```
+
+However, you no longer need to flip before reading it out, because the absolute methods don’t change the position. Furthermore, order no longer matters. This produces the same end result:
+
+```java
+CharBuffer buffer = CharBuffer.allocate(12);
+buffer.put(1, 'e');
+buffer.put(4, 'o');
+buffer.put(0, 'H');
+buffer.put(3, 'l');
+buffer.put(2, 'l');
+```
+
+### Bulk Methods
+
+Even with buffers, it’s often faster to work with blocks of data rather than filling and draining one element at a time. The different buffer classes have bulk methods that fill and drain an array of their element type.
+
+For example, `ByteBuffer` has `put()` and `get()` methods that fill and drain a `ByteBuffer` from a preexisting byte array or subarray:
+
+```java
+public ByteBuffer get(byte[] dst, int offset, int length);
+public ByteBuffer get(byte[] dst);
+public ByteBuffer put(byte[] array, int offset, int length);
+public ByteBuffer put(byte[] array);
+```
+
+### Data Conversion
+
+All data in Java ultimately resolves to bytes. Any primitive data type—`int`, `double`, `float`, etc.—can be written as bytes. Any sequence of bytes of the right length can be interpreted as a primitive datum. The `ByteBuffer` class (and only the `ByteBuffer` class) provides relative and absolute `put` methods that fill a buffer with the bytes corresponding to an argument of primitive type (except `boolean`), and relative and absolute `get` methods that read the appropriate number of bytes to form a new primitive datum:
+
+```java
+public abstract char getChar();
+public abstract ByteBuffer putChar(char value);
+public abstract char getChar(int index);
+public abstract ByteBuffer putChar(int index, char value);
+
+public abstract short getShort();
+public abstract ByteBuffer putShort(short value);
+public abstract short getShort(int index);
+public abstract ByteBuffer putShort(int index, short value);
+
+public abstract int getInt();
+public abstract ByteBuffer putInt(int value);
+public abstract int getInt(int index);
+public abstract ByteBuffer putInt(int index, int value);
+
+public abstract long getLong();
+public abstract ByteBuffer putLong(long value);
+public abstract long getLong(int index);
+public abstract ByteBuffer putLong(int index, long value);
+
+public abstract float getFloat();
+public abstract ByteBuffer putFloat(float value);
+public abstract float getFloat(int index);
+public abstract ByteBuffer putFloat(int index, float value);
+
+public abstract double getDouble();
+public abstract ByteBuffer putDouble(double value);
+public abstract double getDouble(int index);
+public abstract ByteBuffer putDouble(int index, double value);
+```
+
+==**In the world of new I/O, these methods perform the functions traditionally handled by `DataOutputStream` and `DataInputStream` in classic I/O.**==
+
+Example 11-3. Intgen server
+
+```java
+import java.nio.*;
+import java.nio.channels.*;
+import java.net.*;
+import java.util.*;
+import java.io.IOException;
+public class IntgenServer {
+    public static int DEFAULT_PORT = 1919;
+    public static void main(String[] args) {
+        int port;
+        try {
+            port = Integer.parseInt(args[0]);
+        } catch (RuntimeException ex) {
+            port = DEFAULT_PORT;
+        }
+        System.out.println("Listening for connections on port " + port);
+        ServerSocketChannel serverChannel;
+        Selector selector;
+        try {
+            serverChannel = ServerSocketChannel.open();
+            ServerSocket ss = serverChannel.socket();
+            InetSocketAddress address = new InetSocketAddress(port);
+            ss.bind(address);
+            serverChannel.configureBlocking(false);
+            selector = Selector.open();
+            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return;
+        }
+        while (true) {
+            try {
+                selector.select();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                break;
+            }
+            Set < SelectionKey > readyKeys = selector.selectedKeys();
+            Iterator < SelectionKey > iterator = readyKeys.iterator();
+            while (iterator.hasNext()) {
+                SelectionKey key = iterator.next();
+                iterator.remove();
+                try {
+                    if (key.isAcceptable()) {
+                        ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                        SocketChannel client = server.accept();
+                        System.out.println("Accepted connection from " + client);
+                        client.configureBlocking(false);
+                        SelectionKey key2 = client.register(selector, SelectionKey.OP_WRITE);
+                        ByteBuffer output = ByteBuffer.allocate(4);
+                        output.putInt(0);
+                        output.flip();
+                        key2.attach(output);
+                    } else if (key.isWritable()) {
+                        SocketChannel client = (SocketChannel) key.channel();
+                        ByteBuffer output = (ByteBuffer) key.attachment();
+                        client.write(output);
+                    }
+                } catch (IOException ex) {
+                    key.cancel();
+                    try {
+                        key.channel().close();
+                    } catch (IOException cex) {}
+                }
+            }
+        }
+    }
+}
+if (!output.hasRemaining()) {
+    output.rewind();
+    int value = output.getInt();
+    output.clear();
+    output.putInt(value + 1);
+    output.flip();
+}
+```
+
+### View Buffers
+
+If you know that a `ByteBuffer` read from a `SocketChannel` contains nothing but elements of one particular primitive data type, it may be worthwhile to create a view buffer. This is a new `Buffer` object of the appropriate type (e.g., `DoubleBuffer`, `IntBuffer`, etc.) that draws its data from the underlying `ByteBuffer`, starting from the current position.
+
+Changes to the view buffer are reflected in the underlying buffer and vice versa. However, each buffer has its own independent limit, capacity, mark, and position. View buffers are created with one of these six methods in `ByteBuffer`:
+
+```java
+public abstract ShortBuffer asShortBuffer();
+public abstract CharBuffer asCharBuffer();
+public abstract IntBuffer asIntBuffer();
+public abstract LongBuffer asLongBuffer();
+public abstract FloatBuffer asFloatBuffer();
+public abstract DoubleBuffer asDoubleBuffer();
+```
+
+Example 11-4. Intgen client
+
+```java
+import java.nio.*;
+import java.nio.channels.*;
+import java.net.*;
+import java.io.IOException;
+public class IntgenClient {
+    public static int DEFAULT_PORT = 1919;
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Usage: java IntgenClient host [port]");
+            return;
+        }
+        int port;
+        try {
+            port = Integer.parseInt(args[1]);
+        } catch (RuntimeException ex) {
+            port = DEFAULT_PORT;
+        }
+        try {
+            SocketAddress address = new InetSocketAddress(args[0], port);
+            SocketChannel client = SocketChannel.open(address);
+            ByteBuffer buffer = ByteBuffer.allocate(4);
+            IntBuffer view = buffer.asIntBuffer();
+            for (int expected = 0;; expected++) {
+                client.read(buffer);
+                int actual = view.get();
+                buffer.clear();
+                view.rewind();
+                if (actual != expected) {
+                    System.err.println("Expected " + expected + "; was " + actual);
+                    break;
+                }
+                System.out.println(actual);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+```
+
+There’s one thing to note here: although you can fill and drain the buffers using the methods of the `IntBuffer` class exclusively, data must be read from and written to the channel using the original `ByteBuffer` of which the `IntBuffer` is a view.
+
+### Compacting Buffers
+
+Most writable buffers support a `compact()` method:
+
+```java
+public abstract ByteBuffer compact();
+public abstract IntBuffer compact();
+public abstract ShortBuffer compact();
+public abstract FloatBuffer compact();
+public abstract CharBuffer compact();
+public abstract DoubleBuffer compact();
+```
+
+Compacting shifts any remaining data in the buffer to the start of the buffer, freeing up more space for elements. Any data that was in those positions will be overwritten. The buffer’s position is set to the end of the data, making it ready for writing more data.
+
+Compacting is especially useful when copying data—such as reading from one channel and writing the data to another using nonblocking I/O. You can read some data into a buffer, write the buffer out, then compact the buffer so that all the data not written is at the beginning, with the position at the end of the remaining data. This setup allows for more flexible and efficient interleaving of reads and writes with a single buffer. If the network is ready for immediate output but not input (or vice versa), the program can leverage this to optimize performance.
+
+Example 11-5. Echo server
+
+```java
+import java.nio.*;
+import java.nio.channels.*;
+import java.net.*;
+import java.util.*;
+import java.io.IOException;
+public class EchoServer {
+    public static int DEFAULT_PORT = 7;
+    public static void main(String[] args) {
+        int port;
+        try {
+            port = Integer.parseInt(args[0]);
+        } catch (RuntimeException ex) {
+            port = DEFAULT_PORT;
+        }
+        System.out.println("Listening for connections on port " + port);
+        ServerSocketChannel serverChannel;
+        Selector selector;
+        try {
+            serverChannel = ServerSocketChannel.open();
+            ServerSocket ss = serverChannel.socket();
+            InetSocketAddress address = new InetSocketAddress(port);
+            ss.bind(address);
+            serverChannel.configureBlocking(false);
+            selector = Selector.open();
+            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return;
+        }
+        while (true) {
+            try {
+                selector.select();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                break;
+            }
+            Set < SelectionKey > readyKeys = selector.selectedKeys();
+            Iterator < SelectionKey > iterator = readyKeys.iterator();
+            while (iterator.hasNext()) {
+                SelectionKey key = iterator.next();
+                iterator.remove();
+                try {
+                    if (key.isAcceptable()) {
+                        ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                        SocketChannel client = server.accept();
+                        System.out.println("Accepted connection from " + client);
+                        client.configureBlocking(false);
+                        SelectionKey clientKey = client.register(
+                            selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+                        ByteBuffer buffer = ByteBuffer.allocate(100);
+                        clientKey.attach(buffer);
+                    }
+                    if (key.isReadable()) {
+                        SocketChannel client = (SocketChannel) key.channel();
+                        ByteBuffer output = (ByteBuffer) key.attachment();
+                        output.compact();
+                    }
+                } catch (IOException ex) {
+                    key.cancel();
+                    try {
+                        key.channel().close();
+                    } catch (IOException cex) {}
+                }
+            }
+        }
+    }
+}
+client.read(output);
+}
+if (key.isWritable()) {
+    SocketChannel client = (SocketChannel) key.channel();
+    ByteBuffer output = (ByteBuffer) key.attachment();
+    output.flip();
+    client.write(output);
+    
+```
+
+### Duplicating Buffers
+
+It’s often desirable to make a copy of a buffer to deliver the same information to two or more channels. The `duplicate()` methods in each of the six typed buffer classes accomplish this:
+
+```java
+public abstract ByteBuffer duplicate();
+public abstract IntBuffer duplicate();
+public abstract ShortBuffer duplicate();
+public abstract FloatBuffer duplicate();
+public abstract CharBuffer duplicate();
+public abstract DoubleBuffer duplicate();
+```
+
+The return values are not clones. **==The duplicated buffers share the same data, including the same backing array if the buffer is indirect. Changes to the data in one buffer are reflected in the other buffer. Therefore, you should mostly use this method when you’re only going to read from the buffers. Otherwise, it can be tricky to keep track of where the data is being modified.==**
+
+The original and duplicated buffers have independent marks, limits, and positions, even though they share the same data. This means one buffer can be ahead of or behind the other buffer.
+
+Duplication is useful when you want to transmit the same data over multiple channels, roughly in parallel. You can create duplicates of the main buffer for each channel and allow each channel to operate at its own speed.
+
+Example 11-6. A nonblocking HTTP server that serves one file
+
+```java
+import java.io.*;
+import java.nio.*;
+import java.nio.channels.*;
+import java.nio.charset.*;
+import java.nio.file.*;
+import java.util.*;
+import java.net.*;
+public class NonblockingSingleFileHTTPServer {
+    private ByteBuffer contentBuffer;
+    private int port = 80;
+    public NonblockingSingleFileHTTPServer(
+        ByteBuffer data, String encoding, String MIMEType, int port) {
+        this.port = port;
+        String header = "HTTP/1.0 200 OK\r\n" +
+            "Server: NonblockingSingleFileHTTPServer\r\n" +
+            "Content-length: " + data.limit() + "\r\n" +
+            "Content-type: " + MIMEType + "\r\n\r\n";
+        byte[] headerData = header.getBytes(Charset.forName("US-ASCII"));
+        ByteBuffer buffer = ByteBuffer.allocate(
+            data.limit() + headerData.length);
+        buffer.put(headerData);
+        buffer.put(data);
+        buffer.flip();
+        this.contentBuffer = buffer;
+    }
+    public void run() throws IOException {
+        ServerSocketChannel serverChannel = ServerSocketChannel.open();
+        ServerSocket serverSocket = serverChannel.socket();
+        Selector selector = Selector.open();
+        InetSocketAddress localPort = new InetSocketAddress(port);
+        serverSocket.bind(localPort);
+        serverChannel.configureBlocking(false);
+        serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        while (true) {
+            selector.select();
+            Iterator < SelectionKey > keys = selector.selectedKeys().iterator();
+            while (keys.hasNext()) {
+                SelectionKey key = keys.next();
+                keys.remove();
+                try {
+                    if (key.isAcceptable()) {
+                        ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                        SocketChannel channel = server.accept();
+                        channel.configureBlocking(false);
+                        channel.register(selector, SelectionKey.OP_READ);
+                    } else if (key.isWritable()) {
+                        SocketChannel channel = (SocketChannel) key.channel();
+                        ByteBuffer buffer = (ByteBuffer) key.attachment();
+                        if (buffer.hasRemaining()) {
+                            channel.write(buffer);
+                        } else { // we're done
+                            channel.close();
+                        }
+                    } else if (key.isReadable()) {
+                        // Don't bother trying to parse the HTTP header.
+                        // Just read something.
+                        SocketChannel channel = (SocketChannel) key.channel();
+                        ByteBuffer buffer = ByteBuffer.allocate(4096);
+                        channel.read(buffer);
+                        // switch channel to write-only mode
+                        key.interestOps(SelectionKey.OP_WRITE);
+                        key.attach(contentBuffer.duplicate());
+                    }
+                } catch (IOException ex) {
+                    key.cancel();
+                    try {
+                        key.channel().close();
+                    } catch (IOException cex) {}
+                }
+            }
+        }
+    }
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println(
+                "Usage: java NonblockingSingleFileHTTPServer file port encoding");
+            return;
+        }
+        try {
+            // read the single file to serve
+            String contentType =
+                URLConnection.getFileNameMap().getContentTypeFor(args[0]);
+            Path file = FileSystems.getDefault().getPath(args[0]);
+            byte[] data = Files.readAllBytes(file);
+            ByteBuffer input = ByteBuffer.wrap(data);
+            // set the port to listen on
+            int port;
+            try {
+                port = Integer.parseInt(args[1]);
+                if (port < 1 || port > 65535) port = 80;
+            } catch (RuntimeException ex) {
+                port = 80;
+            }
+            String encoding = "UTF-8";
+            if (args.length > 2) encoding = args[2];
+            NonblockingSingleFileHTTPServer server
+                = new NonblockingSingleFileHTTPServer(
+                    input, encoding, contentType, port);
+            server.run();
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+### Slicing Buffers
+
+Slicing a buffer is a variant of duplicating. Slicing creates a new buffer that shares data with the original buffer. However, the slice’s zero position is the current position of the original buffer, and its capacity only extends to the original buffer's limit. Essentially, the slice is a subsequence of the original buffer that contains only the elements from the current position to the limit. Rewinding the slice only moves it back to the position of the original buffer when the slice was created. The slice cannot access any data in the original buffer before that point.
+
+```java
+public abstract ByteBuffer slice();
+public abstract IntBuffer slice();
+public abstract ShortBuffer slice();
+public abstract FloatBuffer slice();
+public abstract CharBuffer slice();
+public abstract DoubleBuffer slice();
+```
+
+This is useful when you have a long buffer of data that is easily divided into multiple parts, such as a protocol header followed by the data.
+
+### Marking and Resetting
+
+Like input streams, buffers can be marked and reset if you want to reread some data. Unlike input streams, this can be done with all buffers, not just some of them. The relevant methods are declared once in the `Buffer` superclass and inherited by all the various subclasses:
+
+```java
+public final Buffer mark();
+public final Buffer reset();
+```
+
+The `reset()` method throws an `InvalidMarkException` if the mark is not set. The mark is also unset when the position is set to a point before the mark.
+
+### Object Methods
+
+The buffer classes all provide the usual `equals()`, `hashCode()`, and `toString()` methods. They also implement `Comparable`, providing `compareTo()` methods. However, buffers are not `Serializable` or `Cloneable`.
+
+Two buffers are considered to be equal if:
+- They have the same type (e.g., a `ByteBuffer` is never equal to an `IntBuffer`, but it may be equal to another `ByteBuffer`).
+- They have the same number of elements remaining in the buffer.
+- The remaining elements at the same relative positions are equal to each other.
+
+The `hashCode()` method in buffers is implemented according to the contract for equality. This means:
+- Two equal buffers will have equal hash codes.
+- Two unequal buffers are very unlikely to have equal hash codes.
+
+However, since a buffer’s hash code changes with modifications (adding or removing elements), buffers are not ideal as hash table keys.
+
+
+Comparison between buffers is performed by comparing their remaining elements one by one:
+- If all corresponding elements are equal, the buffers are considered equal.
+- If any pair of elements is unequal, the comparison result is determined by that first unequal pair.
+- If one buffer runs out of elements before an unequal element is found while the other still has elements, the shorter buffer is considered less than the longer buffer.
+
+
+The `toString()` method returns a string representation of the buffer, typically in the format:
+
+```
+java.nio.HeapByteBuffer[pos=0 lim=62 cap=62]
+```
+
+This format is useful mainly for debugging. An exception is `CharBuffer`, which returns a string containing the remaining characters in the buffer.
+
+## Channels
+
