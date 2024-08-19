@@ -11107,3 +11107,1413 @@ However, this step is only necessary if you haven’t closed the channel. Closin
 
 # CHAPTER 12 UDP
 
+TCP ensures that the data is resent. If packets of data arrive out of order, TCP puts them back in the correct order. If the data is coming too fast for the connection, TCP throttles the speed back so that packets won’t be lost. A program never needs to worry about receiving data that is out of order or incorrect. However, this reliability comes at a price. That price is speed. Establishing and tearing down TCP connections can take a fair amount of time, particularly for protocols such as HTTP, which tend to require many short transmissions.  
+
+**==The User Datagram Protocol (UDP) is an alternative transport layer protocol for sending data over IP that is very quick, but not reliable.==** When you send UDP data, you have no way of knowing whether it arrived, much less whether different pieces of data arrived in the order in which you sent them. However, the pieces that do arrive generally arrive quickly.
+
+## The UDP Protocol
+
+The obvious question to ask is why anyone would ever use an unreliable protocol. Surely, if you have data worth sending, you care about whether the data arrives correctly? Clearly, UDP isn’t a good match for applications like FTP that require reliable transmission of data over potentially unreliable networks. However, there are many kinds of applications in which raw speed is more important than getting every bit right. For example, in real-time audio or video, lost or swapped packets of data simply appear as static. Static is tolerable, but awkward pauses in the audio stream, when TCP requests a retransmission or waits for a wayward packet to arrive, are unacceptable. In other applications, reliability tests can be implemented in the application layer.
+
+The difference between TCP and UDP is often explained by analogy with the phone system and the post office. TCP is like the phone system. When you dial a number, the phone is answered and a connection is established between the two parties. As you talk, you know that the other party hears your words in the order in which you say them. If the phone is busy or no one answers, you find out right away. UDP, by contrast, is like the postal system. You send packets of mail to an address. Most of the letters arrive, but some may be lost on the way. The letters probably arrive in the order in which you sent them, but that’s not guaranteed. The farther away you are from your recipient, the more likely it is that mail will be lost on the way or arrive out of order. If this is a problem, you can write sequential numbers on the envelopes, then ask the recipients to arrange them in the correct order and send you mail telling you which letters arrived so that you can resend any that didn’t get there the first time. However, you and your correspondent need to agree on this protocol in advance. The post office will not do it for you.
+
+Both the phone system and the post office have their uses. Although either one could be used for almost any communication, in some cases one is definitely superior to the other. The same is true of UDP and TCP. The past several chapters have all focused on TCP applications, which are more common than UDP applications. However, UDP also has its place; in this chapter, we’ll look at what you can do with UDP. If you want to go further, the next chapter describes multicasting over UDP. A multicast socket is a fairly simple variation on a standard UDP socket.
+
+Java’s implementation of UDP is split into two classes: `DatagramPacket` and `DatagramSocket`. The `DatagramPacket` class stuffs bytes of data into UDP packets called datagrams and lets you un-stuff datagrams that you receive. A `DatagramSocket` sends as well as receives UDP datagrams. To send data, you put the data in a `DatagramPacket` and send the packet using a `DatagramSocket`. To receive data, you take a `DatagramPacket` object from a `DatagramSocket` and then inspect the contents of the packet. **==The sockets themselves are very simple creatures. In UDP, everything about a datagram, including the address to which it is directed, is included in the packet itself; the socket only needs to know the local port on which to listen or send.==**
+
+This division of labor contrasts with the `Socket` and `ServerSocket` classes used by TCP. First, UDP doesn’t have any notion of a unique connection between two hosts. One socket sends and receives all data directed to or from a port without any concern for who the remote host is. A single `DatagramSocket` can send data to and receive data from many independent hosts. The socket isn’t dedicated to a single connection, as it is in TCP. In fact, **==UDP doesn’t have any concept of a connection between two hosts; it only knows about individual datagrams. Figuring out who sent what data is the application’s responsibility. Second, TCP sockets treat a network connection as a stream: you send and receive data with input and output streams that you get from the socket. UDP doesn’t support this; you always work with individual datagram packets. All the data you stuff into a single datagram is sent as a single packet and is either received or lost as a group.==** One packet is not necessarily related to the next. Given two packets, there is no way to determine which packet was sent first and which was sent second. Instead of the orderly queue of data that’s necessary for a stream, datagrams try to crowd into the recipient as quickly as possible, like a crowd of people pushing their way onto a bus. And occasionally, if the bus is crowded enough, a few packets, like people, may not squeeze on and will be left waiting at the bus stop.
+
+## UDP Clients
+
+How to retrieve this same data programmatically using UDP. First, open a socket on port 0:
+
+```java
+DatagramSocket socket = new DatagramSocket(0);
+```
+
+This is very different than a TCP socket. You only specify a local port to connect to. The socket does not know the remote host or address. **==By specifying port 0, you ask Java to pick a random available port for you, much as with server sockets.==**
+
+The next step is optional but highly recommended. Set a timeout on the connection using the `setSoTimeout()` method:
+
+```java
+socket.setSoTimeout(10000);
+```
+
+Timeouts are even more important for UDP than TCP because many problems that would cause an `IOException` in TCP silently fail in UDP.
+
+```markdown
+```java
+InetAddress host = InetAddress.getByName("time.nist.gov");
+DatagramPacket request = new DatagramPacket(new byte[1], 1, host, 13);
+```
+
+The packet that receives the server’s response just contains an empty byte array. This needs to be large enough to hold the entire response. If it’s too small, it will be silently truncated—1k should be enough space:
+
+```java
+byte[] data = new byte[1024];
+DatagramPacket response = new DatagramPacket(data, data.length);
+```
+
+Now you’re ready. First send the packet over the socket and then receive the response:
+
+```java
+socket.send(request);
+socket.receive(response);
+```
+
+Finally, extract the bytes from the response and convert them to a string you can show to the end user:
+
+```java
+String daytime = new String(response.getData(), 0, response.getLength(), "US-ASCII");
+System.out.println(daytime);
+```
+
+The constructor and `send()` and `receive()` methods can each throw an `IOException`, so you’ll usually wrap all this in a try block. In Java 7, `DatagramSocket` implements `AutoCloseable`, so you can use try-with-resources:
+
+```java
+try (DatagramSocket socket = new DatagramSocket(0)) {
+    // connect to the server...
+} catch (IOException ex) {
+    System.err.println("Could not connect to time.nist.gov");
+}
+```
+
+Example 12-1. A daytime protocol client
+
+```java
+import java.io.*;
+import java.net.*;
+public class DaytimeUDPClient {
+    private final static int PORT = 13;
+    private static final String HOSTNAME = "time.nist.gov";
+    public static void main(String[] args) {
+        try (DatagramSocket socket = new DatagramSocket(0)) {
+            socket.setSoTimeout(10000);
+            InetAddress host = InetAddress.getByName(HOSTNAME);
+            DatagramPacket request = new DatagramPacket(new byte[1], 1, host, PORT);
+            DatagramPacket response = new DatagramPacket(new byte[1024], 1024);
+            socket.send(request);
+            socket.receive(response);
+            String result = new String(response.getData(), 0, response.getLength(),
+                "US-ASCII");
+            System.out.println(result);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+```
+
+## UDP Servers
+
+A UDP server follows almost the same pattern as a UDP client, except that you usually receive before sending and don’t choose an anonymous port to bind to. Unlike TCP, there’s no separate `DatagramServerSocket` class.
+
+For example, let’s implement a daytime server over UDP. Begin by opening a datagram socket on a well-known port. For daytime, this port is 13:
+
+```java
+DatagramSocket socket = new DatagramSocket(13);
+```
+
+As with TCP sockets, on Unix systems (including Linux and macOS), you need to be running as root in order to bind to a port below 1024.
+
+Next, create a packet into which to receive a request. You need to supply both a byte array in which to store incoming data, the offset into the array, and the number of bytes to store.
+
+```markdown
+```java
+DatagramPacket request = new DatagramPacket(new byte[1024], 0, 1024);
+```
+
+Then receive it:
+
+```java
+socket.receive(request);
+```
+
+This call blocks indefinitely until a UDP packet arrives on port 13. When it does, Java fills the byte array with data and the `receive()` method returns.
+
+Next, create a response packet. This has four parts: the raw data to send, the number of bytes of the raw data to send, the host to send to, and the port on that host to address. In this example, the raw data comes from a `String` form of the current time, and the host and the port are simply the host and port of the incoming packet:
+
+```java
+String daytime = new Date().toString() + "\r\n";
+byte[] data = daytime.getBytes("US-ASCII");
+InetAddress host = request.getAddress();
+int port = request.getPort();
+DatagramPacket response = new DatagramPacket(data, data.length, host, port);
+```
+
+Finally, send the response back over the same socket that received it:
+
+```java
+socket.send(response);
+```
+
+Example 12-2. A daytime protocol server
+
+```java
+import java.net.*;
+import java.util.Date;
+import java.util.logging.*;
+import java.io.*;
+public class DaytimeUDPServer {
+    private final static int PORT = 13;
+    private final static Logger audit = Logger.getLogger("requests");
+    private final static Logger errors = Logger.getLogger("errors");
+    public static void main(String[] args) {
+        try (DatagramSocket socket = new DatagramSocket(PORT)) {
+            while (true) {
+                try {
+                    DatagramPacket request = new DatagramPacket(new byte[1024], 1024);
+                    socket.receive(request);
+                    String daytime = new Date().toString();
+                    byte[] data = daytime.getBytes("US-ASCII");
+                    DatagramPacket response = new DatagramPacket(data, data.length,
+                        request.getAddress(), request.getPort());
+                    socket.send(response);
+                    audit.info(daytime + " " + request.getAddress());
+                } catch (IOException | RuntimeException ex) {
+                    errors.log(Level.SEVERE, ex.getMessage(), ex);
+                }
+            }
+        } catch (IOException ex) {
+            errors.log(Level.SEVERE, ex.getMessage(), ex);
+        }
+    }
+}
+```
+
+## The ``DatagramPacket`` Class
+
+UDP datagrams add very little to the IP datagrams they sit on top of. The UDP header adds only eight bytes to the IP header. The UDP header includes source and destination port numbers, the length of everything that follows the IP header, and an optional checksum. Because port numbers are given as two-byte unsigned integers, 65,536 different possible UDP ports are available per host. These are distinct from the 65,536 different TCP ports per host. Because the length is also a two-byte unsigned integer, the number of bytes in a datagram is limited to 65,536 minus the eight bytes for the header. However, this is redundant with the datagram length field of the IP header, which limits datagrams to between 65,467 and 65,507 bytes. The checksum field is optional and not used in or accessible from application layer programs. If the checksum for the data fails, the native network software silently discards the datagram; neither the sender nor the receiver is notified. UDP is an unreliable protocol, after all.
+
+![[Pasted image 20240819193704.png]]
+
+Although the theoretical maximum amount of data in a UDP datagram is 65,507 bytes, in practice there is almost always much less. **==On many platforms, the actual limit is more likely to be 8,192 bytes (8K). Consequently, you should be extremely wary of any program that depends on sending or receiving UDP packets with more than 8K of data.==** Most of the time, larger packets are simply truncated to 8K of data. For maximum safety, the data portion of a UDP packet should be kept to 512 bytes or less, although this limit can negatively affect performance compared to larger packet sizes.
+
+In Java, a UDP datagram is represented by an instance of the `DatagramPacket` class:
+
+```java
+public final class DatagramPacket extends Object
+```
+
+This class provides methods to get and set the source or destination address from the IP header, to get and set the source or destination port, to get and set the data, and to get and set the length of the data. The remaining header fields are inaccessible from pure Java code.
+
+### The Constructors
+
+`DatagramPacket` uses different constructors depending on whether the packet will be used to send data or to receive data. In this case, all six constructors take as arguments a byte array that holds the datagram’s data and the number of bytes in that array to use for the datagram’s data. When you want to receive a datagram, these are the only arguments you provide. When the socket receives a datagram from the network, it stores the datagram’s data in the `DatagramPacket` object’s buffer array, up to the length you specified.
+
+The second set of `DatagramPacket` constructors is used to create datagrams you will send over the network. Like the first, these constructors require a buffer array and a length, but they also require an address and port to which the packet will be sent. In this case, you pass to the constructor a byte array containing the data you want to send and the destination address and port to which the packet is to be sent. The `DatagramSocket` reads the destination address and port from the packet; the address and port aren’t stored within the socket, as they are in TCP.
+
+#### Constructors for receiving datagrams
+
+These two constructors create new ``DatagramPacket`` objects for receiving data from the network
+
+```java
+public DatagramPacket(byte[] buffer, int length)
+public DatagramPacket(byte[] buffer, int offset, int length)
+
+byte[] buffer = new byte[8192];
+DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
+```
+
+The constructor doesn’t care how large the buffer is and would happily let you create a `DatagramPacket` with megabytes of data. However, the underlying native network software is less forgiving, and most native UDP implementations don’t support more than 8,192 bytes of data per datagram. In practice, however, many UDP-based protocols such as DNS and TFTP use packets with 512 bytes of data per datagram or fewer. The largest data size in common usage is 8,192 bytes for NFS. Almost all UDP datagrams you’re likely to encounter will have 8K of data or fewer.
+
+#### Constructors for sending datagrams
+
+These four constructors create new ``DatagramPacket`` objects used to send data across the network:
+
+```java
+public DatagramPacket(byte[] data, int length,InetAddress destination, int port) 
+public DatagramPacket(byte[] data, int offset, int length, InetAddress destination, int port)
+public DatagramPacket(byte[] data, int length, SocketAddress destination)
+public DatagramPacket(byte[] data, int offset, int length, SocketAddress destination)
+```
+
+If you try to construct a `DatagramPacket` with a length that is greater than `data.length` (or greater than `data.length - offset`), the constructor throws an `IllegalArgumentException`.
+
+
+**==It’s customary to convert the data to a byte array and place it in `data` before creating the `DatagramPacket`, but it’s not absolutely necessary.==** Changing data after the datagram has been constructed and before it has been sent changes the data in the datagram; the data isn’t copied into a private buffer. In some applications, you can take advantage of this. It’s more important to make sure that the data doesn’t change when you don’t want it to. This is especially true if your program is multithreaded, and different threads may write into the data buffer. If this is the case, copy the data into a temporary buffer before you construct the `DatagramPacket`.
+
+```java
+String s = "This is a test";
+byte[] data = s.getBytes("UTF-8");
+try {
+    InetAddress ia = InetAddress.getByName("www.ibiblio.org");
+    int port = 7;
+    DatagramPacket dp = new DatagramPacket(data, data.length, ia, port);
+    // send the packet...
+} catch (IOException ex) {
+}
+```
+
+
+Most of the time, the hardest part of creating a new `DatagramPacket` is translating the data into a byte array. Because this code fragment wants to send a string, it uses the `getBytes()` method of `java.lang.String`. The `java.io.ByteArrayOutputStream` class can also be very useful for preparing data for inclusion in datagrams.
+
+### The `get` Methods
+
+`DatagramPacket` has six methods that retrieve different parts of a datagram: the actual data plus several fields from its header. These methods are mostly used for datagrams received from the network.
+
+```java
+public InetAddress getAddress()
+```
+
+The `getAddress()` method returns an `InetAddress` object containing the address of the remote host.
+
+```markdown
+```java
+public int getPort()
+```
+
+The `getPort()` method returns an integer specifying the remote port.
+
+```java
+public SocketAddress getSocketAddress()
+```
+
+The `getSocketAddress()` method returns a `SocketAddress` object containing the IP address and port of the remote host. As is the case for `getInetAddress()`, it provides a combined representation of the remote address and port.
+
+```java
+public byte[] getData()
+```
+
+The `getData()` method returns a byte array containing the data from the datagram. It’s often necessary to convert the bytes into some other form of data before they’ll be useful to your program.
+
+```java
+String s = new String(dp.getData(), "UTF-8");
+```
+
+```java
+InputStream in = new ByteArrayInputStream(packet.getData(),
+    packet.getOffset(), packet.getLength());
+```
+
+You must specify the offset and the length when constructing the `ByteArrayInputStream`. **==Do not use the `ByteArrayInputStream()` constructor that takes only an array as an argument.==** The array returned by `packet.getData()` probably has extra space in it that was not filled with data from the network. This space will contain whatever random values those components of the array had when the `DatagramPacket` was constructed.
+
+The `ByteArrayInputStream` can then be chained to a `DataInputStream`:
+
+```java
+DataInputStream din = new DataInputStream(in);
+```
+
+```java
+public int getLength()
+```
+
+The `getLength()` method returns the number of bytes of data in the datagram.
+
+```java
+public int getOffset()
+```
+
+This method simply returns the point in the array returned by `getData()` where the data from the datagram begins.
+
+Example 12-3. Construct a ``DatagramPacket`` to receive data
+
+```java
+import java.io.*;
+import java.net.*;
+public class DatagramExample {
+    public static void main(String[] args) {
+        String s = "This is a test.";
+        try {
+            byte[] data = s.getBytes("UTF-8");
+            InetAddress ia = InetAddress.getByName("www.ibiblio.org");
+            int port = 7;
+            DatagramPacket dp
+                = new DatagramPacket(data, data.length, ia, port);
+            System.out.println("This packet is addressed to " +
+                dp.getAddress() + " on port " + dp.getPort());
+            System.out.println("There are " + dp.getLength() +
+                " bytes of data in the packet");
+            System.out.println(
+                new String(dp.getData(), dp.getOffset(), dp.getLength(), "UTF-8"));
+        } catch (UnknownHostException | UnsupportedEncodingException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+### The setter Methods
+
+Java also provides several methods for changing the data, remote address, and remote port after the datagram has been created. These methods might be important in a situation where the time to create and garbage collect new ``DatagramPacket`` objects is a significant performance hit. 
+
+```java
+public void setData(byte[] data)
+```
+
+The `setData()` method changes the payload of the UDP datagram.
+
+```java
+public void setData(byte[] data, int offset, int length)
+```
+
+This overloaded variant of the `setData()` method provides an alternative approach to sending a large quantity of data.
+
+```java
+int offset = 0;
+DatagramPacket dp = new DatagramPacket(bigarray, offset, 512);
+int bytesSent = 0;
+while (bytesSent < bigarray.length) {
+    socket.send(dp);
+    bytesSent += dp.getLength();
+    int bytesToSend = bigarray.length - bytesSent;
+    int size = (bytesToSend > 512) ? 512 : bytesToSend;
+    dp.setData(bigarray, bytesSent, size);
+}
+```
+
+On the other hand, this strategy requires either a lot of confidence that the data will in fact arrive or, alternatively, a disregard for the consequences of its not arriving
+
+```java
+public void setAddress(InetAddress remote)
+```
+
+The `setAddress()` method changes the address a datagram packet is sent to.
+
+```java
+String s = "Really Important Message";
+byte[] data = s.getBytes("UTF-8");
+DatagramPacket dp = new DatagramPacket(data, data.length);
+dp.setPort(2000);
+int network = "128.238.5.";
+for (int host = 1; host < 255; host++) {
+    try {
+        InetAddress remote = InetAddress.getByName(network + host);
+        dp.setAddress(remote);
+        socket.send(dp);
+    } catch (IOException ex) {
+        // skip it; continue with the next host
+    }
+}
+```
+
+For more widely separated hosts, you’re probably better off using multicasting. Multicasting actually uses the same `DatagramPacket` class described here. However, it uses different IP addresses and a `MulticastSocket` instead of a `DatagramSocket`.
+
+```java
+public void setPort(int port)
+```
+
+The `setPort()` method changes the port a datagram is addressed to.
+
+```java
+public void setAddress(SocketAddress remote)
+```
+
+The `setSocketAddress()` method changes the address and port a datagram packet is sent to.
+
+```java
+DatagramPacket input = new DatagramPacket(new byte[8192], 8192);
+socket.receive(input);
+DatagramPacket output = new DatagramPacket(
+    "Hello there".getBytes("UTF-8"), 11);
+SocketAddress address = input.getSocketAddress();
+output.setAddress(address);
+socket.send(output);
+```
+
+```java
+public void setLength(int length)
+```
+
+The `setLength()` method changes the number of bytes of data in the internal buffer that are considered to be part of the datagram’s data as opposed to merely unfilled space. This method is useful when receiving datagrams.
+
+## The ``DatagramSocket`` Class
+
+**==To send or receive a `DatagramPacket`, you must open a datagram socket==**. In Java, a datagram socket is created and accessed through the `DatagramSocket` class:
+
+```java
+public class DatagramSocket extends Object
+```
+
+All datagram sockets bind to a local port, on which they listen for incoming data and which they place in the header of outgoing datagrams.
+
+==**There’s no distinction between client sockets and server sockets, as there is with TCP. There’s no such thing as a ``DatagramServerSocket``.**==
+### The Constructors
+
+The `DatagramSocket` constructors are used in different situations, much like the `DatagramPacket` constructors. The first constructor opens a datagram socket on an anonymous local port. The second constructor opens a datagram socket on a well-known local port that listens to all local network interfaces. The last two constructors open a datagram socket on a well-known local port on a specific network interface. All constructors deal only with the local address and port. The remote address and port are stored in the `DatagramPacket`, not the `DatagramSocket`.
+
+```java
+public DatagramSocket() throws SocketException
+```
+
+This constructor creates a socket that is bound to an anonymous port. For example:
+
+```java
+try {
+    DatagramSocket client = new DatagramSocket();
+    // send packets...
+} catch (SocketException ex) {
+    System.err.println(ex);
+}
+```
+
+```java
+public DatagramSocket(int port) throws SocketException
+```
+
+This constructor creates a socket that listens for incoming datagrams on a particular port, specified by the `port` argument.
+
+**==TCP ports and UDP ports are not related. Two different programs can use the same port number if one uses UDP and the other uses TCP.==**
+
+**Example 12-4. Look for local UDP ports**
+
+```java
+import java.net.*;
+
+public class UDPPortScanner {
+    public static void main(String[] args) {
+        for (int port = 1024; port <= 65535; port++) {
+            try {
+                // the next line will fail and drop into the catch block if
+                // there is already a server running on port i
+                DatagramSocket server = new DatagramSocket(port);
+                server.close();
+            } catch (SocketException ex) {
+                System.out.println("There is a server on port " + port + ".");
+            }
+        }
+    }
+}
+```
+
+```java
+public DatagramSocket(int port, InetAddress interface) throws SocketException
+```
+
+This constructor is primarily used on multihomed hosts; it creates a socket that listens for incoming datagrams on a specific port and network interface.
+
+```java
+public DatagramSocket(SocketAddress interface) throws SocketException
+```
+
+This constructor is similar to the previous one except that the network interface address and port are read from a `SocketAddress`.
+
+```java
+SocketAddress address = new InetSocketAddress("127.0.0.1", 9999);
+DatagramSocket socket = new DatagramSocket(address);
+```
+
+```java
+protected DatagramSocket(DatagramSocketImpl impl) throws SocketException
+```
+
+This constructor enables subclasses to provide their own implementation of the UDP protocol, rather than blindly accepting the default. Unlike sockets created by the other four constructors, this socket is not initially bound to a port. Before using it, you have to bind it to a `SocketAddress` using the `bind()` method:
+
+```java
+public void bind(SocketAddress addr) throws SocketException
+```
+
+### Sending and Receiving Datagrams
+
+The primary task of the `DatagramSocket` class is to send and receive UDP datagrams. One socket can both send and receive. Indeed, it can send and receive to and from multiple hosts at the same time.
+
+```java
+public void send(DatagramPacket dp) throws IOException
+```
+
+Once a `DatagramPacket` is created and a `DatagramSocket` is constructed, send the packet by passing it to the socket’s `send()` method.
+
+```java
+theSocket.send(theOutput);
+```
+
+If there’s a problem sending the data, this method may throw an `IOException`. However, this is less common with `DatagramSocket` than `Socket` or `ServerSocket`, because the unreliable nature of UDP means you won’t get an exception just because the packet doesn’t arrive at its destination. You may get an `IOException` if you’re trying to send a larger datagram than the host’s native networking software supports, but then again you may not.
+
+Example 12-5. A UDP discard client
+
+```java
+import java.net.*;
+import java.io.*;
+public class UDPDiscardClient {
+    public final static int PORT = 9;
+    public static void main(String[] args) {
+        String hostname = args.length > 0 ? args[0] : "localhost";
+        try (DatagramSocket theSocket = new DatagramSocket()) {
+            InetAddress server = InetAddress.getByName(hostname);
+            BufferedReader userInput
+                = new BufferedReader(new InputStreamReader(System.in));
+            while (true) {
+                String theLine = userInput.readLine();
+                if (theLine.equals(".")) break;
+                byte[] data = theLine.getBytes();
+                DatagramPacket theOutput
+                    = new DatagramPacket(data, data.length, server, PORT);
+                theSocket.send(theOutput);
+            } // end while
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+```java
+public void receive(DatagramPacket dp) throws IOException
+```
+
+This method receives a single UDP datagram from the network and stores it in the preexisting `DatagramPacket` object `dp`. Like the `accept()` method in the `ServerSocket` class, this method blocks the calling thread until a datagram arrives. If your program does anything besides wait for datagrams, you should call `receive()` in a separate thread.
+
+Example 12-6. The ``UDPDiscardServer``
+
+```java
+import java.net.*;
+import java.io.*;
+public class UDPDiscardServer {
+    public final static int PORT = 9;
+    public final static int MAX_PACKET_SIZE = 65507;
+    public static void main(String[] args) {
+        byte[] buffer = new byte[MAX_PACKET_SIZE];
+        try (DatagramSocket server = new DatagramSocket(PORT)) {
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            while (true) {
+                try {
+                    server.receive(packet);
+                    String s = new String(packet.getData(), 0, packet.getLength(), "8859_1");
+                    System.out.println(packet.getAddress() + " at port " +
+                        packet.getPort() + " says " + s);
+                    // reset the length for the next packet
+                    packet.setLength(buffer.length);
+                } catch (IOException ex) {
+                    System.err.println(ex);
+                }
+            } // end while
+        } catch (SocketException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+
+The `DatagramSocket` class provides the method to close the socket.
+
+```java
+public void close()
+```
+
+Calling a `DatagramSocket` object’s `close()` method frees the port occupied by that socket. As with streams and TCP sockets, you’ll want to take care to close the datagram socket in a `finally` block:
+
+```java
+DatagramSocket server = null;
+try {
+    server = new DatagramSocket();
+    // use the socket...
+} catch (IOException ex) {
+    System.err.println(ex);
+} finally {
+    try {
+        if (server != null) server.close();
+    } catch (IOException ex) {
+    }
+}
+```
+
+Alternatively, in Java 7 and later, you can use the try-with-resources statement:
+
+```java
+try (DatagramSocket server = new DatagramSocket()) {
+    // use the socket...
+}
+```
+
+It’s never a bad idea to close a `DatagramSocket` when you’re through with it; it’s particularly important to close an unneeded socket if the program will continue to run for a significant amount of time.
+
+
+#### `public int getLocalPort()`
+A `DatagramSocket`’s `getLocalPort()` method returns an `int` that represents the local port on which the socket is listening.
+
+```java
+DatagramSocket ds = new DatagramSocket();
+System.out.println("The socket is using port " + ds.getLocalPort());
+```
+
+#### `public InetAddress getLocalAddress()`
+A `DatagramSocket`’s `getLocalAddress()` method returns an `InetAddress` object that represents the local address to which the socket is bound.
+
+#### `public SocketAddress getLocalSocketAddress()`
+The `getLocalSocketAddress()` method returns a `SocketAddress` object that wraps the local interface and port to which the socket is bound.
+
+## Managing Connections
+
+Unlike TCP sockets, datagram sockets aren’t very picky about whom they’ll talk to. In fact, by default they’ll talk to anyone; but this is often not what you want.
+#### `public void connect(InetAddress host, int port)`
+
+The `connect()` method doesn’t really establish a connection in the TCP sense. However, it does specify that the `DatagramSocket` will only send packets to and receive packets from the specified remote host on the specified remote port. Attempts to send packets to a different host or port will throw an `IllegalArgumentException`. Packets received from a different host or a different port will be discarded without an exception or other notification.
+
+A security check is made when the `connect()` method is invoked. If the VM is allowed to send data to that host and port, the check passes silently. If not, a `SecurityException` is thrown. However, once the connection has been made, `send()` and `receive()` on that `DatagramSocket` no longer make the security checks they’d normally make.
+
+#### `public void disconnect()`
+
+The `disconnect()` method breaks the “connection” of a connected `DatagramSocket` so that it can once again send packets to and receive packets from any host and port.
+
+#### `public int getPort()`
+
+If and only if a `DatagramSocket` is connected, the `getPort()` method returns the remote port to which it is connected. Otherwise, it returns –1.
+
+#### `public InetAddress getInetAddress()`
+
+If and only if a `DatagramSocket` is connected, the `getInetAddress()` method returns the address of the remote host to which it is connected. Otherwise, it returns `null`.
+
+#### `public InetAddress getRemoteSocketAddress()`
+
+If a `DatagramSocket` is connected, the `getRemoteSocketAddress()` method returns the address of the remote host to which it is connected. Otherwise, it returns `null`.
+
+##  Socket Options
+
+Java supports six socket options for UDP:
+
+- **SO_TIMEOUT**
+- **SO_RCVBUF**
+- **SO_SNDBUF**
+- **SO_REUSEADDR**
+- **SO_BROADCAST**
+- **IP_TOS**
+
+### SO_TIMEOUT
+
+**SO_TIMEOUT** is the amount of time, in milliseconds, that `receive()` waits for an incoming datagram before throwing an `InterruptedIOException`, which is a subclass of `IOException`. Its value must be nonnegative. If `SO_TIMEOUT` is 0, `receive()` never times out. This value can be changed with the `setSoTimeout()` method and inspected with the `getSoTimeout()` method:
+
+```java
+public void setSoTimeout(int timeout) throws SocketException
+public int getSoTimeout() throws IOException
+```
+
+Example usage:
+
+```java
+try {
+    byte[] buffer = new byte[2056];
+    DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
+    DatagramSocket ds = new DatagramSocket(2048);
+    ds.setSoTimeout(30000); // block for no more than 30 seconds
+    try {
+        ds.receive(dp);
+        // process the packet...
+    } catch (SocketTimeoutException ex) {
+        ds.close();
+        System.err.println("No connection within 30 seconds");
+    } catch (SocketException ex) {
+        System.err.println(ex);
+    } catch (IOException ex) {
+        System.err.println("Unexpected IOException: " + ex);
+    }
+}
+```
+
+Print SO_TIMEOUT value:
+
+```java
+public void printSoTimeout(DatagramSocket ds) {
+    int timeout = ds.getSoTimeout();
+    if (timeout > 0) {
+        System.out.println(ds + " will time out after "
+            + timeout + " milliseconds.");
+    } else if (timeout == 0) {
+        System.out.println(ds + " will never time out.");
+    } else {
+        System.out.println("Something is seriously wrong with " + ds);
+    }
+}
+```
+
+### SO_RCVBUF
+
+The **SO_RCVBUF** option of `DatagramSocket` is closely related to the `SO_RCVBUF` option of `Socket`. It determines the size of the buffer used for network I/O. Larger buffers tend to improve performance for reasonably fast (say, Ethernet-speed) connections because they can store more incoming datagrams before overflowing. Sufficiently large receive buffers are even more important for UDP than for TCP, because a UDP datagram that arrives when the buffer is full will be lost, whereas a TCP datagram that arrives at a full buffer will eventually be retransmitted.
+
+`DatagramSocket` has methods to set and get the suggested receive buffer size used for network input:
+
+```java
+public void setReceiveBufferSize(int size) throws SocketException
+public int getReceiveBufferSize() throws SocketException
+```
+
+### SO_SNDBUF
+
+`DatagramSocket` has methods to get and set the suggested send buffer size used for network output:
+
+```java
+public void setSendBufferSize(int size) throws SocketException
+public int getSendBufferSize() throws SocketException
+```
+
+### SO_REUSEADDR
+
+The **SO_REUSEADDR** option does not mean the same thing for UDP sockets as it does for TCP sockets. For UDP, **SO_REUSEADDR** controls whether multiple datagram sockets can bind to the same port and address at the same time. If multiple sockets are bound to the same port, received packets will be copied to all bound sockets. This option is controlled by these two methods:
+
+```java
+public void setReuseAddress(boolean on) throws SocketException
+public boolean getReuseAddress() throws SocketException
+```
+
+### SO_BROADCAST
+
+The **SO_BROADCAST** option controls whether a socket is allowed to send packets to and receive packets from broadcast addresses such as 192.168.254.255, the local network broadcast address for the network with the local address 192.168.254.*. UDP broadcasting is often used for protocols such as DHCP that need to communicate with servers on the local net whose addresses are not known in advance. This option is controlled with these two methods:
+
+```java
+public void setBroadcast(boolean on) throws SocketException
+public boolean getBroadcast() throws SocketException
+```
+
+---
+
+On some implementations, sockets bound to a specific address do not receive broadcast packets. In other words, you should use the `DatagramPacket(int port)` constructor, not the `DatagramPacket(InetAddress address, int port)` constructor, to listen to broadcasts. This is necessary in addition to setting the **SO_BROADCAST** option to true.
+
+---
+### IP_TOS
+
+Because the traffic class is determined by the value of the IP_TOS field in each IP packet header, it is essentially the same for UDP as it is for TCP. After all, packets are actually routed and prioritized according to IP, which both TCP and UDP sit on top of.
+
+```java
+public int getTrafficClass() throws SocketException
+public void setTrafficClass(int trafficClass) throws SocketException
+```
+
+This code fragment sets a socket to use Expedited Forwarding by setting the traffic class to 10111000:
+```java
+DatagramSocket s = new DatagramSocket();
+s.setTrafficClass(0xB8); // 10111000 in binary
+```
+
+## Some Useful Applications
+
+### Simple UDP Clients
+
+Example 12-7. The ``UDPPoke`` class
+
+```java
+import java.io.*;
+import java.net.*;
+public class UDPPoke {
+    private int bufferSize; // in bytes
+    private int timeout; // in milliseconds
+    private InetAddress host;
+    private int port;
+    public UDPPoke(InetAddress host, int port, int bufferSize, int timeout) {
+        this.bufferSize = bufferSize;
+        this.host = host;
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException("Port out of range");
+        }
+        this.port = port;
+        this.timeout = timeout;
+    }
+    public UDPPoke(InetAddress host, int port, int bufferSize) {
+        this(host, port, bufferSize, 30000);
+    }
+    public UDPPoke(InetAddress host, int port) {
+        this(host, port, 8192, 30000);
+    }
+    public byte[] poke() {
+        try (DatagramSocket socket = new DatagramSocket(0)) {
+            DatagramPacket outgoing = new DatagramPacket(new byte[1], 1, host, port);
+            socket.connect(host, port);
+            socket.setSoTimeout(timeout);
+            socket.send(outgoing);
+            DatagramPacket incoming
+                = new DatagramPacket(new byte[bufferSize], bufferSize);
+            // next line blocks until the response is received
+            socket.receive(incoming);
+            int numBytes = incoming.getLength();
+            byte[] response = new byte[numBytes];
+            System.arraycopy(incoming.getData(), 0, response, 0, numBytes);
+            return response;
+        } catch (IOException ex) {
+            return null;
+        }
+    }
+    public static void main(String[] args) {
+        InetAddress host;
+        int port = 0;
+        try {
+            host = InetAddress.getByName(args[0]);
+            port = Integer.parseInt(args[1]);
+        } catch (RuntimeException | UnknownHostException ex) {
+            System.out.println("Usage: java UDPPoke host port");
+            return;
+        }
+        try {
+            UDPPoke poker = new UDPPoke(host, port);
+            byte[] response = poker.poke();
+            if (response == null) {
+                System.out.println("No response within allotted time");
+                return;
+            }
+            String result = new String(response, "US-ASCII");
+            System.out.println(result);
+        } catch (UnsupportedEncodingException ex) {
+            // Really shouldn't happen
+            ex.printStackTrace();
+        }
+    }
+}
+```
+
+Example 12-8. A UDP time client
+
+```java
+import java.net.*;
+import java.util.*;
+public class UDPTimeClient {
+    public final static int PORT = 37;
+    public final static String DEFAULT_HOST = "time.nist.gov";
+    public static void main(String[] args) {
+        InetAddress host;
+        try {
+            if (args.length > 0) {
+                host = InetAddress.getByName(args[0]);
+            } else {
+                host = InetAddress.getByName(DEFAULT_HOST);
+            }
+        } catch (RuntimeException | UnknownHostException ex) {
+            System.out.println("Usage: java UDPTimeClient [host]");
+            return;
+        }
+        UDPPoke poker = new UDPPoke(host, PORT);
+        byte[] response = poker.poke();
+        if (response == null) {
+            System.out.println("No response within allotted time");
+            return;
+        } else if (response.length != 4) {
+            System.out.println("Unrecognized response format");
+            return;
+        }
+        // The time protocol sets the epoch at 1900,
+        // the Java Date class at 1970. This number
+        // converts between them.
+        long differenceBetweenEpochs = 2208988800 L;
+        long secondsSince1900 = 0;
+        for (int i = 0; i < 4; i++) {
+            secondsSince1900
+                = (secondsSince1900 << 8) | (response[i] & 0x000000FF);
+        }
+        long secondsSince1970
+            = secondsSince1900 - differenceBetweenEpochs;
+        long msSince1970 = secondsSince1970 * 1000;
+        Date time = new Date(msSince1970);
+        System.out.println(time);
+    }
+}
+```
+
+### UDPServer
+
+Example 12-9. The ``UDPServer`` class
+
+```java
+import java.io.*;
+import java.net.*;
+import java.util.logging.*;
+public abstract class UDPServer implements Runnable {
+    private final int bufferSize; // in bytes
+    private final int port;
+    private final Logger logger = Logger.getLogger(UDPServer.class.getCanonicalName());
+    private volatile boolean isShutDown = false;
+    public UDPServer(int port, int bufferSize) {
+        this.bufferSize = bufferSize;
+        this.port = port;
+    }
+    public UDPServer(int port) {
+        this(port, 8192);
+    }
+    @Override
+    public void run() {
+        byte[] buffer = new byte[bufferSize];
+        try (DatagramSocket socket = new DatagramSocket(port)) {
+            socket.setSoTimeout(10000); // check every 10 seconds for shutdown
+            while (true) {
+                if (isShutDown) return;
+                DatagramPacket incoming = new DatagramPacket(buffer, buffer.length);
+                try {
+                    socket.receive(incoming);
+                    this.respond(socket, incoming);
+                } catch (SocketTimeoutException ex) {
+                    if (isShutDown) return;
+                } catch (IOException ex) {
+                    logger.log(Level.WARNING, ex.getMessage(), ex);
+                }
+            } // end while
+        } catch (SocketException ex) {
+            logger.log(Level.SEVERE, "Could not bind to port: " + port, ex);
+        }
+    }
+    public abstract void respond(DatagramSocket socket, DatagramPacket request)
+    throws IOException;
+    public void shutDown() {
+        this.isShutDown = true;
+    }
+}
+```
+
+Example 12-10. A UDP discard server
+
+```java
+import java.net.*;
+public class FastUDPDiscardServer extends UDPServer {
+    public final static int DEFAULT_PORT = 9;
+    public FastUDPDiscardServer() {
+        super(DEFAULT_PORT);
+    }
+    public static void main(String[] args) {
+        UDPServer server = new FastUDPDiscardServer();
+        Thread t = new Thread(server);
+        t.start();
+    }
+    @Override
+    public void respond(DatagramSocket socket, DatagramPacket request) {}
+}
+It isn’ t much harder to implement an echo server, as Example 12 - 11 shows.Unlike a
+stream - based TCP echo server, multiple threads are not required to handle multiple
+clients.
+Example 12 - 11. A UDP echo server
+import java.io.*;
+import java.net.*;
+public class UDPEchoServer extends UDPServer {
+    public final static int DEFAULT_PORT = 7;
+    public UDPEchoServer() {
+        super(DEFAULT_PORT);
+    }
+    @Override
+    public void respond(DatagramSocket socket, DatagramPacket packet)
+    throws IOException {
+        DatagramPacket outgoing = new DatagramPacket(packet.getData(),
+            packet.getLength(), packet.getAddress(), packet.getPort());
+        socket.send(outgoing);
+    }
+    public static void main(String[] args) {
+        UDPServer server = new UDPEchoServer();
+        Thread t = new Thread(server);
+        t.start();
+    }
+}
+```
+
+### A UDP Echo Client
+
+Example 12-12. The ``UDPEchoClient`` class
+
+```java
+import java.net.*;
+public class UDPEchoClient {
+    public final static int PORT = 7;
+    public static void main(String[] args) {
+        String hostname = "localhost";
+        if (args.length > 0) {
+            hostname = args[0];
+        }
+        try {
+            InetAddress ia = InetAddress.getByName(hostname);
+            DatagramSocket socket = new DatagramSocket();
+            SenderThread sender = new SenderThread(socket, ia, PORT);
+            sender.start();
+
+            Thread receiver = new ReceiverThread(socket);
+            receiver.start();
+        } catch (UnknownHostException ex) {
+            System.err.println(ex);
+        } catch (SocketException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+Example 12-13. The ``SenderThread`` class
+
+```java
+import java.io.*;
+import java.net.*;
+class SenderThread extends Thread {
+    private InetAddress server;
+    private DatagramSocket socket;
+    private int port;
+    private volatile boolean stopped = false;
+    SenderThread(DatagramSocket socket, InetAddress address, int port) {
+        this.server = address;
+        this.port = port;
+        this.socket = socket;
+        this.socket.connect(server, port);
+    }
+    public void halt() {
+        this.stopped = true;
+    }
+    @Override
+    public void run() {
+        try {
+            BufferedReader userInput
+                = new BufferedReader(new InputStreamReader(System.in));
+            while (true) {
+                if (stopped) return;
+                String theLine = userInput.readLine();
+                if (theLine.equals(".")) break;
+                byte[] data = theLine.getBytes("UTF-8");
+                DatagramPacket output
+                    = new DatagramPacket(data, data.length, server, port);
+                socket.send(output);
+                Thread.yield();
+            }
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+Example 12-14. The ``ReceiverThread`` class
+
+```java
+import java.io.*;
+import java.net.*;
+class ReceiverThread extends Thread {
+    private DatagramSocket socket;
+    private volatile boolean stopped = false;
+    ReceiverThread(DatagramSocket socket) {
+        this.socket = socket;
+    }
+    public void halt() {
+        this.stopped = true;
+    }
+    @Override
+    public void run() {
+        byte[] buffer = new byte[65507];
+        while (true) {
+            if (stopped) return;
+            DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
+            try {
+                socket.receive(dp);
+                String s = new String(dp.getData(), 0, dp.getLength(), "UTF-8");
+                System.out.println(s);
+                Thread.yield();
+            } catch (IOException ex) {
+                System.err.println(ex);
+            }
+        }
+    }
+}
+```
+
+
+## ``DatagramChannel``
+
+The `DatagramChannel` class is used for nonblocking UDP applications, in the same way as `SocketChannel` and `ServerSocketChannel` are used for nonblocking TCP applications. Like `SocketChannel` and `ServerSocketChannel`, `DatagramChannel` is a subclass of `SelectableChannel` that can be registered with a `Selector`. This is useful in servers where one thread can manage communications with multiple clients. However, **==UDP is by its nature much more asynchronous than TCP, so the net effect is smaller. In UDP, a single datagram socket can process requests from multiple clients for both input and output.==** What the `DatagramChannel` class adds is the ability to do this in a nonblocking fashion, so methods return quickly if the network isn’t immediately ready to receive or send data.
+
+### Using ``DatagramChannel``
+
+``DatagramChannel`` is a near-complete alternate API for UDP. 
+
+####  Opening a Socket
+
+The `java.nio.channels.DatagramChannel` class does not have any public constructors. Instead, you create a new `DatagramChannel` object using the static `open()` method. For example:
+
+```java
+DatagramChannel channel = DatagramChannel.open();
+```
+
+This channel is not initially bound to any port. To bind it, you access the channel’s peer `DatagramSocket` object using the `socket()` method. For example, this binds a channel to port 3141:
+
+```java
+SocketAddress address = new InetSocketAddress(3141);
+DatagramSocket socket = channel.socket();
+socket.bind(address);
+```
+
+Alternatively, you can bind the channel directly:
+
+```java
+SocketAddress address = new InetSocketAddress(3141);
+channel.bind(address);
+```
+
+#### Receiving
+
+The `receive()` method reads one datagram packet from the channel into a `ByteBuffer`. It returns the address of the host that sent the packet:
+
+```java
+public SocketAddress receive(ByteBuffer dst) throws IOException
+```
+
+If the channel is blocking (the default), this method will not return until a packet has been read. If the channel is nonblocking, this method will immediately return `null` if no packet is available to read.
+
+**==If the datagram packet has more data than the buffer can hold, the extra data is thrown away with no notification of the problem. You do not receive a `BufferOverflowException` or anything similar. Again, this highlights the unreliability of UDP.==** The data can arrive safely from the network and still be lost inside your own program.
+
+Example 12-15. A ``UDPDiscardServer`` based on channels
+
+```java
+import java.io.*;
+import java.net.*;
+import java.nio.*;
+import java.nio.channels.*;
+public class UDPDiscardServerWithChannels {
+    public final static int PORT = 9;
+    public final static int MAX_PACKET_SIZE = 65507;
+    public static void main(String[] args) {
+        try {
+            DatagramChannel channel = DatagramChannel.open();
+            DatagramSocket socket = channel.socket();
+            SocketAddress address = new InetSocketAddress(PORT);
+            socket.bind(address);
+            ByteBuffer buffer = ByteBuffer.allocateDirect(MAX_PACKET_SIZE);
+            while (true) {
+                SocketAddress client = channel.receive(buffer);
+                buffer.flip();
+                System.out.print(client + " says ");
+                while (buffer.hasRemaining()) System.out.write(buffer.get());
+                System.out.println();
+                buffer.clear();
+            }
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+#### Sending
+
+The `send()` method writes one datagram packet into the channel from a `ByteBuffer` to the address specified as the second argument:
+
+```java
+public int send(ByteBuffer src, SocketAddress target) throws IOException
+```
+
+The source `ByteBuffer` can be reused if you want to send the same data to multiple clients. Just don’t forget to rewind it first.
+
+The `send()` method returns the number of bytes written.
+
+Example 12-16. A ``UDPEchoServer`` based on channels
+
+```java
+import java.io.*;
+import java.net.*;
+import java.nio.*;
+import java.nio.channels.*;
+public class UDPEchoServerWithChannels {
+    public final static int PORT = 7;
+    public final static int MAX_PACKET_SIZE = 65507;
+    public static void main(String[] args) {
+        try {
+            DatagramChannel channel = DatagramChannel.open();
+            DatagramSocket socket = channel.socket();
+            SocketAddress address = new InetSocketAddress(PORT);
+            socket.bind(address);
+            ByteBuffer buffer = ByteBuffer.allocateDirect(MAX_PACKET_SIZE);
+            while (true) {
+                SocketAddress client = channel.receive(buffer);
+                buffer.flip();
+                channel.send(buffer, client);
+                buffer.clear();
+            }
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+#### Connecting
+
+Once you’ve opened a datagram channel, you connect it to a particular remote address using the `connect()` method:
+
+```java
+SocketAddress remote = new InetSocketAddress("time.nist.gov", 37);
+channel.connect(remote);
+```
+
+The channel will only send data to or receive data from this host. Unlike the `connect()` method of `SocketChannel`, this method alone does not send or receive any packets across the network because UDP is a connectionless protocol. It merely establishes the host it will send packets to when there’s data ready to be sent.
+
+**Checking Connection Status**
+
+```java
+public boolean isConnected()
+```
+
+This method tells you whether the `DatagramChannel` is limited to one host. Unlike `SocketChannel`, a `DatagramChannel` doesn’t have to be connected to transmit or receive data.
+
+**Disconnecting**
+
+Finally, the `disconnect()` method breaks the connection:
+
+```java
+public DatagramChannel disconnect() throws IOException
+```
+
+#### Reading
+
+Besides the special-purpose `receive()` method, `DatagramChannel` has the usual three `read()` methods:
+
+```java
+public int read(ByteBuffer dst) throws IOException
+public long read(ByteBuffer[] dsts) throws IOException
+public long read(ByteBuffer[] dsts, int offset, int length) throws IOException
+```
+
+However, these methods can only be used on connected channels. That is, before invoking one of these methods, you must invoke `connect()` to glue the channel to a particular remote host.
+
+Each of these three methods only reads a single datagram packet from the network. As much data from that datagram as possible is stored in the argument `ByteBuffer(s)`. Each method returns the number of bytes read or `–1` if the channel has been closed. **==This method may return `0` for any of several reasons, including:**==
+
+- ==**The channel is nonblocking and no packet was ready.**==
+- ==**A datagram packet contained no data.**==
+- ==**The buffer is full.**==
+
+==**As with the `receive()` method, if the datagram packet has more data than the `ByteBuffer(s)` can hold, the extra data is thrown away with no notification of the problem. You do not receive a `BufferOverflowException` or anything similar.==**
+
+#### Writing
+
+Naturally, `DatagramChannel` has the three write methods common to all writable, scattering channels, which can be used instead of the `send()` method:
+
+```java
+public int write(ByteBuffer src) throws IOException
+public long write(ByteBuffer[] dsts) throws IOException
+public long write(ByteBuffer[] dsts, int offset, int length) throws IOException
+```
+
+These methods can only be used on connected channels; otherwise, they don’t know where to send the packet. Each of these methods sends a single datagram packet over the connection.
+
+```java
+while (buffer.hasRemaining() && channel.write(buffer) != -1) ;
+```
+
+Example 12-17. A UDP echo client based on channels
+
+```java
+import java.io.*;
+import java.net.*;
+import java.nio.*;
+import java.nio.channels.*;
+import java.util.*;
+public class UDPEchoClientWithChannels {
+    public final static int PORT = 7;
+    private final static int LIMIT = 100;
+    public static void main(String[] args) {
+        SocketAddress remote;
+        try {
+            remote = new InetSocketAddress(args[0], PORT);
+        } catch (RuntimeException ex) {
+            System.err.println("Usage: java UDPEchoClientWithChannels host");
+            return;
+        }
+        try (DatagramChannel channel = DatagramChannel.open()) {
+            channel.configureBlocking(false);
+            channel.connect(remote);
+            Selector selector = Selector.open();
+            channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            ByteBuffer buffer = ByteBuffer.allocate(4);
+            int n = 0;
+            int numbersRead = 0;
+            while (true) {
+                if (numbersRead == LIMIT) break;
+                // wait one minute for a connection
+                selector.select(60000);
+                Set < SelectionKey > readyKeys = selector.selectedKeys();
+                if (readyKeys.isEmpty() && n == LIMIT) {
+                    // All packets have been written and it doesn't look like any
+                    // more are will arrive from the network
+                    break;
+                } else {
+                    Iterator < SelectionKey > iterator = readyKeys.iterator();
+                    while (iterator.hasNext()) {
+                        SelectionKey key = (SelectionKey) iterator.next();
+                        iterator.remove();
+                        if (key.isReadable()) {
+                            buffer.clear();
+                            channel.read(buffer);
+                            buffer.flip();
+                            int echo = buffer.getInt();
+                            System.out.println("Read: " + echo);
+                            numbersRead++;
+                        }
+                        if (key.isWritable()) {
+                            buffer.clear();
+                            buffer.putInt(n);
+                            buffer.flip();
+                            channel.write(buffer);
+                            System.out.println("Wrote: " + n);
+                            n++;
+                            if (n == LIMIT) {
+                                // All packets have been written; switch to read-only mode
+                                key.interestOps(SelectionKey.OP_READ);
+                            }
+                        }
+                    }
+                }
+            }
+            System.out.println("Echoed " + numbersRead + " out of " + LIMIT +
+                " sent");
+            System.out.println("Success rate: " + 100.0 * numbersRead / LIMIT +
+                "%");
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+There is one major difference between selecting TCP channels and selecting datagram channels. **==Because datagram channels are truly connectionless (despite the `connect()` method), you need to notice when the data transfer is complete and shut down the channel manually. Unlike TCP channels, which establish a persistent connection and handle the completion of data transfer through the connection state, datagram channels do not inherently track the state of data transfer. Therefore, you need to manage and close the channel explicitly when you are done with data transfer.==**
+
+#### Closing
+
+Just as with regular datagram sockets, a channel should be closed when you’re done with it to free up the port and any other resources it may be using:
+
+```java
+public void close() throws IOException
+```
+
+Closing an already closed channel has no effect. Attempting to write data to or read data from a closed channel throws an exception.
+
+To check if a channel is still open, use:
+
+```java
+public boolean isOpen()
+```
+
+
+```java 
+DatagramChannel channel = null;
+try {
+    channel = DatagramChannel.open();
+    // Use the channel...
+} catch (IOException ex) {
+    // handle exceptions...
+} finally {
+    if (channel != null) {
+        try {
+            channel.close();
+        } catch (IOException ex) {
+            // ignore
+        }
+    }
+}
+
+try (DatagramChannel channel = DatagramChannel.open()) {
+    // Use the channel...
+} catch (IOException ex) {
+    // handle exceptions...
+}
+```
+
+#### Socket Options // Java 7
+
+In Java 7 and later, ``DatagramChannel`` supports eight socket options listed
+
+![[Pasted image 20240819210855.png]]
+
+Example 12-18. Default socket option values
+
+```java
+import java.io.IOException;
+import java.net.SocketOption;
+import java.nio.channels.DatagramChannel;
+public class DefaultSocketOptionValues {
+    public static void main(String[] args) {
+        try (DatagramChannel channel = DatagramChannel.open()) {
+            for (SocketOption << ? > option : channel.supportedOptions()) {
+                System.out.println(option.name() + ": " + channel.getOption(option));
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+}
+```
+
+# CHAPTER 13 IP Multicast
+
