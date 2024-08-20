@@ -12517,3 +12517,406 @@ public class DefaultSocketOptionValues {
 
 # CHAPTER 13 IP Multicast
 
+The sockets in the previous chapters are unicast: they provide point-to-point communication. Unicast sockets create a connection with two well-defined endpoints; there is one sender and one receiver and, although they may switch roles, at any given time it is easy to tell which is which however many tasks require a different model.
+
+true multicasting, in which the routers decide how to efficiently move a message to individual hosts. In particular, the initial router sends only one copy of the message to a router near the receiving hosts, which then makes multiple copies for different recipients at or closer  to the destinations. Internet multicasting is built on top of UDP. Multicasting in Java uses the ``DatagramPacket`` class along with a new ``MulticastSocket`` class.
+
+## Multicasting
+
+Multicasting is broader than unicast, point-to-point communication but narrower and more targeted than broadcast communication. **==Multicasting sends data from one host to many different hosts, but not to everyone; the data only goes to clients that have expressed an interest by joining a particular multicast group.==**
+
+In a way, this is like a public meeting. People can come and go as they please, leaving when the discussion no longer interests them. Before they arrive and after they have left, they don’t need to process the information at all: it just doesn’t reach them.
+
+On the Internet, such “public meetings” are best implemented using a multicast socket that sends a copy of the data to a location (or a group of locations) close to the parties that have declared an interest in the data. In the best case, the data is duplicated only when it reaches the local network serving the interested clients: the data crosses the Internet only once.
+
+**==More realistically, several identical copies of the data traverse the Internet; but, by carefully choosing the points at which the streams are duplicated, the load on the network is minimized.==**
+
+IP also supports broadcasting, but the use of broadcasts is strictly limited. Protocols require broadcasts only when there is no alternative; and routers limit broadcasts to the local network or subnet, preventing broadcasts from reaching the Internet at large. Even a few small global broadcasts could bring the Internet to its knees.
+
+**==There’s a middle ground between point-to-point communications and broadcasts to the whole world. There’s no reason to send a video feed to hosts that aren’t interested in it; we need a technology that sends data to the hosts that want it, without bothering the rest of the world.==**
+
+One way to do this is to use many unicast streams. If 1,000 clients want to watch a BBC live stream, the data is sent a thousand times. This is inefficient, since it duplicates data needlessly, but it’s orders-of-magnitude more efficient than broadcasting the data to every host on the Internet. Still, if the number of interested clients is large enough, you will eventually run out of bandwidth or CPU power—probably sooner rather than later.
+
+Another approach to the problem is to create static connection trees. This is the solution employed by Usenet news and some conferencing systems. Data is fed from the originating site to other servers, which replicate it to still other servers, which eventually replicate it to clients. Each client connects to the nearest server.
+
+This is more efficient than sending everything to all interested clients via multiple unicasts, but the scheme is kludgy and beginning to show its age. New sites need to find a place to hook into the tree manually. The tree does not necessarily reflect the best possible topology at any one time, and servers still need to maintain many point-to-point connections to their clients, sending the same data to each one.
+
+It would be better to allow the routers in the Internet to dynamically determine the best possible routes for transmitting distributed information and to replicate data only when absolutely necessary. This is where multicasting comes in.
+
+Multicasting has been designed to fit into the Internet as seamlessly as possible. Most of the work is done by routers and should be transparent to application programmers. An application simply sends datagram packets to a multicast address, which isn’t fundamentally different from any other IP address. The routers make sure the packet is delivered to all the hosts in the multicast group.
+
+**==The biggest problem is that multicast routers are not yet ubiquitous; therefore, you need to know enough about them to find out whether multicasting is supported on your network.==** As far as the application itself, you need to pay attention to an additional header field in the datagrams called the Time-To-Live (TTL) value. The TTL is the maximum number of routers that the datagram is allowed to cross. Once the packet has crossed that many routers, it is discarded. Multicasting uses the TTL as an ad hoc way to limit how far a packet can travel.
+
+### Multicast Addresses and Groups
+
+A multicast address is the shared address of a group of hosts called a multicast group. We’ll talk about the address first. IPv4 multicast addresses are IP addresses in the CIDR group `224.0.0.0/4` (i.e., they range from `224.0.0.0` to `239.255.255.255`). All addresses in this range have the binary digits `1110` as their first four bits.
+
+IPv6 multicast addresses are in the CIDR group `ff00::/8` (i.e., they all start with the byte `0xFF`, or `11111111` in binary). Like any IP address, a multicast address can have a hostname.
+
+A multicast group is a set of Internet hosts that share a multicast address. Any data sent to the multicast address is relayed to all the members of the group. Membership in a multicast group is open; hosts can enter or leave the group at any time. Groups can be either permanent or transient.
+
+Permanent groups have assigned addresses that remain constant, whether or not there are any members in the group. However, most multicast groups are transient and exist only as long as they have members. All you have to do to create a new multicast group is pick a random address from `225.0.0.0` to `238.255.255.255`, construct an `InetAddress` object for that address, and start sending it data.
+
+### Clients and Servers
+
+When a host wants to send data to a multicast group, it puts that data in multicast datagrams, which are nothing more than UDP datagrams addressed to a multicast group. Multicast data is sent via UDP, which, though unreliable, can be as much as three times faster than data sent via connection-oriented TCP.
+
+If you’re developing a multicast application that can’t tolerate data loss, it’s your responsibility to determine whether data was damaged in transit and how to handle missing data. For example, if you are building a distributed cache system, you might simply decide to leave any files that don’t arrive intact out of the cache.
+
+**==The primary difference between multicasting and using regular UDP sockets is that you have to worry about the TTL value. This is a single byte in the IP header that takes values from 1 to 255; it is interpreted roughly as the number of routers through which a packet can pass before it is discarded. Each time the packet passes through a router, its TTL field is decremented by at least one; some routers may decrement the TTL by two or more. When the TTL reaches zero, the packet is discarded.==**
+
+The TTL field was originally designed to prevent routing loops by guaranteeing that all packets would eventually be discarded. It prevents misconfigured routers from sending packets back and forth to each other indefinitely. In IP multicasting, the TTL limits the multicast geographically.
+
+Once the data has been stuffed into one or more datagrams, the sending host launches the datagrams onto the Internet. This is just like sending regular (unicast) UDP data. The sending host begins by transmitting a multicast datagram to the local network. This packet immediately reaches all members of the multicast group in the same subnet.
+
+If the Time-To-Live field of the packet is greater than 1, multicast routers on the local network forward the packet to other networks that have members of the destination group. When the packet arrives at one of the final destinations, the multicast router on the foreign network transmits the packet to each host it serves that is a member of the multicast group. If necessary, the multicast router also retransmits the packet to the next routers in the paths between the current router and all its eventual destinations.
+
+When data arrives at a host in a multicast group, the host receives it as it receives any other UDP datagram—even though the packet’s destination address doesn’t match the receiving host. The host recognizes that the datagram is intended for it because it belongs to the multicast group to which the datagram is addressed, much as most of us accept mail addressed to “Occupant,” even though none of us are named Mr. or Ms. Occupant.
+
+The receiving host must be listening on the proper port, ready to process the datagram when it arrives.
+
+### Routers and Routing
+
+**==The goal of multicast sockets is simple: no matter how complex the network, the same data should never be sent more than once over any given network segment.==** Fortunately, you don’t need to worry about routing issues. Just create a `MulticastSocket`, have the socket join a multicast group, and stuff the address of the multicast group in the `DatagramPacket` you want to send. The routers and the `MulticastSocket` class take care of the rest.
+
+![[Pasted image 20240820212936.png]]
+
+The biggest restriction on multicasting is the availability of special multicast routers (mrouters). Mrouters are reconfigured Internet routers or workstations that support the IP multicast extensions. Many consumer-oriented ISPs quite deliberately do not enable multicasting in their routers. In 2013, it is still possible to find hosts between which no multicast route exists.
+
+
+## Working with Multicast Sockets
+
+In Java, you multicast data using the `java.net.MulticastSocket` class, a subclass of `java.net.DatagramSocket`:
+
+```java
+public class MulticastSocket extends DatagramSocket implements Closeable, AutoCloseable
+```
+
+To receive data that is being multicast from a remote site, first create a `MulticastSocket` with the `MulticastSocket()` constructor. As with other kinds of sockets, you need to know the port to listen on:
+
+```java
+MulticastSocket ms = new MulticastSocket(2300);
+```
+
+Next, join a multicast group using the `MulticastSocket`’s `joinGroup()` method:
+
+```java
+InetAddress group = InetAddress.getByName("224.2.2.2");
+ms.joinGroup(group);
+```
+
+This signals the routers in the path between you and the server to start sending data your way and tells the local host that it should pass you IP packets addressed to the multicast group.
+
+Once you’ve joined the multicast group, you receive UDP data just as you would with a `DatagramSocket`. You create a `DatagramPacket` with a byte array that serves as a buffer for data and enter a loop in which you receive the data by calling the `receive()` method inherited from the `DatagramSocket` class:
+
+```java
+byte[] buffer = new byte[8192];
+DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
+ms.receive(dp);
+```
+
+When you no longer want to receive data, leave the multicast group by invoking the socket’s `leaveGroup()` method. You can then close the socket with the `close()` method inherited from `DatagramSocket`:
+
+```java
+ms.leaveGroup(group);
+ms.close();
+```
+
+Sending data to a multicast address is similar to sending UDP data to a unicast address. You do not need to join a multicast group to send data to it. You create a new `DatagramPacket`, stuff the data and the address of the multicast group into the packet, and pass it to the `send()` method:
+
+```java
+InetAddress ia = InetAddress.getByName("experiment.mcast.net");
+byte[] data = "Here's some multicast data\r\n".getBytes("UTF-8");
+int port = 4000;
+DatagramPacket dp = new DatagramPacket(data, data.length, ia, port);
+MulticastSocket ms = new MulticastSocket();
+ms.send(dp);
+```
+
+**==There is one caveat to all this: multicast sockets are a security hole big enough to drive a small truck through.==** Consequently, untrusted code running under the control of a `SecurityManager` is not allowed to do anything involving multicast sockets. Remotely loaded code is normally only allowed to send datagrams to or receive datagrams from the host it was downloaded from. However, multicast sockets don’t allow this sort of restriction to be placed on the packets they send or receive.
+
+Once you send data to a multicast socket, you have very limited and unreliable control over which hosts receive that data. Consequently, most environments that execute remote code take the conservative approach of disallowing all multicasting.
+
+### The Constructors
+
+The constructors for `MulticastSocket` are simple. You can either pick a port to listen on or let Java assign an anonymous port for you:
+
+```java
+public MulticastSocket() throws SocketException
+public MulticastSocket(int port) throws SocketException
+public MulticastSocket(SocketAddress bindAddress) throws IOException
+```
+
+For example:
+
+```java
+MulticastSocket ms1 = new MulticastSocket();
+MulticastSocket ms2 = new MulticastSocket(4000);
+
+SocketAddress address = new InetSocketAddress("192.168.254.32", 4000);
+MulticastSocket ms3 = new MulticastSocket(address);
+```
+
+All three constructors throw a `SocketException` if the socket can’t be created. If you don’t have sufficient privileges to bind to the port or if the port you’re trying to bind to is already in use, then a socket cannot be created. Note that because a multicast socket is a datagram socket as far as the operating system is concerned, a `MulticastSocket` cannot occupy a port already occupied by a `DatagramSocket`, and vice versa.
+
+You can pass `null` to the constructor to create an unbound socket, which will be connected later with the `bind()` method:
+
+```java
+MulticastSocket ms = new MulticastSocket(null);
+ms.setReuseAddress(false);
+SocketAddress address = new InetSocketAddress(4000);
+ms.bind(address);
+```
+
+### Communicating with a Multicast Group
+
+Once a `MulticastSocket` has been created, it can perform four key operations:
+
+1. ==**Join a multicast group.**==
+2. ==**Send data to the members of the group.**==
+3. ==**Receive data from the group.**==
+4. ==**Leave the multicast group.==**
+
+The `MulticastSocket` class has methods for operations 1 and 4. No new methods are required to send or receive data. The `send()` and `receive()` methods of the superclass, `DatagramSocket`, suffice for those operations. You can perform these operations in any order, with the exception that you must join a group before you can receive data from it. You do not need to join a group to send data to it, and you can freely intermix sending and receiving data.
+
+#### Joining groups
+
+To join a group, pass an `InetAddress` or a `SocketAddress` for the multicast group to the `joinGroup()` method:
+
+```java
+public void joinGroup(InetAddress address) throws IOException
+public void joinGroup(SocketAddress address, NetworkInterface interface) throws IOException
+```
+
+Once you’ve joined a multicast group, you receive datagrams exactly as you receive unicast datagrams:
+
+```java
+try {
+    MulticastSocket ms = new MulticastSocket(4000);
+    InetAddress ia = InetAddress.getByName("224.2.2.2");
+    ms.joinGroup(ia);
+    byte[] buffer = new byte[8192];
+    while (true) {
+        DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
+        ms.receive(dp);
+        String s = new String(dp.getData(), "8859_1");
+        System.out.println(s);
+    }
+} catch (IOException ex) {
+    System.err.println(ex);
+}
+```
+
+If the address that you try to join is not a multicast address (i.e., not between 224.0.0.0 and 239.255.255.255), the `joinGroup()` method throws an `IOException`.
+
+A single `MulticastSocket` can join multiple multicast groups. Information about membership in multicast groups is stored in multicast routers, not in the object. Multiple multicast sockets on the same machine and even in the same Java program can all join the same group. If so, each socket receives a complete copy of the data addressed to that group that arrives at the local host.
+
+Example of joining a group with a specified network interface:
+
+```java
+MulticastSocket ms = new MulticastSocket();
+SocketAddress group = new InetSocketAddress("224.2.2.2", 40);
+NetworkInterface ni = NetworkInterface.getByName("eth0");
+if (ni != null) {
+    ms.joinGroup(group, ni);
+} else {
+    ms.joinGroup(group);
+}
+```
+
+Other than the extra argument specifying the network interface to listen from, this behaves pretty much like the single-argument `joinGroup()` method.
+
+#### Leaving groups and closing the connection
+
+Call the `leaveGroup()` method when you no longer want to receive datagrams from the specified multicast group, on either all or a specified network interface:
+
+```java
+public void leaveGroup(InetAddress address) throws IOException
+public void leaveGroup(SocketAddress multicastAddress, NetworkInterface interface) throws IOException
+```
+
+It signals the local multicast router, telling it to stop sending you datagrams. If the address you try to leave is not a multicast address (i.e., not between 224.0.0.0 and 239.255.255.255), the method throws an `IOException`.
+
+Pretty much all the methods in `MulticastSocket` can throw an `IOException`, so you’ll usually wrap all this in a `try` block:
+
+```java
+try (MulticastSocket socket = new MulticastSocket()) {
+    // connect to the server...
+} catch (IOException ex) {
+    ex.printStackTrace();
+}
+```
+
+Sending data with a `MulticastSocket` is similar to sending data with a `DatagramSocket`. Stuff your data into a `DatagramPacket` object and send it off using the `send()` method inherited from `DatagramSocket`. The data is sent to every host that belongs to the multicast group to which the packet is addressed.
+
+```java
+try {
+    InetAddress ia = InetAddress.getByName("experiment.mcast.net");
+    byte[] data = "Here's some multicast data\r\n".getBytes();
+    int port = 4000;
+    DatagramPacket dp = new DatagramPacket(data, data.length, ia, port);
+    MulticastSocket ms = new MulticastSocket();
+    ms.send(dp);
+} catch (IOException ex) {
+    System.err.println(ex);
+}
+```
+
+By default, multicast sockets use a TTL (Time-To-Live) of 1, meaning packets don’t travel outside the local subnet. However, you can change this setting for an individual packet by passing an integer from 0 to 255 as the TTL value.
+
+The `setTimeToLive()` method sets the default TTL value used for packets sent from the socket using the `send(DatagramPacket dp)` method inherited from `DatagramSocket` (as opposed to the `send(DatagramPacket dp, byte ttl)` method in `MulticastSocket`).
+
+```java
+public void setTimeToLive(int ttl) throws IOException
+public int getTimeToLive() throws IOException
+```
+
+For example, this code fragment sets a TTL of 64:
+
+```java
+try {
+    InetAddress ia = InetAddress.getByName("experiment.mcast.net");
+    byte[] data = "Here's some multicast data\r\n".getBytes();
+    int port = 4000;
+    DatagramPacket dp = new DatagramPacket(data, data.length, ia, port);
+    MulticastSocket ms = new MulticastSocket();
+    ms.setTimeToLive(64);
+    ms.send(dp);
+} catch (IOException ex) {
+    System.err.println(ex);
+}
+```
+
+#### Loopback mode
+
+Whether or not a host receives the multicast packets it sends is platform dependent—that is, whether or not they loop back. Passing `true` to `setLoopbackMode()` indicates you don’t want to receive the packets you send. Passing `false` indicates you do want to receive the packets you send:
+
+```java
+public void setLoopbackMode(boolean disable) throws SocketException
+public boolean getLoopbackMode() throws SocketException
+```
+
+However, this is only a hint. Implementations are not required to do as you request. Because loopback mode may not be followed on all systems, it’s important to check what the loopback mode is if you’re both sending and receiving packets. The `getLoopbackMode()` method returns `true` if packets are not looped back and `false` if they are. If the system is looping packets back and you don’t want it to, you’ll need to recognize the packets somehow and discard them. If the system is not looping the packets back and you do want it to, store copies of the packets you send and inject them into your internal data structures manually at the same time you send them. You can ask for the behavior you want with `setLoopbackMode()`, but you can’t count on it.
+
+#### Network interfaces
+
+Here is the markdown for the provided text:
+
+```java
+public void setInterface(InetAddress address) throws SocketException
+public InetAddress getInterface() throws SocketException
+public void setNetworkInterface(NetworkInterface interface) throws SocketException
+public NetworkInterface getNetworkInterface() throws SocketException
+```
+
+To be safe, set the interface immediately after constructing a `MulticastSocket` and don’t change it thereafter. Here’s how you might use `setInterface()`:
+
+```java
+try {
+    InetAddress ia = InetAddress.getByName("www.ibiblio.org");
+    MulticastSocket ms = new MulticastSocket(2048);
+    ms.setInterface(ia);
+    // send and receive data...
+} catch (UnknownHostException ue) {
+    System.err.println(ue);
+} catch (SocketException se) {
+    System.err.println(se);
+}
+```
+
+The `setNetworkInterface()` method serves the same purpose as the `setInterface()` method; that is, it chooses the network interface used for multicast sending and receiving. However, it does so based on the local name of a network interface such as “eth0” (as encapsulated in a `NetworkInterface` object) rather than on the IP address bound to that network interface.
+
+The `getNetworkInterface()` method returns a `NetworkInterface` object representing the network interface on which this `MulticastSocket` is listening for data. If no network interface has been explicitly set in the constructor or with `setNetworkInterface()`, it returns a placeholder object with the address “0.0.0.0” and the index –1. For example, this code fragment prints the network interface used by a socket:
+
+```java
+NetworkInterface intf = ms.getNetworkInterface();
+System.out.println(intf.getName());
+```
+
+## Two Simple Examples
+
+Example 13-1. Multicast sniffer
+
+```java
+import java.io.*;
+import java.net.*;
+public class MulticastSniffer {
+    public static void main(String[] args) {
+        InetAddress group = null;
+        int port = 0;
+        // read the address from the command line
+        try {
+            group = InetAddress.getByName(args[0]);
+            port = Integer.parseInt(args[1]);
+        } catch (ArrayIndexOutOfBoundsException | NumberFormatException |
+            UnknownHostException ex) {
+            System.err.println(
+                "Usage: java MulticastSniffer multicast_address port");
+            System.exit(1);
+        }
+        MulticastSocket ms = null;
+        try {
+            ms = new MulticastSocket(port);
+            ms.joinGroup(group);
+            byte[] buffer = new byte[8192];
+            while (true) {
+                DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
+                ms.receive(dp);
+                String s = new String(dp.getData(), "8859_1");
+                System.out.println(s);
+            }
+        } catch (IOException ex) {
+            System.err.println(ex);
+        } finally {
+            if (ms != null) {
+                try {
+                    ms.leaveGroup(group);
+                    ms.close();
+                } catch (IOException ex) {}
+            }
+        }
+    }
+}
+```
+
+Example 13-2. ``MulticastSender``
+
+```java
+import java.io.*;
+import java.net.*;
+public class MulticastSender {
+    public static void main(String[] args) {
+        InetAddress ia = null;
+        int port = 0;
+        byte ttl = (byte) 1;
+        // read the address from the command line
+        try {
+            ia = InetAddress.getByName(args[0]);
+            port = Integer.parseInt(args[1]);
+            if (args.length > 2) ttl = (byte) Integer.parseInt(args[2]);
+        } catch (NumberFormatException | IndexOutOfBoundsException |
+            UnknownHostException ex) {
+            System.err.println(ex);
+            System.err.println(
+                "Usage: java MulticastSender multicast_address port ttl");
+            System.exit(1);
+        }
+        byte[] data = "Here's some multicast data\r\n".getBytes();
+        DatagramPacket dp = new DatagramPacket(data, data.length, ia, port);
+        try (MulticastSocket ms = new MulticastSocket()) {
+            ms.setTimeToLive(ttl);
+            ms.joinGroup(ia);
+            for (int i = 1; i < 10; i++) {
+                ms.send(dp);
+            }
+            ms.leaveGroup(ia);
+        } catch (SocketException ex) {
+            System.err.println(ex);
+        } catch (IOException ex) {
+            System.err.println(ex);
+        }
+    }
+}
+```
+
+
