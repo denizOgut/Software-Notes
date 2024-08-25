@@ -3911,6 +3911,235 @@ class Application {
 
  Java provides concrete Future implementations that provide these features (`CompletableFuture`, `CountedCompleter`, `ForkJoinTask, FutureTask`).
 
+## ``CompletableFuture``
+
+
+Starting with Java 8, the `CompletableFuture` class was introduced. It enhances `Future` with the following features:
+
+- **Non-blocking Operations**: You can chain non-blocking callbacks.
+- **Completion Notification**: You can register actions that will be triggered upon completion.
+- **Exception Handling**: It provides methods to handle exceptions in the callback chain.
+
+### Key Methods:
+
+1. **`supplyAsync(Supplier<U>)`**: Runs a task asynchronously and returns a `CompletableFuture`.
+2. **`thenApply(Function<U,V>)`**: Processes the result and returns a new `CompletableFuture`.
+3. **`thenAccept(Consumer<U>)`**: Consumes the result.
+4. **`thenRun(Runnable)`**: Runs a task after the previous one completes, but doesn’t consume the result.
+5. **`exceptionally(Function<Throwable, U>)`**: Handles exceptions in the asynchronous chain.
+
+```java
+CompletableFuture.supplyAsync(() -> {
+    return 42;
+}).thenApply(result -> {
+    return result * 2;
+}).thenAccept(result -> {
+    System.out.println("Result: " + result);
+}).exceptionally(ex -> {
+    System.out.println("Exception occurred: " + ex);
+    return null;
+});
+```
+
+### When to Use `CompletableFuture`?
+
+- **Chaining Asynchronous Tasks**: You can chain multiple asynchronous tasks using methods like `thenApply()`, `thenCompose()`, and `thenAccept()`.
+- **Combining Results**: You can combine results of multiple `CompletableFuture` instances using methods like `allOf()`, `anyOf()`, or `combine()`.
+- **Exception Handling**: You can handle exceptions gracefully using `exceptionally()` or `handle()` methods.
+
+### ``CompletionStage`` Interface
+
+`CompletableFuture` implements the `CompletionStage` interface, which represents a stage in an asynchronous computation pipeline. This allows for more advanced chaining and composition of asynchronous tasks.
+
+Yes! Here's the continuation, diving deeper into more advanced topics and best practices for using `Future` and `CompletableFuture` in Java.
+
+### Advanced Topics in ``CompletableFuture``
+
+#### 1. Combining Multiple ``CompletableFutures``
+
+In addition to `thenCombine()`, Java provides methods to combine multiple `CompletableFuture` instances, such as:
+
+- **`allOf()`**: Waits for all provided futures to complete and returns a new `CompletableFuture<Void>`. The result is not combined, but you can still retrieve individual results after all tasks are complete.
+
+  ```java
+  CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() -> "Task 1");
+  CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() -> "Task 2");
+  CompletableFuture<String> future3 = CompletableFuture.supplyAsync(() -> "Task 3");
+
+  CompletableFuture<Void> allFutures = CompletableFuture.allOf(future1, future2, future3);
+  allFutures.thenRun(() -> {
+      try {
+          String result1 = future1.get();
+          String result2 = future2.get();
+          String result3 = future3.get();
+          System.out.println(result1 + ", " + result2 + ", " + result3);
+      } catch (Exception e) {
+          e.printStackTrace();
+      }
+  });
+  ```
+
+- **`anyOf()`**: Returns a new `CompletableFuture` that is completed when any of the given futures completes, either normally or exceptionally.
+
+  ```java
+  CompletableFuture<Object> anyOfFutures = CompletableFuture.anyOf(future1, future2, future3);
+  anyOfFutures.thenAccept(result -> System.out.println("First completed: " + result));
+  ```
+
+#### 2. Exception Handling in ``CompletableFuture``
+
+Exception handling is one of the most powerful features of `CompletableFuture`. You can manage exceptions in several ways:
+
+- **`exceptionally()`**: Provides a fallback result in case of an exception.
+
+  ```java
+  CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
+      throw new RuntimeException("Error occurred!");
+  }).exceptionally(ex -> {
+      System.out.println("Exception: " + ex.getMessage());
+      return 0;
+  });
+  ```
+
+- **`handle()`**: Allows you to handle both success and failure cases in the same callback.
+
+  ```java
+  CompletableFuture<Integer> handledFuture = CompletableFuture.supplyAsync(() -> {
+      throw new RuntimeException("Failed task");
+  }).handle((result, ex) -> {
+      if (ex != null) {
+          System.out.println("Error: " + ex.getMessage());
+          return 0;
+      }
+      return result;
+  });
+  ```
+
+- **`whenComplete()`**: Executes a side-effect action (e.g., logging) after the computation is complete, regardless of success or failure.
+
+  ```java
+  CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> 42);
+  future.whenComplete((result, ex) -> {
+      if (ex != null) {
+          System.out.println("Error: " + ex.getMessage());
+      } else {
+          System.out.println("Computation completed successfully: " + result);
+      }
+  });
+  ```
+
+#### 3. Running Multiple ``CompletableFutures`` in Parallel
+
+In cases where you want to run multiple independent tasks in parallel and gather the results, you can use `CompletableFuture.allOf()` combined with a stream to process the results.
+
+```java
+List<CompletableFuture<String>> futures = List.of(
+    CompletableFuture.supplyAsync(() -> "Task 1"),
+    CompletableFuture.supplyAsync(() -> "Task 2"),
+    CompletableFuture.supplyAsync(() -> "Task 3")
+);
+
+CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+allFutures.thenAccept(v -> {
+    List<String> results = futures.stream()
+        .map(CompletableFuture::join)  // Avoid checked exceptions with join
+        .collect(Collectors.toList());
+    System.out.println("Results: " + results);
+});
+```
+
+#### 4. CompletableFuture with Timeout Handling
+
+Starting from Java 9, `CompletableFuture` introduced the `completeOnTimeout()` and `orTimeout()` methods to handle timeouts more easily.
+
+- **`orTimeout(long timeout, TimeUnit unit)`**: Cancels the computation if it exceeds the given timeout.
+
+  ```java
+  CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+      Thread.sleep(5000); // Simulate long task
+      return "Result";
+  }).orTimeout(2, TimeUnit.SECONDS).exceptionally(ex -> "Timeout occurred!");
+  ```
+
+- **`completeOnTimeout(U value, long timeout, TimeUnit unit)`**: Completes the future with a given default value if the timeout is reached.
+
+  ```java
+  CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+      Thread.sleep(5000); // Simulate long task
+      return "Result";
+  }).completeOnTimeout("Default Value", 2, TimeUnit.SECONDS);
+  ```
+
+### ``CompletableFuture`` vs ``ExecutorService``
+
+While `CompletableFuture` is a newer and more powerful API for handling async computations, `ExecutorService` still plays a critical role, especially in legacy codebases or where you need more granular control over thread pools and task execution.
+
+- **`ExecutorService` Pros**:
+  - Fine-grained control over thread management.
+  - Suitable for systems where resource management is critical.
+  - Familiar API with robust integration in enterprise applications.
+
+- **`CompletableFuture` Pros**:
+  - Simpler and more readable for chaining async operations.
+  - Better built-in exception handling and recovery mechanisms.
+  - Non-blocking, more efficient with resources in asynchronous pipelines.
+
+### ``ForkJoinPool`` and ``Parallelism``
+
+`CompletableFuture` uses the **``ForkJoinPool``** by default, which optimizes task execution by using work-stealing algorithms. However, you can explicitly provide a custom `Executor` for any async method to better control thread usage:
+
+```java
+Executor customExecutor = Executors.newFixedThreadPool(4);
+CompletableFuture.supplyAsync(() -> {
+    // task logic
+}, customExecutor);
+```
+
+This is useful when you want to tune the parallelism level or control task execution within specific boundaries, such as limiting thread count or prioritizing tasks.
+
+### Real-World Example: Using ``CompletableFuture`` in a Web Application
+
+In a real-world scenario, especially in microservices, `CompletableFuture` is very effective for improving response time by running background tasks concurrently, such as fetching data from external services.
+
+Imagine an e-commerce application where you need to fetch product details, pricing, and reviews simultaneously:
+
+```java
+CompletableFuture<Product> productFuture = CompletableFuture.supplyAsync(() -> productService.getProduct(productId));
+CompletableFuture<Price> priceFuture = CompletableFuture.supplyAsync(() -> priceService.getPrice(productId));
+CompletableFuture<List<Review>> reviewsFuture = CompletableFuture.supplyAsync(() -> reviewService.getReviews(productId));
+
+CompletableFuture<Void> allFutures = CompletableFuture.allOf(productFuture, priceFuture, reviewsFuture);
+allFutures.thenRun(() -> {
+    Product product = productFuture.join();
+    Price price = priceFuture.join();
+    List<Review> reviews = reviewsFuture.join();
+
+    ProductPage page = new ProductPage(product, price, reviews);
+    renderProductPage(page);
+});
+```
+
+### Best Practices:
+
+1. **Avoid Blocking in Async Tasks**: Don’t block within the asynchronous methods, as it defeats the purpose of `CompletableFuture`.
+2. **Handle Exceptions**: Always handle exceptions in the asynchronous pipeline.
+3. **Use Parallel Streams Carefully**: Ensure that you have the necessary resources before using parallel streams or async tasks in a high-performance environment.
+###  Pitfalls to Avoid
+
+1. **Blocking in Asynchronous Code**: Avoid blocking the thread in an async task by calling methods like `get()` or `join()` without careful consideration.
+2. **Overusing `ForkJoinPool`**: If you're using many CPU-intensive tasks, consider providing a custom `Executor` instead of the default `ForkJoinPool`, which might be shared by other parts of the system.
+3. **Exception Swallowing**: Make sure to handle exceptions correctly using `exceptionally()` or `handle()` to avoid swallowing runtime exceptions silently.
+4. **Chaining with Care**: Ensure that the chaining logic in `thenApply()` and `thenCompose()` is non-blocking and efficiently manages resources.
+
+### Summary
+
+- **`Future`** is useful for basic asynchronous operations but lacks flexibility for complex workflows.
+- **`CompletableFuture`** provides a powerful, modern, and flexible API for composing async tasks, handling exceptions, combining results, and applying non-blocking computations.
+- **Advanced Features** like combining futures, handling timeouts, parallel execution, and more make `CompletableFuture` the go-to choice for modern Java asynchronous programming.
+- **Custom Executors** allow you to control resource usage and performance, while the default **ForkJoinPool** optimizes lightweight tasks.
+
+By mastering `CompletableFuture`, you'll be able to create more responsive, scalable, and maintainable applications in Java, especially for concurrent and distributed systems.
+
 ##  Synchronized Collections
 
 With the advent of multi-threaded programming, the need for thread-safe collections grew. It is when _Synchronized Collections_ were added to Java’s Collection framework.
