@@ -13,13 +13,26 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
+                "file": "JAVA APP - 1 NOTES.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "84b5694ba14cbea5",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Google Remote Procedure Call Notes.md",
                 "mode": "source",
                 "source": false
               }
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -85,7 +98,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
+                "file": "Google Remote Procedure Call Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +115,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md",
+                "file": "Google Remote Procedure Call Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +138,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "JAVA APP - 2 NOTES.md"
+                "file": "Google Remote Procedure Call Notes.md"
               }
             }
           },
@@ -160,18 +173,19 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "30ef342d56946966",
+  "active": "84b5694ba14cbea5",
   "lastOpenFiles": [
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Google Remote Procedure Call Notes.md",
+    "JAVA APP - 1 NOTES.md",
+    "JAVA APP - 2 NOTES.md",
     "Java Network Programming Notes.md",
     "Java Network Programming Screenshots/Pasted image 20240820212936.png",
     "Java Network Programming Screenshots/Pasted image 20240819210855.png",
     "Java Network Programming Screenshots/Pasted image 20240819193806.png",
     "Java Network Programming Screenshots/Pasted image 20240819193704.png",
     "RabbitMQ Notes.md",
-    "JAVA APP - 2 NOTES.md",
     "202408162105.md",
-    "JAVA APP - 1 NOTES.md",
     "Elasticsearch Notes.md",
     "EFFECTIVE JAVA NOTES.md",
     "Java Network Programming Screenshots/Pasted image 20240730210523.png",
