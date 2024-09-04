@@ -302,7 +302,7 @@ public final class Person extends
 }
 ```
 
-### **Options (Java-Specific)**
+#### **Options (Java-Specific)**
 
 Protobuf options allow you to customize the code generation process and influence how Protobufs are handled by the generated code. For Java, there are several options that you can specify to control various aspects of the generated code.
 
