@@ -396,3 +396,896 @@ When working with Protobuf, it's crucial to follow best practices to ensure back
 
 6. **Maps:**
    - **Map Compatibility:** Changing a field between a `map<K, V>` and a corresponding `repeated` message field is binary compatible. However, be aware that this can lead to reordering or dropping of duplicate keys during deserialization.
+
+## 4. Building a Basic gRPC Service
+
+This section covers the essential steps to build a basic gRPC service in Java, starting from the service definition in Protobuf, followed by implementing the server and client.
+
+---
+
+### **Service Definition in Protobuf**
+
+gRPC services are defined using Protocol Buffers (Protobuf). In the `.proto` file, you define the gRPC service and the types of Remote Procedure Calls (RPCs) it supports, such as unary, server streaming, client streaming, or bidirectional streaming.
+
+![[Pasted image 20240905215015.png]]
+
+#### **Defining Services and RPC Methods**
+- In Protobuf, a gRPC service is a collection of RPC methods. Each method specifies the input message type and the output message type.
+- The service block is where you define your gRPC service and list the RPC methods the service will expose.
+
+ **Example: Defining a Service**
+```proto
+syntax = "proto3";
+
+// Define a package to prevent name collisions.
+package com.example.myapp;
+
+// Import necessary options for Java generation.
+option java_package = "com.example.myapp";
+option java_outer_classname = "MyServiceProto";
+
+// Define the messages.
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloResponse {
+  string greeting = 1;
+}
+
+// Define the service.
+service Greeter {
+  // Unary RPC method: one request, one response.
+  rpc SayHello (HelloRequest) returns (HelloResponse);
+}
+```
+
+#### **Unary RPC Method**
+- A unary RPC method is the simplest type of RPC. It takes a single request and returns a single response.
+- In the example above, `SayHello` is a unary RPC. It takes a `HelloRequest` and returns a `HelloResponse`.
+
+![[Pasted image 20240905215031.png]]
+
+---
+### **Server Implementation**
+
+Once the service definition is in place, the next step is to implement the server in Java. This involves creating a class that extends the generated `GreeterGrpc.GreeterImplBase` class and overriding the RPC methods.
+
+#### **1. Writing the Server Code**
+- Implement the service by extending the `GreeterImplBase` class, which is generated from the Protobuf file.
+- Override the `SayHello` method to provide the actual server-side logic.
+
+```java
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import io.grpc.stub.StreamObserver;
+import java.io.IOException;
+
+public class HelloWorldServer {
+  
+  // Define the service implementation.
+  static class GreeterImpl extends GreeterGrpc.GreeterImplBase {
+    @Override
+    public void sayHello(HelloRequest request, StreamObserver<HelloResponse> responseObserver) {
+      // Build the response.
+      HelloResponse response = HelloResponse.newBuilder()
+                                            .setGreeting("Hello, " + request.getName())
+                                            .build();
+      // Send the response and complete the RPC.
+      responseObserver.onNext(response);
+      responseObserver.onCompleted();
+    }
+  }
+
+  public static void main(String[] args) throws IOException, InterruptedException {
+    // Start the server.
+    Server server = ServerBuilder.forPort(50051)
+                                 .addService(new GreeterImpl())
+                                 .build()
+                                 .start();
+    System.out.println("Server started, listening on port 50051");
+
+    // Keep the server running.
+    server.awaitTermination();
+  }
+}
+```
+
+#### **2. Starting the gRPC Server**
+- The `ServerBuilder` is used to create and start a gRPC server on a specified port (in this case, port `50051`).
+- The `addService` method adds the implementation of the `Greeter` service to the server.
+- The `start()` method launches the server, and `awaitTermination()` keeps it running.
+
+---
+
+### **Client Implementation**
+
+The client sends a request to the gRPC server and receives a response. You need to write a client that interacts with the server by calling the `SayHello` method.
+
+#### **1. Writing the Client Code**
+- The client will use the stub generated from the Protobuf file to make the RPC call.
+- Use `ManagedChannel` to create a connection to the server and `blockingStub` for synchronous unary calls.
+
+```java
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import com.example.myapp.GreeterGrpc;
+import com.example.myapp.HelloRequest;
+import com.example.myapp.HelloResponse;
+
+public class HelloWorldClient {
+  public static void main(String[] args) {
+    // Build the channel to connect to the server.
+    ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 50051)
+                                                  .usePlaintext()  // Disable TLS for simplicity.
+                                                  .build();
+
+    // Create a blocking stub for making synchronous RPC calls.
+    GreeterGrpc.GreeterBlockingStub stub = GreeterGrpc.newBlockingStub(channel);
+
+    // Build the request message.
+    HelloRequest request = HelloRequest.newBuilder()
+                                       .setName("John Doe")
+                                       .build();
+
+    // Make the RPC call and get the response.
+    HelloResponse response = stub.sayHello(request);
+    System.out.println("Response from server: " + response.getGreeting());
+
+    // Shutdown the channel.
+    channel.shutdown();
+  }
+}
+```
+
+#### **2. Connecting to the gRPC Server**
+- The `ManagedChannel` connects the client to the server. You specify the server's address and port.
+- The `usePlaintext()` method disables TLS for simplicity (you can enable TLS in production environments).
+  
+#### **3. Making RPC Calls**
+- The client creates a stub to call the `SayHello` method on the server.
+- In this case, the `GreeterBlockingStub` is used for synchronous communication. For asynchronous calls, you can use `GreeterStub`.
+
+#### **4. Sending the Request and Receiving the Response**
+- The client creates a `HelloRequest` message, sends it to the server via the `SayHello` method, and waits for the response.
+- The server processes the request and sends back a `HelloResponse` with the greeting message.
+
+---
+### Running the Example
+
+1. **Compile the `.proto` file** using the Protobuf compiler to generate the Java code:
+   ```bash
+   protoc --java_out=. --grpc-java_out=. --plugin=protoc-gen-grpc-java=path_to_grpc_plugin myservice.proto
+   ```
+
+2. **Run the Server**:
+   ```bash
+   javac HelloWorldServer.java
+   java HelloWorldServer
+   ```
+
+3. **Run the Client**:
+   ```bash
+   javac HelloWorldClient.java
+   java HelloWorldClient
+   ```
+
+When the client runs, it should connect to the server, send a `HelloRequest`, and receive a `HelloResponse` with the greeting message.
+
+---
+
+## 5. Advanced gRPC Concepts
+
+### **Streaming in gRPC**
+Unlike unary RPCs (which send one request and get one response), gRPC supports streaming, which allows multiple requests or responses within a single call. Streaming can greatly enhance performance and scalability in situations where multiple messages need to be exchanged between the client and server.
+
+There are three types of streaming in gRPC:
+1. **Server-side streaming**  
+2. **Client-side streaming**  
+3. **Bidirectional streaming**
+
+---
+
+#### **1. Server-Side Streaming**
+In **server-side streaming**, the client sends a single request to the server, and the server sends back a stream of responses. This is useful when the server needs to return multiple pieces of data over time.
+
+- **How it works**: 
+    - The client sends one request.
+    - The server responds with a stream of data.
+    - The client reads from the stream until all data is received.
+
+- **Use case**: Think of it like querying a large database. The client asks for some data, and the server streams back a large set of records gradually.
+
+![[Pasted image 20240905215216.png]]
+
+**Example: Server-Side Streaming in Protobuf**
+
+Define the service in your `.proto` file:
+```proto
+service DataService {
+  rpc ListData(Request) returns (stream Response);
+}
+
+message Request {
+  string query = 1;
+}
+
+message Response {
+  string result = 1;
+}
+```
+
+**Server-side Java implementation**:
+```java
+public class DataServiceImpl extends DataServiceGrpc.DataServiceImplBase {
+  @Override
+  public void listData(Request request, StreamObserver<Response> responseObserver) {
+    // Mock list of data
+    List<String> data = List.of("Data1", "Data2", "Data3");
+
+    for (String item : data) {
+      Response response = Response.newBuilder().setResult(item).build();
+      responseObserver.onNext(response); // Send each response
+    }
+    responseObserver.onCompleted(); // Mark the stream as completed
+  }
+}
+```
+
+**Client-side Java code**:
+```java
+public class Client {
+  public static void main(String[] args) {
+    ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext().build();
+    DataServiceGrpc.DataServiceBlockingStub stub = DataServiceGrpc.newBlockingStub(channel);
+
+    Request request = Request.newBuilder().setQuery("some-query").build();
+
+    Iterator<Response> responses = stub.listData(request);
+
+    while (responses.hasNext()) {
+      System.out.println("Received: " + responses.next().getResult());
+    }
+
+    channel.shutdown();
+  }
+}
+```
+
+---
+
+#### **2. Client-Side Streaming**
+In **client-side streaming**, the client sends a stream of requests to the server, but the server responds with a single response after it has received all the client’s data. This is helpful when the client needs to send large amounts of data.
+
+- **How it works**: 
+    - The client sends a series of messages.
+    - The server processes the stream and sends one response back.
+
+- **Use case**: Uploading a file in chunks or aggregating multiple client inputs to calculate a result on the server.
+
+![[Pasted image 20240905215229.png]]
+
+**Example: Client-Side Streaming in Protobuf**
+```proto
+service DataService {
+  rpc UploadData(stream Request) returns (Response);
+}
+
+message Request {
+  string data_chunk = 1;
+}
+
+message Response {
+  string message = 1;
+}
+```
+
+**Server-side Java implementation**:
+```java
+public class DataServiceImpl extends DataServiceGrpc.DataServiceImplBase {
+  @Override
+  public StreamObserver<Request> uploadData(StreamObserver<Response> responseObserver) {
+    return new StreamObserver<Request>() {
+      private StringBuilder fullData = new StringBuilder();
+
+      @Override
+      public void onNext(Request request) {
+        fullData.append(request.getDataChunk()); // Append each chunk of data
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+        responseObserver.onError(throwable);
+      }
+
+      @Override
+      public void onCompleted() {
+        Response response = Response.newBuilder().setMessage("Upload successful").build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+      }
+    };
+  }
+}
+```
+
+**Client-side Java code**:
+```java
+public class Client {
+  public static void main(String[] args) throws InterruptedException {
+    ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext().build();
+    DataServiceGrpc.DataServiceStub stub = DataServiceGrpc.newStub(channel);
+
+    StreamObserver<Request> requestObserver = stub.uploadData(new StreamObserver<Response>() {
+      @Override
+      public void onNext(Response response) {
+        System.out.println("Server Response: " + response.getMessage());
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+        throwable.printStackTrace();
+      }
+
+      @Override
+      public void onCompleted() {
+        System.out.println("Upload completed");
+      }
+    });
+
+    // Simulate sending chunks of data
+    for (int i = 1; i <= 5; i++) {
+      requestObserver.onNext(Request.newBuilder().setDataChunk("Chunk " + i).build());
+    }
+
+    requestObserver.onCompleted();
+    channel.awaitTermination(1, TimeUnit.MINUTES);
+  }
+}
+```
+
+---
+
+#### **3. Bidirectional Streaming**
+In **bidirectional streaming**, both the client and the server send a stream of messages to each other. This type of streaming is useful when both sides need to continuously exchange data.
+
+- **How it works**: 
+    - The client sends multiple messages, and the server sends responses as it processes each one.
+    - The communication continues until one side decides to end the stream.
+
+- **Use case**: Think of a real-time chat application or any use case where both client and server need to send messages in real-time.
+
+![[Pasted image 20240905215246.png]]
+
+**Example: Bidirectional Streaming in Protobuf**
+```proto
+service ChatService {
+  rpc Chat(stream Message) returns (stream Message);
+}
+
+message Message {
+  string user = 1;
+  string text = 2;
+}
+```
+
+**Server-side Java implementation**:
+```java
+public class ChatServiceImpl extends ChatServiceGrpc.ChatServiceImplBase {
+  @Override
+  public StreamObserver<Message> chat(StreamObserver<Message> responseObserver) {
+    return new StreamObserver<Message>() {
+      @Override
+      public void onNext(Message message) {
+        System.out.println("Received from client: " + message.getText());
+
+        // Send a response back to the client
+        Message reply = Message.newBuilder().setUser("Server").setText("Ack: " + message.getText()).build();
+        responseObserver.onNext(reply);
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+        throwable.printStackTrace();
+      }
+
+      @Override
+      public void onCompleted() {
+        responseObserver.onCompleted();
+      }
+    };
+  }
+}
+```
+
+**Client-side Java code**:
+```java
+public class Client {
+  public static void main(String[] args) throws InterruptedException {
+    ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext().build();
+    ChatServiceGrpc.ChatServiceStub stub = ChatServiceGrpc.newStub(channel);
+
+    StreamObserver<Message> requestObserver = stub.chat(new StreamObserver<Message>() {
+      @Override
+      public void onNext(Message message) {
+        System.out.println("Received from server: " + message.getText());
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+        throwable.printStackTrace();
+      }
+
+      @Override
+      public void onCompleted() {
+        System.out.println("Chat ended.");
+      }
+    });
+
+    // Send messages to the server
+    requestObserver.onNext(Message.newBuilder().setUser("Client").setText("Hello!").build());
+    requestObserver.onNext(Message.newBuilder().setUser("Client").setText("How are you?").build());
+
+    requestObserver.onCompleted();
+    channel.awaitTermination(1, TimeUnit.MINUTES);
+  }
+}
+```
+
+---
+
+By leveraging these streaming capabilities, you can design more complex and efficient gRPC-based systems, which support asynchronous data exchanges and real-time communication.
+
+### **Error Handling in gRPC**
+
+Error handling in gRPC is an important aspect of building resilient, robust services. gRPC has a well-defined set of **status codes** to represent different types of errors. These status codes are sent from the server to the client whenever an error occurs, and they allow the client to handle errors appropriately. gRPC also allows for proper exception handling on both the server and client side, making debugging and error tracking more manageable.
+
+#### **1. gRPC Status Codes**
+
+gRPC has a list of standard **status codes** that represent various outcomes of an RPC call. Each status code includes a message that describes the error. These status codes map to HTTP status codes but are tailored to gRPC.
+
+Some of the most commonly used gRPC status codes include:
+
+| **Status Code**    | **Description**                                                                 |
+|--------------------|---------------------------------------------------------------------------------|
+| `OK`               | The RPC completed successfully.                                                 |
+| `CANCELLED`        | The operation was cancelled (typically by the client).                          |
+| `UNKNOWN`          | An unknown error occurred, typically a server-side error.                       |
+| `INVALID_ARGUMENT` | The client sent an invalid argument (e.g., validation failure).                 |
+| `DEADLINE_EXCEEDED`| The deadline for the request was exceeded (client or server-side).              |
+| `NOT_FOUND`        | Some requested resource was not found.                                          |
+| `ALREADY_EXISTS`   | The resource that the client tried to create already exists.                    |
+| `PERMISSION_DENIED`| The client does not have permission to perform the operation.                   |
+| `UNAUTHENTICATED`  | The client is not authenticated.                                                |
+| `RESOURCE_EXHAUSTED`| Some resource (e.g., quota or memory) has been exhausted.                      |
+| `FAILED_PRECONDITION` | The system is in a state that does not allow the operation to proceed.        |
+| `ABORTED`          | The operation was aborted due to a conflict (e.g., transaction abort).          |
+| `OUT_OF_RANGE`     | The operation was attempted outside a valid range (e.g., too many requests).    |
+| `UNIMPLEMENTED`    | The operation is not implemented or supported on the server.                   |
+| `INTERNAL`         | Internal server errors (e.g., unexpected conditions).                          |
+| `UNAVAILABLE`      | The service is currently unavailable (e.g., the server is down).               |
+| `DATA_LOSS`        | Unrecoverable data loss or corruption occurred.                                |
+
+ **Example: Using gRPC Status Codes in Java**
+
+When writing server-side code, you can specify which status code to return in case of an error:
+
+```java
+import io.grpc.Status;
+import io.grpc.stub.StreamObserver;
+
+public class MyService extends MyServiceGrpc.MyServiceImplBase {
+
+  @Override
+  public void myRpcMethod(MyRequest request, StreamObserver<MyResponse> responseObserver) {
+    try {
+      // Perform operation
+      if (request.getParam() == null) {
+        // Return INVALID_ARGUMENT if the client sent a bad request
+        responseObserver.onError(Status.INVALID_ARGUMENT.withDescription("Param cannot be null").asRuntimeException());
+        return;
+      }
+
+      // Continue processing and send response
+      MyResponse response = MyResponse.newBuilder().setMessage("Success").build();
+      responseObserver.onNext(response);
+      responseObserver.onCompleted();
+    } catch (Exception e) {
+      // Return INTERNAL in case of an unexpected error
+      responseObserver.onError(Status.INTERNAL.withDescription("Something went wrong").asRuntimeException());
+    }
+  }
+}
+```
+
+In the client, you can handle these errors by catching the appropriate exception:
+
+```java
+public class MyClient {
+  public static void main(String[] args) {
+    ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext().build();
+    MyServiceGrpc.MyServiceBlockingStub stub = MyServiceGrpc.newBlockingStub(channel);
+
+    try {
+      MyRequest request = MyRequest.newBuilder().setParam(null).build();  // This will trigger an INVALID_ARGUMENT
+      MyResponse response = stub.myRpcMethod(request);
+      System.out.println("Response: " + response.getMessage());
+    } catch (StatusRuntimeException e) {
+      System.err.println("RPC failed: " + e.getStatus());
+    } finally {
+      channel.shutdown();
+    }
+  }
+}
+```
+
+#### **2. Handling Exceptions in gRPC**
+
+gRPC in Java provides a clean way to handle exceptions and convert them into appropriate gRPC status codes.
+
+- **`StatusRuntimeException`**: This is the most common exception thrown by gRPC methods when an error occurs. It contains a `Status` object that represents the error status code.
+- **`StatusException`**: Another type of exception that can be thrown by gRPC, also wrapping a `Status` object.
+
+##### **Server-Side Exception Handling**
+When an exception occurs on the server side, you can use the `StreamObserver` to send an error back to the client:
+
+```java
+public class MyServiceImpl extends MyServiceGrpc.MyServiceImplBase {
+  @Override
+  public void myRpcMethod(MyRequest request, StreamObserver<MyResponse> responseObserver) {
+    try {
+      if (request.getParam() == null) {
+        throw new IllegalArgumentException("Parameter cannot be null");
+      }
+      // Business logic...
+    } catch (IllegalArgumentException e) {
+      responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
+    } catch (Exception e) {
+      responseObserver.onError(Status.INTERNAL.withDescription("Unexpected error").asRuntimeException());
+    }
+  }
+}
+```
+
+##### **Client-Side Exception Handling**
+On the client side, you can catch the `StatusRuntimeException` to handle gRPC errors:
+
+```java
+try {
+  MyRequest request = MyRequest.newBuilder().setParam(null).build();
+  MyResponse response = stub.myRpcMethod(request);  // This will trigger an INVALID_ARGUMENT
+} catch (StatusRuntimeException e) {
+  if (e.getStatus().getCode() == Status.Code.INVALID_ARGUMENT) {
+    System.err.println("Invalid argument provided: " + e.getStatus().getDescription());
+  } else {
+    System.err.println("gRPC Error: " + e.getStatus());
+  }
+}
+```
+
+#### **3. Request Validation**
+
+Validating requests before processing them is a key aspect of error handling in gRPC services. While gRPC itself doesn’t provide built-in validation, you can use the standard Java validation techniques (e.g., **Java Bean Validation** or custom logic).
+
+- **Client-Side Validation**: This ensures that only valid data is sent to the server.
+- **Server-Side Validation**: This protects the server from invalid data or malicious requests.
+
+ **Example: Server-Side Validation with Java**
+
+You can create custom validation logic in your server’s method implementation, or use frameworks like **Hibernate Validator** for more structured validation.
+
+```java
+import io.grpc.Status;
+import io.grpc.stub.StreamObserver;
+
+public class UserServiceImpl extends UserServiceGrpc.UserServiceImplBase {
+
+  @Override
+  public void createUser(UserRequest request, StreamObserver<UserResponse> responseObserver) {
+    try {
+      // Validate request
+      if (request.getName() == null || request.getName().isEmpty()) {
+        responseObserver.onError(Status.INVALID_ARGUMENT.withDescription("Name cannot be empty").asRuntimeException());
+        return;
+      }
+
+      // Business logic
+      UserResponse response = UserResponse.newBuilder().setMessage("User created successfully").build();
+      responseObserver.onNext(response);
+      responseObserver.onCompleted();
+    } catch (Exception e) {
+      responseObserver.onError(Status.INTERNAL.withDescription("Unexpected error").asRuntimeException());
+    }
+  }
+}
+```
+
+**Client-Side Request Validation**: 
+You can perform simple client-side validation before sending the request to avoid unnecessary round-trips in case of invalid data.
+
+```java
+public class Client {
+  public static void main(String[] args) {
+    ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext().build();
+    UserServiceGrpc.UserServiceBlockingStub stub = UserServiceGrpc.newBlockingStub(channel);
+
+    // Client-side validation
+    String name = "John";
+    if (name == null || name.isEmpty()) {
+      System.out.println("Invalid name input");
+      return;
+    }
+
+    UserRequest request = UserRequest.newBuilder().setName(name).build();
+
+    try {
+      UserResponse response = stub.createUser(request);
+      System.out.println(response.getMessage());
+    } catch (StatusRuntimeException e) {
+      System.err.println("RPC failed: " + e.getStatus());
+    } finally {
+      channel.shutdown();
+    }
+  }
+}
+```
+
+---
+
+#### **Key Takeaways**
+1. **gRPC Status Codes**: Standardized error codes to handle various failure scenarios like `INVALID_ARGUMENT`, `NOT_FOUND`, `INTERNAL`, etc.
+2. **Exception Handling**: Use `StatusRuntimeException` and `StatusException` to signal errors, converting exceptions into gRPC status codes.
+3. **Request Validation**: Implement request validation both client-side and server-side to ensure only valid data is processed.
+
+XXX
+
+### **Authentication and Security in gRPC**
+
+When building gRPC services, securing the communication between clients and servers is critical, especially when sensitive data is transmitted. gRPC provides built-in support for secure communication via **SSL/TLS**, and you can implement various authentication mechanisms like **token-based authentication (e.g., JWT)** to ensure that only authorized clients can interact with your services.
+
+In this section, we'll cover how to secure gRPC services using **SSL/TLS** and implement authentication using **JWT tokens**.
+
+---
+
+### **1. Securing gRPC with SSL/TLS**
+
+gRPC supports **SSL/TLS** out of the box. Transport Layer Security (TLS) provides encryption, ensuring that data transmitted between the client and server remains confidential and tamper-proof.
+
+#### **How SSL/TLS Works in gRPC**
+
+- **Server-side SSL**: The server provides a certificate to authenticate its identity to the client.
+- **Client-side SSL (Mutual TLS)**: Both the client and server authenticate each other using certificates. This is known as **mutual TLS (mTLS)**.
+  
+#### **Setting up SSL/TLS in gRPC for Java**
+
+1. **Generating SSL Certificates**
+   - You need an SSL certificate (for the server) and optionally one for the client if you are using mutual TLS.
+   - A self-signed certificate can be used for local development or testing, while in production, you should use certificates issued by a trusted Certificate Authority (CA).
+
+   You can generate certificates using OpenSSL:
+
+   ```bash
+   # Generate a private key
+   openssl genpkey -algorithm RSA -out server.key
+
+   # Generate a self-signed certificate
+   openssl req -new -x509 -key server.key -out server.crt -days 365
+   ```
+
+2. **Configuring SSL on the gRPC Server**
+
+   On the server side, you'll need to configure gRPC to use your certificate and private key.
+
+   ```java
+   import io.grpc.Server;
+   import io.grpc.netty.NettyServerBuilder;
+
+   import java.io.File;
+   import java.io.IOException;
+
+   public class MyGrpcServer {
+     public static void main(String[] args) throws IOException, InterruptedException {
+       // Set up server with SSL/TLS
+       Server server = NettyServerBuilder.forPort(8443)
+           .useTransportSecurity(new File("server.crt"), new File("server.key"))
+           .addService(new MyServiceImpl())
+           .build();
+
+       System.out.println("Server started, listening on 8443");
+       server.start();
+       server.awaitTermination();
+     }
+   }
+   ```
+
+3. **Configuring SSL on the gRPC Client**
+
+   On the client side, you need to configure the client to trust the server's certificate.
+
+   ```java
+   import io.grpc.ManagedChannel;
+   import io.grpc.ManagedChannelBuilder;
+   import io.grpc.netty.GrpcSslContexts;
+   import io.netty.handler.ssl.SslContext;
+
+   import java.io.File;
+
+   public class MyGrpcClient {
+     public static void main(String[] args) throws Exception {
+       SslContext sslContext = GrpcSslContexts.forClient().trustManager(new File("server.crt")).build();
+
+       ManagedChannel channel = NettyChannelBuilder.forAddress("localhost", 8443)
+           .sslContext(sslContext)
+           .build();
+
+       MyServiceGrpc.MyServiceBlockingStub stub = MyServiceGrpc.newBlockingStub(channel);
+
+       // Call service methods on the stub
+     }
+   }
+   ```
+
+#### **Mutual TLS (mTLS)**
+
+To enforce **mutual TLS**, you need both the client and the server to authenticate each other using certificates.
+
+- On the **server side**, you'll configure the server to verify the client's certificate by using a CA certificate:
+  
+  ```java
+  Server server = NettyServerBuilder.forPort(8443)
+      .useTransportSecurity(new File("server.crt"), new File("server.key"))
+      .trustManager(new File("ca.crt"))  // CA certificate to verify the client
+      .clientAuth(ClientAuth.REQUIRE)    // Require client authentication
+      .addService(new MyServiceImpl())
+      .build();
+  ```
+
+- On the **client side**, you’ll need to supply both the client certificate and private key:
+
+  ```java
+  SslContext sslContext = GrpcSslContexts.forClient()
+      .trustManager(new File("server.crt"))   // Trust server certificate
+      .keyManager(new File("client.crt"), new File("client.key"))  // Client certificate and private key
+      .build();
+  ```
+
+---
+
+### **2. Authentication with Tokens (e.g., JWT)**
+
+Token-based authentication is a common approach to authenticating clients in modern distributed systems. **JWT (JSON Web Tokens)** is a popular format for implementing token-based authentication in gRPC. JWT tokens carry authentication data as claims and can be digitally signed or encrypted for security.
+
+#### **How JWT Authentication Works**
+
+1. The client sends a request to an authentication service (e.g., an OAuth2 server) to obtain a JWT token.
+2. The client includes the JWT token in the **metadata** of each gRPC call.
+3. The server verifies the JWT token to authenticate the client and possibly authorize the operation based on token claims.
+
+#### **Server-Side JWT Validation**
+
+Here’s an example of how you can implement JWT-based authentication in a gRPC service.
+
+1. **Add JWT to Metadata in Client**
+
+   The client includes the JWT token in the metadata of the gRPC request:
+
+   ```java
+   import io.grpc.ManagedChannel;
+   import io.grpc.ManagedChannelBuilder;
+   import io.grpc.Metadata;
+   import io.grpc.stub.MetadataUtils;
+
+   public class MyGrpcClient {
+     public static void main(String[] args) {
+       ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext().build();
+
+       // Create JWT token (typically retrieved from an auth server)
+       String jwtToken = "Bearer <your_jwt_token>";
+
+       // Add JWT token to gRPC metadata
+       Metadata headers = new Metadata();
+       Metadata.Key<String> AUTHORIZATION_KEY = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
+       headers.put(AUTHORIZATION_KEY, jwtToken);
+
+       MyServiceGrpc.MyServiceBlockingStub stub = MyServiceGrpc.newBlockingStub(channel);
+
+       // Attach metadata to stub
+       stub = MetadataUtils.attachHeaders(stub, headers);
+
+       // Call service methods
+     }
+   }
+   ```
+
+2. **Server-Side Token Validation**
+
+   On the server, you can intercept incoming requests and validate the JWT token. You can use libraries like **Java JWT** (https://github.com/auth0/java-jwt) to validate the token.
+
+   You’ll implement a **gRPC interceptor** to handle token validation.
+
+   ```java
+   import io.grpc.*;
+
+   public class AuthInterceptor implements ServerInterceptor {
+     @Override
+     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+         ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+
+       Metadata.Key<String> AUTHORIZATION_KEY = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
+       String authHeader = headers.get(AUTHORIZATION_KEY);
+
+       if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+         call.close(Status.UNAUTHENTICATED.withDescription("Missing or invalid Authorization header"), headers);
+         return new ServerCall.Listener<ReqT>() {};
+       }
+
+       String token = authHeader.substring("Bearer ".length()).trim();
+
+       // Verify the token (e.g., using Java JWT library)
+       try {
+         String userId = JwtUtils.verifyTokenAndGetUserId(token);
+         // Proceed with the RPC
+         return next.startCall(call, headers);
+       } catch (Exception e) {
+         call.close(Status.UNAUTHENTICATED.withDescription("Invalid JWT token").withCause(e), headers);
+         return new ServerCall.Listener<ReqT>() {};
+       }
+     }
+   }
+   ```
+
+3. **Apply the Interceptor to the gRPC Server**
+
+   Finally, apply the interceptor when starting the server:
+
+   ```java
+   import io.grpc.Server;
+   import io.grpc.ServerInterceptors;
+   import io.grpc.netty.NettyServerBuilder;
+
+   public class MyGrpcServer {
+     public static void main(String[] args) throws Exception {
+       Server server = NettyServerBuilder.forPort(8080)
+           .addService(ServerInterceptors.intercept(new MyServiceImpl(), new AuthInterceptor()))
+           .build();
+
+       server.start();
+       System.out.println("Server started on port 8080");
+       server.awaitTermination();
+     }
+   }
+   ```
+
+### **3. Token Validation Logic**
+
+You can implement token validation using a library like **Java JWT**. Here’s an example:
+
+```java
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.auth0.jwt.interfaces.JWTVerifier;
+
+public class JwtUtils {
+
+  private static final String SECRET_KEY = "mysecretkey";
+
+  public static String verifyTokenAndGetUserId(String token) throws JWTVerificationException {
+    Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
+    JWTVerifier verifier = JWT.require(algorithm).build();
+    DecodedJWT jwt = verifier.verify(token);
+    return jwt.getSubject();  // Typically, the user ID is stored in the 'sub' claim
+  }
+}
+```
+
+---
+### **Key Takeaways**
+
+1. **SSL/TLS**: gRPC supports secure communication using SSL/TLS, and you can enable mutual TLS (mTLS) for client and server authentication.
+2. **JWT Authentication**: Implement token-based authentication (e.g., using JWT) to ensure secure and authorized access to gRPC services.
+3. **Interceptors**: Use gRPC interceptors to intercept requests and validate JWT tokens before processing the gRPC calls.
+
+By securing your gRPC services with SSL/TLS and JWT, you ensure confidentiality, integrity, and authentication in your distributed system.
+
