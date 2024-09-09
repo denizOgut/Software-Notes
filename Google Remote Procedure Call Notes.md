@@ -446,6 +446,26 @@ service Greeter {
 
 ![[Pasted image 20240905215031.png]]
 
+```proto
+syntax = "proto3";
+
+package example;
+
+service UnaryService {
+  rpc GetUserInfo(UserRequest) returns (UserResponse);
+}
+
+message UserRequest {
+  string user_id = 1;
+}
+
+message UserResponse {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+}
+```
+
 ---
 ### **Server Implementation**
 
@@ -1461,54 +1481,95 @@ By following these best practices, you can build robust, scalable, and maintaina
 ```proto
 syntax = "proto3";
 
-option java_multiple_files = true;
-option java_package = "com.example.chat";
-option java_outer_classname = "ChatProto";
+package example;
 
 service ChatService {
-    rpc chat (stream ChatMessage) returns (stream ChatMessage);
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
 }
 
 message ChatMessage {
-    string sender = 1;
-    string message = 2;
-    int64 timestamp = 3;
+  string user = 1;
+  string message = 2;
+  int64 timestamp = 3;
 }
 ```
 
+```xml
+<dependencies>
+    <!-- gRPC Spring Boot Starter -->
+    <dependency>
+        <groupId>io.github.lognet</groupId>
+        <artifactId>grpc-spring-boot-starter</artifactId>
+        <version>4.5.10</version>
+    </dependency>
+    
+    <!-- Protobuf dependencies -->
+    <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>3.21.6</version>
+    </dependency>
+    
+    <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-protobuf</artifactId>
+        <version>1.47.0</version>
+    </dependency>
+</dependencies>
+```
+
 ```java
-package com.example.chat.application.service;
-
-import com.example.chat.ChatMessage;
-import com.example.chat.ChatServiceGrpc;
 import io.grpc.stub.StreamObserver;
-import org.springframework.stereotype.Service;
+import net.devh.boot.grpc.server.service.GrpcService;
+import example.ChatServiceGrpc;
+import example.ChatMessage;
 
-import java.time.Instant;
+/**
+ * This class implements the ChatService gRPC service, 
+ * handling bidirectional streaming.
+ * 
+ * The @GrpcService annotation is used instead of @Service to declare 
+ * this as a gRPC service in the Spring context.
+ */
+@GrpcService
+public class ChatServiceImpl extends ChatServiceGrpc.ChatServiceImplBase {
 
-@Service
-public class ChatService extends ChatServiceGrpc.ChatServiceImplBase {
-
+    /**
+     * Implements the bidirectional Chat method.
+     * The method accepts a stream of ChatMessage requests from the client and
+     * responds with a stream of ChatMessage responses.
+     */
     @Override
     public StreamObserver<ChatMessage> chat(StreamObserver<ChatMessage> responseObserver) {
-        return new StreamObserver<>() {
+        
+        // StreamObserver is used to handle incoming stream from the client.
+        return new StreamObserver<ChatMessage>() {
+
             @Override
             public void onNext(ChatMessage message) {
+                // Log received message
+                System.out.println("Received message from " + message.getUser() + ": " + message.getMessage());
+
+                // Echo back the message to the client
                 ChatMessage response = ChatMessage.newBuilder()
-                        .setSender("Server")
-                        .setMessage("Ack: " + message.getMessage())
-                        .setTimestamp(Instant.now().toEpochMilli())
-                        .build();
+                    .setUser("Server")
+                    .setMessage("Echo: " + message.getMessage())
+                    .setTimestamp(System.currentTimeMillis())
+                    .build();
+
+                // Send the response message to the client
                 responseObserver.onNext(response);
             }
 
             @Override
             public void onError(Throwable t) {
-                t.printStackTrace();
+                // Handle any errors during communication
+                System.err.println("Error during streaming: " + t.getMessage());
             }
 
             @Override
             public void onCompleted() {
+                // Signal the completion of the stream to the client
                 responseObserver.onCompleted();
             }
         };
@@ -1516,116 +1577,82 @@ public class ChatService extends ChatServiceGrpc.ChatServiceImplBase {
 }
 ```
 
-```java
-package com.example.chat.infrastructure.config;
-
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-@Configuration
-public class GrpcConfig {
-
-    @Bean
-    public ManagedChannel managedChannel() {
-        return ManagedChannelBuilder.forAddress("localhost", 9090)
-                .usePlaintext()
-                .build();
-    }
-}
+```yaml
+grpc:
+  client:
+    chat-service:  # The name of the gRPC client (must match the value used in @GrpcClient)
+      address: 'localhost:9090'  # The address of the gRPC server
 ```
 
 ```java
-package com.example.chat.application.client;
-
-import com.example.chat.ChatMessage;
-import com.example.chat.ChatServiceGrpc;
-import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Component;
+import example.ChatServiceGrpc;
+import example.ChatMessage;
 
-import java.time.Instant;
-import java.util.Scanner;
+import javax.annotation.PostConstruct;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
+/**
+ * This class demonstrates a gRPC client that interacts with the ChatService
+ * using bidirectional streaming.
+ */
 @Component
 public class ChatClient {
 
-    private final ManagedChannel channel;
-    private final ChatServiceGrpc.ChatServiceStub chatServiceStub;
+    // Inject the gRPC async stub using @GrpcClient
+    @GrpcClient("chat-service")
+    private ChatServiceGrpc.ChatServiceStub asyncStub;
 
-    public ChatClient(ManagedChannel channel) {
-        this.channel = channel;
-        this.chatServiceStub = ChatServiceGrpc.newStub(channel);
-    }
+    /**
+     * Initiates the chat stream after bean creation.
+     */
+    @PostConstruct
+    public void initiateChat() throws InterruptedException {
+        // CountDownLatch to wait for the completion of the stream
+        CountDownLatch latch = new CountDownLatch(1);
 
-    public void startChat() {
-        StreamObserver<ChatMessage> requestObserver = chatServiceStub.chat(new StreamObserver<>() {
+        // Establish a bidirectional chat stream with the server
+        StreamObserver<ChatMessage> requestObserver = asyncStub.chat(new StreamObserver<ChatMessage>() {
             @Override
-            public void onNext(ChatMessage message) {
-                System.out.println("Server: " + message.getMessage());
+            public void onNext(ChatMessage response) {
+                // Handle server response
+                System.out.println("Server response: " + response.getMessage());
             }
 
             @Override
             public void onError(Throwable t) {
-                t.printStackTrace();
+                System.err.println("Error: " + t.getMessage());
+                latch.countDown();
             }
 
             @Override
             public void onCompleted() {
-                System.out.println("Chat ended.");
+                System.out.println("Stream completed.");
+                latch.countDown();
             }
         });
 
-        Scanner scanner = new Scanner(System.in);
-        while (true) {
-            System.out.print("Enter name: ");
-            String sender = scanner.nextLine();
-
-            System.out.print("Enter message: ");
-            String message = scanner.nextLine();
-
-            if (message.equalsIgnoreCase("exit")) {
-                requestObserver.onCompleted();
-                break;
-            }
-
-            ChatMessage chatMessage = ChatMessage.newBuilder()
-                    .setSender(sender)
-                    .setMessage(message)
-                    .setTimestamp(Instant.now().toEpochMilli())
+        // Send several messages to the server
+        for (int i = 1; i <= 3; i++) {
+            ChatMessage message = ChatMessage.newBuilder()
+                    .setUser("ClientUser" + i)
+                    .setMessage("Hello from client " + i)
+                    .setTimestamp(System.currentTimeMillis())
                     .build();
-
-            requestObserver.onNext(chatMessage);
+            
+            // Send message to the server via the requestObserver
+            requestObserver.onNext(message);
         }
+
+        // Signal that the client has finished sending messages
+        requestObserver.onCompleted();
+
+        // Wait for the server to complete its responses
+        latch.await(1, TimeUnit.MINUTES);
     }
 }
 ```
 
-```java
-package com.example.chat.application;
-
-import com.example.chat.application.client.ChatClient;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-@SpringBootApplication
-public class ChatApplication implements CommandLineRunner {
-
-    private final ChatClient chatClient;
-
-    public ChatApplication(ChatClient chatClient) {
-        this.chatClient = chatClient;
-    }
-
-    public static void main(String[] args) {
-        SpringApplication.run(ChatApplication.class, args);
-    }
-
-    @Override
-    public void run(String... args) throws Exception {
-        chatClient.startChat();
-    }
-}
-```
