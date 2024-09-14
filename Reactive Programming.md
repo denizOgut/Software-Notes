@@ -84,3 +84,873 @@ A stream is considered as a sequence of data or events ordered in time, example 
 > In reactive concept, call a stream as **Observable**.
 
 
+# ``Mono``
+
+**Mono** is one of the two main types of publishers in **Project Reactor** (the other being **Flux**). It represents an **asynchronous computation that can emit at most a single value**, or **complete empty**, or **signal an error**. If you're familiar with concepts like `Optional` or `CompletableFuture` in Java, Mono is somewhat similar but adapted for asynchronous, reactive streams.
+
+ **Core Characteristics of Mono**
+
+- ==**Single Value or No Value**: Unlike `Flux` which can emit multiple values over time, `Mono` emits at most **one** value.==
+- ==**Lazy Evaluation**: The computation encapsulated within a Mono does not start until someone subscribes to it. This supports **lazy evaluation**, ensuring no resource is used until necessary.==
+- ==**Non-blocking**: Mono is inherently asynchronous and does not block the calling thread while waiting for the result.==
+
+## **Use Cases of Mono**
+
+1. **Handling Single Asynchronous Tasks**: Mono is ideal for situations where a single asynchronous response is expected, such as:
+    
+    - Fetching a single record from a database.
+    - Making a REST API call and receiving a response.
+    - Performing file I/O for a single file.
+2. **Return Type for Asynchronous Methods**: Methods that return a single value but execute asynchronously should use `Mono` as the return type.
+    
+3. **Error Handling in Asynchronous Code**: Mono allows graceful handling of errors in a non-blocking environment, where fallback mechanisms can be implemented.
+
+```Java
+package reactor.core.publisher;
+
+public abstract class Mono<T> 
+        implements CorePublisher<T> {
+  public static <T> Mono<T> create(Consumer<MonoSink<T>> callback) {..}
+  public static <T> Mono<T> empty() {..}
+  public static <T> Mono<T> error(Throwable error) {..}
+  public static <T> Mono<T> just(T data) {..}
+...
+}
+```
+
+```Java
+package reactor.core;
+
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+
+public interface CorePublisher<T> extends Publisher<T> {
+	void subscribe(CoreSubscriber<? super T> subscriber);
+}
+```
+
+```Java
+package org.reactivestreams;
+
+public interface Publisher<T> {
+    public void subscribe(Subscriber<? super T> s);
+}
+```
+
+![[Pasted image 20240914111411.png]]
+
+Here’s a detailed list of the most important `Mono` methods you asked about, organized with explanations and examples for each:
+
+## Most Common ``Mono`` Methods
+---
+
+### **1. `Mono.just(T data)`**
+Creates a `Mono` that **emits a single value** and completes.
+- **Use Case**: When you have a fixed value that you want to emit.
+  
+**Example**:
+```java
+Mono<String> mono = Mono.just("Hello, Mono!");
+mono.subscribe(System.out::println);
+```
+- Output: `Hello, Mono!`
+
+---
+
+### **2. `Mono.subscribe()`**
+This method is used to **consume the value** or handle the result of a `Mono`. It triggers the execution of the `Mono` pipeline.
+
+- **Overloads**:
+  - **Basic subscribe**: For consuming emitted data.
+    ```java
+    Mono.just("Data").subscribe(data -> System.out.println("Received: " + data));
+    ```
+  - **With error handler**: For handling errors.
+    ```java
+    Mono.error(new RuntimeException("Error"))
+        .subscribe(data -> System.out.println(data), 
+                   error -> System.err.println("Error: " + error.getMessage()));
+    ```
+  - **With completion handler**: Handles normal data, errors, and completion events.
+    ```java
+    Mono.just("Complete")
+        .subscribe(data -> System.out.println("Data: " + data),
+                   error -> System.err.println(error),
+                   () -> System.out.println("Completed"));
+    ```
+
+---
+
+### **3. `Mono.empty()`**
+Creates a `Mono` that completes **without emitting any value**.
+- **Use Case**: When you want to indicate the absence of a value (like `Optional.empty()`).
+  
+**Example**:
+```java
+Mono<Void> emptyMono = Mono.empty();
+emptyMono.subscribe(
+    unused -> System.out.println("Value"), 
+    error -> System.out.println("Error"), 
+    () -> System.out.println("Completed without data")
+);
+```
+- Output: `Completed without data`
+
+---
+
+### **4. `Mono.error(Throwable error)`**
+Creates a `Mono` that **terminates with an error**.
+- **Use Case**: To represent failure scenarios or simulate errors.
+
+**Example**:
+```java
+Mono<String> errorMono = Mono.error(new RuntimeException("Something went wrong!"));
+errorMono.subscribe(
+    System.out::println, 
+    error -> System.out.println("Error: " + error.getMessage())
+);
+```
+- Output: `Error: Something went wrong!`
+
+---
+
+### **5. `Mono.fromSupplier(Supplier<? extends T> supplier)`**
+Creates a `Mono` from a **supplier function** that is called each time the `Mono` is subscribed to.
+- **Use Case**: Useful when you want to lazily fetch a value upon subscription.
+
+**Example**:
+```java
+Mono<String> fromSupplierMono = Mono.fromSupplier(() -> "Supplied value");
+fromSupplierMono.subscribe(System.out::println);
+```
+- Output: `Supplied value`
+
+---
+
+### **6. `Mono.fromCallable(Callable<? extends T> callable)`**
+Creates a `Mono` that emits the value returned by a **`Callable`**, which is invoked lazily.
+- **Use Case**: For wrapping blocking operations or computations inside a non-blocking `Mono`.
+
+**Example**:
+```java
+Mono<String> fromCallableMono = Mono.fromCallable(() -> {
+    return "Result from callable";
+});
+fromCallableMono.subscribe(System.out::println);
+```
+- Output: `Result from callable`
+
+---
+
+### **7. `Mono.fromRunnable(Runnable runnable)`**
+Creates a `Mono` that executes the **provided `Runnable`** and completes after running.
+- **Use Case**: If you want to trigger an action (like logging or side effects) and don’t need to return a value.
+
+**Example**:
+```java
+Mono<Void> runnableMono = Mono.fromRunnable(() -> System.out.println("Running a task"));
+runnableMono.subscribe(
+    unused -> {}, 
+    error -> System.err.println(error),
+    () -> System.out.println("Completed runnable")
+);
+```
+- Output:
+  ```
+  Running a task
+  Completed runnable
+  ```
+
+---
+
+### **8. `Mono.fromFuture(CompletableFuture<? extends T> future)`**
+Creates a `Mono` that completes when the provided **`CompletableFuture`** completes, emitting its result.
+- **Use Case**: When you want to integrate `CompletableFuture` with `Mono`.
+
+**Example**:
+```java
+CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> "Future result");
+Mono<String> futureMono = Mono.fromFuture(future);
+futureMono.subscribe(System.out::println);
+```
+- Output: `Future result`
+
+---
+
+### **9. `Mono.create()`**
+This method allows you to **create a `Mono` in an imperative way**, by providing a `MonoSink` that lets you signal a value, error, or completion.
+- **Use Case**: For more advanced and flexible scenarios where you need to explicitly control the emission.
+
+**Example**:
+```java
+Mono<String> createdMono = Mono.create(sink -> sink.success("Created value"));
+createdMono.subscribe(System.out::println);
+```
+- Output: `Created value`
+
+---
+
+### **10. `Mono.defer(Supplier<? extends Mono<? extends T>> supplier)`**
+Creates a `Mono` lazily from a supplier of another `Mono`. It **delays the creation of the `Mono`** until subscription.
+- **Use Case**: Useful when you need the `Mono` to be generated lazily, and not just executed lazily.
+
+**Example**:
+```java
+Mono<String> deferredMono = Mono.defer(() -> {
+    return Mono.just("Deferred value");
+});
+deferredMono.subscribe(System.out::println);
+```
+- Output: `Deferred value`
+
+---
+
+### **11. `Mono.create()` vs. `Mono.fromRunnable()`, `Mono.fromCallable()`, and `Mono.fromSupplier()`**
+
+These methods have different purposes:
+- **`Mono.create()`**: Provides fine-grained control via `MonoSink` for emitting values, errors, or completions. It is more flexible and is often used in scenarios like bridging APIs, converting callbacks into reactive types, or when you need to handle the emission imperatively.
+  
+- **`Mono.fromSupplier()`**: Wraps a `Supplier` function that is called lazily when the `Mono` is subscribed to. It is suitable for synchronous logic and does not expect errors.
+
+- **`Mono.fromCallable()`**: Wraps a `Callable` that returns a value or throws an exception. This is typically used when the supplier can throw checked exceptions.
+
+- **`Mono.fromRunnable()`**: Executes a `Runnable` that doesn't emit any value. It only signals completion after the `Runnable` finishes.
+
+**Example: `Mono.create()` vs `Mono.fromRunnable()`**
+```java
+Mono<String> createdMono = Mono.create(sink -> {
+    sink.success("Created Mono");
+});
+
+Mono<Void> runnableMono = Mono.fromRunnable(() -> System.out.println("Running task"));
+
+createdMono.subscribe(System.out::println);
+runnableMono.subscribe();
+```
+
+**Differences**:
+- `Mono.create()` is designed for more complex scenarios where you need to manually control what and when to emit.
+- `Mono.fromRunnable()` simply executes a `Runnable` and completes without emitting a value.
+
+---
+
+### **12. `Mono.execute()`**
+Similar to `Mono.create()`, but less commonly used. It provides access to `MonoSink` and is used for imperative control over the emission of data.
+
+---
+
+### **Summary**
+
+- **``Mono.just(T data)``**: Emits a single value.
+- **``Mono.subscribe()``**: Triggers the Mono and consumes its result.
+- **``Mono.empty()``**: Emits nothing, just completes.
+- **``Mono.error(Throwable error)``**: Emits an error signal.
+- **``Mono.fromSupplier(Supplier<T> supplier)``**: Lazily emits a value from a `Supplier`.
+- **``Mono.fromCallable(Callable<T> callable)``**: Lazily emits a value or error from a `Callable`.
+- **``Mono.fromRunnable(Runnable runnable)``**: Runs a `Runnable` and completes without emitting a value.
+- **``Mono.fromFuture(CompletableFuture<T> future)``**: Emits the result of a `CompletableFuture`.
+- **``Mono.create()``**: Offers manual control over emissions via `MonoSink`.
+- **``Mono.defer(Supplier<Mono<T>> supplier)``**: Lazily creates and subscribes to a `Mono`.
+
+```java
+import reactor.core.publisher.Mono;
+
+import java.util.concurrent.CompletableFuture;
+
+public class UserService {
+
+    public static void main(String[] args) {
+        // Fetch user from the database (asynchronously)
+        Mono<String> userMono = fetchUserFromDatabase("user123");
+
+        // Process the user's order
+        Mono<String> orderMono = userMono
+                .flatMap(user -> processOrder(user))  // Processing order after fetching the user
+                .doOnNext(order -> logOrderProcess()) // Logging the order processing
+                .onErrorResume(e -> Mono.just("Fallback order")); // Fallback in case of error
+
+        // Subscribe and print the result
+        orderMono.subscribe(
+            result -> System.out.println("Order Result: " + result),
+            error -> System.err.println("Error: " + error.getMessage()),
+            () -> System.out.println("Process completed successfully!")
+        );
+    }
+
+    // Simulate fetching a user from a database
+    public static Mono<String> fetchUserFromDatabase(String userId) {
+        return Mono.fromCallable(() -> {
+            if ("user123".equals(userId)) {
+                return "User123";
+            } else {
+                throw new RuntimeException("User not found!");
+            }
+        });
+    }
+
+    // Simulate processing an order for the user
+    public static Mono<String> processOrder(String user) {
+        return Mono.fromFuture(processOrderAsync(user));
+    }
+
+    // Simulate an asynchronous order processing
+    public static CompletableFuture<String> processOrderAsync(String user) {
+        return CompletableFuture.supplyAsync(() -> "Order processed for " + user);
+    }
+
+    // Simulate logging the order process
+    public static void logOrderProcess() {
+        Mono.fromRunnable(() -> System.out.println("Order is being processed..."))
+            .subscribe();
+    }
+}
+```
+
+```output
+Order is being processed...
+Order Result: Order processed for User123
+Process completed successfully!
+```
+
+
+# ``Flux`` 
+
+`Flux<T>` is a reactive type from the **Project Reactor** library that represents **a sequence of 0 to N items**. Unlike `Mono`, which emits either a single value or no value, `Flux` can emit multiple values, including **zero, one, many, or an infinite number of elements**. It can also terminate either successfully or with an error.
+
+`Flux` is analogous to a **Publisher** in the **Reactive Streams specification**, providing a non-blocking, asynchronous way to handle data streams.
+
+ **Key Characteristics of `Flux`:**
+
+- ==**0 to N values**: Can emit zero, one, or more items.==
+- ==**Asynchronous**: Handles data streams asynchronously, which is key for non-blocking, reactive applications.==
+- ==**Reactive Backpressure**: Supports backpressure, allowing consumers to control the rate at which they receive items.==
+- ==**Termination**: Like `Mono`, `Flux` can either complete successfully or terminate with an error.==
+
+ **When to Use `Flux`?**
+
+- When you need to handle a stream of multiple values (e.g., querying a database and returning a collection, processing a stream of events).
+- When dealing with infinite streams or sequences of events (e.g., WebSocket streams, continuous sensor data).
+- For handling collections or batches of data in a non-blocking, reactive manner.
+
+ **Real-Life Use Cases for `Flux`**
+
+1. **Stream Data from a Database**: If you’re querying a database and need to return multiple records, you can use `Flux` to represent the result stream. This can be combined with `flatMap` to handle asynchronous processing.
+    
+2. **Processing Collections**: If you have a list of items and need to process each item asynchronously, `Flux.fromIterable()` can be used to emit the items and process them in a reactive manner.
+    
+3. **Streaming Data over WebSockets**: When dealing with continuous streams of data (e.g., from WebSockets, IoT sensors), `Flux` is ideal for handling the infinite or unbounded stream of data.
+    
+4. **Batch Processing**: For scenarios where you need to batch process items, `Flux` can emit batches of data, allowing you to handle them reactively.
+
+
+
+```Java
+public abstract class Flux<T> implements CorePublisher<T> {
+
+    public static <T> Flux<T> create(Consumer<? super FluxSink<T>> emitter, OverflowStrategy 
+    backpressure) {..}
+    public static <T> Flux<T> empty() {..}
+    public static <T> Flux<T> error(Throwable error) {..}
+    public static <T> Flux<T> from(Publisher<? extends T> source) {..}
+    public static Flux<Long> interval(Duration period) {..}
+    public static <T> Flux<T> just(T... data) {..}
+    ..
+}
+```
+
+```Java
+package reactor.core;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+
+public interface CorePublisher<T> extends Publisher<T> {
+  void subscribe(CoreSubscriber<? super T> subscriber);
+}
+```
+
+```Java
+package org.reactivestreams;
+
+public interface Publisher<T> {
+    public void subscribe(Subscriber<? super T> s);
+}
+```
+
+![[Pasted image 20240914113904.png]]
+
+
+Here’s a detailed explanation of the most important `Flux` methods you requested, in the given order:
+
+## Most Common ``Flux`` Methods
+---
+### 1. **`Flux.just()`**
+Creates a `Flux` that emits a fixed sequence of values and then completes. It’s commonly used to create a sequence from known values.
+
+**Example**:
+```java
+Flux<String> flux = Flux.just("A", "B", "C");
+flux.subscribe(System.out::println);
+```
+**Output**:
+```
+A
+B
+C
+```
+
+### 2. **`Flux` with Multiple Subscribers**
+You can have multiple subscribers for a single `Flux`. Each subscriber will receive the sequence of values independently unless you share state using operators like `publish()`.
+
+**Example**:
+```java
+Flux<String> flux = Flux.just("A", "B", "C");
+
+// First subscriber
+flux.subscribe(item -> System.out.println("Subscriber 1: " + item));
+
+// Second subscriber
+flux.subscribe(item -> System.out.println("Subscriber 2: " + item));
+```
+**Output**:
+```
+Subscriber 1: A
+Subscriber 1: B
+Subscriber 1: C
+Subscriber 2: A
+Subscriber 2: B
+Subscriber 2: C
+```
+
+### 3. **`Flux.fromArray()` / `Flux.fromIterable()`**
+You can create a `Flux` from an array, list, or any iterable source.
+
+- **From an Array**:
+  ```java
+  String[] array = {"A", "B", "C"};
+  Flux<String> flux = Flux.fromArray(array);
+  flux.subscribe(System.out::println);
+  ```
+
+- **From a List**:
+  ```java
+  List<String> list = Arrays.asList("A", "B", "C");
+  Flux<String> flux = Flux.fromIterable(list);
+  flux.subscribe(System.out::println);
+  ```
+
+Both examples output:
+```
+A
+B
+C
+```
+
+### 4. **`Flux.fromStream()`**
+You can create a `Flux` from a Java stream, allowing you to process streams reactively.
+
+**Example**:
+```java
+Flux<Integer> flux = Flux.fromStream(Stream.of(1, 2, 3, 4, 5));
+flux.subscribe(System.out::println);
+```
+**Output**:
+```
+1
+2
+3
+4
+5
+```
+
+### 5. **`Flux.range()`**
+This method creates a `Flux` that emits a range of integers. It’s particularly useful for looping through a range reactively.
+
+**Example**:
+```java
+Flux<Integer> flux = Flux.range(1, 5);
+flux.subscribe(System.out::println);
+```
+**Output**:
+```
+1
+2
+3
+4
+5
+```
+
+### 6. **`log()` Operator**
+The `log()` operator logs the lifecycle events of the `Flux`. It is helpful for debugging and understanding the flow of the reactive sequence.
+
+**Example**:
+```java
+Flux<String> flux = Flux.just("A", "B", "C")
+    .log();  // Log all events
+flux.subscribe(System.out::println);
+```
+**Output**:
+```
+[main] | onSubscribe(...)
+[main] | request(unbounded)
+[main] | onNext(A)
+A
+[main] | onNext(B)
+B
+[main] | onNext(C)
+C
+[main] | onComplete()
+```
+
+### 7. **`Flux.interval()`**
+Creates an infinite `Flux` that emits long values at a fixed time interval. This is often used for generating periodic events.
+
+**Example**:
+```java
+Flux<Long> flux = Flux.interval(Duration.ofSeconds(1));
+flux.subscribe(System.out::println);
+
+// This will keep emitting values every second until the application is stopped.
+```
+
+**Output (1 value per second)**:
+```
+0
+1
+2
+3
+...
+```
+
+### 8. **`Flux.empty()` / `Flux.error()`**
+- **`Flux.empty()`**: Creates a `Flux` that emits no items but terminates normally.
+  ```java
+  Flux<String> flux = Flux.empty();
+  flux.subscribe(
+      System.out::println,
+      error -> System.out.println("Error: " + error),
+      () -> System.out.println("Completed!")
+  );
+  ```
+
+  **Output**:
+  ```
+  Completed!
+  ```
+
+- **`Flux.error()`**: Creates a `Flux` that terminates with an error immediately.
+  ```java
+  Flux<String> flux = Flux.error(new RuntimeException("Something went wrong!"));
+  flux.subscribe(
+      System.out::println,
+      error -> System.out.println("Error: " + error.getMessage())
+  );
+  ```
+
+  **Output**:
+  ```
+  Error: Something went wrong!
+  ```
+
+### 9. **`Flux.defer()`**
+`defer()` is used to ensure that the `Flux` is created lazily, at the moment of subscription, rather than at the moment of creation. This is useful when you want to defer the creation of the sequence until the point of subscription.
+
+**Example**:
+```java
+Flux<String> flux = Flux.defer(() -> Flux.just("Deferred A", "Deferred B"));
+flux.subscribe(System.out::println);
+```
+
+**Output**:
+```
+Deferred A
+Deferred B
+```
+
+### **Summary of Key Methods**:
+- **`Flux.just()`**: Emits a predefined sequence of values.
+- **Multiple Subscribers**: Allows multiple subscribers to a `Flux`.
+- **`Flux.fromArray()` / `Flux.fromIterable()`**: Create `Flux` from arrays or iterables.
+- **`Flux.fromStream()`**: Create `Flux` from a Java stream.
+- **`Flux.range()`**: Emit a sequence of integers.
+- **`log()`**: Logs events in the `Flux` lifecycle.
+- **`Flux.interval()`**: Emits values at regular time intervals.
+- **`Flux.empty()` / `Flux.error()`**: Create `Flux` that either emits no values or emits an error.
+- **`Flux.defer()`**: Lazily creates the `Flux` at subscription time. 
+
+```java
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+public class FluxExample {
+
+    public static void main(String[] args) throws InterruptedException {
+        // Flux.just() - Simulating a batch of orders to process
+        Flux<String> orders = Flux.just("Order1", "Order2", "Order3");
+
+        // Flux.fromIterable() - List of delivery zones for the orders
+        List<String> zones = Arrays.asList("ZoneA", "ZoneB", "ZoneC");
+        Flux<String> deliveryZones = Flux.fromIterable(zones);
+
+        // Flux.fromStream() - Stream of delivery agents
+        Stream<String> agentsStream = Stream.of("Agent1", "Agent2", "Agent3");
+        Flux<String> deliveryAgents = Flux.fromStream(agentsStream);
+
+        // Flux.range() - Simulating order numbers
+        Flux<Integer> orderNumbers = Flux.range(1, 3);
+
+        // Flux.defer() - Lazily create a new flux for order tracking status (i.e., it changes every time you subscribe)
+        Flux<String> orderTrackingStatus = Flux.defer(() -> {
+            String status = Math.random() > 0.5 ? "Shipped" : "Processing";
+            return Flux.just(status);
+        });
+
+        // Flux.interval() - Emulate real-time tracking update every second
+        Flux<Long> trackingUpdates = Flux.interval(Duration.ofSeconds(1));
+
+        // Flux.empty() - When no orders are found, return an empty flux
+        Flux<String> noOrders = Flux.empty();
+
+        // Flux.error() - If any error occurs in the system, handle it with a fallback
+        Flux<String> errorFallback = Flux.error(new RuntimeException("System error occurred!"));
+
+        // log() - For debugging purposes, log all the operations on the flux
+        orders.log()
+                // Combine with order numbers
+                .zipWith(orderNumbers, (order, number) -> "Order #" + number + ": " + order)
+                // Simulate processing time by delaying each element by 1 second
+                .delayElements(Duration.ofSeconds(1))
+                // Combine with delivery zones
+                .zipWith(deliveryZones, (orderWithNumber, zone) -> orderWithNumber + " to " + zone)
+                // Combine with delivery agents
+                .zipWith(deliveryAgents, (orderWithZone, agent) -> orderWithZone + " by " + agent)
+                // Defer order tracking status lazily
+                .flatMap(order -> orderTrackingStatus.map(status -> order + " - Status: " + status))
+                // Log the tracking status every second (simulating a real-time process)
+                .flatMap(orderStatus -> trackingUpdates.map(tick -> orderStatus + " (Update " + tick + ")").take(3))
+                // Subscribe with multiple subscribers
+                .subscribe(
+                        data -> System.out.println("Subscriber 1: " + data),
+                        error -> System.err.println("Subscriber 1: Error - " + error.getMessage()),
+                        () -> System.out.println("Subscriber 1: Completed!")
+                );
+
+        orders.log()
+                .subscribe(
+                        data -> System.out.println("Subscriber 2: " + data),
+                        error -> System.err.println("Subscriber 2: Error - " + error.getMessage()),
+                        () -> System.out.println("Subscriber 2: Completed!")
+                );
+
+        // Allow interval to emit values
+        Thread.sleep(10000);
+    }
+}
+```
+
+## `FluxSink`
+
+`FluxSink` is a handle used within `Flux.create()` to programmatically emit items into a `Flux`. It provides methods to:
+
+- **`next(T value)`**: Emit an item to the `Flux`.
+- **`error(Throwable error)`**: Signal an error to the subscribers.
+- **`complete()`**: Signal that the sequence is complete.
+
+It allows you to manually control the emission and lifecycle of the `Flux` from within a custom source or generator.
+### **1. `FluxSink` and `Flux.create()`**
+
+- **`Flux.create(FluxSink<T> sinkConsumer)`**: This method creates a `Flux` using a `FluxSink` that allows you to manually push items into the `Flux` from a custom source. This is useful when you need to control how items are emitted to subscribers or when integrating with external systems or APIs.
+
+  **Example**:
+  ```java
+  Flux<String> flux = Flux.create(sink -> {
+      sink.next("Hello");
+      sink.next("World");
+      sink.complete(); // Mark the end of the sequence
+  });
+
+  flux.subscribe(System.out::println);
+  ```
+  **Output**:
+  ```
+  Hello
+  World
+  ```
+
+- **`FluxSink`**: Represents a handle to the underlying `Flux` which allows you to emit items, signal completion, or errors. It’s typically used within the lambda function of `Flux.create`.
+
+  **Important Methods**:
+  - **`next(T value)`**: Emits an item to the `Flux`.
+  - **`error(Throwable error)`**: Signals an error.
+  - **`complete()`**: Signals that the sequence has completed.
+
+### **2. `FluxSink` Use Cases**
+
+- **Manual Control**: Allows you to manually control the emission of items, such as pushing data from a source that doesn’t natively support reactive streams.
+- **External Integration**: Useful when integrating with libraries or APIs that don’t provide a reactive API but need to be adapted to reactive streams.
+- **Custom Emit Logic**: When you need custom logic to decide when and how to emit items, such as batching or complex data sources.
+
+### **3. `take(n)` Operator**
+
+- **`take(long n)`**: Limits the number of items emitted by the `Flux` to `n` items. It’s useful for scenarios where you only need a subset of items from the sequence.
+
+  **Example**:
+  ```java
+  Flux<Integer> flux = Flux.range(1, 10)
+      .take(5);
+  flux.subscribe(System.out::println);
+  ```
+  **Output**:
+  ```
+  1
+  2
+  3
+  4
+  5
+  ```
+
+### **4. `Flux.generate()`**
+
+- **`Flux.generate(Generator<T> generator)`**: Creates a `Flux` using a generator function that produces items and can maintain state across emissions. The generator function receives a `SynchronousSink` to emit items and maintain state.
+
+  **Example**:
+  ```java
+  Flux<Integer> flux = Flux.generate(
+      () -> 1, // Initial state
+      (state, sink) -> {
+          if (state > 10) {
+              sink.complete(); // Complete the sequence when state exceeds 10
+          } else {
+              sink.next(state); // Emit current state
+              return state + 1; // Update state
+          }
+          return state;
+      }
+  );
+
+  flux.subscribe(System.out::println);
+  ```
+  **Output**:
+  ```
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+  10
+  ```
+
+### **5. `Flux.generate` - Emit Until**
+
+- **`Flux.generate(Generator<T> generator, Consumer<SynchronousSink<T>> emitter)`**: Allows more fine-grained control over the emission process. You can emit items until a certain condition is met or based on custom logic.
+
+  **Example**:
+  ```java
+  Flux<Integer> flux = Flux.generate(
+      () -> 1, // Initial state
+      (state, sink) -> {
+          if (state > 10) {
+              sink.complete(); // Complete when state exceeds 10
+          } else {
+              sink.next(state); // Emit the current state
+              return state + 2; // Increment state by 2
+          }
+          return state;
+      }
+  );
+
+  flux.subscribe(System.out::println);
+  ```
+  **Output**:
+  ```
+  1
+  3
+  5
+  7
+  9
+  ```
+
+### **6. `Flux.generate` - State Problem**
+
+- **State Problem**: In `Flux.generate()`, if the state is not correctly managed or updated, it can lead to issues such as infinite loops or incorrect sequence of items.
+
+  **Example of a State Problem**:
+  ```java
+  Flux<Integer> flux = Flux.generate(
+      () -> 1, // Initial state
+      (state, sink) -> {
+          sink.next(state); // Emit current state
+          // Mistake: Not updating state properly or terminating
+          return state; // Causes infinite loop if not properly managed
+      }
+  );
+
+  flux.subscribe(System.out::println);
+  ```
+  **Output**:
+  ```
+  1
+  1
+  1
+  1
+  ...
+  ```
+
+### **7. `Flux.generate` - State Supplier**
+
+- **State Supplier**: When using `Flux.generate()`, you can use a state supplier to initialize the state and a generator to handle the emission and state update.
+
+  **Example**:
+  ```java
+  Flux<Integer> flux = Flux.generate(
+      () -> 1, // State supplier: initial state
+      (state, sink) -> {
+          if (state > 10) {
+              sink.complete(); // Complete when state exceeds 10
+          } else {
+              sink.next(state); // Emit the current state
+              return state + 1; // Update state
+          }
+          return state;
+      }
+  );
+
+  flux.subscribe(System.out::println);
+  ```
+  **Output**:
+  ```
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+  10
+  ```
+
+### **Summary**
+
+- **`Flux.create(FluxSink<T> sinkConsumer)`**: Manually create a `Flux` and control emissions.
+- **`FluxSink`**: Used within `Flux.create` to emit items, errors, or completion signals.
+- **`take(n)`**: Limits the number of items emitted by the `Flux`.
+- **`Flux.generate()`**: Generates a `Flux` with stateful emission.
+- **`Flux.generate` - Emit Until**: Generates items until a certain condition is met.
+- **`Flux.generate` - State Problem**: Issues that arise from improper state management in `Flux.generate`.
+- **`Flux.generate` - State Supplier**: Initializing state in `Flux.generate()` using a state supplier.
+
+These methods provide powerful tools for creating and managing reactive streams, allowing fine-grained control over item emission and state management in reactive applications.
+
+# Operators
+
