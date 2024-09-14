@@ -1170,4 +1170,338 @@ These operators allow you to manipulate and process reactive streams in various 
 
 # Hot  & Cold Publishers
 
+have 2 different types of implementations for the Publisher interface.
+
+- Flux
+- Mono
+
+Both emit elements asynchronously. While _**Flux**_ can emit 0 . . . N elements, _**Mono**_ can emit 0 or 1 element.
+
+Based on the their emission behavior, We can categorize the publishers into 2 types.
+
+- Hot
+- Cold
+
+## **Reactor Cold Publisher:**
+
+**==Publishers by default do not produce any value unless at least 1 observer subscribes to it. Publishers create new data producers for each new subscription.==**
+
+- **Definition**: A cold publisher produces data only when there is at least one subscriber. Each subscriber gets its own independent stream of data from the beginning.
+    
+- **Behavior**: Every time a subscriber subscribes to a cold publisher, the publisher starts emitting data from the start of the sequence for that subscriber.
+    
+- **Example**: `Flux` created using `Flux.range(1, 5)` is cold. Each subscription will receive the full range of values from 1 to 5.
+
+```java
+Flux<Integer> coldFlux = Flux.range(1, 5);
+
+coldFlux.subscribe(value -> System.out.println("Subscriber 1: " + value));
+// Output: Subscriber 1: 1, 2, 3, 4, 5
+
+coldFlux.subscribe(value -> System.out.println("Subscriber 2: " + value));
+// Output: Subscriber 2: 1, 2, 3, 4, 5
+```
+
+---
+
+```java
+private int getDataToBePublished(){
+    System.out.println("getDataToBePublished was called");
+    return 1;
+}
+```
+
+Lets assume that we would be emitting the element using Mono as shown here.
+
+```java
+Mono.fromSupplier(() -> getDataToBePublished());
+```
+
+Now what does the above code do? The above code would not print any value as there is nobody to observe it. We need at least 1 observer. The below code produces the below output as we have 1 observer.
+
+```java
+Mono.fromSupplier(() -> getDataToBePublished())
+        .subscribe(i -> System.out.println("Observer-1 :: " + i));
+
+//Output
+getDataToBePublished was called
+Observer-1 :: 1
+```
+
+Lets consider this method which is going to stream a movie for us.
+
+```java
+private Stream<String> getMovie(){
+    System.out.println("Got the movie streaming request");
+    return Stream.of(
+            "scene 1",
+            "scene 2",
+            "scene 3",
+            "scene 4",
+            "scene 5"
+    );
+}
+```
+
+Out NetFlux app implementation is as shown here.
+
+```java
+//our NetFlux streamer
+//each scene will play for 2 seconds
+Flux<String> netFlux = Flux.fromStream(() -> getMovie())
+                            .delayElements(Duration.ofSeconds(2));
+
+// you start watching the movie
+netFlux.subscribe(scene -> System.out.println("You are watching " + scene));
+
+//I join after sometime
+Thread.sleep(5000);
+netFlux.subscribe(scene -> System.out.println("Vinsguru is watching " + scene));
+```
+
+Output:
+
+```bash
+Got the movie streaming request
+You are watching scene 1
+You are watching scene 2
+Got the movie streaming request
+You are watching scene 3
+Vinsguru is watching scene 1
+You are watching scene 4
+Vinsguru is watching scene 2
+You are watching scene 5
+Vinsguru is watching scene 3
+Vinsguru is watching scene 4
+Vinsguru is watching scene 5
+```
+
+## **Reactor Hot Publisher**:
+
+**==Hot Publishers do not create new data producer for each new subscription (as the Cold Publisher does). Instead there will be only one data producer and all the observers listen to the data produced by the single data producer. So all the observers get the same data.==**
+
+- **Definition**: A hot publisher produces data independently of the subscribers. Subscribers receive data from the point of their subscription, not from the beginning.
+    
+- **Behavior**: Data is emitted whether or not there are subscribers. Subscribers only get the data emitted after they start subscribing.
+    
+- **Example**: `Flux` created using `Flux.interval(Duration.ofSeconds(1))` is hot. Subscribers will receive events starting from the moment they subscribe.
+
+```java
+Flux<Long> hotFlux = Flux.interval(Duration.ofSeconds(1));
+
+hotFlux.subscribe(value -> System.out.println("Subscriber 1: " + value));
+// Output (starts after 1 second): Subscriber 1: 0, 1, 2, ...
+
+Thread.sleep(3000); // Wait 3 seconds
+
+hotFlux.subscribe(value -> System.out.println("Subscriber 2: " + value));
+// Output (starts after 3 seconds from subscription): Subscriber 2: 3, 4, 5, ...
+
+```
+
+---
+
+Here we just added a ‘_**share**_‘ method in our Flux to make the Netflux server into a Movie theater. Share turns the Cold source into Hot by multi casting the emitted data to multiple subscribers.
+
+```java
+//our movie theatre
+//each scene will play for 2 seconds
+Flux<String> movieTheatre = Flux.fromStream(() -> getMovie())
+                            .delayElements(Duration.ofSeconds(2)).share();
+
+// you start watching the movie
+movieTheatre.subscribe(scene -> System.out.println("You are watching " + scene));
+
+//I join after sometime
+Thread.sleep(5000);
+movieTheatre.subscribe(scene -> System.out.println("Vinsguru is watching " + scene));
+```
+
+Output:
+
+```bash
+Got the movie streaming request
+You are watching scene 1
+You are watching scene 2
+You are watching scene 3
+Vinsguru is watching scene 3
+You are watching scene 4
+Vinsguru is watching scene 4
+You are watching scene 5
+Vinsguru is watching scene 5
+```
+
+From the output, I lost the first 2 scenes in that movie as I joined late. However I am able to watch latest scene played in the theater along with others.
+
+this example using _**share**_ method. But here when the second subscriber joins, the source has already emitted data & completed. So the second subscription repeats the emission process. Imagine this like a same movie theater example with subsequent show once a first show is completed.
+
+```java
+//our movie theatre
+//each scene will play for 2 seconds
+        Flux<String> movieTheatre = Flux.fromStream(() -> getMovie())
+                .delayElements(Duration.ofSeconds(2)).share();
+
+// you start watching the movie
+        movieTheatre.subscribe(scene -> System.out.println("You are watching " + scene));
+
+//I join after the source is completed
+        Thread.sleep(12000);
+        movieTheatre.subscribe(scene -> System.out.println("Vinsguru is watching " + scene));
+```
+
+Output:
+
+```bash
+Got the movie streaming request
+You are watching scene 1
+You are watching scene 2
+You are watching scene 3
+You are watching scene 4
+You are watching scene 5
+Got the movie streaming request
+Vinsguru is watching scene 1
+Vinsguru is watching scene 2
+Vinsguru is watching scene 3
+Vinsguru is watching scene 4
+Vinsguru is watching scene 5
+```
+
+### **Cache:**
+
+- **Case 1:**
+
+if we do not want to repeat, use _**cache**_ method. Cache method caches the history and multi casts to multiple subscribers. we are NOT making movie streaming request second time. However, second subscriber is able to watch all the scenes from the beginning as it has cached all the items for future subscribers.
+
+```java
+//our movie theatre
+//each scene will play for 2 seconds
+        Flux<String> movieTheatre = Flux.fromStream(() -> getMovie())
+                .delayElements(Duration.ofSeconds(2)).cache();
+
+// you start watching the movie
+        movieTheatre.subscribe(scene -> System.out.println("You are watching " + scene));
+
+//I join after the source is completed
+        Thread.sleep(12000);
+        movieTheatre.subscribe(scene -> System.out.println("Vinsguru is watching " + scene));
+```
+
+Output:
+
+```bash
+Got the movie streaming request
+You are watching scene 1
+You are watching scene 2
+You are watching scene 3
+You are watching scene 4
+You are watching scene 5
+Vinsguru is watching scene 1
+Vinsguru is watching scene 2
+Vinsguru is watching scene 3
+Vinsguru is watching scene 4
+Vinsguru is watching scene 5
+```
+
+- **Case 2:**
+
+If you do not like caching all the items, use _**cache(0).**_
+
+Output:
+
+```bash
+Got the movie streaming request
+You are watching scene 1
+You are watching scene 2
+You are watching scene 3
+You are watching scene 4
+You are watching scene 5
+```
+
+## **Key Differences**
+
+- **Data Emission**:
+    
+    - **Cold**: Data is produced only when there is a subscriber.
+    - **Hot**: Data is produced regardless of subscribers, and subscribers get data emitted after their subscription.
+- **Subscriber Independence**:
+    
+    - **Cold**: Each subscriber gets a full and independent sequence of data.
+    - **Hot**: Subscribers share the same data stream and only receive data from the point of their subscription.
+
+
+# Back Pressure Overflow Strategy
+
+In reactive programming, **backpressure** **==is a mechanism to handle situations where a `Publisher` emits items faster than a `Subscriber` can process them==**. To manage this, various **overflow strategies** can be applied. Here's a detailed overview of different backpressure strategies:
+
+## **1. Limit Rate Strategy**
+
+- **Definition**: Limits the rate at which items are requested or emitted. It controls how many items can be processed in a given time period.
+- **Usage**: Useful when you want to throttle the rate of data production to prevent overwhelming the subscriber.
+- **Example**:
+  ```java
+  Flux<Integer> flux = Flux.range(1, 100)
+      .limitRate(10);
+  ```
+
+## **2. Buffer Strategy**
+
+- **Definition**: Collects emitted items into a buffer up to a certain size. Once the buffer is full, additional items may either be discarded or trigger other strategies.
+- **Usage**: Useful for batching items together before processing.
+- **Example**:
+  ```java
+  Flux<Integer> flux = Flux.range(1, 100)
+      .onBackpressureBuffer(10); // Buffer up to 10 items
+  ```
+
+## **3. Error Strategy**
+
+- **Definition**: When backpressure cannot be handled, an error is signaled to the subscriber. This is typically used to indicate that the system is overwhelmed and cannot process additional items.
+- **Usage**: Useful when you want to fail fast and handle the overload situation by terminating the subscription.
+- **Example**:
+  ```java
+  Flux<Integer> flux = Flux.range(1, 100)
+      .onBackpressureError(); // Signal an error when buffer overflows
+  ```
+
+## **4. Fixed Size Buffer Strategy**
+
+- **Definition**: Similar to the buffer strategy but with a fixed-size buffer. When the buffer is full, items are either dropped or handled according to other strategies.
+- **Usage**: Useful when you have a fixed amount of memory or need to control the buffer size precisely.
+- **Example**:
+  ```java
+  Flux<Integer> flux = Flux.range(1, 100)
+      .onBackpressureBuffer(10, BufferOverflowStrategy.DROP_OLDEST); // Fixed size buffer
+  ```
+
+## **5. Drop Strategy**
+
+- **Definition**: Drops items when the buffer is full, based on different drop policies. The drop policy could be the oldest item, the latest item, or others.
+- **Usage**: Useful when you can tolerate losing some items to prevent overwhelming the system.
+- **Example**:
+  ```java
+  Flux<Integer> flux = Flux.range(1, 100)
+      .onBackpressureBuffer(10, BufferOverflowStrategy.DROP_OLDEST); // Drop oldest items when buffer is full
+  ```
+
+## **6. Latest Strategy**
+
+- **Definition**: Keeps only the latest item when the buffer is full, discarding older items. This strategy ensures that the most recent data is always available.
+- **Usage**: Useful when the most recent data is more important than the older data.
+- **Example**:
+  ```java
+  Flux<Integer> flux = Flux.range(1, 100)
+      .onBackpressureBuffer(10, BufferOverflowStrategy.DROP_OLDEST)
+      .onBackpressureBuffer(10, BufferOverflowStrategy.DROP_LATEST); // Drop latest items when buffer is full
+  ```
+
+## **Summary**
+
+- **Limit Rate**: Throttles the rate of data production.
+- **Buffer**: Collects items into a buffer up to a certain size.
+- **Error**: Signals an error when backpressure is exceeded.
+- **Fixed Size Buffer**: Uses a buffer of fixed size with specified handling of overflow.
+- **Drop**: Drops items based on a drop policy when the buffer is full.
+- **Latest**: Keeps only the latest item in the buffer, dropping older items.
+
+Choosing the right backpressure strategy depends on the specific requirements of your application, such as the importance of data accuracy, memory constraints, and the desired behavior under high load.
 
