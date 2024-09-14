@@ -954,3 +954,220 @@ These methods provide powerful tools for creating and managing reactive streams,
 
 # Operators
 
+Here's a detailed overview of some key operators in Project Reactor that you might find useful for transforming and working with reactive streams in Java:
+
+## **Transforming Operators**
+
+1. **`map(Function<? super T, ? extends R> mapper)`**
+
+![[Pasted image 20240914124026.png]]
+   - Transforms each item emitted by the source `Flux` by applying a function to it.
+   - **Example**:
+     ```java
+     Flux<Integer> flux = Flux.just(1, 2, 3)
+         .map(i -> i * 2);
+     flux.subscribe(System.out::println);
+     // Output: 2, 4, 6
+     ```
+
+2. **`flatMap(Function<? super T, ? extends Publisher<? extends R>> mapper)`**
+
+![[Pasted image 20240914124044.png]]
+
+   - Transforms each item emitted by the source `Flux` into a `Publisher`, then flattens the resulting `Publisher` sequences into a single `Flux`.
+   - **Example**:
+     ```java
+     Flux<String> flux = Flux.just("A", "B", "C")
+         .flatMap(s -> Flux.just(s + "1", s + "2"));
+     flux.subscribe(System.out::println);
+     // Output: A1, A2, B1, B2, C1, C2
+     ```
+
+3. **`filter(Predicate<? super T> predicate)`**
+   - Filters items emitted by the source `Flux` based on a predicate.
+   - **Example**:
+     ```java
+     Flux<Integer> flux = Flux.just(1, 2, 3, 4, 5)
+         .filter(i -> i % 2 == 0);
+     flux.subscribe(System.out::println);
+     // Output: 2, 4
+     ```
+
+4. **`distinct()`**
+   - Emits only distinct items from the source `Flux`, removing duplicates.
+   - **Example**:
+     ```java
+     Flux<Integer> flux = Flux.just(1, 2, 2, 3, 4, 4, 5)
+         .distinct();
+     flux.subscribe(System.out::println);
+     // Output: 1, 2, 3, 4, 5
+     ```
+
+5. **`concatMap(Function<? super T, ? extends Publisher<? extends R>> mapper)`**
+   - Similar to `flatMap`, but preserves the order of items. Each item is mapped to a `Publisher`, and the publishers are concatenated in sequence.
+   - **Example**:
+     ```java
+     Flux<String> flux = Flux.just("A", "B", "C")
+         .concatMap(s -> Flux.just(s + "1", s + "2"));
+     flux.subscribe(System.out::println);
+     // Output: A1, A2, B1, B2, C1, C2
+     ```
+
+## **Combining Operators**
+
+6. **`mergeWith(Publisher<? extends T> other)`**
+![[Pasted image 20240914124152.png]]
+   - Merges the items emitted by the source `Flux` with those from another `Publisher`.
+   - **Example**:
+     ```java
+     Flux<Integer> flux1 = Flux.just(1, 2);
+     Flux<Integer> flux2 = Flux.just(3, 4);
+     Flux<Integer> mergedFlux = flux1.mergeWith(flux2);
+     mergedFlux.subscribe(System.out::println);
+     // Output: 1, 2, 3, 4
+     ```
+
+7. **`zipWith(Publisher<? extends T2> other)`**
+
+![[Pasted image 20240914124542.png]]
+
+   - Combines items from the source `Flux` and another `Publisher` into pairs.
+   - **Example**:
+     ```java
+     Flux<String> flux1 = Flux.just("A", "B", "C");
+     Flux<Integer> flux2 = Flux.just(1, 2, 3);
+     Flux<Tuple2<String, Integer>> zippedFlux = flux1.zipWith(flux2);
+     zippedFlux.subscribe(System.out::println);
+     // Output: (A,1), (B,2), (C,3)
+     ```
+
+8. **`combineLatest(Publisher<? extends T2> other, BiFunction<? super T, ? super T2, ? extends R> combinator)`**
+   - Combines the latest items emitted by the source `Flux` and another `Publisher` using a combinator function.
+   - **Example**:
+     ```java
+     Flux<String> flux1 = Flux.just("A", "B");
+     Flux<Integer> flux2 = Flux.just(1, 2, 3);
+     Flux<String> combinedFlux = flux1.combineLatest(flux2, (s, i) -> s + i);
+     combinedFlux.subscribe(System.out::println);
+     // Output: B3 (last elements of flux1 and flux2 combined)
+     ```
+
+9. **`concat(Publisher<? extends T>... sources)`**
+
+![[Pasted image 20240914124954.png]]
+
+   - Combines multiple `Publisher` instances into a single `Flux`, emitting items sequentially from each source in the order provided.
+   - **Example**:
+     ```java
+     Flux<Integer> flux1 = Flux.just(1, 2);
+     Flux<Integer> flux2 = Flux.just(3, 4);
+     Flux<Integer> flux3 = Flux.just(5, 6);
+     Flux<Integer> concatenatedFlux = Flux.concat(flux1, flux2, flux3);
+     concatenatedFlux.subscribe(System.out::println);
+     // Output: 1, 2, 3, 4, 5, 6
+     ```
+## **Utility Operators**
+
+10. **`doOnNext(Consumer<? super T> consumer)`**
+   - Performs a side effect whenever an item is emitted.
+   - **Example**:
+     ```java
+     Flux<Integer> flux = Flux.just(1, 2, 3)
+         .doOnNext(i -> System.out.println("Processing: " + i));
+     flux.subscribe(System.out::println);
+     // Output: Processing: 1
+     //         Processing: 2
+     //         Processing: 3
+     //         1
+     //         2
+     //         3
+     ```
+
+11. **`onErrorResume(Function<Throwable, ? extends Publisher<? extends T>> fallback)`**
+    - Provides a fallback `Publisher` if an error occurs.
+    - **Example**:
+      ```java
+      Flux<Integer> flux = Flux.just(1, 2)
+          .concatWith(Flux.error(new RuntimeException("Error!")))
+          .onErrorResume(e -> Flux.just(10, 20));
+      flux.subscribe(System.out::println);
+      // Output: 1
+      //         2
+      //         10
+      //         20
+      ```
+
+12. **`retry(long maxRetries)`**
+    - Retries the sequence upon encountering an error, up to a specified number of times.
+    - **Example**:
+      ```java
+      Flux<Integer> flux = Flux.concat(
+          Flux.just(1, 2),
+          Flux.error(new RuntimeException("Error!")),
+          Flux.just(3)
+      ).retry(1); // Retry once upon error
+      flux.subscribe(System.out::println);
+      // Output: 1
+      //         2
+      //         1
+      //         2
+      //         3
+      ```
+
+## **Termination Operators**
+
+13. **`collectList()`**
+    - Collects all emitted items into a `List` and returns a `Mono` with that list.
+    - **Example**:
+      ```java
+      Flux<Integer> flux = Flux.just(1, 2, 3);
+      Mono<List<Integer>> mono = flux.collectList();
+      mono.subscribe(System.out::println);
+      // Output: [1, 2, 3]
+      ```
+
+14. **`then(Mono<?> other)`**
+    - Discards the items from the source `Flux` and only emits items from the `Mono` that follows.
+    - **Example**:
+      ```java
+      Flux<Integer> flux = Flux.just(1, 2, 3);
+      Mono<String> mono = Mono.just("Done");
+      flux.then(mono).subscribe(System.out::println);
+      // Output: Done
+      ```
+
+## **Other Operators**
+
+15. **`flatMapSequential(Function<? super T, ? extends Publisher<? extends R>> mapper)`**
+    - Similar to `flatMap`, but maintains the order of items in the original `Flux`.
+    - **Example**:
+      ```java
+      Flux<String> flux = Flux.just("A", "B", "C")
+          .flatMapSequential(s -> Flux.just(s + "1", s + "2"));
+      flux.subscribe(System.out::println);
+      // Output: A1
+      //         A2
+      //         B1
+      //         B2
+      //         C1
+      //         C2
+      ```
+
+16. **`buffer(int bufferSize)`**
+    - Collects items into a buffer of a specified size and emits the buffer as a `List`.
+    - **Example**:
+      ```java
+      Flux<Integer> flux = Flux.range(1, 10)
+          .buffer(3);
+      flux.subscribe(System.out::println);
+      // Output: [1, 2, 3]
+      //         [4, 5, 6]
+      //         [7, 8, 9]
+      //         [10]
+      ```
+
+These operators allow you to manipulate and process reactive streams in various ways, providing powerful tools for handling asynchronous data in a reactive programming paradigm.
+
+# Hot  & Cold Publishers
+
+
