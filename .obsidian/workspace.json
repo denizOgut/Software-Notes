@@ -30,9 +30,19 @@
                 "source": false
               }
             }
+          },
+          {
+            "id": "a244eaba7bdfc765",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png"
+              }
+            }
           }
         ],
-        "currentTab": 1
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -98,7 +108,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Reactive Programming.md",
+                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -115,7 +125,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Reactive Programming.md",
+                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -138,7 +148,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Reactive Programming.md"
+                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png"
               }
             }
           },
@@ -173,10 +183,16 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "d679473eaf2e4519",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Reactive Programming Screenshots/Pasted image 20240914124026.png",
+    "Spring Webflux.md",
+    "Spring WebFlux Screenshots",
+    "Spring WebFlux Screenshots/Pasted image 20240918161911.png",
+    "Spring WebFlux Screenshots/Pasted image 20240918155751.png",
+    "Spring WebFlux Screenshots/Pasted image 20240918115857.png",
     "Reactive Programming.md",
+    "Google Remote Procedure Call Notes.md",
+    "Reactive Programming Screenshots/Pasted image 20240914124026.png",
     "Reactive Programming Screenshots/Pasted image 20240914124954.png",
     "Reactive Programming Screenshots/Pasted image 20240914124542.png",
     "Reactive Programming Screenshots/Pasted image 20240914124152.png",
@@ -184,12 +200,8 @@
     "Reactive Programming Screenshots/Pasted image 20240914113904.png",
     "Reactive Programming Screenshots/Pasted image 20240914111411.png",
     "Reactive Programming Screenshots",
-    "Reactive Programming Screenshots/Pasted image 20240914005955.png",
-    "Google Remote Procedure Call Notes.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
-    "GRPC Screenshots/Pasted image 20240905215015.png",
     "GRPC Screenshots",
-    "GRPC Screenshots/Pasted image 20240905215246.png",
     "JAVA APP - 1 NOTES.md",
     "JAVA APP - 2 NOTES.md",
     "Java Network Programming Notes.md",
