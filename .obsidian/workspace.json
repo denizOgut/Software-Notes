@@ -35,9 +35,11 @@
             "id": "a244eaba7bdfc765",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png"
+                "file": "Golang Notes.md",
+                "mode": "source",
+                "source": false
               }
             }
           }
@@ -108,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png",
+                "file": "Golang Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -125,7 +127,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png",
+                "file": "Golang Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -148,7 +150,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Spring WebFlux Screenshots/Pasted image 20240918115857.png"
+                "file": "Golang Notes.md"
               }
             }
           },
@@ -183,15 +185,17 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "a244eaba7bdfc765",
   "lastOpenFiles": [
+    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Java Network Programming Notes.md",
+    "Reactive Programming.md",
+    "Google Remote Procedure Call Notes.md",
     "Spring Webflux.md",
     "Spring WebFlux Screenshots",
     "Spring WebFlux Screenshots/Pasted image 20240918161911.png",
     "Spring WebFlux Screenshots/Pasted image 20240918155751.png",
     "Spring WebFlux Screenshots/Pasted image 20240918115857.png",
-    "Reactive Programming.md",
-    "Google Remote Procedure Call Notes.md",
     "Reactive Programming Screenshots/Pasted image 20240914124026.png",
     "Reactive Programming Screenshots/Pasted image 20240914124954.png",
     "Reactive Programming Screenshots/Pasted image 20240914124542.png",
@@ -200,11 +204,9 @@
     "Reactive Programming Screenshots/Pasted image 20240914113904.png",
     "Reactive Programming Screenshots/Pasted image 20240914111411.png",
     "Reactive Programming Screenshots",
-    "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "GRPC Screenshots",
     "JAVA APP - 1 NOTES.md",
     "JAVA APP - 2 NOTES.md",
-    "Java Network Programming Notes.md",
     "RabbitMQ Notes.md",
     "202408162105.md",
     "Elasticsearch Notes.md",

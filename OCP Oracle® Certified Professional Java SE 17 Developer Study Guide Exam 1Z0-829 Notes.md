@@ -993,7 +993,7 @@ The method name is `numberVisitors`. There’s one parameter named ``month``, wh
 
 ---
 - **Most of the time, each Java class is defined in its own .java file.**  
--  **==A top-level class is often ``public``==, which means any code can call it.**  
+-  **==A top-level class is often ``public`` NOT ALWAYS==, which means any code can call it.**  
 -  **==If you do have a ``public`` type, it needs to match the filename.==**
 
 
@@ -1132,67 +1132,6 @@ public final static void main(final String[] args) {}
 ```
 
 both **final** modifiers are optional, and the ``main()`` method is a valid entry point with or without them.
-
----
-### Passing Parameters to a Java Program
-
-```java
-public class Zoo {
-	public static void main(String[] args) {
-		System.out.println(args[0]);
-		System.out.println(args[1]);
-	}
-}
-```
-
-The code ``args[0]`` accesses the first element of the array.
-To run:
-```bash
-javac Zoo.java
-java Zoo Bronx Zoo
-```
-
-The output: 
-
-```
-Bronx
-Zoo
-```
-
-The program correctly identifies the first two “words” as the arguments. Spaces are used to separate the arguments. **==want spaces inside an argument, you need to use quotes==**
-
-```shell
-javac Zoo.java
-java Zoo "San Diego" Zoo
-```
-
-what happens if you don’t pass in enough arguments?
-
-```shell
-javac Zoo.java
-java Zoo Zoo
-```
-
-Reading args[0] goes fine, and Zoo is printed out. Then Java panics. There’s no second argument! Java prints out an exception telling you it has no idea what to do with this argument at position 1.
-
-```java
-Zoo
-Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException:
-Index 1 out of bounds for length 1
-at Zoo.main(Zoo.java:4)
-```
-
-To review, the JDK contains a compiler. Java class files run on the JVM and therefore run on any machine with Java rather than just the machine or operating system they happened to have been compiled on.
-
----
-
-**Single-File Source-Code**
-
-```shell
-java Zoo.java Bronx Zoo
-```
-
-There is a key difference here. When compiling first, you omitted the .java extension when running java. When skipping the explicit compilation step, you include this extension. This feature is called launching single-file source-code programs and is useful for testing or for small programs.
 
 ---
 ## Understanding Package Declarations and Imports
@@ -1780,6 +1719,8 @@ The closing `"""` on line 18 are the leftmost characters, so the line is drawn a
 | `\s` (Two spaces)              | Two spaces                | Two spaces (preserves leading space on the line) |
 | `\` (at end of line, Invalid)   | n/a - Invalid             | Omits new line on that line (Invalid in a text block) |
 
+**==In Java text blocks (introduced in Java 13+), the opening `"""` must be followed by a newline, and the content starts from the next line. The closing `"""` can either be on a new line after the last content or aligned with the indentation level, but any whitespace before the closing delimiter is ignored.==**
+
 **Examples**
 
 ```java
@@ -2222,7 +2163,7 @@ public class VarKeyword {
 }
 ```
 
-The variable `tricky` is an instance variable. Local variable type inference works with local variables and not instance variables. 
+The variable `tricky` is an instance variable. **==Local variable type inference works with local variables and not instance variables.==** 
 ### Type Inference of ``var``
 
 When you type `var`, you are instructing the compiler to determine the type for you The compiler looks at the code on the line of the declaration and uses it to infer the type.
@@ -2263,7 +2204,7 @@ y = 10;  // Type inference requires an initializer on the same line
 
 ```
 
-
+==**IMPORTANT**==
 ```java
 4: public void twoTypes() {
 	5: int a, var b = 3; // DOES NOT COMPILE
@@ -2276,11 +2217,13 @@ Line 5 wouldn’t work even if you replaced ``var`` with a real type. All the ty
 
 Line 6 is a single line. The compiler is being asked to infer the type of `null`. This could be any reference type. The only choice the compiler could make is `Object`. However  the designers of Java decided it would be better not to allow var for `null` than to have to guess at intent.
 
+==**IMPORTANT**==
+
 ```java
 4: public void twoTypes() {
 	5: var a = 2, var b = 3; // DOES NOT COMPILE
 	6: int x, int v = 3; // DOES NOT COMPILE 
-	7: var a = 2; var b = 3; // DOES  COMPILE
+	7: var a = 2; int b = 3; // DOES  COMPILE
 8: }
 ```
 
@@ -2675,13 +2618,13 @@ Not all questions will include package declarations and imports. Don’t worry a
 
 **Be able to write code using a main() method**. A `main()` method is usually written as `public static void main(String[] args)`. Arguments are referenced starting with `args[0]`. Accessing an argument that wasn’t passed in will cause the code to throw an exception.
 
-**Understand the effect of using packages and imports**. Packages contain Java classes. Classes can be imported by class name or wildcard. Wildcards do not look at subdirectories. In the event of a conflict, class name imports take precedence. Package and import statements are optional. If they are present, they both go before the class declaration in that order.
+**Understand the effect of using packages and imports**. Packages contain Java classes. Classes can be imported by class name or wildcard. Wildcards do not look at subdirectories. **==In the event of a conflict, class name imports take precedence==**. **==Package and import statements are optional. If they are present, they both go before the class declaration in that order.==**
 
 **Be able to recognize a constructor.** A constructor has the same name as the class. It looks like a method without a return type.
 
 **Be able to identify legal and illegal declarations and initialization**. Multiple variables can be declared and initialized in the same statement when they share a type. Local variables require an explicit initialization; others use the default value for that type. Identifiers may contain letters, numbers, currency symbols, or _, although they may not begin with numbers. Also, you cannot define an identifier that is just a single underscore character _. Numeric literals may contain underscores between two digits, such as 1_000, but not in other places, such as _100_.0_.
 
-**Understand how to create text blocks.**  A text block begins with `"""` on the first line. On the next line begins the content. The last line ends with `""".` If `"""` is on its own line, a trailing line break is included.
+**==Understand how to create text blocks.  A text block begins with `"""` on the first line. On the next line begins the content. The last line ends with `""".` If `"""` is on its own line, a trailing line break is included.==**
 
 **Be able to use `var` correctly.** A var is `var` for a local variable. A `var` is initialized on the same line where it is declared, and while it can change value, it cannot change type. A `var` cannot be initialized with a `null` value without a type, nor can it be used in multiple variable declarations.
 
