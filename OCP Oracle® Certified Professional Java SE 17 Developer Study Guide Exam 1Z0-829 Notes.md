@@ -3229,7 +3229,6 @@ Correct Answer: A,D**
 A Java operator is a special symbol that can be applied to a set of variables, values, or literals—referred to as operands—and that returns a result. The term operand, refers to the value or variable the operator is being applied to.
 
 ![[Pasted image 20240116141817.png]]
-
 ### Types of Operators
 
 ==**Java supports three flavors of operators: unary, binary, and ternary.**== These types of operators

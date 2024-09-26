@@ -4140,6 +4140,296 @@ allFutures.thenRun(() -> {
 
 By mastering `CompletableFuture`, you'll be able to create more responsive, scalable, and maintainable applications in Java, especially for concurrent and distributed systems.
 
+## Virtual Threads
+
+Virtual threads are lightweight threads that dramatically reduce the effort of writing, maintaining, and observing high-throughput concurrent applications.
+
+A thread is the smallest unit of processing that can be scheduled. It runs concurrently with—and largely independently of—other such units. It's an instance of [java.lang.Thread](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html). There are two kinds of threads, platform threads and virtual threads.
+
+### What is a Platform Thread?
+
+A platform thread is implemented as a thin wrapper around an operating system (OS) thread. A platform thread runs Java code on its underlying OS thread, and the platform thread captures its OS thread for the platform thread's entire lifetime. Consequently, the number of available platform threads is limited to the number of OS threads.
+
+Platform threads typically have a large thread stack and other resources that are maintained by the operating system. Operating systems typically allocate thread stacks as monolithic memory blocks at thread creation time that cannot be resized later—generally 2 MB (on Linux). One million threads would require two terabytes of memory!
+
+### What is a Virtual Thread?
+
+Like a platform thread, a virtual thread is also an instance of ``java.lang.Thread``. However, **==a virtual thread isn't tied to a specific OS thread. A virtual thread still runs code on an OS thread. However, when code running in a virtual thread calls a blocking I/O operation, the Java runtime suspends the virtual thread until it can be resumed. The OS thread associated with the suspended virtual thread is now free to perform operations for other virtual threads.==**
+
+Virtual threads are implemented in a similar way to virtual memory. To simulate a lot of memory, an operating system maps a large virtual address space to a limited amount of RAM. Similarly, **==to simulate a lot of threads, the Java runtime maps a large number of virtual threads to a small number of OS threads.==**
+
+**==Virtual threads are cheap and plentiful, and thus should never be pooled==**
+
+Although virtual threads support thread-local variables and inheritable thread-local variables, you should carefully consider using them because a single JVM might support millions of virtual threads.
+
+![[Pasted image 20240926215452.png]]
+
+### Why Use Virtual Threads?
+
+In a server application, a thread is assigned to each incoming request. This approach scales well for moderate-scale applications, e.g., 1000 concurrent requests, but cannot survive 1M concurrent requests, even though we have adequate CPU capacity and IO bandwidth.
+
+Some developers wishing to utilize hardware to its fullest have given up the thread-per-request style in favor of a thread-sharing style. Instead of handling a request on one thread from start to finish, request-handling code returns its thread to a pool when it waits for another I/O operation to complete so that the thread can service other requests. This fine-grained sharing of threads — in which code holds on to a thread only while it performs calculations, not while it waits for I/O — allows a high number of concurrent operations without consuming a high number of threads.
+
+While it removes the limitation on throughput imposed by the scarcity of OS threads, it comes at a high price: It requires what is known as an _asynchronous_ programming style, employing a separate set of I/O methods that do not wait for I/O operations to complete but rather, later on, signal their completion to a callback. Without a dedicated thread, developers must break down their request-handling logic into small stages, typically written as lambda expressions, and then compose them into a sequential pipeline with an API (see [CompletableFuture](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CompletableFuture.html), for example, or so-called "reactive" frameworks).
+
+Use virtual threads in high-throughput concurrent applications, especially those that consist of a great number of concurrent tasks that spend much of their time waiting. Server applications are examples of high-throughput applications because they typically handle many client requests that perform blocking I/O operations such as fetching resources.
+
+**==Virtual threads are not faster threads; they do not run code any faster than platform threads. They exist to provide scale (higher throughput), not speed (lower latency).==**
+
+When code running in a virtual thread would otherwise block for IO, locking, or other resource availability, it can be unmounted from the carrier thread, and any modified stack frames copied back to the heap, which frees the carrier thread to run something else.
+
+A _virtual thread_ is an instance of `java.lang.Thread` that is not tied to a particular OS thread. A _platform thread_, by contrast, is an instance of `java.lang.Thread` implemented in the traditional way, as a thin wrapper around an OS thread. **==To Java developers, virtual threads are simply threads that are cheap to create and almost infinitely plentiful. Hardware utilization is close to optimal, allowing a high level of concurrency and, as a result, high throughput, while the application remains harmonious with the multithreaded design of the Java Platform and its tooling.==**
+
+### Creating and Running a Virtual Thread
+
+The Thread and ``Thread.Builder`` APIs provide ways to create both platform and virtual threads. The ``java.util.concurrent.Executors`` class also defines methods to create an ``ExecutorService`` that starts a new virtual thread for each task.
+
+#### Creating a Virtual Thread with the Thread Class and the ``Thread.Builder`` Interface
+
+```java
+Thread thread = Thread.ofVirtual().start(() -> System.out.println("Hello"));
+thread.join();
+```
+
+The [Thread.Builder](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.Builder.html) interface lets you create threads with common Thread properties such as the thread's name. The ``Thread.Builder.OfPlatform`` subinterface creates platform threads while ``Thread.Builder.OfVirtual`` creates virtual threads.
+
+```java
+Thread.Builder builder = Thread.ofVirtual().name("MyThread");
+Runnable task = () -> {
+    System.out.println("Running thread");
+};
+Thread t = builder.start(task);
+System.out.println("Thread t name: " + t.getName());
+t.join();
+```
+
+#### Creating and Running a Virtual Thread with the ``Executors.newVirtualThreadPerTaskExecutor()`` Method
+
+Executors let you to separate thread management and creation from the rest of your application.
+
+```java
+try (ExecutorService myExecutor = Executors.newVirtualThreadPerTaskExecutor()) {
+    Future<?> future = myExecutor.submit(() -> System.out.println("Running thread"));
+    future.get();
+    System.out.println("Task completed");
+    // ...
+```
+
+#### Multithreaded Client Server Example
+
+```java
+public class EchoServer {
+    
+    public static void main(String[] args) throws IOException {
+         
+        if (args.length != 1) {
+            System.err.println("Usage: java EchoServer <port>");
+            System.exit(1);
+        }
+         
+        int portNumber = Integer.parseInt(args[0]);
+        try (
+            ServerSocket serverSocket =
+                new ServerSocket(Integer.parseInt(args[0]));
+        ) {                
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                // Accept incoming connections
+                // Start a service thread
+                Thread.ofVirtual().start(() -> {
+                    try (
+                        PrintWriter out =
+                            new PrintWriter(clientSocket.getOutputStream(), true);
+                        BufferedReader in = new BufferedReader(
+                            new InputStreamReader(clientSocket.getInputStream()));
+                    ) {
+                        String inputLine;
+                        while ((inputLine = in.readLine()) != null) {
+                            System.out.println(inputLine);
+                            out.println(inputLine);
+                        }
+                    
+                    } catch (IOException e) { 
+                        e.printStackTrace();
+                    }
+                });
+            }
+        } catch (IOException e) {
+            System.out.println("Exception caught when trying to listen on port "
+                + portNumber + " or listening for a connection");
+            System.out.println(e.getMessage());
+        }
+    }
+}
+```
+
+```java
+public class EchoClient {
+    public static void main(String[] args) throws IOException {
+        if (args.length != 2) {
+            System.err.println(
+                "Usage: java EchoClient <hostname> <port>");
+            System.exit(1);
+        }
+        String hostName = args[0];
+        int portNumber = Integer.parseInt(args[1]);
+        try (
+            Socket echoSocket = new Socket(hostName, portNumber);
+            PrintWriter out =
+                new PrintWriter(echoSocket.getOutputStream(), true);
+            BufferedReader in =
+                new BufferedReader(
+                    new InputStreamReader(echoSocket.getInputStream()));
+        ) {
+            BufferedReader stdIn =
+                new BufferedReader(
+                    new InputStreamReader(System.in));
+            String userInput;
+            while ((userInput = stdIn.readLine()) != null) {
+                out.println(userInput);
+                System.out.println("echo: " + in.readLine());
+                if (userInput.equals("bye")) break;
+            }
+        } catch (UnknownHostException e) {
+            System.err.println("Don't know about host " + hostName);
+            System.exit(1);
+        } catch (IOException e) {
+            System.err.println("Couldn't get I/O for the connection to " +
+                hostName);
+            System.exit(1);
+        } 
+    }
+}
+```
+
+
+### Scheduling Virtual Threads and Pinned Virtual Threads
+
+The operating system schedules when a platform thread is run. However, **==the Java runtime schedules when a virtual thread is run. When the Java runtime schedules a virtual thread, it assigns or mounts the virtual thread on a platform thread, then the operating system schedules that platform thread as usual.==** This platform thread is called a carrier. After running some code, the virtual thread can unmount from its carrier. This usually happens when the virtual thread performs a blocking I/O operation. After a virtual thread unmounts from its carrier, the carrier is free, which means that the Java runtime scheduler can mount a different virtual thread on it.
+
+A virtual thread cannot be unmounted during blocking operations when it is pinned to its carrier. **==A virtual thread is pinned in the following situations:**==
+
+- ==**The virtual thread runs code inside a `synchronized` block or method**==
+- ==**The virtual thread runs a `native` method or a foreign function==**
+
+Try avoiding frequent and long-lived pinning by revising `synchronized` blocks or methods that run frequently and guarding potentially long I/O operations with`` java.util.concurrent.locks.ReentrantLock``.
+
+#### Write Simple, Synchronous Code Employing Blocking I/O APIs in the Thread-Per-Request Style
+
+**==Virtual threads can significantly improve the throughput—not the latency—of servers written in the thread-per-request style.==** In this style, the server dedicates a thread to processing each incoming request for its entire duration. It dedicates at least one thread because, when processing a single request, you may want to employ more threads to carry some tasks concurrently.
+
+
+Blocking a platform thread is expensive because it holds on to the thread—a relatively scarce resource—while it is not doing much meaningful work. Because virtual threads can be plentiful, blocking them is cheap and encouraged. Therefore, you should write code in the straightforward synchronous style and use blocking I/O APIs.
+
+ the following code, written in the non-blocking, asynchronous style, won't benefit much from virtual threads.
+```java
+CompletableFuture.supplyAsync(info::getUrl, pool)
+   .thenCompose(url -> getBodyAsync(url, HttpResponse.BodyHandlers.ofString()))
+   .thenApply(info::findImage)
+   .thenCompose(url -> getBodyAsync(url, HttpResponse.BodyHandlers.ofByteArray()))
+   .thenApply(info::setImageData)
+   .thenAccept(this::process)
+   .exceptionally(t -> { t.printStackTrace(); return null; });
+```
+
+On the other hand, the following code, written in the synchronous style and using simple blocking IO, will benefit greatly:
+```java
+try {
+   String page = getBody(info.getUrl(), HttpResponse.BodyHandlers.ofString());
+   String imageUrl = info.findImage(page);
+   byte[] data = getBody(imageUrl, HttpResponse.BodyHandlers.ofByteArray());   
+   info.setImageData(data);
+   process(info);
+} catch (Exception ex) {
+   t.printStackTrace();
+}
+```
+
+#### Represent Every Concurrent Task as a Virtual Thread; Never Pool Virtual Threads
+
+The hardest thing to internalize about virtual threads is that, while they have the same behavior as platform threads they should not represent the same program concept.
+
+**==Platform threads are scarce, and are therefore a precious resource. Precious resources need to be managed, and the most common way to manage platform threads is with thread pools.==** A question that you then need to answer is, how many threads should we have in the pool?
+
+But virtual threads are plentiful, and so each should represent not some shared, pooled, resource but a task. **==From a managed resource threads turn into application domain objects.==** The question of how many virtual threads we should have becomes obvious, just as the question of how many strings we should use to store a set of user names in memory is obvious: **==The number of virtual threads is always equal to the number of concurrent tasks in your application.==**
+
+
+To represent every application task as a thread, don't use a shared thread pool executor
+
+```java
+Future<ResultA> f1 = sharedThreadPoolExecutor.submit(task1);
+Future<ResultB> f2 = sharedThreadPoolExecutor.submit(task2);
+// ... use futures
+```
+
+Instead, use a virtual thread executor
+```java
+try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+   Future<ResultA> f1 = executor.submit(task1);
+   Future<ResultB> f2 = executor.submit(task2);
+   // ... use futures
+}
+```
+
+The code still uses an ``ExecutorService``, but the one returned from ``Executors.newVirtualThreadPerTaskExecutor()`` doesn't employ a thread pool. Rather, it creates a new virtual thread for each submitted tasks.
+
+Furthermore, that ``ExecutorService`` itself is lightweight, and we can create a new one just as we would with any simple object. That allows us to rely on the newly added ``ExecutorService.close()`` method and the try-with-resources construct. The close method, that is implicitly called at the end of the try block will automatically wait for all tasks submitted to the ``ExecutorService``—that is, all virtual threads spawned by the ``ExecutorService``—to terminate.
+
+**==This is a particularly useful pattern for fanout scenarios, where you wish to concurrently perform multiple outgoing calls to different services==**
+
+```java
+void handle(Request request, Response response) {
+    var url1 = ...
+    var url2 = ...
+ 
+    try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        var future1 = executor.submit(() -> fetchURL(url1));
+        var future2 = executor.submit(() -> fetchURL(url2));
+        response.send(future1.get() + future2.get());
+    } catch (ExecutionException | InterruptedException e) {
+        response.fail(e);
+    }
+}
+ 
+String fetchURL(URL url) throws IOException {
+    try (var in = url.openStream()) {
+        return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+}
+```
+
+As a rule of thumb, if your application never has 10,000 virtual threads or more, it is unlikely to benefit from virtual threads. Either it experiences too light a load to need better throughput, or you have not represented sufficiently many tasks to virtual threads.
+
+#### Don't Cache Expensive Reusable Objects in Thread-Local Variables
+
+Virtual threads support thread-local variables just as platform threads. Usually, thread-local variables are used to associate some context-specific information with the currently running code, such as the current transaction and user ID. This use of thread-local variables is perfectly reasonable with virtual threads. However, consider using the safer and more efficient scoped values.
+
+**==There is another use of thread-local variables which is fundamentally at odds with virtual threads: caching reusable objects. These objects are typically expensive to create (and consume a significant amount of memory), are mutable, and not thread-safe.==** They are cached in a thread-local variable to reduce the number of times they are instantiated and their number of instances in memory, but they are reused by the multiple tasks that run on the thread at different times.
+
+```java
+static final ThreadLocal<SimpleDateFormat> cachedFormatter = 
+       ThreadLocal.withInitial(SimpleDateFormat::new);
+
+void foo() {
+  ...
+	cachedFormatter.get().format(...);
+	...
+}
+```
+
+ Many tasks may call `foo` when running in the thread pool, but because the pool only contains a few threads, the object will only be instantiated a few times—once per pool thread—cached, and reused.
+
+**==However, virtual threads are never pooled and never reused by unrelated tasks. Because every task has its own virtual threads, every call to `foo` from a different task would trigger the instantiation of a new SimpleDateFormat. Moreover, because there may be a great many virtual threads running concurrently, the expensive object may consume quite a lot of memory. These outcomes are the very opposite of what caching in thread locals intends to achieve.==**
+
+
+### Scoped Values
+
+
+
+
+// TODO: ...
+
+
 ##  Synchronized Collections
 
 With the advent of multi-threaded programming, the need for thread-safe collections grew. It is when _Synchronized Collections_ were added to Java’s Collection framework.
