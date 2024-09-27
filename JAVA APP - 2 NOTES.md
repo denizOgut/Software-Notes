@@ -4419,15 +4419,135 @@ void foo() {
 
  Many tasks may call `foo` when running in the thread pool, but because the pool only contains a few threads, the object will only be instantiated a few times—once per pool thread—cached, and reused.
 
-**==However, virtual threads are never pooled and never reused by unrelated tasks. Because every task has its own virtual threads, every call to `foo` from a different task would trigger the instantiation of a new SimpleDateFormat. Moreover, because there may be a great many virtual threads running concurrently, the expensive object may consume quite a lot of memory. These outcomes are the very opposite of what caching in thread locals intends to achieve.==**
+**==However, virtual threads are never pooled and never reused by unrelated tasks. Because every task has its own virtual threads, every call to `foo` from a different task would trigger the instantiation of a new ``SimpleDateFormat``. Moreover, because there may be a great many virtual threads running concurrently, the expensive object may consume quite a lot of memory. These outcomes are the very opposite of what caching in thread locals intends to achieve.==**
 
 
 ### Scoped Values
 
+Developers have traditionally used thread-local variables, introduced in Java 1.2, to help share data between methods on the call stack without resorting to method parameters. A thread-local variable is a variable of type `ThreadLocal`. Despite looking like an ordinary variable, a thread-local variable has one current value per thread; the particular value that is used depends on which thread calls its `get` or `set` methods to read or write its value. Typically, a thread-local variable is declared as a `final static` field and its accessibility is set to `private`, allowing sharing to be restricted to instances of a single class or group of classes from a single code base.
+
+While `ThreadLocal`s have a distinct value set in each thread, the value that is currently set in one thread can be automatically inherited by another thread that the current thread creates if the `InheritableThreadLocal` class is used rather than the `ThreadLocal` class.
+
+#### Problems with Thread-Local Variables
+
+Unfortunately, thread-local variables have numerous design flaws that are impossible to avoid:
+
+- **Unconstrained mutability** — **==Every thread-local variable is mutable: any code that can call the `get()` method of a thread-local variable can also call the `set()` method at any time. This remains true even if the object stored in the thread-local variable is immutable due to all its fields being declared `final`.==** The `ThreadLocal` API allows this in order to support a fully general model of communication, where data can flow in any direction between methods. This flexibility can lead to spaghetti-like data flow and programs in which it is hard to discern which method updates shared state and in what order. The more common need, however, is typically for a one-way transmission of data from one method to others.
+
+- **Unbounded lifetime** — **==Once a thread's copy of a thread-local variable is set via the `set()` method, the value is retained for the lifetime of the thread, or until the `remove()` method is called.==** Unfortunately, developers often forget to call `remove()`, leading to per-thread data being retained longer than necessary. **==This can be particularly problematic with thread pools, where the value of a thread-local variable set in one task could, if not properly cleared, leak into an unrelated task.==** This could potentially lead to security vulnerabilities. In programs that rely on the unconstrained mutability of thread-local variables, there may be no clear point at which it is safe for a thread to call `remove()`, causing memory leaks as per-thread data is not garbage-collected until the thread exits.
+
+- **Expensive inheritance** — The overhead of thread-local variables can become worse when using large numbers of threads, because thread-local variables of a parent thread can be inherited by child threads. Despite the name, **==a thread-local variable is not entirely local to one thread. When a child thread inherits thread-local variables, it must allocate storage for every thread-local variable written in the parent thread, adding significant memory overhead.==** Child threads cannot share storage with the parent thread because the `ThreadLocal` API ensures that changing a thread's copy of the thread-local variable is not visible to other threads. In practice, child threads rarely call the `set()` method on inherited thread-local variables, making this an unnecessary cost.
+
+Virtual threads are lightweight threads implemented by the JDK. Many virtual threads share the same operating system thread, allowing for very large numbers of virtual threads. In addition to being plentiful, virtual threads are cheap enough to represent any concurrent unit of behavior.
+
+Because virtual threads are instances of `Thread`, a virtual thread can have thread-local variables; in fact, the short-lived, [non-pooled](https://openjdk.org/jeps/444#Do-not-pool-virtual-threads) nature of virtual threads makes the problem of long-term memory leaks,  (Calling a thread-local variable's `remove()` method is unnecessary when a thread terminates quickly, since termination automatically removes its thread-local variables.) However, if each of a million virtual threads has its own copy of thread-local variables, the memory footprint may be significant.
+
+#### What are Scoped Values and how to use them?
+
+A _scoped value_ is a container object that allows a data value to be safely and efficiently shared by a method with its direct and indirect callees within the same thread, and with child threads, without resorting to method parameters. It is a variable of type [`ScopedValue`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/ScopedValue.html). Typically, it is is declared as a `final` `static` field, and its accessibility is set to `private` so that it cannot be directly accessed by code in other classes.  **==Unlike a thread-local variable, a scoped value is written once, and is available only for a bounded period during execution of the thread.==**
+
+```java
+public class PaymentGateway
+{
+    public static final ScopedValue<PaymentRequest> PAYMENT_REQUEST = ScopedValue.newInstance();
+   
+    //...
+}
+```
+
+```java
+import static org.jugistanbul.PaymentGateway.PAYMENT_REQUEST;
+
+public class PaymentProcessor
+{
+   public static void createPaymentTask(final PaymentRequest request){
+       ScopedValue.where(PAYMENT_REQUEST, request)
+                   .run(() -> PaymentService.getPaidByCreditCard());
+   }
+}
+```
 
 
+A scoped value and the object to which it is to be bound are passed to the `where()` method as a key and a value argument.
 
-// TODO: ...
+The `run()` call binds the scoped value to the current thread by providing a specific incarnation of it. This makes the scoped value accessible in the `getPaidByCreditCard()` method.
+
+> **==The `where()` is a method of the Carrier class which is one of the inner classes of `ScopedValues`. It maps scoped values as keys, to values and returns a new Carrier hence the `where()` method can be chained.==**
+
+
+```java
+public class PaymentService
+
+{
+
+	public static void getPaidByCreditCard(){
+	
+	ValidationService.checkValidity();
+
+}
+```
+
+```java
+public class ValidationService
+
+{
+
+	public static void checkValidity(){
+	
+		PaymentRequest paymentRequest = PaymentGateway.PAYMENT_REQUEST.get();
+		
+		checkNumber(paymentRequest.cardNumber());
+		
+	}
+
+}
+```
+
+
+The bound scoped value can be read via the value's `get()` method during the lifetime of the `run()` method, the lambda expression, or any method called directly or indirectly from that expression.
+
+After the `run()` method finishes, the binding is destroyed or reverts to its previous value if it was previously bound in the current thread. This explains the meaning of "scoped," referring to the temporary, controlled duration during which the value is accessible within a particular scope.
+
+> **==The value's `get()` call after destroyed bindings will throw an exception. You can use `ScopedValue.isBound()` to check if it has a binding for the current thread.==**
+
+When a scoped value is written once, it becomes immutable, meaning a caller using a scoped value can reliably pass it as a constant to its callees in the same thread.
+
+However, this does not mean that a callee cannot share the same scoped value with a different value with its own callees in the thread. In such cases, the `ScopedValue` API allows a new binding to be established for nested calls, a process known as rebinding.
+
+```java
+import jdk.incubator.concurrent.ScopedValue;
+
+public class ScopedValueExample {
+    // Define a scoped value
+    static final ScopedValue<String> USER = ScopedValue.newInstance();
+
+    public static void main(String[] args) {
+        // Bind the scoped value in the current thread
+        ScopedValue.where(USER, "UserA").run(() -> {
+            System.out.println("Outer method: " + USER.get()); // Prints "UserA"
+            firstMethod();
+
+            // Rebinding the scoped value in a nested call
+            ScopedValue.where(USER, "UserB").run(() -> {
+                System.out.println("Nested method with rebinding: " + USER.get()); // Prints "UserB"
+                secondMethod();
+            });
+
+            System.out.println("Back to outer method: " + USER.get()); // Prints "UserA"
+        });
+    }
+
+    static void firstMethod() {
+        System.out.println("First method: " + USER.get()); // Prints "UserA"
+    }
+
+    static void secondMethod() {
+        System.out.println("Second method: " + USER.get()); // Prints "UserB"
+    }
+}
+```
+
+###  Structured Concurrency
 
 
 ##  Synchronized Collections
