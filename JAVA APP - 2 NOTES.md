@@ -4146,6 +4146,14 @@ Virtual threads are lightweight threads that dramatically reduce the effort of w
 
 A thread is the smallest unit of processing that can be scheduled. It runs concurrently with—and largely independently of—other such units. It's an instance of [java.lang.Thread](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html). There are two kinds of threads, platform threads and virtual threads.
 
+### Goals
+
+- Enable server applications written in the simple thread-per-request style to scale with near-optimal hardware utilization.
+    
+- Enable existing code that uses the `java.lang.Thread` API to adopt virtual threads with minimal change.
+    
+- Enable easy troubleshooting, debugging, and profiling of virtual threads with existing JDK tools.
+
 ### What is a Platform Thread?
 
 A platform thread is implemented as a thin wrapper around an operating system (OS) thread. A platform thread runs Java code on its underlying OS thread, and the platform thread captures its OS thread for the platform thread's entire lifetime. Consequently, the number of available platform threads is limited to the number of OS threads.
@@ -4164,7 +4172,23 @@ Although virtual threads support thread-local variables and inheritable thread-l
 
 ![[Pasted image 20240926215452.png]]
 
+![[Pasted image 20241001195706.png]]
+
+- ==**Running tasks on Virtual Threads is more costly compared to platform threads.**==
+
+- ==**However, the blocking costs of Virtual Threads are incredibly low.**==
+
+- ==**Therefore, running tasks that are subject to blocking via Virtual Threads is a more efficient solution.**==
+
+- ==**It is unwise to run CPU-intensive tasks inside Virtual Threads.**==
+
+- ==**Do not run Parallel Streams with Virtual Threads. Avoid doing I/O operations within Parallel Streams as well.**==
+
+- ==**Doing so will degrade performance.==**
+
 ### Why Use Virtual Threads?
+
+![[Pasted image 20241001195117.png]]
 
 In a server application, a thread is assigned to each incoming request. This approach scales well for moderate-scale applications, e.g., 1000 concurrent requests, but cannot survive 1M concurrent requests, even though we have adequate CPU capacity and IO bandwidth.
 
@@ -4549,6 +4573,229 @@ public class ScopedValueExample {
 
 ###  Structured Concurrency
 
+_Structured concurrency_ is an approach to concurrent programming that preserves the natural relationship between tasks and subtasks, which leads to more readable, maintainable, and reliable concurrent code.
+
+Structured concurrency treats groups of related tasks running in different threads as a single unit of work, thereby streamlining error handling and cancellation, improving reliability, and enhancing observability.
+
+The principal class of the structured concurrency API is [StructuredTaskScope](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html) in the [java.util.concurrent](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/package-summary.html) package. This class enables you coordinate a group of concurrent subtasks as a unit. **==With a ``StructuredTaskScope`` instance, you fork each subtask, which runs them in their own individual thread. After, you join them as a unit.==** As a result, the ``StructuredTaskScope`` ensures that the subtasks are completed before the main task continues.
+#### Goals
+
+- Promote a style of concurrent programming that can eliminate common risks arising from cancellation and shutdown, such as thread leaks and cancellation delays.
+    
+- Improve the observability of concurrent code.
+
+Structured concurrency derives from the simple principle that
+
+> **==_If a task splits into concurrent subtasks then they all return to the same place, namely the task's code block._==**
+
+
+### Basic Usage of the ``StructuredTaskScope`` Class
+
+1. Create a ``StructuredTaskScope``; use it with a `try-with-resources` statement.
+2. Define your subtasks as instances of ``Callable``.
+3. Within the `try` block, fork each subtask in its own thread with ``StructuredTaskScope::fork``.
+4. Call ``StructuredTaskScope::join``.
+5. Handle the outcome from the subtasks.
+6. Ensure that the ``StructuredTaskScope`` is shut down.
+
+![[Pasted image 20240927205605.png]]
+
+Notice that the task scope must wait for all subtasks to finish execution because of the`` join()`` method. Afterward, it can handle the results of the subtask.
+
+```java
+    Callable<String> task1 = ...
+    Callable<Integer> task2 = ...
+
+    try (var scope = new StructuredTaskScope<Object>()) {
+
+        Subtask<String> subtask1 = scope.fork(task1);
+        Subtask<Integer> subtask2 = scope.fork(task2);
+
+        scope.join();
+
+        ... process results/exceptions ...
+
+    } // close
+```
+
+Because the `StructuredTaskScope` was defined in a `try`-with-resources statement, at the end of the `try` block, the `StructuredTaskScope` is shut down, and the task scope waits for threads running any unfinished subtasks to complete.
+
+**==The ``StructuredTaskScope`` class defines the shutdown method to shut down a task scope without closing it. This method cancels all unfinished subtasks by interrupting the threads. In addition, the shutdown method enables subclasses of ``StructuredTaskScope`` to implement a policy that doesn't require all subtasks to finish.==**
+
+#### Common Shutdown Policies: ``ShutdownOnSuccess`` and ``ShutdownOnFailure``
+
+The ``StructuredTaskScope`` class contains two subclasses, ``ShutdownOnFailure`` and ``ShutdownOnSuccess``. These subclasses implement two common shutdown policies. ``ShutdownOnFailure`` cancels all subtasks if one of them fails, while ``ShutdownOnSuccess`` cancels all remaining subtasks if one of them succeeds. **==These shutdown policies are examples of short-circuiting patterns. A short-circuiting pattern encourages subtasks to complete quickly by enabling the main task to interrupt and cancel subtasks whose outcomes are no longer needed.==**
+
+```java
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.StructuredTaskScope.*;
+import java.util.concurrent.StructuredTaskScope.Subtask;
+import java.util.function.*;
+import java.util.stream.*;
+
+public class SCRandomTasks {
+    
+    class TooSlowException extends Exception {
+        public TooSlowException(String s) {
+            super(s);
+        }
+    }
+    
+    public Integer randomTask(int maxDuration, int threshold) throws InterruptedException, TooSlowException {
+        int t = new Random().nextInt(maxDuration);
+        System.out.println("Duration: " + t);
+        if (t > threshold) {
+            throw new TooSlowException("Duration " + t + " greater than threshold " + threshold);
+        }
+        Thread.sleep(t);
+        return Integer.valueOf(t);        
+    }        
+    
+    void handleShutdownOnFailure() throws ExecutionException, InterruptedException {
+        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+            // var t = new SCRandomTasks();
+            var subtasks = IntStream.range(0, 5)
+                                    .mapToObj(i -> scope.fork(() -> randomTask(1000, 850)))
+                                    .toList();
+            scope.join()
+                 .throwIfFailed();
+            var totalDuration = subtasks.stream()
+                                        .map(t -> t.get())
+                                        .reduce(0, Integer::sum);
+            System.out.println("Total duration: " + totalDuration);
+        }
+    }
+    
+    void handleShutdownOnSuccess() throws ExecutionException, InterruptedException {
+        try (var scope = new StructuredTaskScope.ShutdownOnSuccess()) {
+            IntStream.range(0, 5)
+                     .mapToObj(i -> scope.fork(() -> randomTask(1000, 850)))
+                     .toList();
+            scope.join();
+            System.out.println("First task to finish: " + scope.result());
+        }
+    }    
+    
+    public static void main(String[] args) {
+        var myApp = new SCRandomTasks();
+        try {
+            System.out.println("Running handleShutdownOnFailure...");
+            myApp.handleShutdownOnFailure();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        try {
+            System.out.println("Running handleShutdownOnSuccess...");
+            myApp.handleShutdownOnSuccess();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }      
+    }
+}
+```
+
+```text
+Running handleShutdownOnFailure...
+Duration: 359
+Duration: 676
+Duration: 322
+Duration: 591
+Duration: 315
+Total duration: 2263
+Running handleShutdownOnSuccess...
+Duration: 480
+Duration: 40
+Duration: 868
+Duration: 526
+Duration: 532
+First task to finish: 40
+```
+
+The `StructuredTaskScope.ShutdownOnFailure` class captures the first exception thrown by one of its subtasks, then invokes the `shutdown` method. This prevents any new subtasks from starting, interrupts all unfinished threads running other subtasks, and enables the application to continue running. To access the captured exception, call the ``ShutdownOnFailure::exception`` method. If you want to rethrow the exception instead, call the ``ShutdownOnFailure::throwIfFailed`` method
+
+```java
+            scope.join()
+                 .throwIfFailed();
+```
+
+The `StructuredTaskScope.ShutdownOnSuccess` class captures the result of the first subtask to be completed successfully, and like ``ShutdownOnFailure``, invokes the `shutdown` method. To access the result of the subtask that completed successfully, call the ``ShutdownOnSuccess::result`` method
+
+```java
+            System.out.println("First task to finish: " + scope.result());
+```
+
+#### Implement Your Own ``StructuredTaskScope`` Policies
+
+can implement your own ``StructuredTaskScope`` policies that handle subtasks differently than ``ShutdownOnFailure`` and ``ShutdownOnSuccess``. Do this by extending the ``StructuredTaskScope`` class.
+
+```java
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.*;
+
+public class CollectingScope<T> extends StructuredTaskScope<T> {
+    private final Queue<Subtask<? extends T>> successSubtasks = new LinkedTransferQueue<>();
+    private final Queue<Subtask<? extends T>> failedSubtasks = new LinkedTransferQueue<>();
+
+    @Override
+    protected void handleComplete(Subtask<? extends T> subtask) {
+        if (subtask.state() == Subtask.State.SUCCESS) {
+            successSubtasks.add(subtask);
+        } else if (subtask.state() == Subtask.State.FAILED) {
+            failedSubtasks.add(subtask);
+        }
+    }
+
+    @Override
+    public CollectingScope<T> join() throws InterruptedException {
+        super.join();
+        return this;
+    }
+
+    public Stream<Subtask<? extends T>> successfulTasks() {
+        super.ensureOwnerAndJoined();
+        return successSubtasks.stream();
+    }
+    
+    public Stream<Subtask<? extends T>> failedTasks() {
+        super.ensureOwnerAndJoined();
+        return failedSubtasks.stream();
+    }  
+}
+
+    void handleBoth() throws InterruptedException {
+        try (var scope = new CollectingScope())  {
+            // var t = new SCRandomTasks();
+            var subtasks = IntStream.range(0, 5)
+                                    .mapToObj(i -> scope.fork(() -> randomTask(1000, 500)))
+                                    .toList();
+            scope.join();
+
+            var totalDuration = scope.successfulTasks()
+                                     .mapToInt(st -> (Integer)((Subtask)st).get())
+                                     .reduce(0, Integer::sum);
+            System.out.println("Total duration: " + totalDuration);
+            
+            scope.failedTasks()
+                 .forEach(ft ->
+                    System.out.println(((Exception)((Subtask)ft).exception()).getMessage()));
+        }        
+    }
+```
+
+```text
+Duration: 501
+Duration: 211
+Duration: 661
+Duration: 903
+Duration: 839
+Total duration: 211
+Duration 501 greater than threshold 500
+Duration 661 greater than threshold 500
+Duration 903 greater than threshold 500
+Duration 839 greater than threshold 500
+```
 
 ##  Synchronized Collections
 
