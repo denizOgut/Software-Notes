@@ -35,9 +35,11 @@
             "id": "1f355dcccca4b015",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png"
+                "file": "Apache Kafka Notes.md",
+                "mode": "source",
+                "source": false
               }
             }
           }
@@ -108,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png",
+                "file": "Apache Kafka Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -125,7 +127,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png",
+                "file": "Apache Kafka Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -148,7 +150,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png"
+                "file": "Apache Kafka Notes.md"
               }
             }
           },
@@ -183,8 +185,9 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "1f355dcccca4b015",
   "lastOpenFiles": [
+    "Google Remote Procedure Call Notes.md",
     "Apache Kafka Notes.md",
     "Apache Kafka Screenshots",
     "Apache Kafka Screenshots/Pasted image 20241006143107.png",
@@ -201,7 +204,6 @@
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "Reactive Programming.md",
     "JAVA APP - 2 NOTES.md",
-    "Google Remote Procedure Call Notes.md",
     "Elasticsearch Notes.md",
     "Golang Notes.md",
     "Java Network Programming Notes.md",

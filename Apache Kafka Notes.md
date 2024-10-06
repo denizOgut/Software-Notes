@@ -201,3 +201,112 @@ Zookeeper keeps track of things like:
 
 ![[Pasted image 20241006143107.png]]
 
+# Spring Example
+
+```xml
+  <dependencies>
+
+    <dependency>
+
+      <groupId>org.springframework.boot</groupId>
+
+      <artifactId>spring-boot-starter</artifactId>
+
+    </dependency>
+
+    <dependency>
+
+      <groupId>org.springframework.kafka</groupId>
+
+      <artifactId>spring-kafka</artifactId>
+
+    </dependency>
+
+    <dependency>
+
+      <groupId>org.springframework.boot</groupId>
+
+      <artifactId>spring-boot-starter-test</artifactId>
+
+      <scope>test</scope>
+
+    </dependency>
+
+    <dependency>
+
+      <groupId>org.springframework.kafka</groupId>
+
+      <artifactId>spring-kafka-test</artifactId>
+
+      <scope>test</scope>
+
+    </dependency>
+
+  </dependencies>
+```
+
+```JAVA
+public class User {
+
+    private String name;
+    private int age;
+
+    public User(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+```
+
+```yml
+server: port: 9000
+spring:
+   kafka:
+     consumer:
+        bootstrap-servers: localhost:9092
+        group-id: group_id
+        auto-offset-reset: earliest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+     producer:
+        bootstrap-servers: localhost:9092
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+```
+
+```java
+@Service  
+public class Producer {  
+  
+    private static final Logger logger = LoggerFactory.getLogger(Producer.class);  
+    private static final String TOPIC = "users";  
+  
+    @Autowired  
+    private KafkaTemplate<String, String> kafkaTemplate;  
+  
+    public void sendMessage(String message) {  
+        logger.info(String.format("#### -> Producing message -> %s", message));  
+        this.kafkaTemplate.send(TOPIC, message);  
+    }  
+  
+}
+```
+
+```java
+@Service  
+public class Producer {  
+  
+    private static final Logger logger = LoggerFactory.getLogger(Producer.class);  
+    private static final String TOPIC = "users";  
+  
+    @Autowired  
+    private KafkaTemplate<String, String> kafkaTemplate;  
+  
+    public void sendMessage(String message) {  
+        logger.info(String.format("#### -> Producing message -> %s", message));  
+        this.kafkaTemplate.send(TOPIC, message);  
+    }  
+  
+}
+```
+
