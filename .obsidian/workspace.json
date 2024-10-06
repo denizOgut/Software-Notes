@@ -25,14 +25,24 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Reactive Programming.md",
+                "file": "RabbitMQ Notes.md",
                 "mode": "source",
                 "source": false
               }
             }
+          },
+          {
+            "id": "1f355dcccca4b015",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png"
+              }
+            }
           }
         ],
-        "currentTab": 1
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -98,7 +108,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Reactive Programming.md",
+                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -115,7 +125,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Reactive Programming.md",
+                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -138,7 +148,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Reactive Programming.md"
+                "file": "Apache Kafka Screenshots/Pasted image 20241006124351.png"
               }
             }
           },
@@ -173,31 +183,33 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "d679473eaf2e4519",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "JAVA APP Screen Shots/Pasted image 20241001195117.png",
-    "JAVA APP - 2 NOTES.md",
-    "JAVA APP Screen Shots/Pasted image 20241001195706.png",
-    "Google Remote Procedure Call Notes.md",
-    "JAVA APP Screen Shots/Pasted image 20240927205605.png",
-    "Elasticsearch Notes.md",
-    "JAVA APP Screen Shots/Pasted image 20240926215452.png",
+    "Apache Kafka Notes.md",
+    "Apache Kafka Screenshots",
+    "Apache Kafka Screenshots/Pasted image 20241006143107.png",
+    "Apache Kafka Screenshots/Pasted image 20241006142344.png",
+    "Apache Kafka Screenshots/Pasted image 20241006142254.png",
+    "Apache Kafka Screenshots/Pasted image 20241006140936.png",
+    "Apache Kafka Screenshots/Pasted image 20241006140613.png",
+    "Apache Kafka Screenshots/Pasted image 20241006134919.png",
+    "Apache Kafka Screenshots/Pasted image 20241006134845.png",
+    "Apache Kafka Screenshots/Pasted image 20241006134843.png",
+    "Apache Kafka Screenshots/Pasted image 20241006134743.png",
+    "Apache Kafka Screenshots/Pasted image 20241006134554.png",
+    "RabbitMQ Notes.md",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Reactive Programming.md",
+    "JAVA APP - 2 NOTES.md",
+    "Google Remote Procedure Call Notes.md",
+    "Elasticsearch Notes.md",
     "Golang Notes.md",
     "Java Network Programming Notes.md",
-    "Reactive Programming.md",
     "Spring Webflux.md",
     "Spring WebFlux Screenshots",
-    "Spring WebFlux Screenshots/Pasted image 20240918161911.png",
-    "Spring WebFlux Screenshots/Pasted image 20240918155751.png",
-    "Spring WebFlux Screenshots/Pasted image 20240918115857.png",
-    "Reactive Programming Screenshots/Pasted image 20240914124026.png",
-    "Reactive Programming Screenshots/Pasted image 20240914124954.png",
-    "Reactive Programming Screenshots/Pasted image 20240914124542.png",
     "Reactive Programming Screenshots",
     "GRPC Screenshots",
     "JAVA APP - 1 NOTES.md",
-    "RabbitMQ Notes.md",
     "202408162105.md",
     "EFFECTIVE JAVA NOTES.md",
     "Java Network Programming Screenshots",
