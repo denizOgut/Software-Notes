@@ -37,14 +37,24 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Apache Kafka Notes.md",
+                "file": "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
                 "mode": "source",
                 "source": false
               }
             }
+          },
+          {
+            "id": "f889130cdb090e9f",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "Database Fundamentals Screenshots/Pasted image 20241010204711.png"
+              }
+            }
           }
         ],
-        "currentTab": 2
+        "currentTab": 3
       }
     ],
     "direction": "vertical"
@@ -110,7 +120,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Apache Kafka Notes.md",
+                "file": "Database Fundamentals Screenshots/Pasted image 20241010204711.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -127,7 +137,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Apache Kafka Notes.md",
+                "file": "Database Fundamentals Screenshots/Pasted image 20241010204711.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -150,7 +160,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Apache Kafka Notes.md"
+                "file": "Database Fundamentals Screenshots/Pasted image 20241010204711.png"
               }
             }
           },
@@ -185,23 +195,25 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "1f355dcccca4b015",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Google Remote Procedure Call Notes.md",
-    "Apache Kafka Notes.md",
-    "Apache Kafka Screenshots",
-    "Apache Kafka Screenshots/Pasted image 20241006143107.png",
-    "Apache Kafka Screenshots/Pasted image 20241006142344.png",
-    "Apache Kafka Screenshots/Pasted image 20241006142254.png",
-    "Apache Kafka Screenshots/Pasted image 20241006140936.png",
-    "Apache Kafka Screenshots/Pasted image 20241006140613.png",
-    "Apache Kafka Screenshots/Pasted image 20241006134919.png",
-    "Apache Kafka Screenshots/Pasted image 20241006134845.png",
-    "Apache Kafka Screenshots/Pasted image 20241006134843.png",
-    "Apache Kafka Screenshots/Pasted image 20241006134743.png",
-    "Apache Kafka Screenshots/Pasted image 20241006134554.png",
-    "RabbitMQ Notes.md",
+    "Database Fundamentals Notes.md",
+    "Database Fundamentals Screenshots",
+    "Database Fundamentals Screenshots/Pasted image 20241010221137.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010220958.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010215924.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010215320.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010214519.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010213408.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010212320.png",
+    "Pasted image 20241010211644.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010212241.png",
+    "Database Fundamentals Screenshots/Pasted image 20241010211603.png",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
+    "Apache Kafka Notes.md",
+    "Google Remote Procedure Call Notes.md",
+    "Apache Kafka Screenshots",
+    "RabbitMQ Notes.md",
     "Reactive Programming.md",
     "JAVA APP - 2 NOTES.md",
     "Elasticsearch Notes.md",
@@ -224,7 +236,6 @@
     "Excalidraw/Drawing 2024-02-07 14.41.32.excalidraw.md",
     "Excalidraw",
     "JAVA APP KEY NOTES.md",
-    "Algorithms_4TH Edition Summary.md",
-    "JAVA APP Screen Shots"
+    "Algorithms_4TH Edition Summary.md"
   ]
 }
