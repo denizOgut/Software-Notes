@@ -649,3 +649,208 @@ for instance, the server performing a lookup of an item in a large table on the 
 
 # B-Tree & B+Tree
 
+## Full Table Scans
+
+A **Full Table Scan** is a type of database query execution strategy where the database system reads all the rows in a table sequentially to find the rows that match the query's conditions. This contrasts with using indexes, which allow the database to locate rows more efficiently without scanning the entire table.
+
+### Characteristics of Full Table Scans:
+
+1. **No Index Used:** Full table scans occur when no relevant index exists on the columns involved in the query, or the optimizer decides that scanning the whole table is more efficient than using an index.
+2. **High Resource Consumption:** Full table scans can be resource-intensive, especially for large tables, as every row must be examined.
+3. **Sequential Access:** The database reads the rows one by one, which might benefit from prefetching or reading multiple rows in blocks.
+4. **Predicate Filtering:** The filtering of rows that match the query’s conditions happens after all rows have been retrieved during the scan.
+
+### When Full Table Scans Happen:
+
+- No index is available for the column(s) involved in the `WHERE` clause.
+- The query retrieves a large portion of the table’s rows, making an index less useful.
+- The query optimizer determines that scanning the whole table is more efficient than using an index (e.g., when the query needs most of the rows).
+- In some cases of `OR` conditions, where no composite index covers all fields.
+
+### When Full Table Scans Are Acceptable:
+
+- If the table is small, full table scans might not be detrimental to performance.
+- When retrieving most or all rows, it might be more efficient than using an index.
+
+## B-Tree
+
+A **B-tree** is a self-balancing search tree data structure that maintains sorted data and allows for efficient insertion, deletion, and search operations.
+
+![[Pasted image 20241014134001.png]]
+
+### Why do you need a B-tree data structure?
+
+A **B-tree** data structure is needed for efficient data storage and retrieval, especially in databases and file systems. It keeps data sorted and allows fast insertion, deletion, and searching, even with large datasets. B-trees minimize disk I/O by maintaining a balanced structure, ensuring that operations like searching for a value, inserting new data, or deleting data can be done in logarithmic time (O(log n)). This makes them ideal for handling large blocks of data where access speed is crucial.
+
+### Key Properties of B-Trees
+
+B-trees have several critical properties that make them efficient:
+
+1. **All leaves are at the same level**: This ensures that the path length from the root to any leaf is always the same, providing balanced access times.
+2. **Nodes have a variable number of children**: Each node in a B-tree can have a variable number of children, ranging from a predefined minimum to a maximum number. This flexibility helps maintain balance in the tree.
+3. **Keys are stored in sorted order**: Each node contains keys that are sorted in non-decreasing order. This sorting allows for efficient searching and sequential access.
+4. **Nodes have a minimum and maximum number of keys**: For a B-tree of order `m` (maximum number of children a node can have), each node (except the root) must have at least `⌈m/2⌉ - 1` keys and at most `m - 1` keys. This ensures that nodes are never too sparse or too full.
+
+
+**==● Balanced Data structure for fast traversal**==
+==**● B-Tree has Nodes**==
+==**● In B-Tree of “m” degree some nodes can have (m) child nodes**==
+==**● Node has up to (m-1) elements**==
+==**● Each element has a key and a value**==
+==**● The value is usually data pointer to the row**==
+==**● Data pointer can point to primary key or tuple**==
+==**● Root Node, internal node and leaf nodes**==
+==**● A node = disk page==**
+
+### Limitation B-Tree
+
+**==● Elements in all nodes store both the key and the value**==
+==**● Internal nodes take more space thus require more IO and can slow down traversal**==
+==**● Range queries are slow because of random access (give me all values 1-5)**==
+==**● B+Tree solves both these problems**==
+==**● Hard to fit internal nodes in memory==**
+
+## B+Tree
+
+A B+ tree is a type of multi-way search tree that maintains sorted data and allows for efficient insertion, deletion, and search operations. **==Unlike a B-tree, which stores both keys and data in internal and leaf nodes, a B+ tree only stores keys in its internal nodes and keeps all the data in the leaf nodes.==** This distinction allows for improved efficiency in searching and sequential access, making B+ trees a preferred choice for database indexing and file systems.
+
+![[Pasted image 20241014135615.png]]
+
+### Why do you need a B+tree data structure?
+
+A **B+ tree** is needed for efficient range queries and data retrieval in databases and file systems. It extends B-trees by storing all data in the leaf nodes and linking them, enabling fast sequential access and range queries. Like B-trees, it ensures balanced structure and logarithmic time operations (O(log n)) but is more optimized for disk access and scanning large datasets, making it ideal for database indexing.
+
+### Characteristics of B+ Trees
+
+B+ trees are known for several characteristics that make them highly effective for large-scale data management:
+
+1. **Balanced Structure**: The height of a B+ tree is always balanced, meaning all paths from the root to the leaf nodes are of the same length. This balance ensures that search, insertion, and deletion operations have a logarithmic time complexity, typically O(log n), where n is the number of keys in the tree.
+
+2. **High Fan-out**: Due to the high branching factor (fan-out) of B+ trees, each internal node can point to a large number of child nodes. This high fan-out minimizes the height of the tree, which reduces the number of disk I/O operations needed during search operations, improving overall performance.
+
+3. **Sequential Access and Range Queries**: The leaf nodes of a B+ tree are linked in a sorted order, allowing for efficient sequential access. This structure is particularly advantageous for range queries, as the linked list of leaf nodes enables traversal through contiguous data blocks without backtracking through internal nodes.
+
+4. **Efficient Disk I/O**: B+ trees are optimized for disk storage. By aligning node sizes with disk page sizes, B+ trees minimize the number of disk reads and writes required to perform various operations. This efficiency makes them well-suited for environments where data is too large to fit entirely in memory and must be stored on disk.
+
+5. **Scalability**: B+ trees are highly scalable due to their logarithmic height growth. As more data is added, the tree grows taller in a controlled manner, maintaining performance and avoiding significant degradation.
+
+
+
+**==● Exactly like B-Tree but only stores keys in internal nodes**==
+==**● Values are only stored in leaf nodes**==
+==**● Internal nodes are smaller since they only store keys and they can fit more elements**==
+==**● Leaf nodes are “linked” so once you find a key you can find all values before and after that key.**==
+==**● Great for range queries==**
+
+# Partitioning
+
+## What is Partitioning?
+
+**Data partitioning** is a technique used to divide a large dataset into smaller, more manageable pieces called partitions. These partitions are usually spread across multiple database tables, contain their own subset of data, and can be overlapping or non-overlapping. Each partition can be thought of as a separate database, but they are still part of the same logical database.
+
+The purpose of database partitioning is to improve the database's performance, scalability, and availability. By dividing the data into smaller pieces, managing and processing large amounts of data becomes simpler.
+
+![[Pasted image 20241014182021.png]]
+
+## Why Is Data Partitioning Important?
+
+- **Improved performance**: Partitioning a database can significantly improve the performance of queries and transactions. By dividing a large database into smaller partitions, we can reduce the amount of data that needs to be processed, improving the speed of queries by reducing the amount of contention for shared resources such as CPU and I/O.
+    
+- **Availability**: While availability is not a “byproduct” of partitioning, by dividing the data into multiple and smaller partitions, we can create redundant copies (replicas) of the data and distribute these partitions across multiple systems. This helps ensure the data remains available even if one partition or server fails. Still, availability can be considered a goal—not a result—of data partitioning.
+    
+- **Scalability**: Partitioning a database can make it easier to scale the database as the size and complexity of the data increases. By dividing the data into smaller partitions, we can add more servers or storage devices to handle the increased workload.
+    
+- **Manageability**: Partitioning a database can make it easier to manage. We can simplify backups, maintenance, and other management tasks by dividing the data into smaller partitions.
+
+## Horizontal, Vertical, and Hybrid Partitioning
+
+Horizontal partitioning involves dividing the data based on rows, while vertical partitioning involves dividing the data based on columns. Hybrid partitioning is a combination of both horizontal and vertical partitioning.
+
+### Horizontal partitioning
+
+By using horizontal partitioning, complete rows of a table are assigned to the partitions. So, each partition contains the same attributes but fewer tuples (in relational databases, like PostgreSQL and Timescale, a tuple is one record, i.e., one row) than the whole dataset. Usually, this type of partitioning is non-overlapping. It means that one tuple belongs to exactly one partition.
+
+![[Pasted image 20241014182844.png]]
+
+**==One thing to note with horizontal partitioning is that the performance depends heavily on how evenly distributed the data is across the partitions. If the data distribution is skewed, the partition with the most records will become the bottleneck.==**
+
+### Vertical partitioning
+
+By using vertical partitioning, the attributes of a tuple are split and assigned to different partitions. Each partition contains the same amount of tuples but a different amount of attributes.
+
+![[Pasted image 20241014184733.png]]
+
+**==In most cases, one attribute (often the primary key) is part of all partitions. This attribute is used to reconstruct the tuple when it is read. The attributes that belong to each partition are often directly specified by their name when the partitions are created.==**
+
+You can use vertical partitioning to store different attribute partitions on separate storage volumes. This allows storing less frequently accessed attributes on slower and more cost-effective volumes, while more frequently accessed or modified attributes can be stored on faster and more expensive volumes. Another application is to assign different permissions to these partitions to restrict access to certain attributes.
+
+One of the downsides to vertical partitioning is that when a query needs to span multiple partitions, combining the results from those partitions may be slow or complicated. Also, as the database scales, partitions may need to be split even further to meet the demand.
+
+### Hybrid partitioning
+
+Hybrid partitioning combines horizontal and vertical partitioning. So, tuples are assigned to different partitions using horizontal partitioning, and the attributes of the tuples are partitioned and assigned to different partitions using vertical partitioning. So, each partition contains fewer attributes and fewer tuples than the whole dataset.
+
+Even if such a partitioning schema is more complex to manage, it allows the creation of small partitions and the different handling of certain attributes (e.g., storing them on different volumes; see vertical partitioning).
+
+## Partitioning Types
+
+● By Range
+	○ Dates, ids (e.g. by logdate or ``customerid`` from to)
+● By List
+	○ Discrete values (e.g. states CA, AL, etc.) or zip codes
+● By Hash
+	○ Hash functions (consistent hashing)
+
+
+# Sharding
+
+## What is sharding?
+
+Sharding is a strategy for **scaling out your database** by storing partitions of your data across multiple servers instead of putting everything on a single giant one. Each partition of data is called a shard. Splitting your database out into shards can help reduce the load on your database, leading to improved performance.
+
+## Consistent Hashing
+
+Consistent hashing is a technique that works independently of the number of servers. **One of the main goals of consistent hashing is to reduce data redistribution**.
+
+### How Does Consistent Hashing Work?
+
+1. First, we decide the output range of a hash function. For example, _2**32_ or _INT_MAX_ or any other value_._ This range is called _hash space_
+2. Then we map this hash space on a logical circle called the _hash ring_
+3. Next, we hash all the servers using a hash function and map them on the hash ring
+4. Similarly, we hash all the keys using the same hash function and map them on the same hash ring
+5. Finally, we traverse in the clockwise direction to locate a server
+
+![[Pasted image 20241014222848.png]]
+
+Now, to locate a server for a particular object, we traverse in a clockwise direction from the current position. The traversal stops when we find the required server.
+
+![[Pasted image 20241014223229.png]]
+
+consistent hashing is independent of the number of servers in the cluster. Hence only a small number of objects need to be redistributed when there is a change in the number of servers.
+
+For example, if we remove server _S2,_ we just need to redistribute the key _K8_ to the next server, which comes in a clockwise direction. Similarly, if we add a new server between the servers _S4_ and _S1_ then we just need to redistribute the key _K6_ to the newly added server.
+
+In this way, consistent hashing allows elasticity in the cluster with minimal object redistribution.
+
+## Horizontal Partitioning vs Sharding
+
+**==● HP splits big table into multiple tables in the same database**==
+==**● Sharding splits big table into multiple tables across multiple database servers**==
+==**● HP table name changes (or schema)**==
+==**● Sharding everything is the same but server changes==**
+
+## Pros & Cons Sharding
+
+### Pros of Sharding:
+
+1. **Scalability**: Sharding allows horizontal scaling by distributing data across multiple servers, enabling systems to handle large datasets and traffic efficiently.
+2. **Performance Improvement**: By splitting data into shards, queries are processed in parallel across multiple servers, reducing query times and balancing the load.
+3. **Fault Tolerance**: If one shard or server fails, the system can continue functioning with the remaining shards, improving availability.
+4. **Resource Efficiency**: It allows better utilization of server resources (CPU, memory, storage), as each shard handles a smaller subset of the total data.
+### Cons of Sharding:
+
+1. **Complexity**: Implementing sharding adds significant complexity to the system, including managing shard distribution, rebalancing, and maintaining consistency across shards.
+2. **Operational Overhead**: Tasks like backups, recovery, and migrations become more complicated, as they must be done shard by shard.
+3. **Cross-Shard Queries**: Queries involving multiple shards (e.g., joins across shards) can be slow and complex, requiring additional logic for aggregating results.
+4. **Shard Imbalance**: Uneven data distribution can lead to some shards being overloaded while others are underused, reducing the efficiency of sharding.
+

@@ -4,17 +4,15 @@
     "type": "split",
     "children": [
       {
-        "id": "5886c8546a8d6b71",
+        "id": "70d24333217ac14d",
         "type": "tabs",
         "children": [
           {
-            "id": "bd64499c484932ee",
+            "id": "3fb6ba6d495cc1eb",
             "type": "leaf",
             "state": {
-              "type": "image",
-              "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241013220920.png"
-              }
+              "type": "empty",
+              "state": {}
             }
           }
         ]
@@ -83,7 +81,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241013220920.png",
+                "file": "Database Fundamentals Screenshots/Pasted image 20241014222848.png",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +98,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241013220920.png",
+                "file": "Database Fundamentals Screenshots/Pasted image 20241014222848.png",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -123,7 +121,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241013220920.png"
+                "file": "Database Fundamentals Screenshots/Pasted image 20241014222848.png"
               }
             }
           },
@@ -158,25 +156,25 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "bd64499c484932ee",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
     "Database Fundamentals Notes.md",
-    "Database Fundamentals Screenshots/Pasted image 20241013220920.png",
-    "Database Fundamentals Screenshots/Pasted image 20241013220706.png",
-    "Database Fundamentals Screenshots/Pasted image 20241013220625.png",
-    "Database Fundamentals Screenshots/Pasted image 20241013215112.png",
-    "Database Fundamentals Screenshots/Pasted image 20241013204209.png",
-    "Database Fundamentals Screenshots/Pasted image 20241013205030.png",
-    "Database Fundamentals Screenshots/Pasted image 20241011174436.png",
-    "Database Fundamentals Screenshots/Pasted image 20241011193731.png",
-    "Database Fundamentals Screenshots/Pasted image 20241011193352.png",
-    "Database Fundamentals Screenshots/Pasted image 20241011193342.png",
+    "Database Fundamentals Screenshots/Pasted image 20241014223229.png",
+    "Database Fundamentals Screenshots/Pasted image 20241014222848.png",
+    "Pasted image 20241014221046.png",
+    "Pasted image 20241014221145.png",
+    "Database Fundamentals Screenshots/Pasted image 20241014182021.png",
+    "Database Fundamentals Screenshots/Pasted image 20241014184733.png",
+    "Pasted image 20241014184700.png",
+    "Database Fundamentals Screenshots/Pasted image 20241014182844.png",
+    "Database Fundamentals Screenshots/Pasted image 20241014135615.png",
+    "Database Fundamentals Screenshots/Pasted image 20241014135609.png",
+    "RabbitMQ Notes.md",
     "Google Remote Procedure Call Notes.md",
     "Database Fundamentals Screenshots",
     "OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "Apache Kafka Notes.md",
     "Apache Kafka Screenshots",
-    "RabbitMQ Notes.md",
     "Reactive Programming.md",
     "JAVA APP - 2 NOTES.md",
     "Elasticsearch Notes.md",
