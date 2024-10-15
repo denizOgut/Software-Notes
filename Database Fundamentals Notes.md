@@ -943,3 +943,175 @@ Two-phase Locking is further classified into three types :
 
 # Database Replication
 
+Database replication is **the process of creating copies of a database and storing them across various on-premises or cloud destinations**. It improves data availability and accessibility.
+
+## Master/Standby Replication
+
+this model employs a single Leader/Master node for write and data definition operations, such as database alterations, while follower/backup/standby nodes replicate and synchronize data from the master. This structure simplifies implementation by avoiding write conflicts, as only the master node handles write transactions.
+
+![[Pasted image 20241015153524.png]]
+
+## Multi-Leader Replication
+
+Expanding on the leader-follower model, multi-leader replication allows multiple nodes to accept writes, enhancing write availability and system resilience. This strategy excels in distributed environments but requires sophisticated conflict resolution to manage concurrent data modifications.
+
+![[Pasted image 20241015153711.png]]
+
+## Leaderless Replication
+
+Leaderless replication models represent a paradigm shift towards distributed authority in data management. By eliminating the traditional leader-follower hierarchy, these systems distribute write operations across nodes, leveraging consensus mechanisms to ensure data integrity and consistency.
+
+![[Pasted image 20241015153803.png]]
+
+## Synchronous Replication
+
+This method ensures strict data consistency by waiting for acknowledgment from all follower nodes before completing write operations. While it guarantees that followers always have the latest data, it introduces write latency, particularly in geographically dispersed setups.
+
+![[Pasted image 20241015154021.png]]
+
+## Asynchronous Replication
+
+Enhancing performance, asynchronous replication allows the leader to proceed with operations without immediate acknowledgment from followers. This approach reduces write latency but risks data loss if the leader fails before followers are updated, leading to eventual consistency challenges.
+
+![[Pasted image 20241015154306.png]]
+
+# Database Engines
+
+Database engines act as a bridge between the database's data and the user, facilitating interaction with the information stored there. MySQL, Oracle, and SQL Server are just a few of the most well-known database management systems.
+
+1. **Relational Database Management Systems (RDBMS):**
+
+- Relational database engines are the most traditional type of database engines.
+- They organize data into tables with rows and columns, following a predefined schema.
+- SQL (Structured Query Language) is typically used to interact with relational databases.
+- Examples include MySQL, PostgreSQL, Oracle Database, Microsoft SQL Server, and SQLite.
+
+2. **NoSQL Databases:**
+
+- NoSQL databases are designed to handle large volumes of unstructured or semi-structured data.
+- They provide flexibility in data storage and retrieval and can scale horizontally to handle high throughput and distributed data.
+- NoSQL databases are categorized into different types, including document-oriented, key-value stores, column-family stores, and graph databases.
+- Examples include MongoDB (document-oriented), Cassandra (column-family), Redis (key-value), and Neo4j (graph).
+
+3. **NewSQL Databases:**
+
+- NewSQL databases aim to combine the scalability and flexibility of NoSQL databases with the ACID (Atomicity, Consistency, Isolation, Durability) properties of traditional relational databases.
+- They are designed for high-performance, scalable, and distributed database systems.
+- NewSQL databases provide improved horizontal scalability and support for distributed transactions.
+- Examples include Google Spanner, CockroachDB, and NuoDB.
+
+4. **In-Memory Databases:**
+
+- In-memory databases store data primarily in system memory (RAM) rather than on disk.
+- They offer extremely fast read and write operations, making them ideal for real-time analytics, caching, and high-performance applications.
+- In-memory databases can be relational or NoSQL, depending on the data model and requirements.
+- Examples include Redis (key-value store), Memcached (distributed memory caching system), and SAP HANA (in-memory relational database).
+
+4. **Graph Databases:**
+
+- Graph databases are optimized for storing and querying graph data structures, such as nodes, edges, and properties.
+- They excel at traversing relationships between entities and are used for applications like social networks, recommendation systems, and network analysis.
+- Graph databases provide efficient graph traversal algorithms and support for complex graph queries.
+- Examples include Neo4j, Amazon Neptune, and Microsoft Azure Cosmos DB (graph API).
+
+5. **Time-Series Databases:**
+
+- Time-series databases are optimized for storing and analyzing time-stamped data, such as sensor data, log files, and IoT (Internet of Things) telemetry.
+- They provide efficient storage and retrieval of time-series data and support for time-based queries and aggregations.
+- Time-series databases are designed to handle high volumes of time-stamped data with low latency and high throughput.
+- Examples include InfluxDB, Prometheus, and TimescaleDB.
+
+# Cursor
+
+A cursor is a short-term memory space formed in the computer's memory when a SQL statement runs. It contains details about a select statement and the data rows it traverses. This temporary space is employed to keep and adjust the retrieved data. While a cursor can grasp multiple rows, it processes only one at a time, known as the active set of rows because it is designed to fetch and handle data one row at a time, not the entire dataset simultaneously. The cursor is mainly beneficial for programmers managing individual records, especially for hard queries or real-time data updates.
+
+It proves a handy tool for large result sets, enhancing data access efficiency without needing the complete dataset retrieval.
+
+![[Pasted image 20241015204954.png]]
+
+## Implicit Cursors
+
+Implicit cursors are automatically generated by the database system when you run an SQL statement. They're like behind-the-scenes assistants handling single-row queries without any human intervention. These cursors get started, retrieve data, and finish their task on their own.
+
+Whenever you perform basic database actions like INSERT, UPDATE, DELETE, or a SELECT that returns just one row, these cursors silently come into play.
+
+The implicit cursor in DBMS comes with the following attributes:
+
+- **SQL%FOUND**:  
+    This attribute is like a boolean flag. It returns TRUE if the most recent SQL statement affected at least one row, and FALSE if there was no impact. It is generated after the execution of the SELECT INTO command that retrieves one or more rows, or after DML actions like INSERT, DELETE, and UPDATE.
+    
+- **SQL%NOTFOUND**:  
+    This attribute is the reverse of SQL%FOUND. It returns TRUE if the recent SQL statement did not alter any rows and FALSE if it did. It is also used after a SELECT INTO or DML operation.
+    
+- **SQL%ROWCOUNT**:  
+    This attribute provides the count of rows affected by the last SQL statement. It's valuable for determining how many rows were updated, deleted, or inserted. After a SELECT INTO or DML operation, it shows the number of rows involved.
+    
+- **SQL%ISOPEN**:  
+    This attribute indicates whether the implicit cursor is currently active or open. However, for implicit cursors, it always returns FALSE. Implicit cursors automatically close after executing the related SQL statements, so they are never seen as open.
+
+```sql
+DECLARE
+    v_salary NUMBER := &salary;
+    v_rowcount NUMBER;
+
+BEGIN
+    -- Implicit cursor for the UPDATE statement
+    UPDATE emp SET eid = &eid WHERE salary = v_salary;
+    
+    -- Get the row count affected by the UPDATE statement
+    v_rowcount := SQL%ROWCOUNT;
+
+    IF SQL%FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Success: ' || v_rowcount || ' row(s) updated.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Failed: No rows were updated.');
+    END IF;
+
+    DBMS_OUTPUT.PUT_LINE('Total row count: ' || v_rowcount);
+
+END;
+```
+
+If the update is successful and affects three rows, the output might look like this:
+
+```plaintext
+Success: 3 row(s) updated.
+Total row count: 3
+```
+
+If the update fails to affect any rows, the output could be:
+
+```plaintext
+Failed: No rows were updated.
+Total row count: 0
+```
+
+## Explicit Cursors
+
+**==Explicit cursors are required when executing a SELECT statement with more than one row. Despite storing multiple records, these cursors process only one record at a time, known as the current row. When fetching a row, the current row position moves to the next one.==**
+
+![[Pasted image 20241015205145.png]]
+
+```SQL
+DECLARE 
+   id employees.ID%type; 
+   name employees.NAME%type; 
+   CURSOR c_employees is 
+      SELECT ID, NAME FROM employees; 
+BEGIN 
+   OPEN c_employees; 
+   LOOP 
+   FETCH c_employees into id , name; 
+      EXIT WHEN c_employees %notfound; 
+      dbms_output.put_line(id || ' ' || name); 
+   END LOOP; 
+   CLOSE c_employees ; 
+END; 
+
+```
+
+- Cursors are temporary memory spaces used to control individual records, enabling developers to handle complex queries and real-time data updates.
+- Created by programmers, explicit cursors are essential for SELECT statements returning multiple rows.
+- Automatically generated by the database system, implicit cursors assist in single-row queries, performing tasks that return only one row.
+- Cursors play a main role in improving the functionality of Database Management Systems.
+
