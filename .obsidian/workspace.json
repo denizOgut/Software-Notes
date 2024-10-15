@@ -4,16 +4,18 @@
     "type": "split",
     "children": [
       {
-        "id": "70d24333217ac14d",
+        "id": "ad78e751a120c69b",
         "type": "tabs",
         "children": [
           {
-            "id": "3fb6ba6d495cc1eb",
+            "id": "0d2808cadc5949c9",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241015153524.png"
+                "file": "Database Fundamentals Notes.md",
+                "mode": "source",
+                "source": false
               }
             }
           }
@@ -83,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241015153524.png",
+                "file": "Database Fundamentals Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241015153524.png",
+                "file": "Database Fundamentals Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -123,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241015153524.png"
+                "file": "Database Fundamentals Notes.md"
               }
             }
           },
@@ -160,6 +162,9 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
+    "Database Fundamentals Screenshots/Pasted image 20241015232341.png",
+    "DATABASE PROGRAMMING NOTES.md",
+    "Database Fundamentals Screenshots/Pasted image 20241015153524.png",
     "Database Fundamentals Notes.md",
     "Database Fundamentals Screenshots/Pasted image 20241015205145.png",
     "Database Fundamentals Screenshots/Pasted image 20241015204954.png",
@@ -167,12 +172,10 @@
     "Database Fundamentals Screenshots/Pasted image 20241015154021.png",
     "Database Fundamentals Screenshots/Pasted image 20241015153803.png",
     "Database Fundamentals Screenshots/Pasted image 20241015153711.png",
-    "Database Fundamentals Screenshots/Pasted image 20241015153524.png",
     "EFFECTIVE JAVA NOTES.md",
     "Database Fundamentals Screenshots/Pasted image 20241015134755.png",
     "Database Fundamentals Screenshots/Pasted image 20241015135419.png",
     "Database Fundamentals Screenshots/Pasted image 20241015134911.png",
-    "DATABASE PROGRAMMING NOTES.md",
     "Golang Notes.md",
     "RabbitMQ Notes.md",
     "Google Remote Procedure Call Notes.md",
