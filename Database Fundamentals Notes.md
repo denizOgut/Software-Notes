@@ -854,3 +854,92 @@ In this way, consistent hashing allows elasticity in the cluster with minimal ob
 3. **Cross-Shard Queries**: Queries involving multiple shards (e.g., joins across shards) can be slow and complex, requiring additional logic for aggregating results.
 4. **Shard Imbalance**: Uneven data distribution can lead to some shards being overloaded while others are underused, reducing the efficiency of sharding.
 
+# Concurrency Control
+
+**Concurrency Control** manages simultaneous operations without them conflicting with each other. The primary aim is maintaining consistency, integrity, and isolation when multiple users or applications access the database simultaneously.
+
+Executing transactions concurrently offers many benefits, like improved system resource utilization and increased throughput. However, these simultaneous transactions mustn’t interfere with each other. The ultimate goal is to ensure the database remains consistent and correct.
+
+## Why is Concurrency Control Needed?
+
+1. **Ensure Database Consistency**: Without concurrency control, simultaneous transactions could interfere with each other, leading to inconsistent database states. Proper concurrency control ensures the database remains consistent even after numerous concurrent transactions.
+2. **Avoid Conflicting Updates:** When two transactions attempt to update the same data simultaneously, one update might overwrite the other without proper control. Concurrency control ensures that updates don’t conflict and cause unintended data loss.
+3. **Prevent Dirty Reads:** Without concurrency control, one transaction might read data that another transaction is in the middle of updating (but hasn’t finalized). This can lead to inaccurate or “dirty” reads, where the data doesn’t reflect the final, committed state.
+4. **Enhance System Efficiency:** By managing concurrent access to the database, concurrency control allows multiple transactions to be processed in parallel. This improves system throughput and makes optimal use of resources.
+5. **Protect Transaction Atomicity:** For a series of operations within a transaction, it’s crucial that all operations succeed (commit) or none do (abort). Concurrency control ensures that transactions are atomic and treated as a single indivisible unit, even when executed concurrently with others.
+
+##  Exclusive Locks and Shared Locks
+
+###  Shared Lock
+
+A shared lock is a type of lock that allows multiple transactions to read a piece of data simultaneously, but prevents any one of them from modifying it until the lock is released. **==In other words, shared locks are used to ensure that data can be accessed concurrently by multiple transactions, without any of them being able to modify the data.==**
+
+```sql
+LOCK TABLE my_table READ;
+```
+```sql
+UNLOCK TABLE my_table READ;
+```
+
+###  Exclusive Lock
+
+An exclusive lock, on the other hand, is a type of lock that grants exclusive access to a piece of data to a single transaction. It prevents other transactions from reading or modifying the data until the lock is released. **==Exclusive locks are used when a transaction needs to modify a piece of data, to ensure that no other transactions can access it until the modification is complete.==**
+
+```sql
+LOCK TABLE my_table WRITE;
+```
+```sql
+UNLOCK TABLE my_table WRITE;
+```
+
+![[Pasted image 20241015134755.png]]
+
+
+## DeadLock
+
+two or more transactions are stuck in an indefinite wait for each other to finish, yet neither relinquishes the necessary CPU and memory resources. This impasse halts the system, as tasks remain uncompleted and perpetually waiting.
+
+![[Pasted image 20241015134911.png]]
+
+### Coffman Conditions 
+
+Regarding deadlock in DBMS, there were four conditions stated by Coffman. A deadlock might **occur if all of these four Coffman conditions hold true** at any point in time.
+
+1. **Mutual Exclusion**: There should be at least one resource that cannot be utilized by more than one transaction at a time.
+2. **Hold and wait condition**: When any transaction is holding a resource, requests for some more additional resources which are already being held by some other transactions in the system.
+3. **No preemption condition**: Access to a particular resource can never be forcibly taken from a running transaction. Only that running transaction can release a resource that is being held by it.
+4. **Circular wait condition**: In this condition, a transaction is kept waiting for a resource that is at the same time is held by some other transaction and which is further waiting for a third transaction so on and the last transaction is waiting for the very first one. Thus, giving rise to a circular chain of waiting transactions.
+
+##  Two Phase Locking
+
+- **Growing Phase**: In the growing phase, the transaction only obtains the lock. The transaction can not release the lock in the growing phase. Only when the data changes are committed the transaction starts the Shrinking phase.
+
+- **Shrinking Phase**: Neither locks are obtained nor they are released in this phase. When all the data changes are stored, only then the locks are released.
+
+![[Pasted image 20241015135419.png]]
+
+### Two-Phase Locking Types
+
+Two-phase Locking is further classified into three types :
+
+1. **Strict two-phase locking protocol** :
+    
+    - The transaction can release the shared lock after the lock point.
+    - The transaction can not release any exclusive lock until the transaction is committed.
+    - In strict two-phase locking protocol, if one transaction rollback then the other transaction should also have to roll back. The transactions are dependent on each other. This is called **Cascading schedule**.
+2. **Rigorous two-phase locking protocol** :
+    
+    - The transaction cannot release either of the locks, i.e., neither shared lock nor exclusive lock.
+    - Serializability is guaranteed in a Rigorous two-phase locking protocol.
+    - Deadlock is not guaranteed in the rigorous two-phase locking protocol.
+3. **Conservative two-phase locking protocol** :
+    
+    - The transaction must lock all the data items it requires in the transaction before the transaction begins.
+    - If any of the data items are not available for locking before execution of the lock, then no data items are locked.
+    - The read-and-write data items need to be known before the transaction begins. This is not possible normally.
+    - Conservative two-phase locking protocol is **deadlock-free**.
+    - Conservative two-phase locking protocol does not ensure a strict schedule.
+
+
+# Database Replication
+

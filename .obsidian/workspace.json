@@ -11,8 +11,12 @@
             "id": "3fb6ba6d495cc1eb",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {}
+              "type": "markdown",
+              "state": {
+                "file": "Database Fundamentals Notes.md",
+                "mode": "source",
+                "source": false
+              }
             }
           }
         ]
@@ -81,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241014222848.png",
+                "file": "Database Fundamentals Notes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -98,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241014222848.png",
+                "file": "Database Fundamentals Notes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -121,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Database Fundamentals Screenshots/Pasted image 20241014222848.png"
+                "file": "Database Fundamentals Notes.md"
               }
             }
           },
@@ -156,9 +160,15 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "3fb6ba6d495cc1eb",
   "lastOpenFiles": [
+    "EFFECTIVE JAVA NOTES.md",
+    "Database Fundamentals Screenshots/Pasted image 20241015134755.png",
     "Database Fundamentals Notes.md",
+    "Database Fundamentals Screenshots/Pasted image 20241015135419.png",
+    "Database Fundamentals Screenshots/Pasted image 20241015134911.png",
+    "DATABASE PROGRAMMING NOTES.md",
+    "Golang Notes.md",
     "Database Fundamentals Screenshots/Pasted image 20241014223229.png",
     "Database Fundamentals Screenshots/Pasted image 20241014222848.png",
     "Pasted image 20241014221046.png",
@@ -166,9 +176,6 @@
     "Database Fundamentals Screenshots/Pasted image 20241014182021.png",
     "Database Fundamentals Screenshots/Pasted image 20241014184733.png",
     "Pasted image 20241014184700.png",
-    "Database Fundamentals Screenshots/Pasted image 20241014182844.png",
-    "Database Fundamentals Screenshots/Pasted image 20241014135615.png",
-    "Database Fundamentals Screenshots/Pasted image 20241014135609.png",
     "RabbitMQ Notes.md",
     "Google Remote Procedure Call Notes.md",
     "Database Fundamentals Screenshots",
@@ -178,7 +185,6 @@
     "Reactive Programming.md",
     "JAVA APP - 2 NOTES.md",
     "Elasticsearch Notes.md",
-    "Golang Notes.md",
     "Java Network Programming Notes.md",
     "Spring Webflux.md",
     "Spring WebFlux Screenshots",
@@ -186,11 +192,9 @@
     "GRPC Screenshots",
     "JAVA APP - 1 NOTES.md",
     "202408162105.md",
-    "EFFECTIVE JAVA NOTES.md",
     "Java Network Programming Screenshots",
     "Java Concurrency in Practice - Notes.md",
     "Java Concurrency in Practice Screenshots",
-    "DATABASE PROGRAMMING NOTES.md",
     "RabbitMQ Screenshots",
     "Elastic ScreenShots",
     "100 Go Mistakes and How to Avoid Them.md",
