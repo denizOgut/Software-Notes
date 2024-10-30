@@ -1103,8 +1103,10 @@ To compile Java code with the `javac` command, the file must have the extension 
 
 To keep things simple for now, we follow this subset of the rules:
 - ==**Each file can contain only one public class.**==
+- **==`private` and ``protected`` keywords not allowed in TOP LEVEL class declaration !!!==**
 - ==**The filename must match the class name, including case, and have a .java extension.**==
-- ==**If the Java class is an entry point for the program, it must contain a valid main() method.**==
+- ==**If the Java class is an entry point for the program, it must contain a valid ``main()`` method.**==
+- **==``final`` keyword is optional in ``main()`` method==**
 
 review the words in the `main()` method’s signature, one at a time. 
 
@@ -1451,13 +1453,13 @@ When you’re counting ==**instance initializers cannot exist inside of a method
 
 This is simply the order in which different methods, constructors, or blocks are called when an instance of the class is created.
 
-| Order No. | Order of Initialization            | Description                                                                                      | Simple Example                                   |
-|-----------|-------------------------------------|--------------------------------------------------------------------------------------------------|--------------------------------------------------|
-| 1         | Static Variables Initialization | Static variables are initialized first, either at the time of declaration or in a static block.  | `static int staticVariable = 42;`                |
-| 1         | Static Initialization Blocks    | Static initialization blocks are executed in the order they appear in the class after static variable initialization. | ```static { /* initialization code */ }``` |
-| 2         | Instance Variables Initialization | Instance variables are initialized next, either at the time of declaration or in an instance initialization block. | `int instanceVariable = 10;`                     |
-| 2         | Instance Initialization Blocks | Instance initialization blocks are executed in the order they appear in the class after instance variable initialization, just before the constructor is invoked. | ```java { /* initialization code */ }```        |
-| 3         | Constructor Execution           | Finally, the constructor of the class is executed, allowing specific instance-level initialization tasks to be performed. | ```java public MyClass() { /* constructor code */ }``` |
+| Order No. | Order of Initialization           | Description                                                                                                                                                       | Simple Example                                         |
+| --------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 1         | Static Variables Initialization   | Static variables are initialized first, either at the time of declaration or in a static block.                                                                   | `static int staticVariable = 42;`                      |
+| 1         | Static Initialization Blocks      | Static initialization blocks are executed in the order they appear in the class after static variable initialization.                                             | ```static { /* initialization code */ }```             |
+| 2         | Instance Variables Initialization | Instance variables are initialized next, either at the time of declaration or in an instance initialization block.                                                | `int instanceVariable = 10;`                           |
+| 2         | Instance Initialization Blocks    | Instance initialization blocks are executed in the order they appear in the class after instance variable initialization, just before the constructor is invoked. | ```java { /* initialization code */ }```               |
+| 3         | Constructor Execution             | Finally, the constructor of the class is executed, allowing specific instance-level initialization tasks to be performed.                                         | ```java public MyClass() { /* constructor code */ }``` |
 
 - ==**Fields and instance initializer blocks are run in the order in which they appear in the file.**==
 - ==**The constructor runs after all fields and instance initializer blocks have run.**==
@@ -1540,7 +1542,7 @@ some key points:
 
 - ==**A ``float`` requires the letter f or F following the number so Java knows it is a ``float``. Without an f or F, Java interprets a decimal value as a ``double``.**==
 
-- ==**``long`` requires the letter l or L following the number so Java knows it is a long.Without an l or L, Java interprets a number without a decimal point as an int in most** **scenarios.**==
+- ==**``long`` requires the letter l or L following the number so Java knows it is a ``long``. Without an l or L, Java interprets a number without a decimal point as an int in most** **scenarios.**==
 
 ---
 **Signed and Unsigned: short and char**
@@ -2556,7 +2558,7 @@ Do not confuse a reference with the object that it refers to; they are two diffe
 
 - An object sits on the heap and does not have a name. Therefore, you have no way to access an object except through a reference. Objects come in all different shapes and sizes and consume varying amounts of memory. An object cannot be assigned to another object, and an object cannot be passed to a method or returned from a method. ==**It is the object that gets garbage collected, not its reference.**==
 
-			![[Pasted image 20240112123949.png]]
+	![[Pasted image 20240112123949.png]]
 
 ---
 
@@ -3268,17 +3270,17 @@ operator `(=)` has the lowest order of precedence, so the assignment to the `per
 
 By definition, a unary operator is one that requires exactly one operand, or variable, to function. they often perform simple tasks, such as increasing a numeric variable by one or negating a `boolean` value.
 
-| Operator Type         | Example      | Description                                           |
-|------------------------|--------------|-------------------------------------------------------|
-| Logical Complement     | `!a`         | Inverts a boolean’s logical value                     |
-| Bitwise Complement     | `~b`         | Inverts all 0s and 1s in a number                     |
-| Plus                   | `+c`         | Indicates a number is positive (assumed positive in Java unless accompanied by a negative unary operator) |
-| Negation or Minus      | `-d`         | Indicates a literal number is negative or negates an expression |
-| Increment              | `++e`        | Increments a value by 1                               |
-| Increment (Postfix)    | `f++`        | Increments a value by 1 after its current value is used |
-| Decrement              | `--f`        | Decrements a value by 1                               |
-| Decrement (Postfix)    | `h--`        | Decrements a value by 1 after its current value is used |
-| Cast                   | `(String)i`  | Casts a value to a specific type                      |
+| Operator Type       | Example     | Description                                                                                               |
+| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| Logical Complement  | `!a`        | Inverts a boolean’s logical value                                                                         |
+| Bitwise Complement  | `~b`        | Inverts all 0s and 1s in a number                                                                         |
+| Plus                | `+c`        | Indicates a number is positive (assumed positive in Java unless accompanied by a negative unary operator) |
+| Negation or Minus   | `-d`        | Indicates a literal number is negative or negates an expression                                           |
+| Increment           | `++e`       | Increments a value by 1                                                                                   |
+| Increment (Postfix) | `f++`       | Increments a value by 1 after its current value is used                                                   |
+| Decrement           | `--f`       | Decrements a value by 1                                                                                   |
+| Decrement (Postfix) | `h--`       | Decrements a value by 1 after its current value is used                                                   |
+| Cast                | `(String)i` | Casts a value to a specific type                                                                          |
 ## Complement and Negation Operators
 
 The logical complement operator `(!)` flips the value of a `boolean` expression. For example, if the value is true, it will be converted to false, and vice versa.
@@ -3337,12 +3339,12 @@ boolean peacock = !0; // DOES NOT COMPILE
 
 Increment and decrement operators require special care because the order in which they are attached to their associated variable can make a difference in how an expression is processed.
 
-| Operator Type      | Example | Description                                               |
-|---------------------|---------|-----------------------------------------------------------|
-| Pre-increment       | `++w`   | Increases the value by 1 and returns the new value        |
-| Pre-decrement       | `--x`   | Decreases the value by 1 and returns the new value        |
-| Post-increment      | `y++`   | Increases the value by 1 and returns the original value  |
-| Post-decrement      | `z--`   | Decreases the value by 1 and returns the original value  |
+| Operator Type  | Example | Description                                             |
+| -------------- | ------- | ------------------------------------------------------- |
+| Pre-increment  | `++w`   | Increases the value by 1 and returns the new value      |
+| Pre-decrement  | `--x`   | Decreases the value by 1 and returns the new value      |
+| Post-increment | `y++`   | Increases the value by 1 and returns the original value |
+| Post-decrement | `z--`   | Decreases the value by 1 and returns the original value |
 ```java
 int parkAttendance = 0;
 System.out.println(parkAttendance); // 0
@@ -3502,9 +3504,9 @@ int herd = 1;
 
 ==**Java will automatically promote from smaller to larger data types, on arithmetic operators, but it will throw a compiler exception if it detects that you are trying to convert from larger to smaller data types without casting.**==
 
-| Operator     | Example         | Description                                      |
-|--------------|-----------------|--------------------------------------------------|
-| Assignment   | `int a = 50;`    | Assigns the value on the right to the variable on the left. |
+| Operator   | Example       | Description                                                 |
+| ---------- | ------------- | ----------------------------------------------------------- |
+| Assignment | `int a = 50;` | Assigns the value on the right to the variable on the left. |
 ### Casting Values
 
 Casting is a unary operation where one data type is explicitly interpreted as another data type. ==**Casting is optional and unnecessary when converting to a larger or widening data type, but it is required when converting to a smaller or narrowing data type.**== Without casting, the compiler will generate an error when trying to put a larger data type inside a smaller one.
@@ -3830,10 +3832,10 @@ System.out.println(awake); // false
 ```
 ### Conditional Operators
 
-| Operator          | Example    | Description                                                                      |
-|-------------------|------------|----------------------------------------------------------------------------------|
-| Conditional AND   | `a && b`   | Value is true only if both values are true. If the left side is false, then the right side will not be evaluated. |
-| Conditional OR    | `c \|\| d` | Value is true if at least one of the values is true. If the left side is true, then the right side will not be evaluated. |
+| Operator        | Example    | Description                                                                                                               |
+| --------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Conditional AND | `a && b`   | Value is true only if both values are true. If the left side is false, then the right side will not be evaluated.         |
+| Conditional OR  | `c \|\| d` | Value is true if at least one of the values is true. If the left side is true, then the right side will not be evaluated. |
 The conditional operators, often called short-circuit operators, are nearly identical to the logical operators, `&` and `|`, ==**except that the right side of the expression may never be evaluated if the final result can be determined by the left side of the expression.**==
 
 ```java
@@ -4875,17 +4877,18 @@ Not just any variable or value can be used in a case statement. First, ==**the v
 ```java
 final int getCookies() { return 4; }
 void feedAnimals() {
-final int bananas = 1;
-int apples = 2;
-int numberOfAnimals = 3;
-final int cookies = getCookies();
-switch(numberOfAnimals) {
-case bananas:
-case apples: // DOES NOT COMPILE
-case getCookies(): // DOES NOT COMPILE
-case cookies : // DOES NOT COMPILE
-case 3 * 5 :
-} }
+	final int bananas = 1;
+	int apples = 2;
+	int numberOfAnimals = 3;
+	final int cookies = getCookies();
+	switch(numberOfAnimals) {
+	case bananas:
+	case apples: // DOES NOT COMPILE
+	case getCookies(): // DOES NOT COMPILE
+	case cookies : // DOES NOT COMPILE
+	case 3 * 5 :
+	}
+}
 ```
 
 - The ``bananas`` variable is marked ``final``, and its value is known at compile-time, so it is valid. 
@@ -6681,7 +6684,8 @@ public class RemovingWhitespace {
         String content = "\u2000abc\u2000";  
         System.out.println(content);  
         System.out.println(content.strip());  
-    }}
+    }
+}
 ```
 #### Working with Indentation
 
@@ -7272,6 +7276,11 @@ First, Java deletes the characters starting with index 3 and ending right before
 var builder = new StringBuilder("pigeon dirty");
 builder.replace(3, 100, "");
 System.out.println(builder);
+
+StringBuilder sb = new StringBuilder("Hello World");
+sb.replace(6, 11, "Java");
+System.out.println(sb); // Output: "Hello Java"
+
 ```
 
 the method is first doing a logical delete. The ``replace()`` method allows specifying a second parameter that is past the end of the ``StringBuilder``. That means only the first three characters remain.
@@ -7401,7 +7410,7 @@ System.out.println(name == name2); // true
 18: System.out.println(first == second); // true
 19: System.out.println(first == second.intern()); // true
 20: System.out.println(first == third); // false
-21: System.out.println(first == third.intern()); // false 
+21: System.out.println(first == third.intern()); // true 
 ```
 
 - On line 15, we have a compile-time constant that automatically gets placed in the string pool as "rat1".
@@ -7456,7 +7465,8 @@ public class StringPoolFinal {
         String msg3 = msg1 + msg2;  
   
         System.out.println(fullMsg.equals(msg3));  
-    }}
+    }
+}
 ```
 
 ## Understanding Arrays 
@@ -8310,8 +8320,7 @@ Using a ``Duration`` works the same way as using a ``Period``.
 10: var duration = Duration.ofHours(6);
 11: System.out.println(dateTime.plus(duration)); // 2022–01–20T12:15
 12: System.out.println(time.plus(duration)); // 12:15
-13: System.out.println(
-14: date.plus(duration)); // UnsupportedTemporalTypeException
+13: System.out.println(date.plus(duration)); // UnsupportedTemporalTypeException
 ```
 
 ==**Line 13 fails because we cannot add hours to an object that does not contain a time.**==
