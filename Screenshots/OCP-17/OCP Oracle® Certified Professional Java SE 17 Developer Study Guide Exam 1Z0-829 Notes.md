@@ -11272,7 +11272,7 @@ public class Zoo extends java.lang.Object { }
 
 On the other hand, when you define a new class that extends an existing class, Java does not automatically extend the ``Object`` class. Since all classes inherit from ``Object``, extending an existing class means the child already inherits from Object by definition.
 
-						![[Pasted image 20240322194238.png]]
+![[Pasted image 20240322194238.png]]
 
 
 Primitive types such as ``int`` and ``boolean`` do not inherit from ``Object``, since they are not classes. Through autoboxing they can be assigned or passed as an instance of an associated wrapper class, which does inherit ``Object``.
@@ -11304,7 +11304,7 @@ public class Lion extends Animal {
 	public static void main(String[] args) {
 		var lion = new Lion();
 		lion.setProperties(3, "kion");
-		lion.roar(); // kion, age 3, says: Roar!
+		lion.roar(); // lion, age 3, says: Roar!
 	}
 }
 ```
@@ -23953,7 +23953,6 @@ A program can fail for just about any reason.
 
 An exception is Java’s way of saying, “I give up. I don’t know what to do right now. You deal with it.” When you write a method, you can either deal with the exception or make it the calling code’s problem.
 **==These are the two approaches Java uses when dealing with exceptions. A method can handle the exception case itself or make it the caller’s responsibility.==**
-
 ### Understanding Exception Types
 
 An exception is an event that alters program flow. Java has a ``Throwable`` class for all objects that represent these events.
@@ -24065,7 +24064,6 @@ The exception is never instantiated with the ``new`` keyword.
 ```
 
 Since line 4 throws an exception, line 5 can never be reached during runtime. The compiler recognizes this and reports an unreachable code error.
-
 ### Calling Methods That Throw Exceptions
 
 When you’re calling a method that throws an exception, the rules are the same as within a method
@@ -24115,7 +24113,6 @@ Java knows that ``eatCarrot()`` can’t ``throw`` a checked exception—which me
 **==When you see a checked exception declared inside a ``catch`` block on the exam, make sure the code in the associated ``try`` block is capable of throwing the exception or a subclass of the exception==. If not, the code is unreachable and does not compile. Remember that this rule does not extend to unchecked exceptions or exceptions declared in a method signature.**
 
 ---
-
 ### Overriding Methods with Exceptions
 
 **==An overridden method may not declare any new or broader checked exceptions than the method it inherits.==**
@@ -24176,7 +24173,6 @@ at Handling.main(Handling.java:7)
 ```
 
 The stack trace is usually the most helpful because it shows the hierarchy of method calls that were made to reach the line that threw the exception
-
 ## Recognizing Exception Classes
 
 ### ``RuntimeException`` Classes
@@ -24258,7 +24254,6 @@ Exception in thread "main" java.lang.NullPointerException: Cannot invoke
 ```
 
 **==The JVM now tells you the object reference that triggered the ``NullPointerException``! This new feature is called *Helpful ``NullPointerExceptions``*.==**
-
 #### ``IllegalArgumentException``
 
 ``IllegalArgumentException`` is a way for your program to protect itself.
@@ -24342,7 +24337,6 @@ try { // DOES NOT COMPILE
 ```
 
 This code doesn’t compile because the ``try`` block doesn’t have anything after it. Remember, **==the point of a ``try`` statement is for something to happen if an exception is thrown. Without another clause, the ``try`` statement is lonely==**. There is a special type of ``try`` statement that includes an implicit ``finally`` block
-
 ### Chaining ``catch`` Blocks
 
 For the exam, you may be given exception classes and need to understand how they function. Here’s how to tackle them. 
@@ -24420,7 +24414,6 @@ public void visitManatees() {
 	}
 }
 ```
-
 ### Applying a Multi-catch Block
 
 ```java
@@ -26634,9 +26627,14 @@ module bad.module {
 }
 ```
 
-Java doesn’t allow you to repeat the same module in a ``requires`` clause. It is redundant and most likely an error in coding. Keep in mind that ``requires transitive`` is like ``requires`` plus some extra behavior.
+**==Java doesn’t allow you to repeat the same module in a ``requires`` clause. It is redundant and most likely an error in coding==**. Keep in mind that ``requires transitive`` is like ``requires`` plus some extra behavior.
 
-### Opening a Package
+🔥 **Summary**
+
+|Usage|Can Own Module Access It?|Is It Propagated to Other Modules?|
+|---|---|---|
+|`requires`|✅ Yes|❌ No|
+|`requires transitive`|✅ Yes|✅ Yes|### Opening a Package
 
 Java allows callers to inspect and call code at runtime with a technique called reflection. This is a powerful approach that allows calling code that might not be available at compile time. It can even be used to subvert access control! The opens directive is used to enable reflection of a package within a module. You only need to be aware that the opens directive exists rather than understanding it in detail for the exam.
 Since reflection can be dangerous, the module system requires developers to explicitly allow reflection in the module declaration if they want calling modules to be allowed to use it.
