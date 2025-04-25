@@ -658,3 +658,807 @@ Efferent coupling **==is exactly the opposite of afferent coupling, and it’s m
 - The Law of Demeter states that services or components should have limited knowledge of other services or components. This law is useful for creating loosely coupled systems.
 - While loose coupling reduces dependencies between components, it also distributes workflow knowledge, making it harder to manage and control that knowledge.
 - Determining the total coupling (CT) of a logical architecture involves adding the afferent and efferent coupling levels for each component (CA + CE).
+
+# Chapter-5 architectural styles Categorization and Philosophies
+
+## The world of architectural styles
+
+The first deals with how the code is divided: either by technical concerns or by domain (business) concerns. The second category is about how the system is deployed: is all the code in the system delivered as one unit, or as multiple units?
+
+![[Pasted image 20250420195400.png]]
+
+Each category reveals some of the architectural characteristics of its styles. For example, architectural styles delivered as one unit are easier to understand, but those delivered as multiple units tend to scale better.
+
+## Partitioning: Technical versus domain
+
+In a technically partitioned architecture, code is divvied up by technical concerns— there might be a presentation tier, a business (services) layer, and so on. The principle at play here is separation by concern—which most people think about in horizontal layers.
+
+![[Pasted image 20250420195455.png]]
+
+In domain-partitioned architectures, the structure of the system is aligned with the domain. Rather than by roles, the code (and systems) are separated in ways that align with the problem you’re attempting to solve.
+
+![[Pasted image 20250420195524.png]]
+
+## Deployment model: Monolithic versus distributed
+
+In a monolithic architecture, you deploy all the logical components that make up your application as one unit. This also means that your entire applications runs as one process.
+
+![[Pasted image 20250420195609.png]]
+
+In a distributed architecture, by contrast, you split up the logical components that make up the application across many (usually smaller) units. These units each run in their own process and communicate with each other over the network.
+
+![[Pasted image 20250420195632.png]]
+
+## Monolithic deployment models: The pros
+
+**Simplicity**  
+Typically, monolithic applications have a single codebase, which makes them easier to develop and to understand.
+
+**Cost**  
+Monoliths are cheaper to build and operate because they tend to be simpler and require less infrastructure.
+
+**Feasibility**  
+Rushing to market? Monoliths are simple and relatively cheap, freeing you to experiment and deliver systems faster.
+
+**Debuggability**  
+If you spot a bug or get an error stack trace, debugging is easy, since all the code is in one place.
+
+**Reliability**  
+A monolith is an island. It makes few or no network calls, which usually means more reliable applications.
+
+## Monolithic: The cons
+
+**Scalability**  
+If you ever need to scale one part of the application independently of the others, well, you’re in trouble. It’s all or nothing with monoliths.
+
+**Evolvability**  
+As monolithic applications grow, making changes becomes harder. Furthermore, since the whole application is one codebase, you can’t adapt different technology stacks to different domains if you need to.
+
+**Deployability**  
+Implementing any change will require redeploying the whole application, which could introduce a lot of risk.
+
+**Reliability**  
+Because monolithic applications deploy as a single unit, any bug that degrades the service will affect the whole monolith.
+
+## Distributed deployment models: The pros
+
+**Deployability**  
+Distributed architectures encourage lots of small units. They evolved after modern engineering principles like continuous integration, continuous deployments, and automated testing became the norm.
+
+**Testability**  
+Each deployment only serves a select group of logical components. This makes testing a lot easier—even as the application grows. Distributed architectures are a lot more testable than monolithic applications.  
+Having lots of small units with good testability reduces the risk associated with deploying changes.
+
+**Fault Tolerance**  
+Distributed systems can be designed to tolerate failure in individual components without taking down the entire system.
+
+**Scalability**  
+Distributed architectures deploy different logical components separately from one another. Need to scale one? Go ahead!
+
+**Modularity**  
+Distributed architectures encourage a high degree of modularity because their logical components must be loosely coupled.
+
+## Distributed deployment models: The cons
+
+**Performance**  
+Distributed architectures involve lots of small services that communicate with each other over the network to do their work. This can affect performance, and although there are ways to improve this, it’s certainly something you should keep in mind.
+
+**Cost**  
+Deploying multiple units means more servers. Not to mention, these services need to talk to one another—which entails setting up and maintaining network infrastructure.
+
+**Simplicity**  
+Distributed systems are the opposite of simple. Everything from understanding how they work to debugging errors becomes challenging.
+
+**Debuggability**  
+Errors could happen in any service involved in servicing a request. Since logical components are deployed in separate units, tracing errors can get very tricky.
+
+## Bullet Points
+
+- There are a lot of architectural styles—in fact, too many to count.
+- Architectural styles can be categorized in multiple ways:
+  
+  **By Partitioning Style:**
+  - **Technically Partitioned**:
+    - Code is split by technical concern (e.g., presentation layer, services layer).
+  - **Domain Partitioned**:
+    - Code is split by problem domain.
+
+  **By Deployment Model:**
+  - **Monolithic Architectural Styles**:
+    - All logical components are deployed as a single unit.
+    - Easier to understand and debug.
+    - Often cheaper to build initially.
+    - Good choice for quickly bringing a product to market.
+    - Harder to scale as they grow—scaling is all-or-nothing.
+    - Can be unreliable—a single bug may crash the entire application.
+
+  - **Distributed Architectural Styles**:
+    - Logical components are deployed separately as multiple units.
+    - Highly scalable—different parts can scale independently.
+    - Encourages modularity, making testing easier.
+    - Expensive to develop, maintain, and debug.
+    - Requires network communication between services, adding complexity.
+
+# Chapter-6 layered architecture Separating Concerns
+
+## Design patterns redux
+
+Model-View-Controller (MVC) design pattern, which separates capabilities based on their purpose
+
+In MVC, the model represents business logic and entities in the application; the view represents the user interface; and the controller handles the workflow, stitching model elements together to provide the application’s functionality
+
+![[Pasted image 20250420200622.png]]
+
+## Layering MVC
+
+Design patterns represent logical solutions to problems, but architecture must deal with real-world constraints like databases, user interfaces, and other implementation details.
+
+**Presentation**
+
+The V for “view” in MVC concerns the UI and how the user interacts with the system. In a layered architecture, UI elements appear in the presentation layer.
+
+**Workflow**
+
+The workflow layer contains most of the application’s code. Business logic, workflows, validations, and other domain activities reside in this layer
+
+**Persistence**
+
+Many teams use a special persistence layer in their architecture to map code-based hierarchies (such as object oriented languages) into set based relational databases
+
+---
+
+How does a user request fit into the layered structure we’ve been building?
+
+In a layered monolithic architecture, when a user asks the system to do something, the user interface initiates the request. Then that request flows through each layer in the architecture. If the database is involved in persisting something, then the request goes from top to bottom and back.
+
+![[Pasted image 20250420200840.png]]
+
+---
+
+### ==**the domain behavior lives across the layers in this architecture.**==
+
+The domain, as you’ll recall, represents logical components based on the problem you’re trying to solve. However, the layers in this architecture represent technical capabilities— user interface, business logic, and so on.
+
+## Drivers for layered architecture
+
+**Specialization**
+
+Using a layered architecture allows organizations to split teams into specialists, sharing their capabilities between different projects.
+
+**Ease of (technical) reuse**
+ 
+ Splitting the architecture by technical capabilities allows better opportunities to reuse code. For example, if all persistence code resides in a single layer, it’s easier for developers to find, update, and reuse it.
+
+**Matches physical separation**
+
+The layered architecture typically
+separates the logical components to match the physical separation. For example, it’s common for teams to implement different layers in different technology stacks (such as JavaScript, Java, and MySQL)
+
+**Conceptual twin of MVC**
+
+Simplicity and concerns about feasibility are driving forces in many architectures. Developers find it easier to understand and work within an architecture that matches familiar design patterns, such as MVC.
+
+## One final cave at about domain changes
+ 
+ The power to change things in isolation is the layered architecture’s superpower, but it’s not a silver bullet. This architectural style’s big trade-off is that the problem domain is smeared across the layers in the architecture.
+
+That means that technical capabilities are easy to change and enhance, but domain changes can create side effects that ripple through the layers.
+
+### **==Layered architectures facilitate technical changes but make domain change s more difficult.==**
+
+
+If continual, significant domain changes are expected or suddenly become a higher priority, there are other architectural styles to consider.
+
+## Layered architecture superpowers
+
+**Feasibility**
+
+If time and budget are overwhelmingly important, the simplicity of this architecture is quite appealing
+
+**Technical partitioning**
+
+Architects design components around technical capabilities, making it easier for them to reuse common capabilities. For example, if several teams need the same data functionality, they could implement it once in a persistence layer and then share it across teams.
+
+**Data-intensive**
+
+Systems that do a lot of data-level processing may benefit from a layered architecture because it isolates data processing in a single database that’s optimized for the task.
+
+**Performance**
+
+Well-designed layered monoliths can demonstrate high performance—making no network calls and processing data in a single place (the monolithic database) means there’s no need for network calls that could decrease performance.
+
+**Quick to build**
+
+Simplicity plus a single work/deployment unit means that teams can build small systems quite rapidly
+
+**Lean and mean**
+
+Keeping these systems small helps avoid some of the kryptonite on the next page
+
+## Layered architecture kryptonite
+
+**Scalability**
+
+Probably the biggest problem with monoliths is that when you only have one bucket and you keep adding things to it, it will eventually fill up. The same is true for monoliths generally, which eventually become constrained by some resource (memory bandwidth, and so on).
+
+**Elasticity**
+A single process has a harder time dealing with sudden bursts of users.
+
+**Testability**
+High coupling and a large codebase make testing harder and harder over time
+
+**Deployability**
+As monolithic systems get bigger, deployments tend to become more complex—especially when developers keep adding behavior
+
+**Big ball of mud**
+Because everything is connected to everything else, this architecture can become a highly coupled mess without careful governance
+
+**Testability**
+High coupling and a large codebase make testing harder and harder over time.
+
+## Bullet Points
+
+- A layered architecture is monolithic: the entire system (code and database) is deployed as a single unit.
+- The layers are separated by technical capabilities. Typical layers in this architecture include presentation (for the user interface), business rules (for the workflow and logic of the application), and persistence (facilities to support databases for systems that need persistent data).
+- The layered architecture supports feasibility well; it is easy to understand and it lets you build simple systems fast.
+- The layered architecture supports excellent separation of technical concerns, making it easy to add new capabilities like user interfaces or databases.
+- The layered architecture mimics some of the same concerns as the Model-View-Controller design pattern, but translated into physical layers and subject to real-world constraints.
+- User requests flow through the user interface and through each layer before a response is returned to the user.
+- Each request in this architecture goes through each layer.
+- A layered architecture’s capabilities degrade over time if teams continue to add functionality due to eventual resource limits (for example, they run out of capacity).
+- The layered architecture provides excellent support for specialization (user interface designers, coders, database experts, and so on).
+- Logical components represent the problem domain, yet layers focus on technical capabilities, requiring translation between the domain and architecture layers.
+- A layered architecture may manifest in several physical architectures, including two-tier (also known as client/server), three-tier (web), and embedded/mobile.
+- Changing and adding to the technical capabilities represented in layers is easy; the layered architecture facilitates this.
+- Changing the problem domain requires coordination across the layers of the architecture, making domain changes more difficult.
+
+# Chapter 7- modular monoliths Driven by the Domain
+
+## Modular monolith?
+
+==**A modular monolithic architecture, like a layered architecture, is deployed as a single unit, usually with its own database.**==
+
+That’s where the similarity ends. **==In a modular monolith, rather than partitioning your application by technical concerns, you partition it by functionality==**. Every business operates within a certain domain—like banking, education, or retail
+
+You organize your application according to these subdomains, separating them into modules.
+
+![[Pasted image 20250423150756.png]]
+
+What is a module? At a high level, it’s just how you organize your code. In some languages, you might have support like packages or namespaces. But it doesn’t start or stop there.
+
+as mentioned in the previous chapter, in a technically partitioned architecture the business domain gets *smeared* across multiple layers. This is great if you’re implementing a technical change, like changing the view technology or swapping out the database. But it’s not so great if the change affects the domain—you’ll have to round up folks from multiple teams to figure out how to implement it.
+
+## Why modular monoliths?
+
+You don’t organize the application in horizontal layers separated by technical concern, but in vertical slices scoped by business concern. Each vertical slice aligns with a piece of the domain and is encapsulated in a module. Every module contains a set of business functions—for example, order placement, order completion, and order delivery would all be part of the Order Placement module.
+
+![[Pasted image 20250423151007.png]]
+
+Changes to the domain that affect many or all layers require lots of coordination between different teams
+
+Now, rather than having teams that specialize in the presentation layer or the persistence layer, you have **cross-functional teams**, each specializing in a domain. The result? It’s far easier to coordinate domain changes when one team takes full ownership.
+
+**how a module is laid out internally isn’t how the architecture is partitioned.**
+
+## Keeping modules modular
+
+Modular monoliths are, well, monoliths, so they’re generally contained in one codebase. That makes it easy for someone working in one module to inadvertently reach into another module and end up coupling the two modules together
+
+**==The philosophy of the modular monolith centers on partitioning by domain within a monolithic deployment model.==** Your objective should be to create loosely coupled modules so that changing one doesn’t affect others. So how do you avoid the big ball of mud? 
+
+From a code design perspective, it’s best to think of each module as a separate service. Just to be clear, though, they aren’t really separate—they all still constitute one monolithic deployment.
+
+![[Pasted image 20250423152215.png]]
+
+Some languages, like Java, have built-in support to build modules.
+
+Another approach is to break up your project code so that each module is a separate folder in your repository. These subprojects (or, as many build systems call them, multimodule projects) force isolation by virtue of being different projects. You might even consider creating different repositories to contain individual modules, then stitching the complete application together at build time.
+
+Of course, you are still deploying a monolith, so you’ll probably need to bring all the modules together using your build tool of choice. A monolithic deployment model doesn’t have to mean a monolithic codebase!
+
+## Taking modularity all the way t o the database
+
+The modular monolith is still a monolithic deployment, typically with a monolithic database backing it. There is a lot of power here: having a single database can make things a lot simpler. You don’t have to worry about transactions or eventual consistency, and most developers are very comfortable working with just one database. However, if you intend to maintain modularity at all levels, then you should consider modularizing your data.
+
+For every module in your application, you define a schema and a set of tables. Any and all data that belongs to a particular module will reside only in the tables for that module
+
+## Beware of joins
+
+Keeping different tables, perhaps even in different schemas, does partition the data belonging to different modules—but it’s easy to slip up and accidentally perform a SQL join across tables that belong to different modules. Then you’re back to tight coupling! It’s OK to store the IDs of records that belong to one module in another module’s tables.
+
+## Modular monolith superpowers
+
+**Domain partitioning**
+Architects can design components around domain concerns, then build teams that specialize in one or more of these domains (as opposed to a technical specialization). Domain partitioning is the key superpower of this architectural style
+
+**Domain-based alignment**
+Modular monoliths encourage cross functional teams, which are better aligned with the domain than the technically partitioned teams used in layered architectures.
+
+**Performance**
+Performance is usually very good, like for most monolithic architectures. There are no network calls between modules, and all data processing happens in a single place.
+
+**Maintainability**
+Modular monoliths separate business concerns from one another, with cross functional teams each specializing in a subdomain. This makes it easier to maintain the code, as long as changes don’t cross into other domains.
+
+**Testability**
+Since the scope of changes is limited to one module, testing is much easier. And since a cross-functional team’s members understand their subdomain really well, they can build out an entire testing suite, including integration, smoke, and end-to-end tests.
+
+## Modular monolith kryptonite
+
+**Hard to reuse**
+
+Modular organization makes it hard to reuse logic and utilities across modules. For example, you can’t share common functionality between modules without extracting it as a dependency, increasing the coupling between the modules.
+
+**(Still) a single set of architectural characteristics**
+
+Even though modular monoliths are organized by modules, you still get a single set of architectural characteristics for the entire application—even if one business concern has a different set of needs than others.
+
+**Modularity can be fragile**
+
+It’s easy to dilute module boundaries accidentally. Avoiding the big ball of mud takes a lot of governance—and the database is even harder to govern.
+
+**Operational characteristics**
+
+Despite its focus on business concerns, a modular monolith is still, well, a monolith. And as with any monolith, operational characteristics like elasticity and fault tolerance tend to be hard to attain.
+
+## Bullet Points
+
+- A modular monolith is a monolithic architectural style that is partitioned by domains and subdomains that reflect business concerns, not technical concerns.
+    
+- Each subdomain makes up one module of the application. Each module can contain multiple business use cases.
+    
+- Each module can be made up of layers to provide better organization. A module may be technically partitioned as a means to organize its functionality.
+    
+- Avoid having code in one module directly access any functionality in other modules. Allowing this can reduce or eliminate the boundaries between modules.
+    
+- Each module should have a public API that communicates with other modules while shielding the module’s internal implementation from the rest of the world.
+    
+- Avoiding inter module communication allows modules to change internally without affecting other modules.
+    
+- It takes time and effort to ensure that the modules in a modular monolith remain separate and distinct.
+    
+- You can govern a modular monolith using a variety of techniques. Some languages have built-in support for building modules.
+    
+- Another approach is to physically break up the codebase into separate subprojects or even different repositories. This usually involves using a build tool to bring all the modules back together when you build the monolith.
+    
+- Third-party tools can also help with architectural governance.
+    
+- You may choose to use several techniques in combination to ensure the boundaries of individual modules are maintained.
+    
+- You can extend modularity all the way to the database, keeping the data for each module separate.
+    
+- Watch that you don’t accidentally couple modules when inserting or fetching data (for example, when using a SQL join statement across tables that belong to different modules).
+
+# Chapter - 10 microservices architecture
+
+## What’s a microservice?
+
+Generally, a service is a separately deployed unit of software that performs some business or infrastructure process. The prefix micro- in microservice refers not to physical size, but to what the service does.
+
+
+### **==A microservice is a single-purpose, separately deployed unit of software that does <u>one thing</u> really well.==**
+
+## It’s my data, not yours
+
+Another feature that makes microservices special is that they own their own data. In other words, each microservice is the only one that can directly access its data.
+
+![[Pasted image 20250425131854.png]]
+
+**==The primary reason is to manage change control.==** Say you have 50 microservices, all sharing the same data. If one microservice changes the structure of its data, which the other 49 microservices are also accessing, all of those other services will need to change at the same time.
+
+Physically associating a microservice with its data is known as creating a **physical bounded context**. Physical bounded contexts help manage change and coupling. If other microservices need access to data they don’t own, they must ask the owning service for it.
+
+## How micro is “micro”?
+
+**No, granularity is not a guessing game.**
+
+Granularity—the scope of what a microservice does—is an important factor when identifying microservices. Microservices that are too fine-grained tend to communicate more with each other to complete business functions, leading to high levels of coupling, poor performance, and overall reliability issues. This is commonly referred to as the **==Grains of Sand antipattern==**, in which services are so small that they start to resemble sand on a beach. However, microservices that are too coarse-grained are harder and more expensive to maintain, test, and scale (which defeats the whole purpose of using microservices).
+
+So how do you determine the most appropriate level of granularity for a microservice? By applying forces called **==granularity disintegrators and granularity integrators==**. Granularity disintegrators are forces that tell you to make your service smaller (meaning it’s doing less work), whereas granularity integrators are forces that tell you to make the service bigger (meaning it’s doing more work). Let’s see how these forces work.
+
+![[Pasted image 20250425132254.png]]
+
+## Why should you make microservices smaller?
+
+**Cohesion**  
+A single-purpose microservice has functionality that is highly cohesive—meaning all the things it does are closely related to each other. If the functionalities of a microservice lack cohesion, then it might be a good idea to break that microservice apart.
+
+**Code volatility**  
+Does one part of the microservice change faster than others? Constant changes to one part of a large microservice mean you have to test the entire microservice, including functionalities you didn’t change. That’s a lot of extra work.  
+Moving a frequently changing function into its own separate microservice isolates those changes from other functions, making it much easier to maintain and test functionality.
+
+**Scalability and throughput**  
+Do some parts of the microservice need more scalability than others? If so, breaking the service apart allows better control over which portions need to scale and which do not.  
+For example, suppose the heart rate monitoring function accepts sensor readings every second, but the temperature monitoring function accepts sensor readings once every 5 minutes. Separating these monitoring functions into distinct services allows each one to accommodate a different throughput rate.
+
+**Fault tolerance and availability**  
+Do certain functions in a microservice frequently produce fatal errors? In larger microservices, all functionalities become unavailable when a part of the microservice fails. However, if the faulty functionality is in its own separate microservice, it won’t affect other functions.
+
+**Access control**  
+The larger the service, the more difficult it is to control access to sensitive information. For example, a Patient Profile microservice containing functionality to access medical history might inadvertently allow unauthorized staff to access this sensitive (and protected) information.  
+Moving sensitive functionalities (like access to medical history) into their own microservices isolates them, making it easier to control access to that information.
+
+**Startup speed**  
+Smaller microservices start up much faster than larger ones, making much-needed functionality available to the user sooner.
+
+*This is also referred to as “volatility-based decomposition.”*
+
+
+## Why should you make microservices bigger?
+
+**Database transactions**  
+When requests involve multiple microservices, you can’t perform a single database commit or rollback for all updates. Since each microservice update is in its own separate transaction, it must instead be committed or rolled back separately.  
+If data consistency and integrity are more important than any of the disintegrator forces, then it makes sense to combine the functionality into a single microservice so that operations take place in a single database transaction.
+
+**Workflow and choreography**  
+If a single business request requires separate microservices to communicate with each other, that’s coupling. Too much coupling between microservices can have many negative effects on the system.  
+For example, performance is affected by network, security, and data latency. Scalability is affected because each microservice in the call chain must scale as the other microservices scale (something that is hard to coordinate). Fault tolerance is affected because if one of the microservices in the chain becomes unresponsive or unavailable, the request cannot be processed.  
+If your workflow involves a lot of coordination between your microservices and these characteristics are important to you, consider combining them.
+
+**Data dependencies**  
+When you break a microservice apart, you also have to break its data apart. However, if the data is highly coupled, it will be very difficult to break it apart and form new physical bounded contexts.  
+An example of data coupling is when one database table refers to the key of another database table (known as a foreign key constraint). Another example of data coupling is when an entity (like customer information) is spread across multiple tables.  
+If your data is highly coupled and functions in the microservice need to share that data, it makes sense to keep the microservice large and combine the functions.
+
+*Data dependencies are one of the most common integration drivers.*
+
+**Too much communication between microservices can make an architecture look like spaghetti.**
+
+## You can still share code in microservices.
+
+Code reuse is a necessary part of software development. Without it, you would have duplicate functionality almost everywhere in your system. Functions like logging, metrics streaming, user authorization, and basic utilities like transforming date formats are common in most (if not all) systems.
+
+In monolithic systems, this is easy—you write the common functionality once and use it everywhere in the system, because it’s all compiled together as one unit. But in distributed architectures like microservices, it’s not that easy. That’s because each microservice is a separately deployed unit of software.
+
+So where does all that common functionality go in microservices? **==Usually into either a shared library or a shared service.==**
+
+## Code reuse with a shared service
+
+**==A shared service is a separate microservice that contains a shared functionality that other microservices can call remotely==**.
+
+**Pros of using a shared service**  
+- Changing common code in a shared service doesn’t require changing other microservices.  
+- The shared service can be written in any language and on any platform, which is handy when you have microservices implemented in multiple languages.
+
+**Cons of using a shared service**  
+- Changing a shared service is risky because it can immediately affect other microservices that call it.  
+- Because the shared functionality is remote, network latency can slow its performance.  
+- If the shared service is unavailable, microservices that need the shared functions cannot operate.  
+- The shared service must scale whenever other microservices that call it scale.
+
+## Code reuse with a shared library
+
+A more common approach to shared functionality is to put it in a custom shared library. A shared library is an independent artifact (like a JAR file in Java or a DLL in C#) that is included with each microservice at compile time. This means that once the microservice is deployed, each microservice has all of the shared functionality available to it.
+
+**Pros of using a shared library**  
+Performance, availability, and scalability are better because the shared functionality is not remote. Instead, it’s bound at compile time to each microservice.  
+Changing code in a shared library is less risky, because shared libraries can be versioned to provide agility and backward compatibility.
+
+**Cons of using a shared library**  
+You’ll need multiple shared libraries if your microservices are written in different programming languages or use different platforms.  
+Managing dependencies between microservices and shared libraries can become difficult if you have a lot of microservices (which is typical in this architectural style).  
+If you change a shared functionality, you must retest and redeploy the microservices that use it.
+
+## workflow management
+
+A workflow is when fulfilling a single business request—a task request that comes from a user interface—needs more than one microservice. You can manage a workflow in microservices by using either of two techniques:
+
+## Orchestration: Conducting microservices
+
+Orchestration is about coordinating all the microservices needed for a workflow. A centralized microservice—the orchestrator— does this, very much like a conductor coordinates all the musicians performing in a symphony orchestra.
+
+An orchestration service is a separate microservice that is responsible for calling all the microservices involved in the workflow. It also handles errors and passes consolidated data back to the caller (usually the user interface).
+
+**The good...**
+
+**Centralized workflow**  
+Request workflows are centralized and well understood. You only need to go to the orchestrator to understand the complete workflow.
+
+**Error handling**  
+Error handling is consolidated into the orchestrator, so each microservice doesn’t need to worry about what to do if an error occurs—the orchestrator handles it.
+
+**Workflow state**  
+Since the orchestrator always knows where the request is in the workflow, if there’s a failure, restarting the request where the workflow left off is much easier.
+
+**Workflow changes**  
+It’s easy to change the workflow because all changes occur in one central place.
+
+**The bad...**
+
+**Performance**  
+Orchestration tends to be slowed by communication between the orchestrator and the microservices, and because the orchestrator typically saves the workflow state to a database each time something changes.
+
+**Tight coupling**  
+Because the orchestrator and microservices need to communicate constantly, orchestration tends to be highly coupled.
+
+**Scalability**  
+The central orchestrator can become a bottleneck as requests increase, because every request must go through it before reaching any microservices.
+
+**Availability**  
+If the conductor leaves the orchestra, the concert is over. Similarly, if the orchestration microservice is unavailable, the request cannot be processed. This single point of failure is usually addressed by creating multiple instances of the orchestrator.
+
+
+## Choreography: Let’s dance
+
+Like dancers, the microservices communicate with each other. Each performs its function, then calls the next microservice to perform its function, until the workflow is complete.
+
+**The good...**
+
+**Responsiveness**  
+Since there’s no central orchestrator to communicate with continually, responsiveness and performance tend to be better.
+
+**Loose coupling**  
+Since microservices don’t depend on a central orchestration service to direct them, the system tends to be less coupled.
+
+**Scalability**  
+Each microservice can scale to meet its throughput demands, independent of other microservices in the workflow.
+
+**The bad...**
+
+**Error handling**  
+Each microservice is responsible for managing the error workflow if an error occurs. This can lead to too much communication between services.
+
+**State management**  
+It’s hard to know what state the workflow is in when using choreography, because there’s no central conductor controlling the workflow. Usually, one of the microservices (typically the first one in the call chain) is designated the state owner, and other microservices send it their state.
+
+**Recoverability**  
+When a user retries a request that has failed or is still in progress, it’s really hard for the system to know where to restart. That’s because no single service is responsible for directing the request to a specific microservice in the workflow—each one only sends it to the next microservice in the call chain.
+
+*Be careful—state management can lead to the Front Controller pattern, described in the “Watch it!” box on the previous page.*
+
+## Microservices architecture superpowers
+
+**Maintainability**  
+Because microservices are single-purpose and separately deployed, you can more easily locate code that needs to change for a particular function.
+
+**Testability**  
+A microservice’s testing scope is much smaller than that of a larger monolithic application or a system with large services. This limited scope makes it easier to fully test a microservice’s functionality.
+
+**Deployability**  
+Because microservices are deployed as separate units of software, there are fewer risks involved with releasing a microservice than with large monolithic systems. You can also deploy microservices more frequently—sometimes daily.
+
+**Evolvability**  
+It’s relatively easy to add functionality to a microservices architecture: you create a new service, test it, and deploy it alongside other existing microservices in your system.
+
+**Fault tolerance**  
+If a particular microservice fails, it doesn’t bring down the entire system—only that function. Users can continue to use other functions.
+
+**Scalability**  
+Microservices scale at a function level rather than a system level. This means that you scale only the functionalities you need to meet increased user load and demand, saving resources and lowering costs.
+
+*Every architectural style has its superpowers. Here are some reasons to use the microservices architectural style.*
+
+## Microservices architecture kryptonite
+
+**Monolithic databases**  
+Each microservice must own its own data and form a physical bounded context.  
+If your data can’t be broken apart for whatever reason, stay away from this architectural style.
+
+**Performance**  
+The more microservices communicate with each other, the worse their performance will be. They may have to wait for the network, undergo additional security checks, and make extra database calls.
+
+**Technically partitioned teams**  
+Does your organization consist of siloed teams of user interface developers, backend developers, and database people? If so, microservices won’t work for you (a reflection of Conway’s Law). Microservices architecture requires cross-functional teams. Each team owns its own group of microservices, all the way from the user interface to the database.
+
+**Complex workflows**  
+Workflows occur when you need to call multiple microservices for a single business request. If the functionality of your system is too tightly coupled, breaking it into separately deployed services will only result in a big ball of distributed mud. Yuck!
+
+**Complexity**  
+Microservices is one of the most complex architectural styles. It involves so many hard decisions—about granularity, transactions, workflow, contracts, shared code, communication protocols, team topologies, and deployment strategies, just to name a few.
+
+*Are there reasons not to use the microservices architectural style? You bet there are. Just like kryptonite diminishes a superhero’s powers, certain business and architectural characteristics diminish the case for using microservices. Watch out for them!*
+
+
+## Bullet Points
+
+- A microservice is a single-purpose, separately deployed unit of software that does one thing really well.
+- A physical bounded context means that a microservice owns its own data and is the only microservice that can access that data. If a microservice needs data that is owned by another microservice, it must ask for it.
+- The granularity of a microservice is a measure of its size—not physically, but the scope of what it does.
+- Forces that guide you to make your microservices smaller are called granularity disintegrators.
+- Forces that guide you to make your microservices bigger are called granularity integrators.
+- Balance granularity disintegrators and integrators to find the most appropriate level of granularity for a microservice.
+- You can make microservices coarse-grained to start with, then finer-grained as you learn more about them.
+- Two techniques for sharing functionality in microservices are shared services and shared libraries.
+- A shared service is a microservice that contains functionality shared by multiple microservices. It’s deployed separately and each microservice calls it remotely.
+  - Shared services are more agile overall and are good for heterogeneous environments.
+  - However, they are not good for scalability, fault tolerance, or performance.
+- A shared library is an independent artifact (like a JAR or DLL file) that is bound to a microservice at compile time.
+  - Shared libraries offer better operational characteristics, like scalability, performance, and fault tolerance.
+  - But they make it harder to manage dependencies and control changes.
+- A workflow is when multiple microservices are needed for a single business request or business process.
+- Workflows that use orchestration require a central orchestrator microservice, which works like a conductor in a symphony orchestra.
+- In workflows that use choreography, the services talk to each other, like dancers performing together.
+- Scalability, fault tolerance, evolvability, and overall agility (maintainability, testability, and deployability) are the superpowers of the microservices architectural style.
+- Performance, complexity, cost, monolithic databases that can’t be broken apart, and high semantic coupling are kryptonite to microservices.
+- Microservices should be as independent as possible; too much communication between them will degrade the benefits of this architectural style.
+
+# Chapter 11 event-driven architecture - Asynchronous Adventures
+
+the fundamental concept behind **event-driven architecture (EDA)**— breaking up processing into separate services, with each of those services performing its function at the same time by responding to an **event** (something that just happened). In EDA, services communicate asynchronously through an **event channel**, meaning they don’t wait for responses from other services to complete their work.
+
+![[Pasted image 20250425193930.png]]
+
+## What is an event?
+
+An event is something that happens, especially something of importance. In software systems, certain user actions trigger events—things that happen, like placing a bid for an item up for auction, filing an insurance claim, or making a purchase.
+
+**==Events are a way for a service to let the rest of the system know that something important has just happened. In EDA, events are the means of passing information to other services.==**
+
+### **==an event is not the same thing as a message.==**
+
+Although they both deliver information to other parts of the system, there are some important differences between them.
+
+**==An event is used to broadcast some action that a service just performed to other services in the system==**. For example, a service  might tell the rest of the system: A customer just placed an order. A service sending an event never waits for a response. The service generally has no knowledge about what other services (if any) are listening for that event, or what they’ll do with that information if they respond to it.
+
+**==A message, on the other hand, is a command==**, such as Apply the payment for this order, or a request, like Give me shipping options for this customer. Because messages are only meant to reach one other service, the other services in the system are unaware of the message. Services sometimes stop and wait for a response (for instance, if they are sending a request for information). Other times, the service might just issue a command and trust that the receiving service will do its job.
+
+## Events versus messages
+
+### **==Events are broadcast to other services using topics, whereas messages are sent to a single service using queues.==**
+
+![[Pasted image 20250425195050.png]]
+
+### **==Events always broadcast something that has already happened, whereas messages request something that needs to be done.==**
+
+![[Pasted image 20250425195127.png]]
+
+## Initiating and derived events
+
+Events that originate from a customer or end user are called initiating events. These are a special type of event that kicks off a business process.
+
+Once a service responds to an initiating event, it might in turn broadcast what it did to the rest of the system, within the scope of that initiating event. These events are called derived events because they are internal events generated in response to the initiating event.
+
+## Is anyone listening?
+
+In EDA, any action a service performs should trigger a derived event. However, there is a chance that no one cares about certain events. So why publish those events? Because this provides architectural extensibility—the ability to extend the system to add new functionality.
+
+## Asynchronous communication
+
+**Event-driven architecture is fast because it uses mostly asynchronous (or “async” for short) communication.**
+
+## Fire-and-forget
+
+Asynchronous communication is one of the foundations of event-driven architecture. When a service broadcasts information to other services, it doesn’t wait for a response, nor does it care whether the services are available or not. **==This is known as fire-and-forget communication—the event is sent (that’s the fire part), and the service moves on to do other things (that’s the forget part).==** Architects usually use a dotted line to represent async communication between services.
+
+**==Event-driven architecture relies on asynchronous communication when sending and receiving events==**
+
+## Asynchronous for the win
+
+Communicating between services asynchronously has a lot of advantages. The first is **==better responsiveness==**—in async, it takes less time to complete a request.
+
+The other big advantage of async is **==availability==**.
+
+## Synchronous for the win
+
+**==The main disadvantage of async communication is error handling==**. With sync communication, if there’s a problem with the payment method, the customer knows right away and has a chance to fix it and resubmit the order. However, with async, the customer thinks everything is fine because the system hasn’t told them otherwise— but the Order Placement service can’t process the order until the customer corrects the payment problem. This makes error handling much more complex.
+
+## Database topologies
+
+Data can be a complex topic in EDA. Because EDA is so asynchronous, services are highly decoupled from one another. However, if all the services share a single database, then they end up being highly coupled to the database. On the other hand, if each service owns its own data, like with microservices (discussed in the previous chapter), then services become highly coupled to each other because they need to synchronously ask each other for the data. In either case, data forms a coupling point—something we try to avoid in EDA
+
+**==monolithic databases, domain-partitioned databases, and the database-per-service pattern.==**
+
+## Monolithic database
+
+In the monolithic database topology, all services share a single database. **==The main advantage is that when services need data they don’t own, they can go directly to the database. This means they don’t have to make synchronous calls to other services to get data==**
+
+![[Pasted image 20250425200810.png]]
+
+However, this decoupling comes with a steep price: managing database changes. Because all services share the same database, when you make a change to the structure of one table, it’s difficult to identify all the services that change will affect. Testing and releasing becomes a tricky game—one you will all too often lose. This leads to brittle systems that are difficult to maintain.
+
+## Domain-partitioned databases
+
+With domain-partitioned databases, each domain in the system has its own database. This means any service that belongs to a particular domain will share the database for that domain.
+
+However, since each domain forms its own broad physical bounded context, a service in one domain can’t directly access a database to get data from another domain. **==This means it must make a synchronous call to another service to get the data—and now these services are coupled.==**
+
+![[Pasted image 20250425201101.png]]
+
+## Database-per-service
+
+The database-per-service pattern is just what it sounds like. Every service has its own database, forming an even tighter physical bounded context than with the domain-partitioned topology. Here, making database changes is a breeze, because the only service affected is the one that owns the data (that is, does writes to the database). You get better fault tolerance and better scalability, too. What’s not to like?
+
+Unfortunately, plenty. You see, whenever services need additional data they don’t have, they have to ask for that data from the service that owns it using synchronous calls. That results in a lot of coupling and communication between services, not to mention much slower performance.
+
+![[Pasted image 20250425201232.png]]
+
+Even though they may appear similar, EDA and microservices are very different. Both are distributed
+architectures good for scalability, agility, elasticity, and fault tolerance.
+
+## EDA versus microservices
+
+**Number 6: Performance**
+
+EDA combines asynchronous processing with the ability to do multiple things at once, creating very fast systems. Microservices, however, because of their bounded contexts and fine-grained nature, frequently need to communicate synchronously. This creates a lot of latency, which slows the system down considerably
+
+**Number 5: Physical bounded contexts**
+
+physical bounded contexts. Microservices won’t work without these. In EDA, however, while a physical bounded context is nice to have, it’s certainly not foundational (or even required). Because data sharing is pretty typical in EDA, this architecture doesn’t restrict data ownership as strictly as microservices does.
+
+**Number 4: Data granularity**
+
+By definition, a microservices architecture requires each service to own its own data. This means you have to break apart your data into fine-grained databases or database schemas—collections of tables that a service owns (writes to). But in EDA, you can choose a single monolithic database, domain-partitioned databases, or the database-per-service pattern.
+
+**Number 3: Service granularity**
+
+a microservice is a single-purpose service that does one thing really well. As a result, microservices tend to be fine-grained. EDA has no such restrictions. Services in an event-driven architecture (formally called event processors) can be whatever size they need to be—fine-grained, coarse-grained, it doesn’t matter.
+
+**Number 2: Event versus request processing**
+
+event processing versus request processing. Event-driven architecture is built on event processing—responding to something that has happened, and in turn triggering more events. Microservices architecture, on the other hand, is built on request processing—responding to something that needs to happen, like a command or a request, and processing that request.
+
+**Number 1: Communication style**
+
+the most fundamental difference between EDA and microservices: communication style. EDA typically uses asynchronous communication between services, whereas microservices typically rely on synchronous communication using REST. EDA can occasionally use synchronous calls for things like retrieving data it doesn’t have access to, and microservices can use asynchronous communication when commands don’t require a response. But those are exceptions rather than the rule.
+
+## Event-driven architecture superpowers
+
+- **Maintainability**  
+  Services in EDA are highly decoupled, making them fairly independent and therefore easier to maintain.
+
+- **Performance**  
+  Because EDA mostly uses asynchronous communication and can multitask, it’s very fast.
+
+- **Evolvability**  
+  EDA services always trigger derived events, onto which we can easily add functionality. This makes EDA highly evolvable.
+
+- **Fault tolerance**  
+  Because services are highly decoupled in EDA, if one service goes down, it doesn’t bring down other services in the workflow.
+
+- **Scalability**  
+  Event-driven architectures are highly scalable because of asynchronous processing and service decoupling. Each service can scale independently of others, with the event channels acting as pressure release valves if bottlenecks occur.
+
+## Event-driven architecture kryptonite
+
+- **Testability**  
+  It’s really hard to test asynchronous processing and parallel tasks, making testability a weakness in EDA.
+
+- **Synchronous calls**  
+  If you have lots of synchronous calls between services and workflows that require synchronously dependent services, EDA is not for you.
+
+- **Complexity**  
+  EDA is highly complex because it typically uses asynchronous communication and parallel event processing, and because of its varied database topologies and their trade-offs.
+
+- **Databases**  
+  Regardless of the database topology you choose, services are coupled: either to the database or to each other. There are not a lot of good trade-offs here.
+
+## Bullet Points
+
+- An event is something that happens in the system. Events are the fundamental way services communicate with each other in EDA.
+
+- Events are not the same thing as messages—events broadcast some action a service just performed to other services in the system, whereas messages are commands or requests directed to a single service.
+
+- An initiating event originates from a customer or end user and kicks off a business process.
+
+- A derived event is generated by a service in response to an initiating event.
+
+- Any action a service performs should trigger a derived event to provide architectural extensibility—the ability to extend the system to add new functionality.
+
+- EDA is fast because it generally uses asynchronous (async) communication—services don’t wait for a response or acknowledgment from other services when sending them information.
+
+- Asynchronous communication is sometimes called fire-and-forget.
+
+- Architects usually use a dotted line to represent async communication between services and a solid line to represent sync communication.
+
+- Unlike microservices, event-driven architecture can use a variety of database topologies:
+  - With the monolithic database topology, all services share a single database.
+  - With the domain-partitioned databases topology, each domain in the system has its own database, shared by all of the services within that domain.
+  - In the database-per-service pattern, each service has its own database in a bounded context.
+
+- Event-driven architecture and microservices are very different architectural styles:
+  - EDA relies mostly on asynchronous communication between services, whereas microservices typically rely on synchronous communication using REST.
+  - EDA is built on event processing—processing things that have already happened. A microservices architecture is built on request processing—processing a command or request about something that needs to happen.
+  - Microservices are fine-grained and single-purpose, whereas services in EDA can be any size.
+  - Microservices requires each service to own its own data, whereas in EDA services can (and usually do) share data.
+
+- You can combine microservices and EDA to create a hybrid architecture called event-driven microservices.
+
+- EDA is very complex because it uses asynchronous communication and parallel event processing, and has varied database topologies.
+
+- It’s really hard to test asynchronous processing and parallel tasks, making testability a weakness in EDA.
+
+- Derived events provide hooks to add functionality, making EDA highly evolvable.
+
+- EDA is highly scalable because of asynchronous processing and service decoupling.
+
+

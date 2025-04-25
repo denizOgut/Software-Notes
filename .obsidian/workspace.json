@@ -4,19 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "cbcd1fd05f669e5e",
+        "id": "0852482bb9a781fa",
         "type": "tabs",
         "children": [
           {
-            "id": "fac9bcfdf227ba9b",
+            "id": "f43d13c81788e9e7",
             "type": "leaf",
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250420112642.png"
+                "file": "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425193930.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250420112642"
+              "title": "Pasted image 20250425193930"
             }
           }
         ]
@@ -177,21 +177,22 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "fac9bcfdf227ba9b",
+  "active": "f43d13c81788e9e7",
   "lastOpenFiles": [
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250420113539.png",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250420114837.png",
+    "Software Architecture/Head First Software Architecture.md",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425201232.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425201101.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425200810.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425195127.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425195050.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425193930.png",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250420114100.png",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250420112642.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425131854.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425132254.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250423150756.png",
+    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250423152215.png",
     "Get Your Hands Dirty on Clean Architecture.md",
     "Get Your Hands Dirty on Clean Architecture Screenshots",
-    "Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250419214336.png",
-    "Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250419213532.png",
-    "Pasted image 20250419213009.png",
-    "Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250419212957.png",
-    "GRPC Screenshots/Pasted image 20240905215246.png",
-    "GRPC Screenshots/Pasted image 20240905215216.png",
     "Head First Software Architecture.md",
     "OCP-17/OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "Head First Software Architecture Screenshots",
@@ -216,7 +217,6 @@
     "OCP-17",
     "202410281002.md",
     "Database Fundamentals Notes.md",
-    "EFFECTIVE JAVA NOTES.md",
     "Database Fundamentals Screenshots",
     "Apache Kafka Screenshots",
     "Spring WebFlux Screenshots",
