@@ -4,19 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "0852482bb9a781fa",
+        "id": "68a19a3dd33bac2c",
         "type": "tabs",
         "children": [
           {
-            "id": "f43d13c81788e9e7",
+            "id": "e64d3e614f0816a0",
             "type": "leaf",
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425193930.png"
+                "file": "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501133640.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250425193930"
+              "title": "Pasted image 20250501133640"
             }
           }
         ]
@@ -177,20 +177,24 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "f43d13c81788e9e7",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Software Architecture/Head First Software Architecture.md",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425201232.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425201101.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425200810.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425195127.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425195050.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425193930.png",
+    "Software Architecture/Fundamentals of Software Architecture.md",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134558.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134418.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134217.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134033.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501133739.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501133640.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501112108.png",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425131854.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250425132254.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250423150756.png",
-    "Screenshots/Head First Software Architecture Screenshots/Pasted image 20250423152215.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501115841.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501113315.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501112527.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots",
+    "Screenshots/Hexagonal Architecture Screenshots",
+    "Software Architecture/Hexagonal Architecture Main.md",
+    "Software Architecture/Head First Software Architecture.md",
     "Get Your Hands Dirty on Clean Architecture.md",
     "Get Your Hands Dirty on Clean Architecture Screenshots",
     "Head First Software Architecture.md",
@@ -215,14 +219,10 @@
     "OCP-17/OCP-17 Summary Notes - Chapter 4 - Core APIs.md",
     "RabbitMQ Notes.md",
     "OCP-17",
-    "202410281002.md",
-    "Database Fundamentals Notes.md",
     "Database Fundamentals Screenshots",
     "Apache Kafka Screenshots",
     "Spring WebFlux Screenshots",
     "Reactive Programming Screenshots",
-    "GRPC Screenshots",
-    "Java Network Programming Screenshots",
-    "Java Concurrency in Practice Screenshots"
+    "GRPC Screenshots"
   ]
 }
