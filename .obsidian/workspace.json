@@ -4,19 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "68a19a3dd33bac2c",
+        "id": "e068fc99efc615e7",
         "type": "tabs",
         "children": [
           {
-            "id": "e64d3e614f0816a0",
+            "id": "09882af314af27b5",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501133640.png"
+                "file": "Software Architecture/Onion Architecture.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-image",
-              "title": "Pasted image 20250501133640"
+              "icon": "lucide-file",
+              "title": "Onion Architecture"
             }
           }
         ]
@@ -177,20 +179,24 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "09882af314af27b5",
   "lastOpenFiles": [
+    "Screenshots/Onion Architecture Screenshots/Pasted image 20250504141844.png",
+    "Screenshots/Onion Architecture Screenshots/Pasted image 20250504135824.png",
+    "Screenshots/Onion Architecture Screenshots",
+    "Software Architecture/Onion Architecture.md",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504104112.png",
     "Software Architecture/Fundamentals of Software Architecture.md",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134558.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134418.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134217.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501134033.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501133739.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250501133640.png",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501112108.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504112413.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110915.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110729.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110502.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110319.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110313.png",
+    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504105449.png",
+    "Software Architecture/Hexagonal Architecture.md",
+    "Screenshots/Hexagonal Architecture Screenshot",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501115841.png",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501113315.png",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250501112527.png",
     "Screenshots/Fundamentals of Software Architecture Screenshots",
     "Screenshots/Hexagonal Architecture Screenshots",
     "Software Architecture/Hexagonal Architecture Main.md",
@@ -216,13 +222,9 @@
     "OCP-17/OCP-17 Summary Notes - Chapter 5 - Methods.md",
     "OCP-17/OCP-17 Summary Notes - Chapter 3 - Making Decisions.md",
     "OCP-17/OCP-17 Summary Notes -  Chapter 2 - Operators.md",
-    "OCP-17/OCP-17 Summary Notes - Chapter 4 - Core APIs.md",
-    "RabbitMQ Notes.md",
     "OCP-17",
     "Database Fundamentals Screenshots",
     "Apache Kafka Screenshots",
-    "Spring WebFlux Screenshots",
-    "Reactive Programming Screenshots",
-    "GRPC Screenshots"
+    "Spring WebFlux Screenshots"
   ]
 }
