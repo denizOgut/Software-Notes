@@ -4,21 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "e068fc99efc615e7",
+        "id": "3770687326a8362a",
         "type": "tabs",
         "children": [
           {
-            "id": "09882af314af27b5",
+            "id": "c76c2606ab119b10",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "Software Architecture/Onion Architecture.md",
-                "mode": "source",
-                "source": false
+                "file": "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105154.png"
               },
-              "icon": "lucide-file",
-              "title": "Onion Architecture"
+              "icon": "lucide-image",
+              "title": "Pasted image 20250513105154"
             }
           }
         ]
@@ -179,28 +177,29 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "09882af314af27b5",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Screenshots/Onion Architecture Screenshots/Pasted image 20250504141844.png",
-    "Screenshots/Onion Architecture Screenshots/Pasted image 20250504135824.png",
-    "Screenshots/Onion Architecture Screenshots",
-    "Software Architecture/Onion Architecture.md",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504104112.png",
-    "Software Architecture/Fundamentals of Software Architecture.md",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504112413.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110915.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110729.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110502.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110319.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504110313.png",
-    "Screenshots/Fundamentals of Software Architecture Screenshots/Pasted image 20250504105449.png",
-    "Software Architecture/Hexagonal Architecture.md",
-    "Screenshots/Hexagonal Architecture Screenshot",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513165452.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513110020.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105554.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105249.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105154.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513091344.png",
+    "Untitled.md",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513092039.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513091606.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250512180445.png",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250512190626.png",
+    "Software Architecture/Fundamentals of Software Architecture.md",
+    "Software Architecture/Onion Architecture.md",
+    "Software Architecture/Hexagonal Architecture.md",
+    "Software Architecture/Head First Software Architecture.md",
+    "Screenshots/Onion Architecture Screenshots",
+    "Screenshots/Hexagonal Architecture Screenshot",
     "Screenshots/Fundamentals of Software Architecture Screenshots",
     "Screenshots/Hexagonal Architecture Screenshots",
     "Software Architecture/Hexagonal Architecture Main.md",
-    "Software Architecture/Head First Software Architecture.md",
     "Get Your Hands Dirty on Clean Architecture.md",
     "Get Your Hands Dirty on Clean Architecture Screenshots",
     "Head First Software Architecture.md",
@@ -221,7 +220,6 @@
     "OCP-17/OCP-17 Summary Notes - Chapter 6 - Class Design.md",
     "OCP-17/OCP-17 Summary Notes - Chapter 5 - Methods.md",
     "OCP-17/OCP-17 Summary Notes - Chapter 3 - Making Decisions.md",
-    "OCP-17/OCP-17 Summary Notes -  Chapter 2 - Operators.md",
     "OCP-17",
     "Database Fundamentals Screenshots",
     "Apache Kafka Screenshots",
