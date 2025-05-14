@@ -11,12 +11,14 @@
             "id": "c76c2606ab119b10",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105154.png"
+                "file": "Software Architecture/Hexagonal Architecture.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-image",
-              "title": "Pasted image 20250513105154"
+              "icon": "lucide-file",
+              "title": "Hexagonal Architecture"
             }
           }
         ]
@@ -177,14 +179,15 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "c76c2606ab119b10",
   "lastOpenFiles": [
+    "Software Architecture/Onion Architecture.md",
+    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105154.png",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513165452.png",
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513110020.png",
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105554.png",
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105249.png",
-    "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513105154.png",
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513091344.png",
     "Untitled.md",
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250513092039.png",
@@ -192,7 +195,6 @@
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250512180445.png",
     "Screenshots/Get Your Hands Dirty on Clean Architecture Screenshots/Pasted image 20250512190626.png",
     "Software Architecture/Fundamentals of Software Architecture.md",
-    "Software Architecture/Onion Architecture.md",
     "Software Architecture/Hexagonal Architecture.md",
     "Software Architecture/Head First Software Architecture.md",
     "Screenshots/Onion Architecture Screenshots",
