@@ -80,6 +80,13 @@ This abstraction allows the application to be **flexibly wired** with different 
 
 ![[Pasted image 20250501154102.png]]
 
+### Naming Conventions
+
+While not strictly enforced, following consistent naming conventions can improve code readability and maintainability. Common conventions include:
+
+- Inbound ports: `[DomainName]Service`, `[UseCase]InputPort`
+- Outbound ports: `[ExternalSystem]Repository`, `[ExternalSystem]Service`, `[DomainName]PersistencePort`
+
 ## Adapters
 
 > **Adapters are the components that implement or use the ports**, enabling communication between the application core and the external world.
@@ -130,6 +137,51 @@ There are two main kinds of adapters, corresponding to the two types of ports:
 # Project Structure
 
 Here is the **combined project structure and explanation** based on your two provided screenshots — this is a full representation of a **Hexagonal Architecture** project (specifically, the ``BuckPal`` example commonly used to illustrate clean hexagonal design in Java with Spring Boot).
+
+---
+
+```text
+.
+└── application/
+    ├── core/
+    │   ├── domain/
+    │   │   ├── Customer.java
+    │   │   ├── CustomerFactory.java
+    │   │   ├── Reservation.java
+    │   │   └── Table.java
+    │   ├── ports/
+    │   │   ├── in/
+    │   │   │   ├── AddReservationPort.java
+    │   │   │   ├── CancelReservationPort.java
+    │   │   │   ├── AlterReservationPort.java
+    │   │   │   ├── AddTablePort.java
+    │   │   │   └── RemoveTablePort.java
+    │   │   └── out/
+    │   │       └── StoreReservationPort.java
+    │   ├── usecase/
+    │   │   ├── AddReservationUc.java
+    │   │   ├── ManageReservationUc.java
+    │   │   └── AddTableUc.java
+    │   └── [service]/
+    │       └── [FindFreeTableService.java]
+    └── adapter/
+        ├── in/
+        │   └── web/
+        │       ├── RestController.java
+        │       ├── model/
+        │       │   └── ReservationDto.java
+        │       └── mapper/
+        │           └── ReservationMapper.java
+        └── out/
+            └── repository/
+                ├── JpaAdapter.java
+                ├── model/
+                │   ├── ReservationEntity.java
+                │   └── TableEntity.java
+                └── mapper/
+                    ├── ReservationJpaMapper.java
+                    └── TableJpaMapper.java
+```
 
 ---
 ![[Pasted image 20250501160113.png]]
@@ -500,12 +552,12 @@ Below is the essential skeleton structure that repeats across all modules in a h
 
 **Purpose**: Convert external requests into application use case calls
 
-|Component|Purpose|Example|
-|---|---|---|
-|*Controller|Handle HTTP requests|`AccountController`|
-|*Request|Request DTO/payload|`CreateAccountRequest`|
-|*Response|Response DTO|`AccountResponse`|
-|*Listener|Message consumers|`PaymentMessageListener`|
+| Component   | Purpose              | Example                  |
+| ----------- | -------------------- | ------------------------ |
+| *Controller | Handle HTTP requests | `AccountController`      |
+| *Request    | Request DTO/payload  | `CreateAccountRequest`   |
+| *Response   | Response DTO         | `AccountResponse`        |
+| *Listener   | Message consumers    | `PaymentMessageListener` |
 
 #### Outbound Adapters (`adapter.out.*`)
 
@@ -595,3 +647,40 @@ These components are typically shared across modules in a separate `common` modu
 4. **Adapter Isolation**: Adapters only depend on ports, not other adapters
 5. **Port Naming**: Ports are named after business capabilities, not technical details
 
+```java
+src
+└── main
+    └── java
+        ├── adapter // ın & out
+        ├── application 
+        │   ├── dto
+        │   ├── mapper // may be in adapter not sure
+        │   └── services // implement of use cases
+        ├── common
+        └── domain
+            ├── model
+            │   ├── common// package
+            │   ├── exception // package
+	            // Domain entities
+            │   ├── Category
+            │   ├── Dimensions
+            │   ├── Image
+            │   ├── Money
+            │   ├── Product
+            │   ├── Stock
+            │   └── StockStatus
+            ├── port // empty for now 
+            │   ├── in
+            │   └── out
+            └── usecase
+                ├── category
+                │   └── dto.command
+                │   ├── CategoryManagementUseCase
+                │   └── CategoryQueryUseCase
+                └── product
+                    └── dto
+                    ├── ProductManagementUseCase
+                    └── ProductQueryUseCase
+resources
+
+```
