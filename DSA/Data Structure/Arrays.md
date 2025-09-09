@@ -381,7 +381,7 @@ class Solution {
 
         int index = 0; // index for result array
         for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < matrix[i].length; j++) {
+            for (int j = 0; j < cols; j++) {
                 result[index++] = matrix[i][j];
             }
         }
