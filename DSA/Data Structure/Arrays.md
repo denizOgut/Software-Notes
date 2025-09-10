@@ -438,3 +438,548 @@ class Solution {
 }
 ```
 
+
+# Two Pointer Pattern
+
+Some problems require traversing an array from both ends simultaneously, and while this is often done with nested loops (inefficient), it can be solved more effectively using two-pointer techniques. It allows us to solve problems in linear time and single-pass, which would otherwise require inefficient nested loops.
+
+![[Pasted image 20250910133956.png]]
+
+## Two pointer technique
+
+The two-pointer technique uses two variables, `left` and `right` initialized with 0 and end of the array, respectively, to traverse the array from both directions simultaneously until they meet in the middle. As we traverse the array, we perform the operations on the data items at these indices to solve the problem. At the end of each iteration, we increase and/or decrease `left` and `right` by some steps dictated by the problem to close the gap between them.
+
+## Algorithm
+
+- **Step 1:** Initialize two variables `left` and `right` to values dictated by the problem such that `left` < `right`
+- **Step 2:** Loop while `left` < `right` and do the following
+    - **Step 2.1:** Do some operations using `arr[left]` and `arr[right]` as dictated by the problem
+    - **Step 2.2:** Decide if `left` should be increased
+    - **Step 2.3:** Decide if `right` should be decreased
+
+## Implementation
+
+```java
+import java.util.List;
+
+public static void twoPointer(List<Integer> arr) {
+
+        // Initialize left and right pointers to the start and end of the list
+
+        int left = 0;
+
+        int right = arr.size() - 1;
+
+        // Loop until the pointers meet
+
+        while (left < right) {
+            /*
+
+            Perform the operation on arr.get(left) and arr.get(right)
+
+            */
+
+            // Adjust pointers based on conditions
+
+            if (shouldIncreaseLeft()) {
+
+                left += increment;
+
+            }
+
+            if (shouldDecreaseRight()) {
+
+                right -= decrement;
+
+            }
+
+        }
+
+    }
+```
+
+
+## Identifying direct application
+
+The two-pointer technique can only be directly applied to specific problems that fall under the two-pointer pattern.
+
+> **Template:**  
+   Given an array `arr` perform some operations on `arr[i]` and `arr[j]` where `i = x` and `j = y` such that `x < y` and with each iteration, `i` and `j` come closer to each other by some steps.
+
+
+### Example  Flip characters
+
+**Problem statement:** We are given an array `arr` and we have to reverse it in-place. **==An in-place reversal means we must modify the original array and not create and return a new one==**.
+
+ **Brute force solution**
+
+The brute-force solution to this problem is to traverse the array in the reverse direction (from end to start) and copy the items to `temp` array. Next, we traverse the `temp` array in the forward direction (from start to end) and copy the items to the original array.
+
+```java
+public void reverse(char[] arr) {
+
+    // Create temp array to store reverse
+
+    char[] temp = new char[arr.length];
+
+    int lastIndex = arr.length - 1;
+
+    // Traverse arr in revrese direction
+
+    // and copy data to tmep
+
+    for(int i=lastIndex; i >= 0; i--)
+
+        temp[lastIndex-i] = arr[i];
+
+    // Traverse temp in forward direction and
+
+    // and copy data to arr
+
+    for(int i=0; i <= lastIndex; i++)
+
+        arr[i] = temp[i];
+
+}
+```
+
+
+ **Two pointer solution**
+
+> Given an array `arr` swap `arr[i]` and `arr[j]` where `i = 0` and `j = arr.length - 1` and with each iteration, `i` and `j` come closer to each other by 2 steps (1 each).
+
+```java
+class Solution {
+
+    public void reverse(int[] arr) {
+
+        // Initialize two pointers, one pointing to the beginning of the
+
+        // array and the other pointing to the end of the array
+
+        int left = 0;
+
+        int right = arr.length - 1;
+
+        // Use a while loop to traverse the array using the two pointers
+
+        while (left < right) {
+
+            // Swap the values pointed by the left and right pointers
+
+            char temp = arr[left];
+
+            arr[left] = arr[right];
+
+            arr[right] = temp;
+
+            // Move the pointers towards the center of the array
+
+            left++;
+
+            right--;
+
+        }
+
+    }
+
+}
+// --------------------------------------------------------------------------------------
+
+class Solution {
+    public void reverse(int[] arr) {
+        int left = 0, right = arr.length - 1;
+        while (left < right) {
+            int temp = arr[left];
+            arr[left++] = arr[right];
+            arr[right--] = temp;
+        }
+    }
+}
+
+// --------------------------------------------------------------------------------------
+
+class Solution {
+    public void reverse(int[] arr) {
+        for (int left = 0, right = arr.length - 1; left < right; left++, right--) {
+            int temp = arr[left];
+            arr[left] = arr[right];
+            arr[right] = temp;
+        }
+    }
+}
+
+
+```
+
+
+### Example   Palindrome checker
+
+Given a string **s**, write a function that returns `true` if it is a palindrome or `false` otherwise.
+
+A palindrome is a string that reads the same forward and backward after converting all uppercase letters into lowercase letters and removing all non-alphanumeric characters.
+
+```java
+class Solution {
+
+    public boolean solution(String s) {
+
+         if (s == null)
+
+            return false;
+
+        StringBuilder sb = new StringBuilder();
+
+        for (char c : s.toCharArray()) {
+
+            if (Character.isLetterOrDigit(c)) {
+
+                sb.append(Character.toLowerCase(c));
+
+            }
+
+        }
+
+        char[] chars = sb.toString().toCharArray();
+
+        int left = 0, right = chars.length - 1;
+
+        while(left < right) {
+
+            if(chars[left++] != chars[right--])
+
+                return false;
+        }
+
+        return true;
+
+    }
+
+}
+```
+
+```java
+class Solution {
+    public boolean solution(String s) {
+        if (s == null) return false;
+
+        
+        StringBuilder sb = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            if (Character.isLetterOrDigit(c)) {
+                sb.append(Character.toLowerCase(c));
+            }
+        }
+
+        char[] chars = sb.toString().toCharArray();
+
+        
+        for (int left = 0, right = chars.length - 1; left < right; left++, right--) {
+            if (chars[left] != chars[right]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+```
+
+
+### Example  Vowel exchange
+
+Given a string **s**, write a function to reverse the vowels in the string and return the updated string.
+
+For this problem, consider only the vowels in the English alphabet: `a`, `e`, `i`, `o`, `u`, including both uppercase and lowercase forms.
+
+```java
+static boolean isVowel(char c) {
+        return c == 'a' || c == 'e' || c == 'i' 
+               || c == 'o' || c == 'u';
+    }
+
+    static String reverseVowels(String s) {
+        char[] str = s.toCharArray();
+        int left = 0, right = str.length - 1;
+        
+        // Two-pointer approach to swap vowels
+        while (left < right) {
+            
+            // Move left pointer until a vowel is found
+            while (left < right && !isVowel(str[left])) {
+                left++;
+            }
+
+            // Move right pointer until a vowel is found
+            while (left < right && !isVowel(str[right])) {
+                right--;
+            }
+
+            // Swap the vowels
+            if (left < right) {
+                char temp = str[left];
+                str[left] = str[right];
+                str[right] = temp;
+                left++;
+                right--;
+            }
+        }
+        
+        return new String(str);
+    }
+```
+
+```java
+class Solution {
+    public String solution(String s) {
+    
+        char[] chars = s.toCharArray();
+        int left = 0, right = s.length() - 1;
+        String vowels = "aeiou";
+        
+        while(left < right) {
+            if(vowels.indexOf(chars[left]) == -1) {
+                left++;
+            } else if(vowels.indexOf(chars[right]) == -1) {
+                right--;
+            } else {
+                // Swap vowels
+                char temp = chars[left];
+                chars[left] = chars[right];
+                chars[right] = temp;
+                left++;
+                right--;
+            }
+        }
+        
+        return new String(chars);
+    }
+}
+```
+
+### Example Reverse words
+
+Given a string **s**, write a function that reverses the words in the given string while preserving the original word order. The string may contain leading or trailing white spaces, and the words in the input string might be separated by more than a single space character.
+
+```java
+class Solution {
+
+    public String solution(String s) {
+
+        if (s == null || s.isEmpty()) {
+
+            return s;
+
+        }
+
+        String[] words = s.trim().split("\\s+");
+
+        for (int i = 0; i < words.length; i++) {
+
+            words[i] = reverseWord(words[i]);
+
+        }
+
+        return String.join(" ", words);
+
+    }
+
+    private String reverseWord(String word) {
+
+        char[] chars = word.toCharArray();
+
+        int left = 0, right = chars.length - 1;
+
+        while (left < right) {
+
+            char temp = chars[left];
+
+            chars[left] = chars[right];
+
+            chars[right] = temp;
+
+            left++;
+
+            right--;
+
+        }
+
+        return new String(chars);
+
+    }
+
+}
+```
+
+```java
+class Solution {
+
+    public int findWordEnd(char[] arr, int start) {
+
+        // Assign the start index to the end index
+
+        int end = start;
+
+        // Iterate through the string until a space is encountered
+
+        while (end < arr.length && arr[end] != ' ') {
+
+            end++;
+
+        }
+
+        // Return the index of the last character of the word
+
+        return end - 1;
+
+    }
+
+
+    public void reverseWord(char[] arr, int left, int right) {
+
+        // Use a while loop to traverse the string using the two pointers
+
+        while (left < right) {
+
+            // Swap the characters pointed by the left and right pointers
+
+            char temp = arr[left];
+
+            arr[left] = arr[right];
+
+            arr[right] = temp;
+
+            // Move the pointers towards the center of the string
+
+            left++;
+
+            right--;
+
+        }
+    }
+
+  
+
+    public String reverseWords(String s) {
+
+        char[] arr = s.toCharArray();
+
+        int start = 0;
+
+  
+
+        // Iterate through the string
+
+        while (start < s.length()) {
+
+            // Skip any leading spaces
+
+            if (arr[start] == ' ') {
+
+                start++;
+
+                continue;
+
+            }
+
+
+            // Find the end of the current word
+
+            int end = findWordEnd(arr, start);
+
+            // Reverse the characters in the current word using two
+
+            // pointer method
+
+            reverseWord(arr, start, end);
+
+            // Move the start pointer to the next word
+
+            start = end + 1;
+
+        }
+
+        return new String(arr);
+
+    }
+
+}
+```
+
+### Example Reverse segments
+
+Given a string **s** and an integer **k**, write a function that reverses **k** characters of the string for every **2k** characters from the start of the string and returns the new string.
+
+> You must abide by the following constraints:
+> 
+> - If there are fewer than **k** characters left, reverse them all.
+> - If there are at least **k** but fewer than **2k** characters left, reverse only the first k characters and leave the rest untouched.
+
+```java
+class Solution {
+    public String solution(String s, int k) {
+        char[] chars = s.toCharArray();
+        
+        for (int i = 0; i < chars.length; i += 2 * k) {
+            int left = i;
+            int right = Math.min(i + k - 1, chars.length - 1);
+            
+            while (left < right) {
+                char temp = chars[left];
+                chars[left] = chars[right];
+                chars[right] = temp;
+                left++;
+                right--;
+            }
+        }
+        
+        return new String(chars);
+    }
+}
+```
+
+### Example Reverse segments
+
+Given a string **s**, write a function that returns a string of words in reverse order concatenated by a single space. The words of the input string are separated by **at least** a single space. The string may contain leading or trailing white spaces or multiple spaces between two words. The returned string must only have one space between the words. Do not include any leading or trailing whitespaces.
+
+```java
+public class Solution {
+    public String reverseWords(String s) {
+        // Step 1: Trim the string to remove leading/trailing spaces
+        s = s.trim();
+        
+        // Step 2: Use StringBuilder to build result
+        StringBuilder result = new StringBuilder();
+        
+        // Step 3: Two pointers approach - scan from right to left
+        int right = s.length() - 1;
+        
+        while (right >= 0) {
+            // Skip spaces
+            while (right >= 0 && s.charAt(right) == ' ') {
+                right--;
+            }
+            
+            // If we've reached the beginning, break
+            if (right < 0) break;
+            
+            // Find the start of current word
+            int left = right;
+            while (left >= 0 && s.charAt(left) != ' ') {
+                left--;
+            }
+            
+            // Add the word to result
+            if (result.length() > 0) {
+                result.append(' '); // Add space before word (except first word)
+            }
+            result.append(s.substring(left + 1, right + 1));
+            
+            // Move right pointer to continue
+            right = left;
+        }
+        
+        return result.toString();
+    }
+}
+```

@@ -228,3 +228,108 @@ Sharding is a great technique to scale the database but it is far from a perfect
 ==**• Scale your data tier by sharding**==
 ==**• Split tiers into individual services**==
 ==**• Monitor your system and use automation tools==**
+
+# CHAPTER 2: BACK-OF-THE-ENVELOPE ESTIMATION
+
+## Power of two
+
+Although data volume can become enormous when dealing with distributed systems, calculation all boils down to the basics. To obtain correct calculations, it is critical to know the data volume unit using the power of 2. A byte is a sequence of 8 bits. An ASCII character uses one byte of memory (8 bits).
+
+![[Pasted image 20250910160508.png]]
+
+## Availability numbers
+
+High availability is the ability of a system to be continuously operational for a desirably long period of time. High availability is measured as a percentage, with 100% means a service that has 0 downtime. Most services fall between 99% and 100%.
+
+A service level agreement (SLA) is a commonly used term for service providers. This is an agreement between you (the service provider) and your customer, and this agreement formally defines the level of uptime your service will deliver.
+
+![[Pasted image 20250910160605.png]]
+
+## Tips
+
+Back-of-the-envelope estimation is all about the process. Solving the problem is more
+important than obtaining results. Interviewers may test your problem-solving skills. Here are a few tips to follow:
+
+• Rounding and Approximation. It is difficult to perform complicated math operations during the interview. For example, what is the result of “99987 / 9.1”? There is no need to spend valuable time to solve complicated math problems. Precision is not expected. Use round numbers and approximation to your advantage. The division question can be simplified as follows: “100,000 / 10”.
+• Write down your assumptions. It is a good idea to write down your assumptions to be referenced later.
+• Label your units. When you write down “5”, does it mean 5 KB or 5 MB? You might confuse yourself with this. Write down the units because “5 MB” helps to remove ambiguity.
+• Commonly asked back-of-the-envelope estimations: QPS, peak QPS, storage, cache, number of servers, etc. You can practice these calculations when preparing for an interview. Practice makes perfect
+
+# CHAPTER 3: A FRAMEWORK FOR SYSTEM DESIGN INTERVIEWS
+
+The system design interview simulates real-life problem solving where two co-workers collaborate on an ambiguous problem and come up with a solution that meets their goals. The problem is open-ended, and there is no perfect answer. The final design is less important compared to the work you put in the design process. This allows you to demonstrate your design skill, defend your design choices, and respond to feedback in a constructive manner.
+
+An effective system design interview gives strong signals about a person's ability to collaborate, to work under pressure, and to resolve ambiguity constructively. The ability to ask good questions is also an essential skill, and many interviewers specifically look for this skill.
+
+**==Over-engineering is a real disease of many engineers as they delight in design purity and ignore tradeoffs. They are often unaware of the compounding costs of over-engineered systems, and many companies pay a high price for that ignorance.==**
+
+## A 4-step process for effective system design interview
+
+### Step 1 - Understand the problem and establish design scope
+
+**==In a system design interview, giving out an answer quickly without thinking gives you no bonus points. Answering without a thorough understanding of the requirements is a huge red flag as the interview is not a trivia contest. There is no right answer.==**
+
+When you ask a question, the interviewer either answers your question directly or asks you to make your assumptions. If the latter happens, write down your assumptions on the whiteboard or paper. You might need them later.
+
+What kind of questions to ask? Ask questions to understand the exact requirements. Here is a
+list of questions to help you get started:
+**==• What specific features are we going to build?**==
+==**• How many users does the product have?**==
+==**• How fast does the company anticipate to scale up? What are the anticipated scales in 3 months, 6 months, and a year?**==
+==**• What is the company’s technology stack? What existing services you might leverage to simplify the design?==**
+
+### Step 2 - Propose high-level design and get buy-in
+
+It is a great idea to collaborate with the interviewer during the process. 
+
+• Come up with an initial blueprint for the design. Ask for feedback. Treat your interviewer as a teammate and work together.
+• Draw box diagrams with key components on the whiteboard or paper. This might include clients (mobile/web), APIs, web servers, data stores, cache, CDN, message queue, etc.
+• Do back-of-the-envelope calculations to evaluate if your blueprint fits the scale constraints. Think
+
+**==If possible, go through a few concrete use cases.==** This will help you frame the high-level design.
+
+### Step 3 - Design deep dive
+
+• Agreed on the overall goals and feature scope
+• Sketched out a high-level blueprint for the overall design
+• Obtained feedback from your interviewer on the high-level design
+• Had some initial ideas about areas to focus on in deep dive based on her feedback
+
+**==Time management is essential as it is easy to get carried away with minute details that do not demonstrate your abilities. You must be armed with signals to show your interviewer.==**
+
+### Step 4 - Wrap up
+
+In this final step, the interviewer might ask you a few follow-up questions or give you the freedom to discuss other additional points.
+
+• The interviewer might want you to identify the system bottlenecks and discuss potential improvements. **==Never say your design is perfect and nothing can be improved. There is always something to improve upon.==**
+
+• It could be useful to give the interviewer a recap of your design. This is particularly important if you suggested a few solutions. Refreshing your interviewer’s memory can be helpful after a long session.
+
+• Error cases (server failure, network loss, etc.) are interesting to talk about.
+
+• Operation issues are worth mentioning. How do you monitor metrics and error logs?
+
+• How to handle the next scale curve is also an interesting topic
+
+• Propose other refinements you need if you had more time.
+
+## Tips
+
+### ==**Dos**==
+==**• Always ask for clarification. Do not assume your assumption is correct.**==
+==**• Understand the requirements of the problem.**==
+==**• There is neither the right answer nor the best answer. A solution designed to solve the**==
+==**problems of a young startup is different from that of an established company with millions of users. Make sure you understand the requirements.**==
+==**• Let the interviewer know what you are thinking. Communicate with your interview. • Suggest multiple approaches if possible.**==
+==**• Once you agree with your interviewer on the blueprint, go into details on each component. Design the most critical components first.**==
+==**• Bounce ideas off the interviewer. A good interviewer works with you as a teammate.**==
+==**• Never give up.**==
+
+### ==**Don’ts**==
+==**• Don't be unprepared for typical interview questions.**==
+==**• Don’t jump into a solution without clarifying the requirements and assumptions.**==
+==**• Don’t go into too much detail on a single component in the beginning. Give the high level design first then drills down.**==
+==**• If you get stuck, don't hesitate to ask for hints.**==
+==**• Again, communicate. Don't think in silence.**== 
+==**• Don’t think your interview is done once you give the design. You are not done until your interviewer says you are done. Ask for feedback early and often.==**
+
