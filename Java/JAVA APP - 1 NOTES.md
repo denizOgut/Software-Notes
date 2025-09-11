@@ -1896,7 +1896,6 @@ Remember that **Spring AOP has some limitations**. Such as:
 - Spring uses the AspectJ pointcut expression language by default.
 
 
-
 ## Type of Advices in Spring AOP
 
 - **Before advice**: Advice that executes before a join point, but which does not have the ability to prevent execution flow proceeding to the join point (unless it throws an exception).

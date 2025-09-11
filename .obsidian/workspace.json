@@ -25,10 +25,10 @@
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250910160508.png"
+                "file": "Screenshots/DSA/Arrays/Pasted image 20250911100039.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250910160508"
+              "title": "Pasted image 20250911100039"
             }
           }
         ],
@@ -191,20 +191,22 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "d8ad8ac236d54f24",
   "lastOpenFiles": [
+    "DSA/Data Structure/Arrays.md",
+    "Screenshots/DSA/Arrays/Pasted image 20250911100039.png",
+    "Screenshots/DSA/Arrays/Pasted image 20250911091722.png",
+    "Screenshots/DSA/Arrays/Pasted image 20250911091545.png",
+    "Screenshots/DSA/Arrays/Pasted image 20250911090735.png",
+    "backend-tools/RabbitMQ Notes.md",
+    "Java/JAVA APP - 1 NOTES.md",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250910160508.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250910160605.png",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250910160508.png",
-    "DSA/Data Structure/Arrays.md",
     "Screenshots/DSA/Arrays/Pasted image 20250910133956.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250909133412.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250909140441.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250909140248.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250909140245.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250909140224.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250909140106.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250909135917.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots",
     "Screenshots/Software Architecture/System Design Screenshots",
     "Screenshots/Software Architecture",
@@ -220,7 +222,6 @@
     "Screenshots/Software Architecture/Domain Driven Design Screenshots/Domain-Driven Design Tackling Complexity in the Heart of Software Screenshots",
     "Software Architecture/Domain Driven Design/Learning Domain-Driven Design Aligning Software Architecture and Business Strategy.md",
     "Software Architecture/Hexagonal Architecture.md",
-    "Java/JAVA APP - 1 NOTES.md",
     "Get Your Hands Dirty on Clean Architecture.md",
     "Java/Reactive Programming.md",
     "backend-tools/Apache Kafka Notes.md",
@@ -236,7 +237,6 @@
     "Golang Notes.md",
     "100 Go Mistakes and How to Avoid Them.md",
     "DATABASE PROGRAMMING NOTES.md",
-    "Java Network Programming Notes.md",
-    "OSMANLI PADİŞAHLARI.md"
+    "Java Network Programming Notes.md"
   ]
 }

@@ -983,3 +983,228 @@ public class Solution {
     }
 }
 ```
+
+--- 
+
+# Two Pointer Reduction
+
+Some problems may not fit the template for the direct application of the two-pointer pattern, but we may be able to reduce them to problems that fit the template and can be solved by directly applying the two-pointer technique.
+
+We need to make some critical observations to determine whether the reduction is possible; asking yourself the following questions will help you determine whether a problem can be reduced to another problem solvable by directly applying a two-pointer pattern.
+
+**Ask yourself questions:**
+
+- **==Q1. Does the order of items in the array matter?**==  
+- ==**Q2. Do we need to work simultaneously with two items in the array?**==  
+- ==**Q3. Does traversing from both ends have some special characteristics?**==  
+- ==**Q4. Can we reduce the problem to another problem? If yes, ask yourself the above questions for the reduced problem==**
+
+## Example
+
+> **Problem statement:** We are given an array `arr` of integers and an integer value `target`. We must return true if two values exist in the array whose sum equals `target`.
+
+![[Pasted image 20250911090735.png]]
+
+ **Brute force solution**
+
+The brute-force solution to this problem is to use nested loops to pick every item in the array and check its sum with all the other items. If the sum of any two items equals the target, we return true. Otherwise, we return false.
+
+```java
+public static boolean twoSum(int[] arr, int target) {
+    // Use nested loop to find sum of all pairs
+    for (int i = 0; i < arr.length; i++) {
+        for (int j = i + 1; j < arr.length; j++) {
+            if (arr[i] + arr.get[j] == target) {
+                return true;
+            }
+
+        }
+
+    }
+    return false;
+}
+```
+
+ **Two pointer reduction solution**
+
+The critical observation here is that the order of items in the array does not matter, and sorting the array establishes some special relationship between items when traversed from both ends.
+
+The sorted order of the array allows us to discard values whose sum with other values in the array will always be either greater or less than the `target`. This reduces the problem to a problem solvable by direct application of the two-pointer pattern. We traverse from both ends, operate on the data items, and close the gap between `left` and `right` in each iteration
+
+```java
+import java.util.*;
+
+class Solution {
+
+    public int[] twoSum(int[] arr, int target) {
+
+        // Sort the array in non-decreasing order
+
+        Arrays.sort(arr);
+
+        int left = 0;
+
+        int right = arr.length - 1;
+
+        // Use a while loop to traverse the array using the two pointers
+
+        while (left < right) {
+
+            int sum = arr[left] + arr[right];
+
+            // Found a pair that sums up to the target
+
+            if (sum == target) {
+
+                return new int[] { arr[left], arr[right] };
+
+            }
+            // Move the left pointer to increase the sum
+
+            else if (sum < target) {
+
+                left++;
+
+            }
+            // Move the right pointer to decrease the sum
+            else {
+                right--;
+            }
+
+        }
+        // No pair found, return an empty array
+
+        return new int[0];
+    }
+
+}
+```
+
+ **Proof of correctness**
+
+The two pointer solution works by discarding one item in each iteration that can never be paired with any other item in the array to make the sum equal to `target`.
+
+Consider that the `sum = arr[left] + arr[right]` is less than `target` in the first iteration. Since `arr[right]` is the maximum item in the array, we can be sure that no other item can be added to `arr[left]` to get a greater sum. This means all pairs in the array containing `arr[left]` are smaller than `target`. Another way to look at it is that we paired all items in the array with `arr[left]` and found the sum to be less than `target`.
+
+![[Pasted image 20250911091545.png]]
+
+consider the `sum = arr[left] + arr[right]` is greater than `target` the remaining array. This would mean all pairs in the **remaining** array with `arr[right]` in it have a sum greater than `target` as `arr[left]` is the minimum of all **remaining** items.
+
+![[Pasted image 20250911091722.png]]
+
+However, in this iteration, we only considered the pairs of `arr[right]` with the **remaining** items in the array and not the discarded item `arr[0]`. This is sufficient because we already considered **all** pairs of the previously discarded items, including the ones with `arr[right]`, before discarding them.
+
+## Example Two sum
+
+Given an integer array **arr** and an integer **target**, write a function to check if two numbers exist in the array that sum up to the target. If such a pair exists, return them in an array, if not return an empty array. You can return the answer in **any order**.
+
+```java
+import java.util.Arrays;  
+  
+public class Solution {  
+  
+    public int[] twoSum(int[] arr, int target)  
+    {  
+        if (arr == null || arr.length < 2) {  
+            return new int[0];  
+        }  
+        Arrays.sort(arr);  
+  
+        int left = 0;  
+  
+        int right = arr.length - 1;  
+  
+        while (left < right) {  
+  
+            if (arr[left] + arr[right] == target) {  
+                return new int[]{arr[left], arr[right]};  
+            }  
+  
+            if (arr[left] + arr[right] < target) {  
+                left++;  
+            } else {  
+                right--;  
+            }  
+        }  
+  
+        return new int[0];  
+    }  
+}
+```
+
+## Example  Target limited two sum
+
+Given an array **arr** consisting of non negative integers and an integer **target**, write a function to find the maximum possible sum such that there exist two distinct indices `i` and `j`, satisfying the condition `A[i] + A[j] = sum` and the sum is **less than** the **target**. If there are no such indices `i` and `j` that satisfy the equation, return `-1`.
+
+```java
+import java.util.Arrays;  
+  
+public class Solution {  
+  
+    public int targetLimitedTwoSum(int[] arr, int target) {  
+        Arrays.sort(arr);  
+  
+        int left = 0;  
+        int right = arr.length - 1;  
+  
+        int maxSum = Integer.MIN_VALUE;  
+  
+        while (left < right) {  
+            int sum = arr[left] + arr[right];  
+            if (sum <= target) {  
+                maxSum = Math.max(maxSum, sum);  
+                left++;  
+            } else {  
+                right--;  
+            }  
+        }  
+       return maxSum;  
+    }  
+}
+```
+
+
+## Example  Duplicate aware two sum
+
+Given an integer array **arr** and an integer **target**, write a function to check if two numbers exist in the array that sum up to the target. If such pairs exist, return all of them, if not return an empty array. You can return the answer in **any order**.
+
+You must not return the same pair more than once i.e. all pairs should be unique.
+
+```java
+public List<List<Integer>> duplicateAwareTwoSum(int[] arr, int target) {  
+    Arrays.sort(arr);  
+    int left = 0, right = arr.length - 1;  
+    List<List<Integer>> result = new ArrayList<>();  
+  
+    while (left < right) {  
+        int sum = arr[left] + arr[right];  
+        if (sum == target) {  
+            result.add(Arrays.asList(arr[left], arr[right]));  
+            left++;  
+            right--;  
+            while (left < right && arr[left] == arr[left - 1]) left++;  
+            while (left < right && arr[right] == arr[right + 1]) right--;  
+        } else if (sum < target) {  
+            left++;  
+        } else {  
+            right--;  
+        }  
+    }  
+    return result;  
+}
+```
+
+
+## Example   Largest container
+
+You are given an integer array **heights**, where `height[i]` represents the height of a wall at position `i`. Write a function to find two walls that, together with the x-axis, form a container holding the maximum water and return the area of this container.
+
+``**Area = min(heights[i], heights[j]) × (j − i)**
+
+Where `i` and `j` are the indices of the two walls, and `i` < `j`.``
+
+![[Pasted image 20250911100039.png]]
+
+```java
+
+```
