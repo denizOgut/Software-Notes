@@ -1206,5 +1206,136 @@ Where `i` and `j` are the indices of the two walls, and `i` < `j`.``
 ![[Pasted image 20250911100039.png]]
 
 ```java
+public class Solution {  
+    public int largestContainer(int[] heights)  
+    {  
+        int left = 0, right = heights.length - 1, maxArea = 0;  
+        while (left < right) {  
+            int area = Math.min(heights[left], heights[right]) * (right - left);  
+            maxArea = Math.max(maxArea, area);  
+            if (heights[left] < heights[right]) {  
+                left++;  
+            } else {  
+                right--;  
+            }  
+        }  
+        return maxArea;  
+    }  
+}
+```
+
+---
+
+# Two Pointer Subproblem
+
+Some problems may consist of smaller subproblems that can be solved using the two-pointer technique. Solving these subproblems may either partially or fully solve the original problem. These are usually **medium** or **hard** problems
+
+> **==Ask yourself questions:==**  
+   **==Q1. Can the problem or solution be broken down into smaller subproblems?==**  
+   **==Q2. Can any subproblem be solved using the two-pointer technique?**==
+
+## Example K Rotations
+
+**Problem statement:** We are given an array `arr` of integers and an integer value `k`. We must rotate the array `k` times to the left.
+
+![[Pasted image 20250912092251.png]]
+
+
+**Brute force solution**
+
+The brute-force solution is to create another array and copy items from the original array to the new one at k shifted indices. Then, we can copy the items from the new array to the original one.
+
+```java
+public class KRotate {
+    public static void kRotate(int[] arr, int k) {
+
+        int n = arr.length;
+        // Normalize k to avoid unnecessary rotations
+
+        k = k % n;
+
+        // Create a temporary array of the same size
+
+        int[] temp = new int[n];
+
+        // Copy items into the temp array starting from index k
+
+        for (int i = 0; i < n; i++) {
+
+            // Rotate if we go out of bounds
+
+            temp[i] = arr[(i + k) % n];
+
+        }
+        // Copy items from the temp array back to the original array
+
+        for (int i = 0; i < n; i++) {
+
+            arr[i] = temp[i];
+        }
+    }
+}
+```
+
+**Two pointer subproblem**
+
+The critical observation here is that a rotation can be viewed as a sequence of three reversal operations. We reverse the entire array, then the last k items, and finally, the remaining N-k items
+
+![[Pasted image 20250912092701.png]]
+
+```java
+class Solution {
+    public void reverse(int[] arr, int start, int end) {
+
+        while (start < end) {
+
+            int temp = arr[start];
+
+            arr[start] = arr[end];
+
+            arr[end] = temp;
+
+            start++;
+
+            end--;
+
+        }
+
+    }
+
+  
+    public void kRotations(int[] arr, int k) {
+
+        int n = arr.length;
+
+        // Set k to be in the range of [0, n)
+
+        k %= n;
+        
+        // Reverse the entire array using two pointer method
+
+        reverse(arr, 0, n - 1);
+
+        // Reverse the first k elements using two pointer method
+
+        reverse(arr, 0, k - 1);
+
+        // Reverse the remaining elements using two pointer method
+
+        reverse(arr, k, n - 1);
+
+    }
+
+}
+```
+
+## Example Three sum
+
+Given an integer array **arr**, write a function that returns all the triplets `[arr[i], arr[j], arr[k]]` such that `i != j`, `i != k`, and `j != k`, and `arr[i] + arr[j] + arr[k] == 0`. You can return the answer in **any order**.
+
+Notice that the solution set must not contain duplicate triplets.
+
+```java
 
 ```
+
