@@ -39,10 +39,10 @@
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/DSA/Arrays/Pasted image 20250912092701.png"
+                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120923.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250912092701"
+              "title": "Pasted image 20250914120923"
             }
           }
         ],
@@ -205,23 +205,25 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "194c7d6b59eca8f4",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Screenshots/DSA/Arrays/Pasted image 20250912092251.png",
-    "DSA/Data Structure/Arrays.md",
-    "Screenshots/DSA/Arrays/Pasted image 20250912092701.png",
-    "Go/Golang Notes.md",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
-    "Software Architecture/Domain Driven Design/Pasted image 20250911141629.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250911141249.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250911140820.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250911140536.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250911141629.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250911100039.png",
-    "Software Architecture/Head First Software Architecture.md",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120923.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120735.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120701.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120517.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120344.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120254.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120249.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120029.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914115527.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914115042.png",
+    "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250910160508.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250910160605.png",
+    "Software Architecture/Head First Software Architecture.md",
+    "backend-tools/Apache Kafka Notes.md",
+    "DSA/Data Structure/Arrays.md",
+    "Go/Golang Notes.md",
     "backend-tools/RabbitMQ Notes.md",
     "Java/JAVA APP - 1 NOTES.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots",
@@ -240,9 +242,7 @@
     "Software Architecture/Domain Driven Design/Learning Domain-Driven Design Aligning Software Architecture and Business Strategy.md",
     "Software Architecture/Hexagonal Architecture.md",
     "Java/Reactive Programming.md",
-    "backend-tools/Apache Kafka Notes.md",
     "Software Architecture/Onion Architecture.md",
-    "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Hexagonal Architecture Main.md",
     "Head First Software Architecture.md",
     "OCP-17/OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",

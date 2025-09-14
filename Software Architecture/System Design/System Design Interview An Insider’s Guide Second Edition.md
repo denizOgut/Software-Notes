@@ -576,3 +576,275 @@ For example, if rate limiting rules are too strict, many valid requests are drop
   - ==**Understand the limit and do not send too many requests in a short time frame.**==  
   - ==**Include code to catch exceptions or errors so your client can gracefully recover from exceptions.**==  
   - ==**Add sufficient back off time to retry logic.==**  
+
+# CHAPTER 5: DESIGN CONSISTENT HASHING
+
+To achieve horizontal scaling, it is important to distribute requests/data efficiently and evenly across servers
+
+## The rehashing problem
+If you have n cache servers, a common way to balance the load is to use the following hash
+method: 
+serverIndex = hash(key) % N, where N is the size of the server pool.
+
+![[Pasted image 20250913195429.png]]
+
+To fetch the server where a key is stored, we perform the modular operation f(key) % 4. For instance, hash(key0) % 4 = 1 means a client must contact server 1 to fetch the cached data.
+
+![[Pasted image 20250913195518.png]]
+
+This approach works well when the size of the server pool is fixed, and the data distribution is even. **==However, problems arise when new servers are added, or existing servers are removed.==**
+
+Consistent hashing is an effective technique to mitigate this problem.
+
+## Consistent hashing
+
+Consistent hashing is a special kind of hashing such that when a hash table is re-sized and consistent hashing is used, only k/n keys need to be remapped on average, where k is the number of keys, and n is the number of slots. In contrast, in most traditional hash tables, a change in the number of array slots causes nearly all keys to be remapped
+![[Pasted image 20250913195642.png]]
+
+![[Pasted image 20250913195647.png]]
+
+## Hash servers
+
+Using the same hash function f, we map servers based on server IP or name onto the ring.
+
+![[Pasted image 20250913195715.png]]
+
+## Hash keys
+
+One thing worth mentioning is that hash function used here is different from the one in “the rehashing problem,” and there is no modular operation.
+
+![[Pasted image 20250913195731.png]]
+
+## Server lookup
+
+To determine which server a key is stored on, we go clockwise from the key position on the ring until a server is found. Figure 5-7 explains this process. Going clockwise, key0 is stored on server 0; key1 is stored on server 1; key2 is stored on server 2 and key3 is stored on server 3.
+
+![[Pasted image 20250913195800.png]]
+
+## Add a server
+
+Using the logic described above, adding a new server will only require redistribution of a fraction of keys
+
+![[Pasted image 20250913200109.png]]
+
+## Remove a server
+When a server is removed, only a small fraction of keys require redistribution with consistent hashing.
+
+![[Pasted image 20250913200124.png]]
+
+## Two issues in the basic approach
+The consistent hashing algorithm was introduced by Karger et al. at MIT [1]. The basic steps
+are:
+**==• Map servers and keys on to the ring using a uniformly distributed hash function.**==
+==**• To find out which server a key is mapped to, go clockwise from the key position until the first server on the ring is found.==**
+
+## Wrap up
+
+The benefits of consistent hashing include:
+**==• Minimized keys are redistributed when servers are added or removed.**==
+==**• It is easy to scale horizontally because data are more evenly distributed.**==
+==**• Mitigate hotspot key problem. Excessive access to a specific shard could cause server**==
+==**overload. Imagine data for Katy Perry, Justin Bieber, and Lady Gaga all end up on the same shard. Consistent hashing helps to mitigate the problem by distributing the data more evenly.==**
+
+# CHAPTER 6: DESIGN A KEY-VALUE STORE
+
+A key-value store, also referred to as a key-value database, is a non-relational database. Each unique identifier is stored as a key with its associated value. This data pairing is known as a “key-value” pair.
+
+**==a key-value pair, the key must be unique, and the value associated with the key can be accessed through the key==**. Keys can be plain text or hashed values. For performance reasons, a short key works better.
+
+you are asked to design a key-value store that supports the following
+operations:
+- put(key, value) // insert “value” associated with “key”
+- get(key) // get “value” associated with “key”
+
+## Understand the problem and establish design scope
+
+• The size of a key-value pair is small: less than 10 KB.
+• Ability to store big data.
+• High availability: The system responds quickly, even during failures.
+• High scalability: The system can be scaled to support large data set.
+• Automatic scaling: The addition/deletion of servers should be automatic based on traffic.
+• Tunable consistency.
+• Low latency
+
+## Single server key-value store
+
+An intuitive approach is to store key-value pairs in a hash table, which keeps everything in memory. Even though memory access is fast, fitting everything in memory may be impossible due to the space constraint. Two optimizations can be done to fit more data in a single server:
+
+**==• Data compression**==
+==**• Store only frequently used data in memory and the rest on disk==**
+
+Even with these optimizations, a single server can reach its capacity very quickly. **==A distributed key-value store is required to support big data.==**
+
+## Distributed key-value store
+
+When designing a distributed system, it is important to understand CAP (**C**onsistency, **A**vailability, **P**artition Tolerance) theorem
+
+## CAP theorem
+**==CAP theorem states it is impossible for a distributed system to simultaneously provide more than two of these three guarantees: consistency, availability, and partition tolerance.==**
+
+- **Consistency**: consistency means all clients see the same data at the same time no matter which node they connect to.
+- **Availability**: availability means any client which requests data gets a response even if some of the nodes are down.
+- **Partition** Tolerance: a partition indicates a communication break between two nodes. Partition tolerance means the system continues to operate despite network partitions
+
+![[Pasted image 20250914115042.png]]
+
+- **CP (consistency and partition tolerance)** systems: a CP key-value store supports consistency and partition tolerance while sacrificing availability.
+- **AP (availability and partition tolerance)** systems: an AP key-value store supports availability and partition tolerance while sacrificing consistency.
+- **CA (consistency and availability)** systems: a CA key-value store supports consistency and availability while sacrificing partition tolerance
+
+**==Since network failure is unavoidable, a distributed system must tolerate network partition. Thus, a CA system cannot exist in real world applications.==**
+
+**Ideal situation**
+In the ideal world, network partition never occurs. Data written to n1 is automatically replicated to n2 and n3. Both consistency and availability are achieved.
+
+**Real-world distributed systems**
+**==In a distributed system, partitions cannot be avoided, and when a partition occurs, we must choose between consistency and availability==**
+
+![[Pasted image 20250914115527.png]]
+
+**==If we choose consistency over availability (CP system), we must block all write operations to n1 and n2 to avoid data inconsistency among these three servers, which makes the system unavailable.==** Bank systems usually have extremely high consistent requirements.
+
+**==However, if we choose availability over consistency (AP system), the system keeps accepting reads, even though it might return stale data. For writes, n1 and n2 will keep accepting writes, and data will be synced to n3 when the network partition is resolved==**
+
+**System components**
+
+Data partition
+• Data replication
+• Consistency
+• Inconsistency resolution
+• Handling failures
+• System architecture diagram
+• Write path
+• Read path
+
+## Data partition
+
+For large applications, it is infeasible to fit the complete data set in a single server. The simplest way to accomplish this is to split the data into smaller partitions and store them in multiple servers. There are two challenges while partitioning the data:
+	• Distribute data across multiple servers evenly.
+	• Minimize data movement when nodes are added or removed.
+
+**==Consistent hashing==** discussed in Chapter 5 is a great technique to solve these problems.
+
+**Automatic scaling**: servers could be added and removed automatically depending on the load.
+**Heterogeneity**: the number of virtual nodes for a server is proportional to the server capacity.
+For example, servers with higher capacity are assigned with more virtual nodes
+
+## Data replication
+
+To achieve high availability and reliability, data must be replicated asynchronously over N servers, where N is a configurable parameter. These N servers are chosen using the following logic: after a key is mapped to a position on the hash ring, walk clockwise from that position and choose the first N servers on the ring to store data copies
+
+With virtual nodes, the first N nodes on the ring may be owned by fewer than N physical servers. To avoid this issue, we only choose unique servers while performing the clockwise walk logic.
+
+Nodes in the same data center often fail at the same time due to power outages, network issues, natural disasters, etc. For better reliability, replicas are placed in distinct data centers, and data centers are connected through high-speed networks
+
+## Consistency
+
+Since data is replicated at multiple nodes, it must be synchronized across replicas. Quorum consensus can guarantee consistency for both read and write operations. Let us establish a few definitions first.
+
+N = The number of replicas
+W = A write quorum of size W. For a write operation to be considered as successful, write operation must be acknowledged from W replicas.
+R = A read quorum of size R. For a read operation to be considered as successful, read operation must wait for responses from at least R replicas.
+
+![[Pasted image 20250914120029.png]]
+
+Depending on the requirement, we can tune the values of W, R, N to achieve the desired level of consistency
+
+**Consistency models**
+
+Consistency models are an important factor to consider when designing a key-value store. A consistency model defines the degree of data consistency, and a wide spectrum of possible consistency models exist:
+
+- **Strong consistency**: any read operation returns a value corresponding to the result of the most updated write data item. A client never sees out-of-date data.
+    
+- **Weak consistency**: subsequent read operations may not see the most updated value.
+    
+- **Eventual consistency**: this is a specific form of weak consistency. Given enough time, all updates are propagated, and all replicas are consistent.
+    
+
+**==Strong consistency is usually achieved by forcing a replica not to accept new reads/writes until every replica has agreed on the current write. This approach is not ideal for highly available systems because it could block new operations.**==
+
+==**Dynamo and Cassandra adopt eventual consistency, which is the recommended consistency model for our key-value store.**==
+
+==**From concurrent writes, eventual consistency allows inconsistent values to enter the system and forces the client to read the values to reconcile.==**
+
+## Inconsistency resolution: 
+
+**versioning**
+
+Replication gives high availability but causes inconsistencies among replicas. Versioning and vector locks are used to solve inconsistency problems. **==Versioning means treating each data modification as a new immutable version of data.==**
+
+![[Pasted image 20250914120249.png]]
+
+![[Pasted image 20250914120254.png]]
+
+A vector clock is a [server, version] pair associated with a data item. It can be used to check if one version precedes, succeeds, or is in conflict with others.
+
+Assume a vector clock is represented by D([S1, v1], [S2, v2], …, [Sn, vn]), where D is a data item, v1 is a version counter, and s1 is a server number, etc. If data item D is written to server Si, the system must perform one of the following tasks:
+
+- Increment vi if [Si, vi] exists.
+    
+- Otherwise, create a new entry [Si, 1].
+
+![[Pasted image 20250914120344.png]]
+
+1. A client writes data item D1 to server Sx, which now has the vector clock D1([Sx, 1]).
+    
+2. Another client reads the latest D1, updates it to D2, and writes it back. D2 descends from D1, so it overwrites D1. The write is handled by the same server Sx, which now has vector clock D2([Sx, 2]).
+    
+3. Another client reads the latest D2, updates it to D3, and writes it back. The write is handled by server Sy, which now has vector clock D3([Sx, 2], [Sy, 1]).
+    
+4. Another client reads the latest D2, updates it to D4, and writes it back. The write is handled by server Sz, which now has vector clock D4([Sx, 2], [Sz, 1]).
+    
+5. When another client reads D3 and D4, it discovers a conflict caused by data item D2 being modified by both Sy and Sz. The conflict is resolved by the client, and the updated data is sent to the server.
+
+## Handling failures
+
+As with any large system at scale, failures are not only inevitable but common. Handling failure scenarios is very important. In this section, we first introduce techniques to detect failures. Then, we go over common failure resolution strategies.
+
+**Failure detection**
+
+In a distributed system, it is insufficient to believe that a server is down because another server says so. Usually, it requires at least two independent sources of information to mark a server down.
+
+![[Pasted image 20250914120517.png]]
+
+A better solution is to use decentralized failure detection methods like gossip protocol.
+
+Gossip protocol works as follows:
+
+- ==**Each node maintains a node membership list, which contains member IDs and heartbeat counters.**==
+    
+- ==**Each node periodically increments its heartbeat counter.**==
+    
+- ==**Each node periodically sends heartbeats to a set of random nodes, which in turn propagate to another set of nodes.**==
+    
+- ==**Once nodes receive heartbeats, membership list is updated to the latest info.**==
+    
+- ==**If the heartbeat has not increased for more than predefined periods, the member is considered as offline.==**
+
+
+**Handling temporary failures**
+After failures have been detected through the gossip protocol, the system needs to deploy certain mechanisms to ensure availability. In the strict quorum approach, read and write operations could be blocked as illustrated in the quorum consensus section.
+
+A technique called “sloppy quorum” [4] is used to improve availability. Instead of enforcing the quorum requirement, the system chooses the first W healthy servers for writes and first R healthy servers for reads on the hash ring. Offline servers are ignored.
+ 
+ If a server is unavailable due to network or server failures, another server will process requests temporarily. When the down server is up, changes will be pushed back to achieve data consistency. This process is called hinted handoff. Since s2 is unavailable in Figure 6- 12, reads and writes will be handled by s3 temporarily
+
+![[Pasted image 20250914120701.png]]
+
+Hinted handoff is used to handle temporary failures. What if a replica is permanently unavailable? To handle such a situation, we implement an anti-entropy protocol to keep replicas in sync. Anti-entropy involves comparing each piece of data on replicas and updating each replica to the newest version. A Merkle tree is used for inconsistency detection and minimizing the amount of data transferred.
+
+## System architecture diagram
+
+![[Pasted image 20250914120735.png]]
+
+Main features of the architecture are listed as follows:
+==**• Clients communicate with the key-value store through simple APIs: get(key) and put(key, value).**==
+==**• A coordinator is a node that acts as a proxy between the client and the key-value store.**==
+==**• Nodes are distributed on a ring using consistent hashing.**==
+==**• The system is completely decentralized so adding and moving nodes can be automatic.**==
+==**• Data is replicated at multiple nodes.**==
+==**• There is no single point of failure as every node has the same set of responsibilities.**==
+
+## Summary
+
+![[Pasted image 20250914120923.png]]
