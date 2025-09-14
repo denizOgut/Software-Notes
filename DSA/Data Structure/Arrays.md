@@ -1336,6 +1336,169 @@ Given an integer array **arr**, write a function that returns all the triplets�
 Notice that the solution set must not contain duplicate triplets.
 
 ```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> threeSum(int[] arr) {
+        List<List<Integer>> result = new ArrayList<>();
+        Arrays.sort(arr);
+        
+        for (int i = 0; i < arr.length - 2; i++) {
+            // Skip duplicate "first" elements
+            if (i > 0 && arr[i] == arr[i - 1]) continue;
+
+            int left = i + 1;
+            int right = arr.length - 1;
+
+            while (left < right) {
+                int sum = arr[i] + arr[left] + arr[right];
+
+                if (sum == 0) {
+                    result.add(Arrays.asList(arr[i], arr[left], arr[right]));
+
+                    
+                    while (left < right && arr[left] == arr[left + 1]) left++;
+                    while (left < right && arr[right] == arr[right - 1]) right--;
+
+                    left++;
+                    right--;
+                } else if (sum < 0) {
+                    left++;  
+                } else {
+                    right--; 
+                }
+            }
+        }
+
+        return result;
+    }
+}
+```
+
+## Example  Approximate three sum 
+
+Given an integer array **arr** and an integer **target**, write a function to find three integers in arr such that the sum is closest to the target. You must return the sum of the three integers
+
+```java
+import java.util.*;
+
+class Solution {
+    public int approximateThreeSum(int[] arr, int target) {
+        // Step 1: Sort the array to enable two-pointer technique
+        Arrays.sort(arr);
+        
+        int closestSum = arr[0] + arr[1] + arr[2]; // Initialize with first triplet
+        
+        // Step 2: Iterate through array, fixing first element
+        for (int i = 0; i < arr.length - 2; i++) {
+            // Step 3: Use two pointers for remaining elements
+            int left = i + 1;
+            int right = arr.length - 1;
+            
+            while (left < right) {
+                int currentSum = arr[i] + arr[left] + arr[right];
+                
+                // Update closest sum if current is closer to target
+                if (Math.abs(currentSum - target) < Math.abs(closestSum - target)) {
+                    closestSum = currentSum;
+                }
+                
+                if (currentSum == target) {
+                    // Found exact match, can't get closer
+                    return currentSum;
+                } else if (currentSum < target) {
+                    // Sum is too small, need larger numbers
+                    left++;
+                } else {
+                    // Sum is too large, need smaller numbers
+                    right--;
+                }
+            }
+        }
+        
+        return closestSum;
+    }
+}
 
 ```
 
+## Example  Approximate three sum 
+
+Given an array **arr** and an integer **target**, write a function to find and return an array of all the unique quadruplets `[arr[a], arr[b], arr[c], arr[d]]` such that the following conditions are met:
+
+1. `0 <= a, b, c, d < n`
+
+2. `a`, `b` , `c` and `d` are distinct
+
+3. `arr[a] + arr[b] + arr[c] + arr[d] = target`
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> fourSum(int[] arr, int target) {
+        List<List<Integer>> result = new ArrayList<>();
+        
+        // Handle edge case
+        if (arr == null || arr.length < 4) {
+            return result;
+        }
+        
+        // Step 1: Sort the array
+        Arrays.sort(arr);
+        
+        // Step 2: Fix first element
+        for (int i = 0; i < arr.length - 3; i++) {
+            // Skip duplicates for first element
+            if (i > 0 && arr[i] == arr[i - 1]) {
+                continue;
+            }
+            
+            // Step 3: Fix second element
+            for (int j = i + 1; j < arr.length - 2; j++) {
+                // Skip duplicates for second element
+                if (j > i + 1 && arr[j] == arr[j - 1]) {
+                    continue;
+                }
+                
+                // Step 4: Use two pointers for remaining two elements
+                int left = j + 1;
+                int right = arr.length - 1;
+                
+                // Calculate the target for the two remaining elements
+                long twoSum = (long) target - arr[i] - arr[j];
+                
+                while (left < right) {
+                    int currentSum = arr[left] + arr[right];
+                    
+                    if (currentSum == twoSum) {
+                        // Found a quadruplet
+                        result.add(Arrays.asList(arr[i], arr[j], arr[left], arr[right]));
+                        
+                        // Skip duplicates for left pointer
+                        while (left < right && arr[left] == arr[left + 1]) {
+                            left++;
+                        }
+                        // Skip duplicates for right pointer
+                        while (left < right && arr[right] == arr[right - 1]) {
+                            right--;
+                        }
+                        
+                        left++;
+                        right--;
+                    } else if (currentSum < twoSum) {
+                        // Sum is too small, move left pointer right
+                        left++;
+                    } else {
+                        // Sum is too large, move right pointer left
+                        right--;
+                    }
+                }
+            }
+        }
+        
+        return result;
+    }
+}
+
+```

@@ -37,12 +37,14 @@
             "id": "194c7d6b59eca8f4",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120923.png"
+                "file": "DSA/Data Structure/Arrays.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-image",
-              "title": "Pasted image 20250914120923"
+              "icon": "lucide-file",
+              "title": "Arrays"
             }
           }
         ],
@@ -205,10 +207,11 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "194c7d6b59eca8f4",
   "lastOpenFiles": [
-    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
+    "Go/Golang Notes.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120923.png",
+    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120735.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120701.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120517.png",
@@ -223,7 +226,6 @@
     "Software Architecture/Head First Software Architecture.md",
     "backend-tools/Apache Kafka Notes.md",
     "DSA/Data Structure/Arrays.md",
-    "Go/Golang Notes.md",
     "backend-tools/RabbitMQ Notes.md",
     "Java/JAVA APP - 1 NOTES.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots",
