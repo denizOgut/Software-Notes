@@ -4,45 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "ae711655626cb79f",
+        "id": "2e6eec6e70d6a3c7",
         "type": "tabs",
         "children": [
           {
-            "id": "0c92946b56f4b2be",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "System Design Interview An Insider’s Guide Second Edition"
-            }
-          },
-          {
-            "id": "42f9e44847920296",
+            "id": "4db11a880ee3903d",
             "type": "leaf",
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/DSA/Arrays/Pasted image 20250912092251.png"
+                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221618.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250912092251"
-            }
-          },
-          {
-            "id": "194c7d6b59eca8f4",
-            "type": "leaf",
-            "state": {
-              "type": "image",
-              "state": {
-                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915150625.png"
-              },
-              "icon": "lucide-image",
-              "title": "Pasted image 20250915150625"
+              "title": "Pasted image 20250915221618"
             }
           }
         ]
@@ -204,21 +178,21 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "0c92946b56f4b2be",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "DSA/Data Structure/Arrays.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915150625.png",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221618.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221519.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221454.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221212.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221129.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915220859.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915220544.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915150625.png",
+    "Screenshots/DSA/Arrays/Pasted image 20250912092251.png",
+    "DSA/Data Structure/Arrays.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915151401.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915151309.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915151204.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915151039.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915150952.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915150757.png",
     "Go/Golang Notes.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120923.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120735.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250914120701.png",
     "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Software Architecture/Head First Software Architecture.md",

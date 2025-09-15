@@ -958,3 +958,124 @@ If there is extra time at the end of the interview, here are a few additional ta
 
 # CHAPTER 8: DESIGN A URL SHORTENER
 
+## Step 1 - Understand the problem and establish design scope
+
+- Can you give an example of how a URL shortener work?
+- What is the traffic volume?
+- How long is the shortened URL?
+- What characters are allowed in the shortened URL?
+- Can shortened URLs be deleted or updated?
+
+## Step 2 - Propose high-level design and get buy-in
+
+### API Endpoints
+
+1.URL shortening. To create a new short URL, a client sends a POST request, which contains one parameter: the original long URL. The API looks like this:
+
+```postman
+POST api/v1/data/shorten
+• request parameter: {longUrl: longURLString}
+• return shortURL
+```
+
+2.URL redirecting. To redirect a short URL to the corresponding long URL, a client sends a GET request. 
+
+```postman
+GET api/v1/shortUrl
+• Return longURL for HTTP redirection
+```
+
+### URL redirecting
+
+![[Pasted image 20250915220544.png]]
+
+**301 redirect.** A 301 redirect shows that the requested URL is “**==permanently==**” moved to the long URL. Since it is permanently redirected, the browser caches the response, and subsequent requests for the same URL will not be sent to the URL shortening service. Instead, requests are redirected to the long URL server directly.
+
+**302 redirect.** A 302 redirect means that the URL is “**==temporarily==**” moved to the long URL, meaning that subsequent requests for the same URL will be sent to the URL shortening service first. Then, they are redirected to the long URL server.
+
+**Each redirection method has its pros and cons.** If the priority is to reduce the server load, using 301 redirect makes sense as only the first request of the same URL is sent to URL shortening servers. However, if analytics is important, 302 redirect is a better choice as it can track click rate and source of the click more easily.
+
+**==The most intuitive way to implement URL redirecting is to use hash tables==**. Assuming the hash table stores ``<shortURL, longURL>`` pairs, URL redirecting can be implemented by the following:
+
+• Get ``longURL``: ``longURL`` = ``hashTable.get(shortURL)``
+• Once you get the ``longURL``, perform the URL redirect
+
+### URL shortening
+
+assume the short URL looks like this: ``www.tinyurl.com/{hashValue}``. To support the URL shortening use case, we must find a hash function ``fx`` that maps a long URL to the ``hashValue``
+
+![[Pasted image 20250915220859.png]]
+
+The hash function must satisfy the following requirements:
+• Each ``longURL`` must be hashed to one ``hashValue``.
+• Each ``hashValue`` can be mapped back to the ``longURL``.
+
+## Step 3 - Design deep dive
+
+### Data model
+
+In the high-level design, everything is stored in a hash table. This is a good starting point; however, this approach is not feasible for real-world systems as memory resources are limited and expensive. A better option is to store ``<shortURL, longURL>`` mapping in a relational database.
+
+### Hash function
+Hash function is used to hash a long URL to a short URL, also known as ``hashValue``
+
+#### Hash value length
+The ``hashValue`` consists of characters from [0-9, a-z, A-Z], containing 10 + 26 + 26 = 62 possible characters. To figure out the length of ``hashValue``, find the smallest n such that 62^n ≥ 365 billion. The system must support up to 365 billion URLs based on the back of the envelope estimation
+
+#### Hash + collision resolution
+
+To shorten a long URL, we should implement a hash function that hashes a long URL to a 7- character string. A straightforward solution is to use well-known hash functions like CRC32, MD5, or SHA-1.
+
+![[Pasted image 20250915221129.png]]
+
+**How can we make it shorter?**
+
+The first approach is to collect the first 7 characters of a hash value; however, this method can lead to hash collisions. To resolve hash collisions, we can recursively append a new predefined string until no more collision is discovered
+
+![[Pasted image 20250915221212.png]]
+
+This method can eliminate collision; however, it is expensive to query the database to check if a ``shortURL`` exists for every request. A technique called **==bloom filters==** [2] can improve performance. A bloom filter is a space-efficient probabilistic technique to test if an element is a member of a set
+
+**Base 62 conversion**
+Base conversion is another approach commonly used for URL ``shorteners``. Base conversion helps to convert the same number between its different number representation systems. Base 62 conversion is used as there are 62 possible characters for ``hashValue``
+
+**Comparison of the two approaches**
+
+![[Pasted image 20250915221454.png]]
+
+### URL shortening deep dive
+
+As one of the core pieces of the system, we want the URL shortening flow to be logically simple and functional
+
+![[Pasted image 20250915221519.png]]
+
+1. `longURL` is the input.  
+2. The system checks if the `longURL` is in the database.  
+3. If it is, it means the `longURL` was converted to `shortURL` before. In this case, fetch the `shortURL` from the database and return it to the client.  
+4. If not, the `longURL` is new. A new unique `ID` (primary key) is generated by the unique ID generator.  
+5. Convert the `ID` to `shortURL` with **base62** conversion.  
+6. Create a new database row with the `ID`, `shortURL`, and `longURL`.  
+
+### URL redirecting deep dive
+
+![[Pasted image 20250915221618.png]]
+
+1. A user clicks a short URL link: `https://tinyurl.com/zn9edcu`  
+2. The load balancer forwards the request to web servers.  
+3. If a `shortURL` is already in the cache, return the `longURL` directly.  
+4. If a `shortURL` is not in the cache, fetch the `longURL` from the database. If it is not in the database, it is likely a user entered an invalid `shortURL`.  
+5. The `longURL` is returned to the user.  
+
+## Step 4 - Wrap up
+
+• **Rate limiter:** A potential security problem we could face is that malicious users send an overwhelmingly large number of URL shortening requests. Rate limiter helps to filter out requests based on IP address or other filtering rules. If you want to refresh your memory about rate limiting, refer to *“Chapter 4: Design a rate limiter”*.  
+
+• **Web server scaling:** Since the web tier is stateless, it is easy to scale the web tier by adding or removing web servers.  
+
+• **Database scaling:** Database replication and sharding are common techniques.  
+
+• **Analytics:** Data is increasingly important for business success. Integrating an analytics solution to the URL shortener could help to answer important questions like *how many people click on a link? When do they click the link?* etc.  
+
+• **Availability, consistency, and reliability:** These concepts are at the core of any large system’s success. 
+
+# CHAPTER 9: DESIGN A WEB CRAWLER
