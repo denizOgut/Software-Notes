@@ -1502,3 +1502,381 @@ class Solution {
 }
 
 ```
+
+---
+
+#  The Simultaneous Traversal Pattern
+ 
+ there are cases where we may need to operate on data items from two arrays of different sizes at once. This requires traversing both arrays at the same time, and the decision to move to the next item in any of those may depend on the outcome of some function. We may move ahead only in one array or in both of them. The simultaneous traversal technique can be used to iterate in both arrays simultaneously in a single pass.
+
+![[Pasted image 20250916090940.png]]
+
+The simultaneous traversal technique is just an extension of traversing in a single array. Consider we have two arrays `arr1` and `arr2`, we maintain two variables, `index1` and `index2` holding the current index of the first and second array, respectively. In each iteration, based on some condition, we move ahead in either one or both arrays. This process is repeated until any array is traversed completely, which is the terminating condition in most cases. After the simultaneous traversal terminates, we may want to check if any array has still not been completely traversed and process its items.
+
+This technique can be applied to two arrays in multiple ways, depending on the direction of traversal and the number of hops in iteration. We could either traverse from start to end in both arrays, the other way around, or a mix of both. Another variation would be if we hop multiple steps in each array in every iteration instead of just one.
+
+## Algorithm
+
+1. **Initialize variables**
+   - Set `index1 = 0`
+   - Set `index2 = 0`
+
+2. **Traverse both arrays simultaneously**
+   - While `index1 < arr1.size()` **and** `index2 < arr2.size()`:
+     - **Step 2.1:** Decide if we should traverse in the first array  
+       - If yes → process `arr1[index1]` and increment `index1`
+     - **Step 2.2:** Decide if we should traverse in the second array  
+       - If yes → process `arr2[index2]` and increment `index2`
+
+3. **Process remaining elements of `arr1` (if any)**
+   - While `index1 < arr1.size()` → process `arr1[index1]` and increment `index1`
+
+4. **Process remaining elements of `arr2` (if any)**
+   - While `index2 < arr2.size()` → process `arr2[index2]` and increment `index2`
+
+## Implementation
+
+```java
+class SimultaneousTraversal {
+
+    public void simultaneousTraversal(List<Integer> arr1, List<Integer> arr2) {
+
+        // Initialize index variables for two arrays
+
+        int index1 = 0, index2 = 0;
+
+        // Traverse both arrays simultaneously until
+
+        // the end of any one array is reached
+
+        while (index1 < arr1.size() && index2 < arr2.size()) {
+
+            if (shouldMoveFirst) { // Replace this with actual condition
+
+  
+
+                // Process arr1[index1]
+
+                // ....
+
+                index1++;
+
+            }
+
+            if (shouldMoveSecond) { // Replace this with actual condition
+
+                // Process arr2[index2]
+
+                // ....
+
+                index2++;
+
+            }
+
+        }
+
+
+        while (index1 < arr1.size()) {
+
+            // Process arr1[index1]
+
+            // .......
+
+            index1++;
+
+        }
+
+        while (index2 < arr2.size()) {
+
+            // Process arr2[index2]
+
+            // .......
+
+            index2++;
+
+        }
+
+    }
+
+}
+```
+
+
+## Identifying the simultaneous traversal pattern
+
+> **Template:** 
+    Given two arrays, simultaneously traverse in both arrays based on the outcome of some function applied to items of both arrays.
+
+**Problem statement:** Given two arrays `s` and `t`, check if `s` is a subsequence of `t`.
+
+**Brute force solution**
+
+  
+The simplest brute-force solution to this problem is to pick the first item in `s` and traverse in the array `t` until we find the first occurrence of that item in `t`. We then pick the next item in `s` and traverse `t` from where we left off earlier until we find the first occurrence of the next item. We repeat this process and return `true` if we find all the items of `s` in `t` this way. Otherwise, if we reach the end of `t` while some items in `s` still remain, we return `false`.
+
+```java
+class SubsequenceChecker {
+
+    boolean isSubsequence(List<Integer> s, List<Integer> t) {
+
+        int j = 0;
+
+        // Traverse each element of array `s`
+        for (int i = 0; i < s.size(); i++) {
+            if (j == t.size()) {
+                return false;
+            }
+
+            // Store current element of `s`
+
+            int item = s.get(i);
+
+            // Traverse `t` and look for `item` in `t`
+
+            while (j < t.size()) {
+
+                if (item.equals(t.get(j))) {
+
+                    j++;
+
+                    break;
+
+                }
+
+                j++;
+
+            }
+
+        }
+
+        return true;
+
+    }
+
+}
+```
+
+**Simultaneous traversal solution**
+
+> **Template:**
+    Given two arrays, simultaneously traverse both arrays and compare items in both arrays. If they are equal, iterate in both arrays; otherwise, iterate in only one.
+
+```java
+class Solution {
+
+    public boolean subsequenceChecker(String s, String t) {
+
+        // pointer for s
+
+        int index1 = 0;
+
+        // pointer for t
+
+        int index2 = 0;
+
+  
+
+        while (index1 < s.length() && index2 < t.length()) {
+
+            if (s.charAt(index1) == t.charAt(index2)) {
+
+                // If the current character matches, move the pointer for
+
+                // s
+
+                index1++;
+
+            }
+
+            // Move the pointer for t in every iteration
+
+            index2++;
+
+        }
+
+        // If index1 reaches the end of s, it means all characters in s
+
+        // are found in t in the same order
+
+        return index1 == s.length();
+    }
+
+}
+```
+
+## Example Subsequence checker
+
+Given two strings, **s** and **t**. Write a function that returns `true` if s is a subsequence of t, or `false` otherwise.
+
+```java
+class Solution {
+
+    public boolean subsequenceChecker(String s, String t) {
+
+ // pointer for s
+
+        int index1 = 0;
+
+        // pointer for t
+
+        int index2 = 0;
+
+        while (index1 < s.length() && index2 < t.length()) {
+
+            if (s.charAt(index1) == t.charAt(index2)) {
+
+                // If the current character matches, move the pointer for
+
+                // s
+
+                index1++;
+
+            }
+
+            // Move the pointer for t in every iteration
+
+            index2++;
+
+        }
+
+        // If index1 reaches the end of s, it means all characters in s
+
+        // are found in t in the same order
+
+        return index1 == s.length();
+
+    }
+
+}
+```
+
+## Example  Merge sorted arrays
+
+Given two integer arrays, **arr1** and **arr2**, sorted in non-decreasing order, and two integers, **m** and **n**, representing the number of elements in arr1 and arr2, respectively. Write a function to modify array arr1 in place to merge array arr2 into the back of array arr1.
+
+>You may assume that arr1 has enough space (size that is greater or equal to m + n) to hold additional elements from arr2.
+
+```java
+class Solution {
+
+    public void mergeSortedArrays(int[] arr1, int m, int[] arr2, int n) {
+
+        // last index of non-zero elements in arr1
+
+        int index1 = m - 1;
+
+        // last index of elements in arr2
+
+        int index2 = n - 1;
+
+        // last index of arr1
+
+        int index3 = m + n - 1;
+
+        // merging arr1 and arr2 from the rightmost end of the arrays
+
+        while (index1 >= 0 && index2 >= 0) {
+
+            // if the element in arr1 is greater than the element in arr2
+
+            // then place the element from arr1 to the last index of arr1
+
+            // and decrement the index of arr1
+
+            if (arr1[index1] > arr2[index2]) {
+
+                arr1[index3--] = arr1[index1--];
+
+            }
+
+            // if the element in arr2 is greater than the element in arr1
+
+            // then place the element from arr2 to the last index of arr1
+
+            // and decrement the index of arr2
+
+            else {
+
+                arr1[index3--] = arr2[index2--];
+
+            }
+
+        }
+
+  
+
+        // if there are still remaining elements in arr2
+
+        while (index2 >= 0) {
+
+            arr1[index3--] = arr2[index2--];
+
+        }
+
+    }
+
+}
+```
+
+## Example  Unique intersections
+
+Given two integer arrays **arr1** and **arr2**, write a function to find and return an array of their intersection. You can return the result in **any order**.
+
+Each element in the result **must be unique**.
+
+```java
+class Solution {  
+    public List<Integer> uniqueIntersections(int[] arr1, int[] arr2) {  
+        List<Integer> result = new ArrayList<>();  
+        int  index1 = 0, index2 = 0;  
+        Arrays.sort(arr1);  
+        Arrays.sort(arr2);  
+        while(index1 < arr1.length && index2 < arr2.length){  
+            if(arr1[index1] == arr2[index2] && !result.contains(arr1[index1])){  
+                result.add(arr1[index1]);  
+                index1++;  
+                index2++;  
+            }else if(arr1[index1] < arr2[index2]){  
+                index1++;  
+            }else{  
+                index2++;  
+            }  
+        }  
+  
+        return result;  
+    }  
+}
+```
+
+## Example Repeated intersections
+
+Given two integer arrays, **arr1**, and **arr2**, write a function to find and return an array of their intersection. You can return the result in **any order**.
+
+Each element in the result must appear **as many times as it appears in both arrays.**
+
+```java
+class Solution {  
+    public List<Integer> uniqueIntersections(int[] arr1, int[] arr2) {  
+        List<Integer> result = new ArrayList<>();  
+        int  index1 = 0, index2 = 0;  
+        Arrays.sort(arr1);  
+        Arrays.sort(arr2);  
+        while(index1 < arr1.length && index2 < arr2.length){  
+            if(arr1[index1] == arr2[index2]){  
+                result.add(arr1[index1]);  
+                index1++;  
+                index2++;  
+            }else if(arr1[index1] < arr2[index2]){  
+                index1++;  
+            }else{  
+                index2++;  
+            }  
+        }  
+        return result;  
+    }  
+}
+```
+
+---
+
+#  Fixed sized Sliding Window

@@ -13,10 +13,10 @@
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221618.png"
+                "file": "Pasted image 20250916090940.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250915221618"
+              "title": "Pasted image 20250916090940"
             }
           }
         ]
@@ -178,10 +178,12 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "4db11a880ee3903d",
   "lastOpenFiles": [
-    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
+    "DSA/Data Structure/Arrays.md",
+    "Pasted image 20250916090940.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221618.png",
+    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221519.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221454.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915221212.png",
@@ -190,8 +192,6 @@
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915220544.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915150625.png",
     "Screenshots/DSA/Arrays/Pasted image 20250912092251.png",
-    "DSA/Data Structure/Arrays.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250915151401.png",
     "Go/Golang Notes.md",
     "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
