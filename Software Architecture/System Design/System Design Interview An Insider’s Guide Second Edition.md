@@ -1079,3 +1079,458 @@ As one of the core pieces of the system, we want the URL shortening flow to be l
 • **Availability, consistency, and reliability:** These concepts are at the core of any large system’s success. 
 
 # CHAPTER 9: DESIGN A WEB CRAWLER
+
+A web crawler is known as a robot or spider. It is widely used by search engines to discover new or updated content on the web. Content can be a web page, an image, a video, a PDF file, etc. A web crawler starts by collecting a few web pages and then follows links on those pages to collect new content.
+
+A crawler is used for many purposes:
+• Search engine indexing:
+• Web archiving
+• Web mining:
+• Web monitoring
+
+## Step 1 - Understand the problem and establish design scope
+
+The basic algorithm of a web crawler is simple:
+1. ==**Given a set of URLs, download all the web pages addressed by the URLs.**==
+2. ==**Extract URLs from these web pages**==
+3. ==**Add new URLs to the list of URLs to be downloaded. Repeat these 3 steps.==**
+
+- What is the main purpose of the crawler? Is it used for search engine indexing, data mining, or something else?
+- How many web pages does the web crawler collect per month?
+- What content types are included? HTML only or other content types such as PDFs and images as well?
+- Shall we consider newly added or edited web pages?
+- Do we need to store HTML pages crawled from the web?
+- How do we handle web pages with duplicate content?
+
+it is also important to note down the following characteristics of a good web crawler:
+• Scalability: The web is very large. There are billions of web pages out there. Web crawling should be extremely efficient using parallelization.
+• Robustness: The web is full of traps. Bad HTML, unresponsive servers, crashes, malicious links, etc. are all common. The crawler must handle all those edge cases.
+• Politeness: The crawler should not make too many requests to a website within a short time interval.
+• Extensibility: The system is flexible so that minimal changes are needed to support new content types. For example, if we want to crawl image files in the future, we should not need to redesign the entire system.
+
+## Step 2 - Propose high-level design and get buy-in
+
+### Seed URLs
+A web crawler uses seed URLs as a starting point for the crawl process. For example, to crawl all web pages from a university’s website, an intuitive way to select seed URLs is to use the university’s domain name
+
+To crawl the entire web, we need to be creative in selecting seed URLs. **==A good seed URL serves as a good starting point that a crawler can utilize to traverse as many links as possible. The general strategy is to divide the entire URL space into smaller ones.**== 
+- ==**The first proposed approach is based on locality as different countries may have different popular websites.**==  
+- ==**Another way is to choose seed URLs based on topics; for example, we can divide URL space into shopping, sports, healthcare, etc. Seed URL selection is an open-ended question.==**
+
+### URL Frontier
+
+Most modern web crawlers split the crawl state into two: to be downloaded and already downloaded. The component that stores URLs to be downloaded is called the URL Frontier. **==You can refer to this as a First-in-First-out (FIFO) queue.==**
+
+### HTML Downloader
+The HTML downloader downloads web pages from the internet. Those URLs are provided by the URL Frontier.
+
+### DNS Resolver
+To download a web page, a URL must be translated into an IP address. The HTML Downloader calls the DNS Resolver to get the corresponding IP address for the URL.
+
+### Content Parser
+After a web page is downloaded, it must be parsed and validated because malformed web pages could provoke problems and waste storage space. Implementing a content parser in a crawl server will slow down the crawling process.
+
+### Content Seen?
+
+To compare two HTML documents, we can compare them character by character. However, this method is slow and time-consuming, especially when billions of web pages are involved. **==An efficient way to accomplish this task is to compare the hash values of the two web pages==**
+
+### Content Storage
+
+The choice of storage system depends on factors such as data type, data size, access frequency, life span, etc. Both disk and memory are used.
+• Most of the content is stored on disk because the data set is too big to fit in memory.
+• Popular content is kept in memory to reduce latency
+
+### URL Extractor
+URL Extractor parses and extracts links from HTML pages
+
+###  URL Filter
+The URL filter excludes certain content types, file extensions, error links and URLs in “blacklisted” sites.
+
+### URL Seen?
+“URL Seen?” is a data structure that keeps track of URLs that are visited before or already in the Frontier. “URL Seen?” helps to avoid adding the same URL multiple times as this can increase server load and cause potential infinite loops.
+
+Bloom filter and hash table are common techniques to implement the “URL Seen?” component
+
+### URL Storage
+URL Storage stores already visited URLs
+
+![[Pasted image 20250917111129.png]]
+
+## Step 3 - Design deep dive
+
+### DFS vs BFS
+You can think of the web as a directed graph where web pages serve as nodes and hyperlinks (URLs) as edges. The crawl process can be seen as traversing a directed graph from one web page to others. Two common graph traversal algorithms are DFS and BFS. However, DFS is usually not a good choice because the depth of DFS can be very deep. BFS is commonly used by web crawlers and is implemented by a first-in-first-out (FIFO) queue. In a FIFO queue, URLs are dequeued in the order they are enqueued. However, this implementation has two problems:
+• Most links from the same web page are linked back to the same host. In Figure 9-5, all the links in wikipedia.com are internal links, making the crawler busy processing URLs from the same host (wikipedia.com). When the crawler tries to download web pages in parallel, **==Wikipedia servers will be flooded with requests. This is considered as “impolite”.==**
+
+![[Pasted image 20250917111315.png]]
+
+• Standard BFS does not take the priority of a URL into consideration. The web is large and not every page has the same level of quality and importance. Therefore, we may want to prioritize URLs according to their page ranks, web traffic, update frequency, etc.
+
+### URL frontier
+URL frontier helps to address these problems. A URL frontier is a data structure that stores URLs to be downloaded. The URL frontier is an important component to ensure politeness, URL prioritization, and freshness.
+
+**Politeness**
+
+Generally, a web crawler should avoid sending too many requests to the same hosting server within a short period. Sending too many requests is considered as “impolite” or even treated as denial-of-service (DOS) attack
+
+The general idea of enforcing politeness is to download one page at a time from the same host. A delay can be added between two download tasks. The politeness constraint is implemented by maintain a mapping from website hostnames to download (worker) threads. Each downloader thread has a separate FIFO queue and only downloads URLs obtained from that queue.
+
+![[Pasted image 20250917111435.png]]
+
+**Priority**
+
+random post from a discussion forum about Apple products carries very different weight than posts on the Apple home page. Even though they both have the “Apple” keyword, it is sensible for a crawler to crawl the Apple home page first. We prioritize URLs based on usefulness, which can be measured by PageRank [10], website traffic, update frequency, etc. “Prioritizer” is the component that handles URL prioritization. Refer to the reference materials [5] [10] for in-depth information about this concept.
+
+• Prioritizer: It takes URLs as input and computes the priorities.
+• Queue f1 to fn: Each queue has an assigned priority. Queues with high priority are selected with higher probability.
+• Queue selector: Randomly choose a queue with a bias towards queues with higher priority.
+
+**Freshness**
+
+Web pages are constantly being added, deleted, and edited. A web crawler must periodically recrawl downloaded pages to keep our data set fresh. Recrawl all the URLs is time consuming and resource intensive. Few strategies to optimize freshness are listed as follows:
+
+**==• Recrawl based on web pages’ update history.**==
+==**• Prioritize URLs and recrawl important pages first and more frequently.==**
+
+### HTML Downloader
+The HTML Downloader downloads web pages from the internet using the HTTP protocol.
+
+#### Robots.txt
+
+**==Robots.txt, called Robots Exclusion Protocol, is a standard used by websites to communicate with crawlers. It specifies what pages crawlers are allowed to download. Before attempting to crawl a web site, a crawler should check its corresponding robots.txt first and follow its rules.==**
+
+**Performance optimization**
+
+1. Distributed crawl 
+	To achieve high performance, crawl jobs are distributed into multiple servers, and each server runs multiple threads. The URL space is partitioned into smaller pieces; so, each downloader is responsible for a subset of the URLs.
+
+2. Cache DNS Resolver
+	DNS Resolver is a bottleneck for crawlers because DNS requests might take time due to the synchronous nature of many DNS interfaces. DNS response time ranges from 10ms to 200ms. Once a request to DNS is carried out by a crawler thread, other threads are blocked until the first request is completed.
+
+3. Locality
+	Distribute crawl servers geographically. When crawl servers are closer to website hosts, crawlers experience faster download time. Design locality applies to most of the system components: crawl servers, cache, queue, storage, etc.
+	
+4. Short timeout
+	Some web servers respond slowly or may not respond at all. To avoid long wait time, a maximal wait time is specified. If a host does not respond within a predefined time, the crawler will stop the job and crawl some other pages.
+
+### Extensibility
+As almost every system evolves, one of the design goals is to make the system flexible enough to support new content types. The crawler can be extended by plugging in new modules.
+
+### Detect and avoid problematic content
+
+#### 1. Redundant content
+As discussed previously, nearly 30% of the web pages are duplicates. Hashes or checksums help to detect duplication
+
+#### 2. Spider traps
+A spider trap is a web page that causes a crawler in an infinite loop. For instance, an infinite deep directory structure is
+
+Such spider traps can be avoided by setting a maximal length for URLs. However, no one size- fits-all solution exists to detect spider traps. Websites containing spider traps are easy to identify due to an unusually large number of web pages discovered on such websites. It is hard to develop automatic algorithms to avoid spider traps; however, a user can manually verify and identify a spider trap, and either exclude those websites from the crawler or apply some customized URL filters
+
+#### 3. Data noise
+Some of the contents have little or no value, such as advertisements, code snippets, spam URLs, etc. Those contents are not useful for crawlers and should be excluded if possible.
+
+## Step 4 - Wrap up
+
+• Server-side rendering: Numerous websites use scripts like JavaScript, AJAX, etc to generate links on the fly. If we download and parse web pages directly, we will not be able to retrieve dynamically generated links. To solve this problem, we perform server-side rendering (also called dynamic rendering) first before parsing a page [12].
+• Filter out unwanted pages: With finite storage capacity and crawl resources, an anti-spam component is beneficial in filtering out low quality and spam pages [13] [14].
+• Database replication and sharding: Techniques like replication and sharding are used to improve the data layer availability, scalability, and reliability.
+• Horizontal scaling: For large scale crawl, hundreds or even thousands of servers are needed to perform download tasks. The key is to keep servers stateless. 
+• Availability, consistency, and reliability: These concepts are at the core of any large system’s success. We discussed these concepts in detail in Chapter 1. Refresh your memory on these topics.
+• Analytics: Collecting and analyzing data are important parts of any system because data is key ingredient for fine-tuning.
+
+# CHAPTER 10: DESIGN A NOTIFICATION SYSTEM
+
+A notification is more than just mobile push notification. Three types of notification formats are: mobile push notification, SMS message, and Email.
+
+## Step 1 - Understand the problem and establish design scope
+
+- What types of notifications does the system support?
+- Is it a real-time system?
+- What are the supported devices?
+- What triggers notifications?
+- Will users be able to opt-out?
+- How many notifications are sent out each day?
+
+## Step 2 - Propose high-level design and get buy-in
+
+It is structured as follows:
+• Different types of notifications
+• Contact info gathering flow
+• Notification sending/receiving flow
+
+![[Pasted image 20250917134659.png]]
+
+### Contact info gathering flow
+
+To send notifications, we need to gather mobile device tokens, phone numbers, or email addresses. **==when a user installs our app or signs up for the first time, API servers collect user contact info and store it in the database.==**
+
+Email addresses and phone numbers are stored in the user table, whereas device tokens are stored in the device table
+
+![[Pasted image 20250917134810.png]]
+
+### Notification sending/receiving flow
+
+**Service 1 to N**: A service can be a micro-service, a cron job, or a distributed system that triggers notification sending events. For example, a billing service sends emails to remind customers of their due payment or a shopping website tells customers that their packages will be delivered tomorrow via SMS messages.
+
+**Notification system**: The notification system is the centerpiece of sending/receiving notifications. Starting with something simple, only one notification server is used. It provides APIs for services 1 to N, and builds notification payloads for third party services.
+
+**Third-party services**: Third party services are responsible for delivering notifications to users. While integrating with third-party services, we need to pay extra attention to extensibility. Good extensibility means a flexible system that can easily plugging or unplugging of a third-party service. **==Another important consideration is that a third-party service might be unavailable in new markets or in the future.==**
+
+Three problems are identified in this design:
+	==**• Single point of failure (SPOF): A single notification server means SPOF.==**
+	**==• Hard to scale: The notification system handles everything related to push notifications in one server. It is challenging to scale databases, caches, and different notification processing components independently.==**
+	**==• Performance bottleneck: Processing and sending notifications can be resource intensive. For example, constructing HTML pages and waiting for responses from third party services could take time. Handling everything in one system can result in the system overload, especially during peak hour**==
+
+### High-level design (improved)
+
+**==• Move the database and cache out of the notification server.**==
+==**• Add more notification servers and set up automatic horizontal scaling.**==
+==**• Introduce message queues to decouple the system components.==**
+
+![[Pasted image 20250917135140.png]]
+
+**Service 1 to N**: They represent different services that send notifications via APIs provided by notification servers.
+
+**Notification servers**: They provide the following functionalities:
+• Provide APIs for services to send notifications. Those APIs are only accessible internally
+or by verified clients to prevent spams.
+• Carry out basic validations to verify emails, phone numbers, etc.
+• Query the database or cache to fetch data needed to render a notification.
+• Put notification data to message queues for parallel processing
+
+**Cache**: User info, device info, notification templates are cached.
+**DB**: It stores data about user, notification, settings, etc.
+
+**Message queues**: Message queues serve as buffers when high volumes of notifications are to be sent out. Each notification type is assigned with a distinct message queue so an outage in one third-party service will not affect other notification types.
+
+**Workers**: Workers are a list of servers that pull notification events from message queues and send them to the corresponding third-party services.
+
+**Third-party services**: Already explained in the initial design.
+
+1. A service calls APIs provided by notification servers to send notifications.
+2. Notification servers fetch metadata such as user info, device token, and notification setting from the cache or database.
+3. A notification event is sent to the corresponding queue for processing. For instance, an iOS push notification event is sent to the iOS PN queue.
+4. Workers pull notification events from message queues.
+5. Workers send notifications to third party services.
+6. Third-party services send notifications to user devices.
+
+## Step 3 - Design deep dive
+
+### Reliability
+
+**How to prevent data loss?**
+
+One of the most important requirements in a notification system is that it cannot lose data. Notifications can usually be delayed or re-ordered, but never lost. To satisfy this requirement, the notification system persists notification data in a database and implements a retry mechanism. The notification log database is included for data persistence,
+
+![[Pasted image 20250917135523.png]]
+
+**Will recipients receive a notification exactly once?**
+
+To reduce the duplication occurrence, we introduce a dedupe mechanism and handle each failure case carefully. Here is a simple dedupe logic:
+
+**==When a notification event first arrives, we check if it is seen before by checking the event ID. If it is seen before, it is discarded==**. Otherwise, we will send out the notification. For interested readers to explore why we cannot have exactly once delivery, refer to the reference material
+
+**Notification template**
+
+Notification templates are introduced to avoid building every notification from scratch. A notification template is a preformatted notification to create your unique notification by customizing parameters, styling, tracking links, etc. Here is an example template of push notifications.
+
+**Notification setting**
+
+Users generally receive way too many notifications daily and they can easily feel overwhelmed. Thus, many websites and apps give users fine-grained control over notification settings. This information is stored in the notification setting table, with the following fields:
+
+```sql
+user_id bigInt
+channel varchar # push notification, email or SMS
+opt_in boolean # opt-in to receive notification
+```
+
+**Rate limiting**
+
+To avoid overwhelming users with too many notifications, we can limit the number of notifications a user can receive. This is important because receivers could turn off notifications completely if we send too often
+
+**Retry mechanism**
+
+When a third-party service fails to send a notification, the notification will be added to the message queue for retrying. If the problem persists, an alert will be sent out to developers
+
+**Security in push notifications**
+
+Only authenticated or verified clients are allowed to send push notifications using our APIs. Interested users should refer to the reference material
+
+**Monitor queued notifications**
+
+**==A key metric to monitor is the total number of queued notifications==**. If the number is large, the notification events are not processed fast enough by workers. To avoid delay in the notification delivery, more workers are needed
+
+**Events tracking**
+Notification metrics, such as open rate, click rate, and engagement are important in understanding customer behaviors.
+
+![[Pasted image 20250917140047.png]]
+
+**Updated Design**
+
+![[Pasted image 20250917140645.png]]
+
+• The notification servers are equipped with two more critical features: authentication and rate-limiting.
+• We also add a retry mechanism to handle notification failures. If the system fails to send notifications, they are put back in the messaging queue and the workers will retry for a predefined number of times.
+• Furthermore, notification templates provide a consistent and efficient notification creation process.
+• Finally, monitoring and tracking systems are added for system health checks and future improvements.
+
+## Step 4 - Wrap up
+
+• Reliability: We proposed a robust retry mechanism to minimize the failure rate.
+• Security:`` AppKey/appSecret`` pair is used to ensure only verified clients can send notifications.
+• Tracking and monitoring: These are implemented in any stage of a notification flow to capture important stats.
+• Respect user settings: Users may opt-out of receiving notifications. Our system checks user settings first before sending notifications.
+• Rate limiting: Users will appreciate a frequency capping on the number of notifications they receive.
+
+
+# CHAPTER 11: DESIGN A NEWS FEED SYSTEM
+
+“News feed is the constantly updating list of stories in the middle of your home page. News Feed includes status updates, photos, videos, links, app activity, and likes from people, pages, and groups that you follow on Facebook
+
+## Step 1 - Understand the problem and establish design scope
+
+-  Is this a mobile app? Or a web app? Or both?
+- What are the important features?
+- Is the news feed sorted by reverse chronological order or any particular order such as topic scores? For instance, posts from your close friends have higher scores.
+- How many friends can a user have?
+- What is the traffic volume
+- Can feed contain images, videos, or just text?
+
+## Step 2 - Propose high-level design and get buy-in
+
+• Feed publishing: when a user publishes a post, corresponding data is written into cache and database. A post is populated to her friends’ news feed.
+• Newsfeed building: for simplicity, let us assume the news feed is built by aggregating friends’ posts in reverse chronological order
+
+### Newsfeed APIs
+
+The news feed APIs are the primary ways for clients to communicate with servers. Those APIs are HTTP based that allow clients to perform actions, which include posting a status, retrieving news feed, adding friends,
+
+### Feed publishing API
+
+```json
+POST /v1/me/feed
+Params:
+• content: content is the text of the post.
+• auth_token: it is used to authenticate API requests.
+```
+
+```json
+GET /v1/me/feed
+Params:
+• auth_token: it is used to authenticate API requests.
+```
+
+#### Feed Publishing
+
+- **User**: A user can view news feeds on a browser or mobile app. A user makes a post with content **“Hello”** through API:  
+  `/v1/me/feed?content=Hello&auth_token={auth_token}`  
+
+- **Load balancer**: Distributes traffic to web servers.  
+
+- **Web servers**: Redirect traffic to different internal services.  
+
+- **Post service**: Persists post in the **database** and **cache**.  
+
+- **Fanout service**: Pushes new content to friends’ news feed. **Newsfeed data** is stored in the **cache** for fast retrieval.  
+
+- **Notification service**: Informs friends that new content is available and sends out **push notifications**.  
+
+
+#### Newsfeed building
+
+- **User**: A user sends a request to retrieve her news feed. The request looks like this:  
+  `/v1/me/feed`  
+
+- **Load balancer**: Redirects traffic to **web servers**.  
+
+- **Web servers**: Route requests to **newsfeed service**.  
+
+- **Newsfeed service**: Fetches **news feed** from the **cache**.  
+
+- **Newsfeed cache**: Stores **news feed IDs** needed to render the news feed.  
+
+
+## Step 3 - Design deep dive
+
+### Feed publishing deep dive
+
+![[Pasted image 20250917171322.png]]
+
+- **Web servers**:  
+  Besides communicating with clients, web servers enforce **authentication** and **rate-limiting**.  
+  - Only users signed in with a valid **``auth_token``** are allowed to make posts.  
+  - The system limits the number of posts a user can make within a certain period, which is vital to prevent **spam** and **abusive content**.  
+
+- **Fanout service**:  
+  Fanout is the process of delivering a post to all friends. Two types of fanout models are:  
+  - **Fanout on write** (push model)  
+  - **Fanout on read** (pull model)  
+
+  **Fanout on write**: With this approach, the news feed is pre-computed during **write time**. A new post is delivered to friends’ **cache** immediately after it is published.  
+  - **Pros**:  
+    • The **news feed** is generated in real-time and can be pushed to friends immediately.  
+    • Fetching the **news feed** is fast because it is pre-computed during write time.  
+  - **Cons**:  
+    • If a user has many friends, fetching the **friend list** and generating news feeds for all of them is slow and time-consuming (**hotkey problem**).  
+    • For inactive users or those who rarely log in, pre-computing news feeds **wastes computing resources**.  
+
+  **Fanout on read**: The news feed is generated during **read time**. This is an **on-demand model**. Recent posts are pulled when a user loads her home page.  
+  - **Pros**:  
+    • For inactive users or those who rarely log in, fanout on read works better because it does not waste **computing resources**.  
+    • Data is not pushed to friends so there is no **hotkey problem**.  
+  - **Cons**:  
+    • Fetching the **news feed** is slow as it is not pre-computed.  
+
+
+### Newsfeed retrieval deep dive
+
+![[Pasted image 20250917171525.png]]
+
+1. **User** sends a request to retrieve her news feed:  
+   `/v1/me/feed`  
+
+2. **Load balancer** redistributes requests to **web servers**.  
+
+3. **Web servers** call the **news feed service** to fetch news feeds.  
+
+4. **News feed service** gets a list of **post IDs** from the **news feed cache**.  
+
+5. A user’s news feed is more than just a list of feed IDs. It contains **username**, **profile picture**, **post content**, **post image**, etc.  
+   - Therefore, the **news feed service** fetches the complete **user objects** (from **user cache**) and **post objects** (from **post cache**) to construct the fully hydrated news feed.  
+
+6. The fully hydrated **news feed** is returned in **JSON format** back to the **client** for rendering.  
+
+### Cache architecture
+
+• News Feed: It stores IDs of news feeds.
+• Content: It stores every post data. Popular content is stored in hot cache.
+• Social Graph: It stores user relationship data.
+• Action: It stores info about whether a user liked a post, replied a post, or took other actions on a post.
+• Counters: It stores counters for like, reply, follower, following, etc.
+
+## Step 4 - Wrap up
+
+### **Scaling the Database**
+
+- **Vertical scaling vs Horizontal scaling**  
+- **SQL vs NoSQL**  
+- **Master-slave replication**  
+- **Read replicas**  
+- **Consistency models**  
+- **Database sharding**  
+
+---
+
+### **Other Talking Points**
+
+- **Keep web tier stateless**  
+- **Cache data** as much as you can  
+- **Support multiple data centers**  
+- **Loosely couple components** with **message queues**  
+- **Monitor key metrics**:  
+  - **QPS** (queries per second) during **peak hours**  
+  - **Latency** while users are refreshing their **news feed**  
+
+
+# CHAPTER 12: DESIGN A CHAT SYSTEM
+
