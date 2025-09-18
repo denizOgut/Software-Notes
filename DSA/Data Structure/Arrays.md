@@ -1,4 +1,4 @@
-
+``
 #  Introduction to arrays
 ## Understanding the problem
 
@@ -1880,3 +1880,553 @@ class Solution {
 ---
 
 #  Fixed sized Sliding Window
+
+The fixed sized sliding window pattern is a classification of problems that can be solved using the fixed sized sliding window technique.
+
+![[Pasted image 20250918113157.png]]
+
+## Fixed sized sliding window technique
+
+Consider a function `f` such that `f(i, j)` denotes the aggregated value of `f` over the subarray from index `i` to index `j` (including both).
+
+![[Pasted image 20250918113244.png]]
+
+Now consider we need to apply this function to all subarrays of size `k` in the given array, i.e. `f(0, k-1), f(1, k), .... f(n-k, n-1)`.
+
+![[Pasted image 20250918113311.png]]
+
+The fixed-sized sliding window technique uses two variables `start` and `end`, to maintain a fixed-sized **window** (subarray). Another variable `aggregate` holds the output of `f` when applied over the data items of the current window. We slide the window 1 step to the right in each iteration and update `aggregate` accordingly
+
+![[Pasted image 20250918113341.png]]
+
+ For a fixed-sized widow of size `k`, we initialize `start = 0` and `end = 0` and iterate until `end` reaches the end of the array. In each iteration, we add the contribution of `arr[end]` to the aggregate and then check if the window size `end - start + 1` is greater than `k`. If the window size is greater than `k`, we remove the contribution of the item at `arr[start]` from `aggregate` by using the removal operation for the function `f  and then contract the current window from the start by incrementing `start` by 1.
+
+==**The fixed-sized sliding window technique avoids the inner loop by removing the contribution of the removed item using the removal operation for the function and adding the contribution of the newly added item as the window slides**==
+
+## Algorithm
+
+- **Step 1: Initialize two variables, `start` and `end` to 0.**
+- **Step 2: Create a variable `aggregate` to store the aggregated value of a window and initialize it to some default value**
+- **Step 3: Loop while `end` < `arr.size()` and do the following**
+    - **Step 3.1: Add contribution of `arr[end]` to `aggregate`**
+    - **Step 3.2: If the size of the current window (`end` - `start` + 1) is greater than `k` remove the contribution of `arr[start]` from `aggregate` and increment `start` by 1**
+    - **Step 3.2: If the size of the current window (`end` - `start` + 1) is equals `k`, process `aggregate`**
+    - **Step 3.3: Increment `end` by 1**
+
+
+```java
+public class FixedSizeSlidingWindow {
+
+    public void fixedSizeSlidingWindow(int[] arr, int k) {
+
+        // Initialize start and end to 0
+
+        int start = 0, end = 0;
+
+        // Initialize aggregate to a default value
+
+        int aggregate = 0;
+
+        // Move the window one step to the right until
+
+        // it reaches the end of the array
+
+        while (end < arr.length) {
+
+            // Add contribution of arr[end]
+
+            aggregate = fAdd(aggregate, arr[end]);
+
+            // Check if window size is greater than k
+
+            if (end - start + 1 > k) {
+
+                // Remove contribution of arr[start]
+
+                aggregate = fRemove(aggregate, arr[start]);
+
+                // Increment start to contract the window from the start
+
+                start++;
+            }
+
+            // Check if window size equals k
+
+            if (end - start + 1 == k) {
+
+                // Process aggregate
+
+            }
+            // Increment end to expand the window from the end
+
+            end++;
+        }
+    }
+}
+```
+
+## Identifying the fixed sized sliding window pattern
+
+Given an array, compute the value of an aggregate function `f` for all subarrays of size `k`.  We should be able to add/remove the contribution of an item from the aggregate computed by **`f`.**
+
+> **Problem statement:** Given an array `arr` and an integer `k`, we need to find the maximum average of all subarrays of size `k`.
+
+
+**Brute force solution**
+
+The brute-force solution to this problem is to use a loop to traverse the array from start to N-k (where N is the size of the array) using a variable `start`. In each iteration, use another loop to iterate from `start` to `start + k-  1`. to compute the average of `k` sized subarray starting at `start`. We update the maximum if we find the average of any subarray greater than any averages seen earlier
+
+```java
+class KSubarrayAverage {
+
+  public double kSubarrayAverage(int[] arr, int k) {
+
+      int n = arr.length;
+
+      // Initialize maximumAverage to -infinite
+
+      double maxAverage = -1e9;
+
+      for (int i = 0; i <= n - k; i++) {
+
+          int sum = 0;
+
+          for (int j = 0; j < k; j++) {
+
+              sum += arr[i + j];
+
+          }
+
+          maxAverage = Math.max(maxAverage, (double) sum / k);
+
+      }
+
+      return maxAverage;
+
+  }
+
+}
+```
+
+**Fixed sized sliding window solution**
+
+Given an array `arr`, compute the average (function `f` ) for all subarrays of size `k`.  We can add/remove the contribution of an item from the aggregate computed by the average (function **`f`**)
+
+We keep the sum of all items in the window instead of the average, as the average can be easily computed from the sum and size of the window. We initialize two variables `sum` and `maxAverage` with 0 and `-infinite` denoting the sum of the current window and the maximum average seen so far.
+
+We then create a window by initalizing `start` and `end` to 0 and iterate until `end` reaches the end of the array. In each iteration, we add the contribution of the item at `end` and compute the average if needed. If the average of the current window is greater than `maxAverage`, we update `maxAverage`. At the end of all iterations, `maxAverage` will have the maximum average of all subarrays of size `k`.
+
+```java
+class Solution {
+
+    public double kSubarrayAverage(int[] arr, int k) {
+
+        int n = arr.length;
+        // to store the starting index of the subarray
+
+        int start = 0;
+
+        // to store the ending index of the subarray
+
+        int end = 0;
+
+        // to store the current subarray sum
+
+        int sum = 0;
+
+        // to store the maximum average
+
+        double maxAverage = Double.NEGATIVE_INFINITY;
+
+        // loop through the array
+
+        while (end < n) {
+
+            // add the current element to the current subarray sum
+
+            sum += arr[end];
+
+            // if the current subarray has more than k elements
+
+            // then remove elements from the start of the subarray till
+
+            // the subarray has exactly k elements
+
+            if (end - start + 1 > k) {
+
+                // remove the first element from the subarray
+
+                sum -= arr[start];
+
+                // move the start pointer forward
+
+                start++;
+
+            }
+
+            // if the current subarray has exactly k elements
+
+            // then calculate the average and update the maximum average
+
+            if (end - start + 1 == k) {
+
+                // calculate the average and update the maximum average
+
+                maxAverage = Math.max(maxAverage, (double) sum / k);
+
+            }
+
+            // move the end pointer forward
+
+            end++;
+
+        }
+
+        return maxAverage;
+
+    }
+
+}
+```
+
+
+## Example Subarray size equals K
+
+Given an integer array **arr** and a positive integer **k**, write a function to find and return the minimum sum among all subarrays of size k. If no such subarray exists, return `-1` instead.
+
+
+```java
+class Solution {
+
+    public int subarraySizeEqualsK(int[] arr, int k) {
+
+        // Edge case: If k is greater than the array size, return -1.
+
+        if (k > arr.length) {
+
+            return -1;
+
+        }
+
+        // To store the starting index of the subarray
+
+        int start = 0;
+        
+        // To store the ending index of the subarray
+
+        int end = 0;
+
+        // To store the current subarray sum
+
+        int sum = 0;
+
+        // We want to find the minimum sum.
+
+        int minSum = Integer.MAX_VALUE;
+
+        // Sliding window to process all subarrays of size k
+
+        while (end < arr.length) {
+
+            // Add contribution of arr[end] to the current window sum
+
+            sum += arr[end];
+
+            // If the current subarray has more than k elements
+
+            // then remove elements from the start of the subarray till
+
+            // the subarray has exactly k elements
+
+            if (end - start + 1 > k) {
+
+                // Remove contribution of arr[start] as the window is now
+
+                // too large
+
+                sum -= arr[start];
+
+                // Contract the window from the left
+
+                start++;
+
+            }
+
+            // Check if the window size is exactly k
+
+            if (end - start + 1 == k) {
+
+                // Update the minimum sum
+
+                minSum = Math.min(minSum, sum);
+
+            }
+
+            // Expand the window from the right
+
+            end++;
+
+        }
+        return minSum;
+    }
+
+}
+```
+
+## Example  Consecutive ones
+
+Given a binary array **arr** and a positive integer **k**, write a function to find and return the maximum number of consecutive `1's` from among all subarrays of size k.
+
+```java
+class Solution {
+
+    public int consecutiveOnes(int[] arr, int k) {
+
+        // To store the starting index of the subarray
+
+        int start = 0;
+
+        // To store the ending index of the subarray
+
+        int end = 0;
+
+        // To store the current count of 1s in the window
+
+        int countOnes = 0;
+
+        // To store the maximum number of 1s in any subarray of size k
+
+        int maxOnes = 0;
+
+        // Loop through the array
+
+        while (end < arr.length) {
+
+            // Add the current element to the count if it's 1
+
+            if (arr[end] == 1) {
+
+                countOnes++;
+
+            }
+
+            // If the current subarray has more than k elements
+
+            // then shrink it from the start
+
+            if (end - start + 1 > k) {
+
+                // Remove the contribution of arr[start] if it was 1
+
+                if (arr[start] == 1) {
+
+                    countOnes--;
+
+                }
+
+                // Move the start pointer forward
+
+                start++;
+
+            }
+
+            // If the current subarray has exactly k elements
+
+            // then update the maximum number of 1s
+
+            if (end - start + 1 == k) {
+
+                maxOnes = Math.max(maxOnes, countOnes);
+
+            }
+
+            // Move the end pointer forward
+
+            end++;
+
+        }
+
+        return maxOnes;
+
+    }
+
+}
+```
+
+
+## Example  Negative window
+
+Given an integer array **arr** and a positive integer **k**, write a function to find and return the count of negative numbers in every subarray of size k
+
+```java
+import java.util.*;
+
+  
+
+class Solution {
+
+    public List<Integer> negativeWindow(int[] arr, int k) {
+
+        // To store the starting index of the subarray
+
+        int start = 0;
+
+        // To store the ending index of the subarray
+
+        int end = 0;
+
+        // To store the current count of negative numbers in the window
+
+        int negativeCount = 0;
+
+        // To store the count of negative numbers in subarrays of size k
+
+        List<Integer> result = new ArrayList<>();
+
+        // Loop through the array
+
+        while (end < arr.length) {
+
+            // Add the current element if it is negative
+
+            if (arr[end] < 0) {
+
+                negativeCount++;
+
+            }
+
+            // If the current subarray has more than k elements
+
+            // then shrink it from the start
+
+            if (end - start + 1 > k) {
+
+                // Remove the contribution of arr[start]
+
+                if (arr[start] < 0) {
+
+                    negativeCount--;
+
+                }
+
+                // Move the start pointer forward
+
+                start++;
+
+            }
+
+            // If the current subarray has exactly k elements
+
+            // then add the count to the result
+
+            if (end - start + 1 == k) {
+
+                result.add(negativeCount);
+
+            }
+
+            // Move the end pointer forward
+
+            end++;
+
+        }
+        return result;
+
+    }
+}
+```
+
+## Example  Even odd count
+
+Given an integer array **arr** and a positive integer **k**, write a function to find and return the count of even and odd numbers, respectively, in every subarray of size k.
+
+```java
+import java.util.*;
+
+class Solution {
+
+    public List<List<Integer>> evenOddCount(int[] arr, int k) {
+
+        // To store the starting index of the subarray
+
+        int start = 0;
+
+        // To store the ending index of the subarray
+
+        int end = 0;
+
+        // To store the current count of even numbers in the window
+
+        int evenCount = 0;
+
+        // To store the current count of odd numbers in the window
+
+        int oddCount = 0;
+
+        // To store the result as lists {evenCount, oddCount}
+
+        List<List<Integer>> result = new ArrayList<>();
+
+        // Loop through the array
+
+        while (end < arr.length) {
+
+            // Add the current element to the respective count
+
+            if (arr[end] % 2 == 0) {
+
+                evenCount++;
+
+            } else {
+
+                oddCount++;
+
+            }
+            // If the current subarray has more than k elements
+
+            // then shrink it from the start
+
+            if (end - start + 1 > k) {
+
+                // Remove the contribution of arr[start]
+
+                if (arr[start] % 2 == 0) {
+
+                    evenCount--;
+
+                } else {
+
+                    oddCount--;
+
+                }
+                // Move the start pointer forward
+
+                start++;
+
+            }
+
+            // If the current subarray has exactly k elements
+
+            // then add the counts to the result
+
+            if (end - start + 1 == k) {
+
+                result.add(List.of(evenCount, oddCount));
+
+            }
+            // Move the end pointer forward
+
+            end++;
+
+        }
+        return result;
+
+    }
+
+}
+```
+
+---
+
+# Variable Sized Sliding Window Pattern
+

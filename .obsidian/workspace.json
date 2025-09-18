@@ -13,10 +13,10 @@
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917171322.png"
+                "file": "Screenshots/DSA/Arrays/Pasted image 20250918113157.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250917171322"
+              "title": "Pasted image 20250918113157"
             }
           }
         ]
@@ -180,18 +180,19 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
+    "Screenshots/DSA/Arrays/Pasted image 20250918113311.png",
+    "Screenshots/DSA/Arrays/Pasted image 20250918113341.png",
+    "DSA/Data Structure/Arrays.md",
+    "Screenshots/DSA/Arrays/Pasted image 20250918113244.png",
+    "Screenshots/DSA/Arrays/Pasted image 20250918113157.png",
+    "Software Principles/Algorithms_4TH Edition Summary.md",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917171322.png",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917171525.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917171322.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917140645.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917140047.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917134659.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917135523.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917135140.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917134810.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917111129.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250917111435.png",
-    "DSA/Data Structure/Arrays.md",
     "Go/Golang Notes.md",
     "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
@@ -223,7 +224,6 @@
     "Google Remote Procedure Call Notes.md",
     "Golang Notes.md",
     "100 Go Mistakes and How to Avoid Them.md",
-    "DATABASE PROGRAMMING NOTES.md",
-    "Java Network Programming Notes.md"
+    "DATABASE PROGRAMMING NOTES.md"
   ]
 }
