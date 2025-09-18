@@ -2428,5 +2428,283 @@ class Solution {
 
 ---
 
-# Variable Sized Sliding Window Pattern
+# Variable Sized Sliding Window Pattern 
+
+Some problems may require us to find the output of an aggregate function over **all** subarrays of an array and then further aggregate the results from all subarrays into a single value. To solve these problems, we would need to run fixed-sized sliding windows of all sizes from 1 to N(size of the array) through the array to aggregate results for all subarrays, which is inefficient.
+
+However, for some problems, we may only need to find results for **some** subarrays and skip the remaining. These problems can be solved by the variable-sized sliding window technique, which contracts or expands the window in each iteration as it slides through the array
+
+![[Pasted image 20250918140451.png]]
+
+## Variable sized sliding technique
+
+The variable-sized sliding window technique uses two variables `start` and `end` to maintain a window in the array and a variable `aggregate` that always holds the aggregated value of `f` over the current window.
+
+We initialize `aggregate` with some default value dictated by the problem and start with `start = 0` and `end = 0` that denotes a zero-sized window. We iterate until `end` reaches the end of the array and, in each interaction, do some or all of the operations given below.
+
+### 1. Update aggregate with item at end
+
+![[Pasted image 20250918140731.png]]
+
+### 2. Process the aggregate
+
+The value stored in `aggregate` is the aggregated value of the function `f` over the subarray from `start` to `end`. We process it as dictated by the problem.
+
+![[Pasted image 20250918140758.png]]
+
+### 3. Contract the window by incrementing start
+
+If we can skip all remaining subarrays starting at `start` (the ones ending beyond `end`)  we can increment `start` by 1, which also contracts the window. We also update `aggregate` to remove the contributions of the item removed from the window.
+
+![[Pasted image 20250918140838.png]]
+
+### 4. Expand the window by incrementing end
+
+If we want to consider the next subarray starting at `start` (from `start` to `end+1`)  in the next iteration, we can increment `end` by one, which also expands the window. We don't add the contribution of the newly added item to `aggregate` yet, as that will be done in the next iteration
+
+![[Pasted image 20250918141319.png]]
+
+## Algorithm
+
+- **Step 1: Initialize two variables, `start` and `end` to 0.**
+- **Step 2: Initialize `aggregate` to some initial value dictated by the problem.**
+- **Step 3: Loop until `end` < `arr.size()` and do the following**
+    - **Step 3.1: Check if we should compute aggregate**
+        - **Step 3.1.1: Add contribution of `arr[end]` to `aggregate`**
+    - **Step 3.2: Process `aggregate`**
+    - **Step 3.3: Check if we should contract the window**
+        - **Step 3.3.1: Remove the contribution of `arr[start]` from `aggregate`**
+        - **Step 3.3.2: Increment `start`**
+    - **Step 3.3: Check if we should expand the window**
+        - **Step 3.3.2: Increment `end`**
+
+
+## Implementation
+
+```java
+public class SlidingWindow {
+    public  void slidingWindow(int[] arr) {
+
+        // Initialize start and end to 0
+
+        int start = 0, end = 0;
+
+        // Initialize aggregate to a default value
+
+        int aggregate = 0;
+
+        // Move the window one step to the right until
+
+        // it reaches the end of the array
+
+        while (end < arr.length) {
+
+            if (shouldComputeAggregate) {
+
+            // Add contribution of arr[end]
+
+            aggregate = f(aggregate, arr[end]);
+
+            }
+
+            // Process aggregate
+
+            // ......
+
+            // (Add your processing code here)
+
+            if (shouldContractWindow) {
+
+                // Remove contribution of arr[start] using the inverse function
+
+                aggregate = fInverse(aggregate, arr[start]);
+
+                // Contract window
+
+                start++;
+
+            }
+
+            if (shouldExpandWindow) {
+
+                end++;
+
+            }
+        }
+    }
+}
+```
+
+## Identifying variable sized sliding window pattern
+
+**Template:**
+
+Given an array, compute the value of an aggregate function `f` for **all** subarrays. Apply another aggregate function `g` on the results and return the output. We should be able to add/remove the contribution of an item from the aggregate computed by `f`.
+
+## Example
+
+> **Problem statement:** Given an integer array `arr` find the subarray with the largest sum and return the sum.
+
+**Brute force solution**
+
+The brute-force solution to this problem is to use nested loops to find the sum of all possible subarrays. If the sum of any subarray is greater than the maximum seen so far, we update the maximum sum value. Below is an execution of the brute force solution on an array.
+
+```java
+  
+
+class MaxSubarraySum {
+
+    public int maxSubarraySum(int[] arr) {
+        // Initialize maxSum to a very small number
+        int maxSum = Integer.MIN_VALUE;
+        // Use nested loops to calculate the sum of all subarrays
+        for (int i = 0; i < arr.length; i++) {
+            int sum = 0;
+            for (int j = i; j < arr.length; j++) {
+                sum += arr[j];
+                // Update maxSum if the current sum is greater
+                maxSum = Math.max(sum, maxSum);
+            }
+        }
+        return maxSum;
+    }
+}
+```
+
+
+**Variable sized sliding window solution**
+
+Given an array `arr`, compute the sum (function `f` ) for **all** subarrays. Find the maximum (function `g` ) of all results. We can add/remove the contribution of an item from the aggregate computed by sum (function `f`).
+
+By closely observing the problem, we can see that we don't need to calculate the sum of all subarrays to find the subarray with the maximum sum. Let's look at the algorithm in more detail, and we will look at the proof of correctness later in the lesson.
+
+We initialize `start` and `end` to 0 to create a sliding window and iterate using `end` until we reach the end of the array. We create variables `sum` and `maxSum` to aggregate the sum of all items in the current window and keep track of the maximum sum seen so far. In each iteration, we add the item at `end` to the `sum` and update `maxSum` if `sum` is greater than the maximum seen so far. If the `sum` turns negative at any point, we set `start = end + 1` to effectively contract the window size back to 0 when the window expands at the end of the iteration. We also set `sum = 0` to reset the sum as the window size is now 0.
+
+```java
+class Solution {
+
+    public int maxSubarraySum(int[] arr) {
+
+        int n = arr.length;
+
+        if (n == 0) {
+
+            return 0;
+
+        }
+
+        // Initialize start and end to 0
+
+        int start = 0;
+
+        int end = 0;
+
+        // Initialize sum to a default value (current sum)
+
+        int sum = arr[end];
+
+        // To store the maximum subarray sum found so far
+
+        int maxSum = arr[end];
+
+        // Increment to start from index 1 as index 0 has already been
+
+        // taken into account
+
+        end++;
+
+        // Sliding window
+
+        while (end < n) {
+
+            // If the current sum becomes negative, reset the window
+
+            if (sum < 0) {
+
+                sum = arr[end];
+
+                start = end + 1;
+
+            }
+
+            // Otherwise, add contribution of arr[end]
+
+            else {
+
+                sum += arr[end];
+
+            }
+
+            // Update the maximum subarray sum found so far
+
+            maxSum = Math.max(maxSum, sum);
+
+            // Expand the window from the right
+
+            end++;
+
+        }
+
+        return maxSum;
+    }
+}
+```
+
+## Example Consecutive ones II
+
+Given a binary array **arr**, write a function to find and return the maximum number of consecutive `1's` in the array.
+
+```java
+class Solution {
+
+    public int consecutiveOnesII(int[] arr) {
+
+        // To store the starting index of the subarray
+        int start = 0;
+
+        // To store the ending index of the subarray
+        int end = 0;
+
+        // To store the current count of 1s in the window
+        int countOnes = 0;
+
+        // To store the maximum number of 1s in any subarray
+        int maxOnes = 0;
+
+        // Move the window one step to the right until it reaches the end
+
+        // of the array
+        while (end < arr.length) {
+            // Add the current element to the count if it's 1
+            if (arr[end] == 1) {
+                countOnes++;
+            }
+            // Otherwise, process the aggregate and reset count
+            else {
+                // Process aggregate when we encounter a 0
+
+                maxOnes = Math.max(maxOnes, countOnes);
+                
+                // Reset count for consecutive ones
+                countOnes = 0;
+            }
+            // Expand the window
+            end++;
+        }
+
+        // Final check for the last segment of ones
+        maxOnes = Math.max(maxOnes, countOnes);
+        return maxOnes;
+    }
+}
+```
+
+## Example Product conundrum
+
+Given an array of positive integers **arr** and an integer **k**, write a function to find and return the number of contiguous subarrays where the product of all the elements in the subarray is strictly less than k.
+
+```java
+
+```
+
 
