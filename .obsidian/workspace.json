@@ -13,10 +13,10 @@
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/DSA/Arrays/Pasted image 20250920131611.png"
+                "file": "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920152006.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250920131611"
+              "title": "Pasted image 20250920152006"
             }
           }
         ]
@@ -180,18 +180,22 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Screenshots/DSA/Arrays/Pasted image 20250920134308.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920131611.png",
+    "DSA/Algorithm/Recursion.md",
+    "Screenshots/DSA/Algorithms/Recursion",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920203806.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920203122.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920203057.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920202033.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920165028.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920164929.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920164829.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920164605.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920164603.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250920164508.png",
     "DSA/Data Structure/Arrays.md",
-    "Screenshots/DSA/Arrays/Pasted image 20250920135033.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920135014.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920134413.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920134251.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920134215.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920133618.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920133152.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920132739.png",
-    "Screenshots/DSA/Arrays/Pasted image 20250920132720.png",
+    "Screenshots/DSA/Algorithms",
+    "Screenshots/DSA/Data Structure",
+    "DSA/Algorithm",
     "Software Principles/Algorithms_4TH Edition Summary.md",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "Go/Golang Notes.md",
@@ -205,15 +209,11 @@
     "Screenshots/Software Architecture/System Design Screenshots",
     "Screenshots/Software Architecture",
     "Software Architecture/System Design",
-    "Screenshots/DSA/Arrays",
+    "Screenshots/DSA/Data Structure/Arrays",
     "Screenshots/DSA",
     "Java/JAVA APP - 2 NOTES.md",
-    "DSA/Data Structure",
-    "DSA",
     "Implementing Domain-Driven Design.md",
-    "Screenshots/Software Architecture/Domain Driven Design Screenshots/Implementing Domain-Driven Design Screenshots",
     "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md",
-    "Screenshots/Software Architecture/Domain Driven Design Screenshots/Domain-Driven Design Tackling Complexity in the Heart of Software Screenshots",
     "Software Architecture/Domain Driven Design/Learning Domain-Driven Design Aligning Software Architecture and Business Strategy.md",
     "Software Architecture/Hexagonal Architecture.md",
     "Java/Reactive Programming.md",
@@ -224,7 +224,6 @@
     "JAVA APP - 1 NOTES.md",
     "Google Remote Procedure Call Notes.md",
     "Golang Notes.md",
-    "100 Go Mistakes and How to Avoid Them.md",
-    "DATABASE PROGRAMMING NOTES.md"
+    "100 Go Mistakes and How to Avoid Them.md"
   ]
 }
