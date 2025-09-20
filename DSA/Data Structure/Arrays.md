@@ -1,4 +1,4 @@
-``
+
 #  Introduction to arrays
 ## Understanding the problem
 
@@ -2704,7 +2704,766 @@ class Solution {
 Given an array of positive integers **arr** and an integer **k**, write a function to find and return the number of contiguous subarrays where the product of all the elements in the subarray is strictly less than k.
 
 ```java
+  public int productConundrum(int[] arr, int k) {
+        // To store the starting index of the subarray
+        int start = 0;
+        // To store the ending index of the subarray
 
+        int end = 0;
+        // Initialize product to 1
+
+        int product = 1;
+
+  
+        // Initialize answer to 0
+        int answer = 0;
+
+  
+        // Move the window one step to the right until it reaches the end
+        // of the array
+        while (end < arr.length) {
+            // Add contribution of arr[end]
+            product *= arr[end];
+
+            // Process aggregate
+
+            while (start <= end && product >= k) {
+                // Remove contribution of arr[start] using the inverse
+                // function
+                product /= arr[start];
+  
+                // Contract window
+                start++;
+
+            }
+
+            // Count valid subarrays
+
+            answer += end - start + 1;
+
+            // Expand the window
+            end++;
+
+        }
+
+        return answer;
+    }
+}
 ```
 
+
+## Example Largest product subarray
+
+Given an integer array **arr**, write a function to find the subarray with the largest product and return this product.
+
+```java
+public int largestProductSubarray(int[] arr) {
+        // To store the starting index of the subarray
+
+        int start = 0;
+        // To store the ending index of the subarray
+
+        int end = 0;
+        // Initialize aggregate to track maximum and minimum products
+
+        int maxSoFar = arr[end];
+
+        int minSoFar = arr[end];
+
+        int maxProduct = arr[end];
+
+        // Increment to start from index 1 as index 0 has already been
+
+        // taken into account
+
+        end++;
+
+        // Move the window one step to the right until
+
+        // it reaches the end of the array
+
+        while (end < arr.length) {
+            // When we enter the window with arr[end]
+
+            if (arr[end] < 0) {
+                // If the current element is negative, swap the max and
+
+                // min
+
+                int temp = maxSoFar;
+
+                maxSoFar = minSoFar;
+
+                minSoFar = temp;
+
+            }
+
+
+            // Update maxSoFar and minSoFar with the current element
+
+            maxSoFar = Math.max(arr[end], maxSoFar * arr[end]);
+
+            minSoFar = Math.min(arr[end], minSoFar * arr[end]);
+
+            // Update the maximum product seen so far
+
+            maxProduct = Math.max(maxProduct, maxSoFar)
+
+            // Check if we should contract the window (if needed)
+
+            // In this case, we might want to start a new subarray
+
+            // when we encounter a zero. This handles zero in the array.
+
+            if (arr[end] == 0) {
+
+                // Reset the products if we hit a zero
+
+                maxSoFar = 1;
+
+                minSoFar = 1;
+                // Move start to the next element after zero
+
+                start = end + 1;
+            }
+            // Expand the window
+            end++;
+
+        }
+        // Return the maximum product seen so far
+        return maxProduct;
+    }
+```
+
+---
+
+# Interval Merging
+
+In some array problems, the data items stored in the array may represent an interval. An interval can be thought of as two points on the x-axis of a cartesian plane, where the x-axis represents any scalar metrics like time, distance, etc. An interval is denoted by a start and end coordinate that is often stored as a pair at each index in the array.
+
+![[Pasted image 20250920131611.png]]
+
+## Line sweep technique
+
+The line sweep technique, also known as the sweep line algorithm, is a powerful approach to efficiently solve geometric problems involving events (such as intervals) on an axis of the cartesian plane. It works by "sweeping" a line across the set of events while maintaining a data structure that keeps track of active events as the line progresses
+
+### 1. Sort the events
+
+The first step is to sort the intervals, as the line sweep algorithm requires the events to be sorted in some order in the array holding them. Intervals are generally sorted by their start or end values. If sorted by their start values, intervals with the same start values are further sorted by their end values. Similarly, if the intervals are sorted by their end values, intervals with the same end values are further sorted by their start values.
+
+![[Pasted image 20250920132720.png]]
+
+This way, the array can be viewed as the x-axis of the cartesian plane with events marked on it from left to right. This allows us to traverse the array as if we were swiping a line through it on the x-axis of the cartesian plane.
+
+![[Pasted image 20250920132739.png]]
+
+### 2. Sweep the line
+
+Once we have sorted the array of intervals, traversing it from start to end becomes the same as moving on the x-axis from left to right. We keep some data structure like an event counter, set, or list to keep state information as we traverse the array from start to end. This can be visualized as a vertical line moving from left to right on the x-axis and hence is called a line sweep. As the sweep line moves, it dynamically updates the state variables to correctly process overlaps, merges, or other conditions dictated by the problem.
+
+## Understanding interval merging pattern
+
+Some interval problems require merging all the overlapping intervals in a given array into a single interval that covers all the merged intervals. There are a few brute-force solutions to this problem using nested loops, but all of them are complicated and inefficient
+
+### Interval merging technique
+
+Consider we are given an array of intervals `arr` where each item in the array is a pair of an interval's start and end coordinates. The first step in merging the intervals is to sort the array in a non-decreasing order of the start coordinates of intervals. In case two intervals have the same start coordinate, we sort them by their end coordinates.
+
+We then create another array `merged` to store all the merged intervals and initialize it with the first interval in the now-sorted `arr`. These arrays can be viewed geometrically as intervals on the x-axis of a cartesian plane, and we can now apply the line sweep technique to merge the overlapping intervals in a single pass. As we will see later, we expand the **last** interval of the `merged` when we see an overlapping interval in `arr` to merge it.
+
+![[Pasted image 20250920133152.png]]
+
+We then iterate in the `arr` starting from the second interval and check if it intersects with the **last** interval in the `merged` array. If the start coordinate of the interval in `arr` lies between the start and end coordinates of the **last** interval in `merged`, it means they intersect and should be merged. We merge them by updating the end coordinate of the last interval in `merged` to the end coordinate of the interval in `arr` if it is greater. We repeat this process until we find a non-intersecting interval.
+
+If, at any point, we reach an interval that does not intersect with the last interval in `merged`, we append that interval to `merged` to make it the new last interval in `merged` which will expand to merge further intervals from `arr`. This process is repeated until we reach the end of `arr` at which point we will have the merged intervals in `merged`.
+
+### Algorithm
+
+- ==**Step 1: Sort the input array `arr` by the start coordinate of intervals**==
+- ==**Step 2: Create a list `merged` to store the merged intervals and initialize it with the first interval from sorted `arr`.**==
+- ==**Step 3: Iterate in `arr` starting from the second item:**==
+    - ==**Step 3.1: If the start coordinate of the interval in `arr` lies between the start and end coordinates of the last interval in `merged`, set the end coordinate of `merged` to the end coordinate of the interval in `arr` it it is greater:**==
+    - ==**Step 3.2: If the interval in `arr` does not intersect with the last interval in `merged`, append the interval in `arr` to `merged==**
+
+
+```java
+class Solution {
+
+    public int[][] mergeOverlapping(int[][] arr) {
+
+        // Sort arr by start time
+
+        Arrays.sort(arr, (a, b) -> Integer.compare(a[0], b[0]));
+
+        // Initialize output list and push the first interval
+
+        List<int[]> merged = new ArrayList<>();
+
+        merged.add(arr[0]);
+
+        // Loop through arr and merge if overlapping or adjacent
+
+        for (int i = 1; i < arr.length; i++) {
+
+            // If the current interval overlaps with the last interval in
+
+            // the merged list, merge them
+
+            if (arr[i][0] <= merged.get(merged.size() - 1)[1]) {
+                merged.get(merged.size() - 1)[1] =
+                    Math.max(
+                        merged.get(merged.size() - 1)[1],
+                        arr[i][1]
+                    );
+
+            }
+
+            // If the current interval is non-overlapping, add it to the
+            // merged list
+            else {
+                merged.add(arr[i]);
+            }
+        }
+        // Convert output list to 2D array and return
+
+        return merged.toArray(new int[merged.size()][]);
+    }
+}
+```
+
+###  Identifying the interval merging pattern
+
+>**Template:**
+Given an array of intervals, merge all overlapping intervals.
+
+**Problem statement:** Given an array of start and end times of expected deliveries for a day. Find the **minimum** number of non-overlapping intervals in the day when at least one delivery is expected at any time in each interval.
+
+![[Pasted image 20250920133618.png]]
+
+### Interval merging technique
+
+The overlapping intervals in the given array can be merged to find all non-overlapping intervals in the day. At least one delivery is expected at any time in each merged interval, and the number of merged intervals is also the minimum number of intervals satisfying the given condition. The problem description fits the template for the interval merging pattern.
+
+>**Template:**  
+  Given an array of intervals (delivery intervals), merge all overlapping intervals.
+
+```java
+class Solution {
+    public int[][] overlapReduction(int[][] times) {
+        // Sort times by start time
+        Arrays.sort(times, (a, b) -> Integer.compare(a[0], b[0]));
+        // Initialize output list and push the first time
+
+        List<int[]> merged = new ArrayList<>();
+        merged.add(times[0]);
+        // Loop through times and merge if overlapping or adjacent
+        for (int i = 1; i < times.length; i++) {
+            // If the current time overlaps with the last time in
+            // the merged list, merge them
+            if (times[i][0] <= merged.get(merged.size() - 1)[1]) {
+                merged.get(merged.size() - 1)[1] =
+                    Math.max(
+                       merged.get(merged.size() - 1)[1],
+                        times[i][1]
+                    );
+            }
+            // If the current time is non-overlapping, add it to the
+            // merged list
+            else {
+                merged.add(times[i]);
+            }
+        }
+        // Convert output list to 2D array and return
+        return merged.toArray(new int[merged.size()][]);
+
+    }
+}
+```
+
+## Example  Verify schedule
+
+Given an array of **meetings** consisting of the start and end times `[[s1, e1], [s2, e2], ...] (si < ei)` of meetings, write a function that returns `true` if a person could attend all meetings. Return `false` otherwise.
+
+Two intervals `[s1, e1]` and `[s2, e2]` are considered overlapping if `e1 > s2`. If `e1 == s2`, the intervals are not considered overlapping.
+
+```java
+class Solution {
+    public boolean verifySchedule(int[][] meetings) {
+
+        // sort the meetings on their start time
+        Arrays.sort(meetings, Comparator.comparingInt(a -> a[0]));
+
+        // check if any two meetings overlap
+        for (int i = 1; i < meetings.length; i++) {
+            if (meetings[i][0] < meetings[i - 1][1]) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+```
+
+## Example  Employee free time
+
+Given an array of **meetings** consisting of the start and end times `[[s1, e1], [s2, e2], ...] (si < ei)` of all meetings of the employees of a company, write a function to find and return the time intervals where all the employees are free, i.e., none of them are in a meeting.
+
+Two intervals `[s1, e1]` and `[s2, e2]` are considered overlapping if `e1 >= s2`.
+
+```java
+class Solution {
+    public int[][] employeeFreeTime(int[][] meetings) {
+        // Sort meetings by start time
+        Arrays.sort(meetings, (a, b) -> Integer.compare(a[0], b[0]));
+        // Initialize output list and push the first meeting
+
+        List<int[]> merged = new ArrayList<>();
+        merged.add(meetings[0]);
+
+        // Loop through meetings and merge if overlapping or adjacent
+
+        for (int i = 1; i < meetings.length; i++) {
+            // If the current meeting overlaps with the last meeting in
+
+            // the merged list, merge them
+
+            if (meetings[i][0] <= merged.get(merged.size() - 1)[1]) {
+
+                merged.get(merged.size() - 1)[1] = Math.max(
+                
+                    merged.get(merged.size() - 1)[1],
+                    meetings[i][1]
+                );
+            }
+
+            // If the current meeting is non-overlapping, add it to the
+            // merged list
+            else {
+                merged.add(meetings[i]);
+            }
+        }
+        // Find gaps between merged meetings to get free time
+
+        List<int[]> freeTimes = new ArrayList<>();
+
+        for (int i = 1; i < merged.size(); i++) {
+
+            int start = merged.get(i - 1)[1];
+
+            int end = merged.get(i)[0];
+
+            if (start < end) {
+
+                freeTimes.add(new int[] { start, end });
+            }
+        }
+        // Convert the list to an array and return
+        return freeTimes.toArray(new int[freeTimes.size()][]);
+    }
+}
+```
+
+---
+
+# Maximum  Overlap
+
+ For many interval problems, we use the start and end coordinates of an interval as individual points on an axis and use the line sweep algorithm of these points.
+ 
+![[Pasted image 20250920134215.png]]
+
+## Line sweep technique
+
+The basic idea remains the same when using the line-swept technique on points instead of intervals. We first arrange the points in some order and  "sweep" a line across the set of points while maintaining a data structure that keeps track of the current state. Let's understand how the line sweep technique can be applied to points.
+
+### 1. Convert intervals to points
+
+If given an array of intervals instead of points, we split each interval into two points, start and end, and create a new array of points to operate on instead of the array of intervals.
+
+![[Pasted image 20250920134251.png]]
+
+### 2. Sort the points
+
+The next step is to sort the points, as the line sweep algorithm requires the events to be sorted in some order in the array holding them. This way, the array can be viewed as the x-axis of the cartesian plane with points marked on it from left to right. This allows us to traverse the array as if we were swiping a line through it on the x-axis of the cartesian plane.
+
+Points are generally sorted in a non-decreasing order of their values and clearly labeled as a start or end point. If a start and end point has the same value, we generally keep the end point before the start point, however the order may be different for different problems.
+
+![[Pasted image 20250920134308.png]]
+
+### 3. Sweep the line
+
+Once we have sorted the array of intervals, traversing it from start to end becomes the same as moving on the x-axis from left to right. We keep some data structure like an event counter, set, or list to keep state information as we traverse the array from start to end. This can be visualized as a vertical line moving from left to right on the x-axis and hence is called a line sweep. As the sweep line moves, it dynamically updates the state variables to correctly process overlaps, merges, or other conditions dictated by the problem.
+
+##  Understanding maximum overlap pattern
+
+> The maximum overlapping intervals pattern is a classification of problems that can be solved using the line sweep technique to find the maximum number of overlapping intervals at any point from a list of intervals.
+
+![[Pasted image 20250920134413.png]]
+
+## Maximum overlapping intervals
+
+Consider we are given an array of intervals `arr` where each item in the array is a pair of an interval's start and end coordinates.
+
+To find intersecting intervals, we must separate the start and end coordinates and store them in a single array. We create an array `points` that will store all coordinates from `arr` along with their identification as start or end. We initialize `points` by traversing `arr` and appending each interval's start and end coordinates along with a flag denoting if it is an interval start or end.
+
+![[Pasted image 20250920135014.png]]
+
+Finally, we sort the `points`array in ascending order of values. If a start point and end point have the same value, we keep the end point **before** the start. This is because we will not count two intervals as overlapping if one interval starts at the same time as the other ends. As we will see later, when we sweep the line from left to right, keeping the end before the start, in this case, ensures we process the closing of an interval before opening the next.
+
+![[Pasted image 20250920135033.png]]
+
+Now, we create a counter variable `overlap` to count the overlapping intervals at any point and initialize it with 0. We also create another variable `maxOverlap` to keep track of the maximum intersecting intervals seen so far and initialize it with 0. We then traverse the `points` array, and every time we reach a start coordinate, it means some interval starts at this point, so we increment `overlap` by one. Similarly, every time we see an end coordinate, we decrement `overlap` by one. Throughout the traversal, we compare the current value of `overlap` with the `maxOverlap` and update it if needed.
+
+This way, at the end of the traversal, `maxOverlap` will have the maximum overlapping intervals at any point. It takes at least two intervals for an overlap, and so, if the value of `maxOverlap` is less than 2, we set it to 0 as it means all intervals were non-overlapping.
+
+## Algorithm
+
+- **Step 1: Create a dynamic array `points` and store start and end points intervals in the array.**
+- **Step 2: Sort the `points` array in non-decreasing order. If start and end points have the same value, end points should come before start.**
+- **Step 3: Initialize two variables `overlap` and `maxOverlap` to 0 that will keep track of the current overlap and maximum overlap seen so far.**
+- **Step 4: Iterate in `points` and do the following**
+    - **Step 4.1: If the current point is a start point, increment `overlap` and update `maxOverlap` if needed.**
+    - **Step 4.2: If the current point is an end point, decrement `overlaps`.**
+
+```java
+public int maximumOverlap(int[][] intervals) {
+        // Create a dynamic array to store points
+        List<int[]> points = new ArrayList<>();
+        for (int[] interval : intervals) {
+            // Add start and end points to the points array
+            points.add(new int[]{interval[0], 's'});
+            points.add(new int[]{interval[1], 'e'});
+        }
+
+        // Sort the points array, end points come before
+        // start points as 'e' < 's'
+        Collections.sort(points, (a, b) -> {
+            if (a[0] != b[0]) {
+                return Integer.compare(a[0], b[0]);
+            }
+            return Character.compare((char) a[1], (char) b[1]);
+        });
+
+        // Initialize 'overlap' and 'maxOverlap' to 0
+        int overlap = 0, maxOverlap = 0;
+        for (int[] point : points) {
+            if (point[1] == 's') {
+                // Increment overlap if we encounter a start point
+                overlap++;
+                maxOverlap = Math.max(overlap, maxOverlap);
+            } else {
+                // Decrement overlap if we encounter an end point
+                overlap--;
+            }
+        }
+        // For an overlap we need at least 2 intervals
+        return maxOverlap > 1 ? maxOverlap : 0;
+    }
+```
+
+## Identifying the maximum overlap pattern
+
+Some specific problems can be solved using the technique to find maximum overlapping intervals. These are generally **easy** or **medium** problems where we are given an array of intervals, and finding the maximum overlap partially or entirely solves the problem. If the problem statement or its solution follows the generic template below, it can be solved by applying the fixed-sized sliding window technique.
+
+> **Template:**
+ Given an array of intervals, find the maximum overlap between them
+
+##  Example
+
+```java
+class Solution {
+
+    public int minimumMeetingRooms(int[][] meetings) {
+
+        // Create a dynamic list to store start and end times
+
+        List<int[]> times = new ArrayList<>();
+
+        // Add start and end times to the times list
+
+        for (int[] interval : meetings) {
+
+            times.add(new int[] { interval[0], 's' });
+
+            times.add(new int[] { interval[1], 'e' });
+
+        }
+
+        // Sort the times list, end times come before start times as 'e'
+
+        // < 's'
+
+        Collections.sort(
+            times,
+            (a, b) -> (a[0] == b[0]) ? a[1] - b[1] : a[0] - b[0]
+        );
+
+        // Initialize 'rooms' and 'minRooms' to 0
+
+        int rooms = 0, minRooms = 0;
+
+        for (int[] point : times) {
+
+            // Increment rooms if we encounter a start point
+
+            if (point[1] == 's') {
+
+                rooms++;
+
+                minRooms = Math.max(rooms, minRooms);
+
+            }
+
+            // Decrement rooms if we encounter a start point
+            else {
+                rooms--;
+            }
+        }
+
+        // For an overlap, we need at least 2 intervals
+
+        return minRooms;
+    }
+
+}
+```
+
+## Example  Minimum meeting rooms
+
+Given an array of **meetings** consisting of start and end times `[[s1, e1], [s2, e2], ...] (si < ei)` of meetings, write a function to find and return the minimum number of meeting rooms required so that all meetings can take place.
+
+Two intervals `[s1, e1]` and `[s2, e2]` are considered overlapping if `e1 > s2`. If `e1 == s2`, the intervals are not considered overlapping
+
+```java
+// Define a class to store the time and type ('s' or 'e')
+class TimePoint {
+    int time;
+
+    char type;
+
+    TimePoint(int time, char type) {
+
+        this.time = time;
+
+        this.type = type;
+    }
+}
+
+// Comparator for TimePoint
+
+class Compare implements Comparator<TimePoint> {
+
+    public int compare(TimePoint a, TimePoint b) {
+        // Sort the times array, end times come before start times
+
+        // as 'e' < 's'
+
+        if (a.time == b.time) {
+
+            return Character.compare(a.type, b.type);
+
+        }
+        return Integer.compare(a.time, b.time);
+
+    }
+}
+
+class Solution {
+
+    public int minimumMeetingRooms(List<List<Integer>> meetings) {
+        // Create a dynamic array to store start and end times
+
+        List<TimePoint> times = new ArrayList<>();
+
+        for (List<Integer> interval : meetings) {
+            // Add start and end times to the times array
+
+            times.add(new TimePoint(interval.get(0), 's'));
+
+            times.add(new TimePoint(interval.get(1), 'e'));
+        }
+
+        // Sort the times array using the custom compare function
+
+        times.sort(new Compare());
+        // Initialize 'rooms' and 'minRooms' to 0
+
+        int rooms = 0, minRooms = 0;
+
+        for (TimePoint point : times) {
+            // Increment rooms if we encounter a start point
+
+            if (point.type == 's') {
+                rooms++;
+                minRooms = Math.max(rooms, minRooms);
+            }
+
+            // Decrement rooms if we encounter an end point
+
+            else {
+                rooms--;
+            }
+        }
+        // For an overlap we need at least 2 intervals
+
+        return minRooms;
+    }
+}
+```
+
+## Example Peak resource requirement
+
+en an array of **jobs**, consisting of start time, end time, and required resources `[[s1, e1, r1], [s2, e2, r2], ...] (si < ei)` for the jobs, write a function to find and return the busiest interval formed by overlapping jobs. 
+
+The busiest interval is the period during which the total resources required across all overlapping jobs are maximised.
+
+Your function should return both this interval and the corresponding maximum resources needed during that time.
+
+Two intervals `[s1, e1]` and `[s2, e2]` are considered overlapping if `e1 > s2`. If `e1 == s2`, the intervals are not considered overlapping.
+
+> You must abide by the following constraints:
+> 
+> - If multiple intervals tie for the maximum resources, return the first such interval.
+> - The output should be in the form [`intervalStart`, `intervalEnd`, `maxResources`].
+> - If there are no overlapping intervals, return [`-1`, -`1`, `0`].
+
+```java
+// Define a struct to store the time, type ('s' or 'e') and resources
+class TimePoint {
+
+    int time;
+
+    char type;
+
+    int resources;
+
+    TimePoint(int time, char type, int resources) {
+
+        this.time = time;
+
+        this.type = type;
+
+        this.resources = resources;
+
+    }
+}
+
+// Comparator for TimePoint
+
+class Compare implements Comparator<TimePoint> {
+
+    public int compare(TimePoint a, TimePoint b) {
+
+        // Sort the times array, end times come before start times
+
+        // as 'e' < 's'
+
+        if (a.time == b.time) {
+            return Character.compare(a.type, b.type);
+        }
+
+        return Integer.compare(a.time, b.time);
+
+    }
+}
+
+class Solution {
+
+    public int[] peakResourceRequirement(List<List<Integer>> jobs) {
+
+        // Create a dynamic array to store start and end times
+
+        List<TimePoint> times = new ArrayList<>();
+
+        for (List<Integer> job : jobs) {
+            // Add start and end times to the times array
+
+            times.add(new TimePoint(job.get(0), 's', job.get(2)));
+
+            times.add(new TimePoint(job.get(1), 'e', job.get(2)));
+        }
+
+        // Sort the times array using the custom compare function
+
+        times.sort(new Compare());
+
+        // Currently required resources
+
+        int currentResources = 0;
+
+        // Maximum resources required at any time
+
+        int maxResources = 0;
+
+        // Start of the interval with maximum resources
+
+        int intervalStart = -1;
+
+        // End of the interval with maximum resources
+
+        int intervalEnd = -1;
+
+        for (TimePoint point : times) {
+
+            if (point.type == 's') {
+
+                // Add the resources of the current job
+
+                currentResources += point.resources;
+
+                // If the current resources exceed the maximum resources
+
+                // update the maximum resources and start of the interval
+
+                // with maximum resources
+
+                if (currentResources > maxResources) {
+
+                    maxResources = currentResources;
+
+                    intervalStart = point.time;
+
+                    // Reset the end of the interval with maximum
+
+                    // resources
+
+                    intervalEnd = -1;
+
+                }
+            }
+
+            // 'e' - end of interval
+            else {
+
+                // If we are at the end of an interval with maximum
+
+                // overlap and the current overlap is equal to the
+
+                // maximum resources then update the end of the interval
+
+                // with maximum resources
+
+                if (
+                    currentResources == maxResources && intervalEnd == -1
+
+                ) {
+                    intervalEnd = point.time;
+                }
+                // Decrement the current resources count
+
+                currentResources -= point.resources;
+            }
+        }
+
+        // If maxResources <= 1, return {-1, -1} indicating no overlap
+
+        if (maxResources <= 1) {
+            return new int[] { -1, -1, 0 };
+        }
+
+        return new int[] { intervalStart, intervalEnd, maxResources };
+
+    }
+
+}
+```
 
