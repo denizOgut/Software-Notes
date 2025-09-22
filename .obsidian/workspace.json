@@ -11,12 +11,14 @@
             "id": "4db11a880ee3903d",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921170334.png"
+                "file": "DSA/Algorithm/Recursion.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-image",
-              "title": "Pasted image 20250921170334"
+              "icon": "lucide-file",
+              "title": "Recursion"
             }
           }
         ]
@@ -178,11 +180,11 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "4db11a880ee3903d",
   "lastOpenFiles": [
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921170334.png",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921170334.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921173824.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921173542.png",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921173123.png",

@@ -592,3 +592,211 @@ It is quite easy to see that if there was no base case, the recursive function c
 The return of execution from the base cases starts **stack unwinding**. The stack frame associated with the function call that called the base case can now compute the result for itself and return it to the function that, in turn, called it. Once it returns the results, the stack frame associated with this instance of the function call will also be deleted. This process will go on and on until the execution reaches the **top level** function call, where we get back the result to our **original** input.
 
 # Direct Recursion
+
+In direct recursion, a function solves a problem by calling itself with a modified parameter until a base condition is met. The base condition ensures the recursion terminates. The primary components of a recursive function are:
+
+> - **Base Case:** A condition that stops the recursion to prevent infinite loops.
+> - **Recursive Case:** The part of the function where the function calls itself with a different argument.
+
+Calculating a number's factorial is the most commonly known direct recursive relation. `N` is the product of all numbers starting from `1` to `N`. For, e.g., the factorial of `3` is `(1*2*3) = 6`.
+
+```java
+class Solution {
+
+    public int recursivelyCalculateFactorial(int N) {
+        // Base case: If N is 0, the factorial is 1
+        if (N == 0) {
+            return 1;
+        }
+
+        // Multiply N with the factorial of (N - 1) by making a recursive call
+        return N * recursivelyCalculateFactorial(N - 1);
+    }
+
+}
+```
+
+## Example  Recursively calculate factorial
+
+Given a positive integer **N**, write a recursive function to return the factorial of N.
+
+```java
+class Solution {
+
+    public int solution(int N) {
+        if(N <= 1)
+            return 1;
+            return N * solution(N - 1);
+    }
+}
+```
+
+
+# Head Recursion
+
+Head recursion is a specific type of recursion where a function makes its recursive call as the first operation. This means **==the recursive call is made before any other processing happens in the function, and once the base case is reached, the function processes the data to back up the call stack==**. The primary components of a head recursive function are:
+
+> - **Base Case:** A condition that stops the recursion to prevent infinite loops.
+> - **Recursive Case:** The part of the function where the function calls itself first, then processes the data after returning from the recursive call.
+
+## Example 
+
+The recursive relation to print numbers is simple. No computation is involved. We print the given value at every step.
+
+Nothing is done during the successive recursive function calls because the recursive function call is at the beginning. The work is done **after** the smaller problems return the result during the **stack unwinding** phase of recursion
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class Solution {
+    private void helper(int N, List<Integer> result) {
+        // Base case: If N is less than or equal to 0, stop recursion
+        if (N <= 0) {
+            return;
+        }
+
+        // Recursive call with N-1
+        helper(N - 1, result);
+
+        // Add current number after recursive call
+        result.add(N);
+    }
+
+    public List<Integer> recursivelyPrintNumbersFrom1ToN(int N) {
+        List<Integer> result = new ArrayList<>();
+        helper(N, result);
+        return result;
+    }
+
+    public static void main(String[] args) {
+        Solution solution = new Solution();
+        List<Integer> numbers = solution.recursivelyPrintNumbersFrom1ToN(5);
+        System.out.println(numbers); // Output: [1, 2, 3, 4, 5]
+    }
+}
+
+```
+
+## Example Recursively reverse a stack
+
+Given a stack **s**, reverse the contents of this stack **using recursion**. You do not need to return a new reversed stack but reverse the contents of the input stack itself.
+
+```java
+class Solution {
+    // Function to insert an element at the bottom of the stack
+
+    public void insertAtBottom(Stack<Integer> stack, int elem) {
+
+        // Base case: If stack is empty, push the element
+
+        if (stack.isEmpty()) {
+            stack.push(elem);
+        } else {
+            // Save the top element of the stack
+            int top = stack.pop();
+            // Recursively insert the element at the bottom
+            insertAtBottom(stack, elem);
+            // Push the saved top element back to the stack
+            stack.push(top);
+        }
+    }
+
+    public void recursivelyReverseAStack(Stack<Integer> s) {
+
+        // Base case: If stack has one or less elements
+
+        if (s.size() <= 1) {
+            return;
+        }
+
+        // Save the top element of the stack
+        int top = s.peek();
+        
+        // Pop the top element
+        s.pop();
+
+        // Recursively reverse the remaining stack
+        recursivelyReverseAStack(s);
+
+        // Insert the saved top element at the bottom
+        insertAtBottom(s, top);
+    }
+}
+```
+
+# Tail Recursion
+
+**==In tail recursion, a function performs its recursive call as the final action before returning a result. This allows the current function frame to replace the next one.==** This is significant because many compilers and interpreters can optimize tail-recursive functions to prevent excessive use of the call stack, thus improving performance and avoiding stack overflow errors. The key components of a tail-recursive function are:
+
+> - **Base Case:** A condition that stops the recursion to prevent infinite loops.
+> - **Recursive Case:** The part of the function where the function calls itself as the last operation, often passing along an accumulator or additional parameters to maintain state.
+
+Consider printing all the numbers from 1 to N in reverse order. This problem is similar to printing numbers from `1` to `N` and is an excellent example of the difference between head and tail recursion. 
+
+> Given a number `N`, recursively print all the numbers from `1` to `N` in **reverse** order.
+
+The recursive relation to print numbers in reverse is very similar to printing them from 1 to N. We need to print the given number **before** printing the smaller number. This means we need to solve the problem for the given problem **before** solving it for the smaller problem.
+
+**==Unlike head recursion, because the recursive function call is at the end, the actual work is done during the first phase (recursive calls) of recursion, and nothing is done after the smaller problems return the result during the stack unwinding phase.==**
+
+```java
+import java.util.*;
+
+class Solution {
+    public void helper(int N, List<Integer> result) {
+        // Base case: If N is less than or equal to 0, we have reached
+        // the end of recursion
+        if (N <= 0) {
+            // Exit the function, as there are no more numbers to add
+            return;
+        }
+
+        // First, add the current number N to the result list
+        result.add(N);
+
+        // Recursive call to the helper method with N-1, to move towards
+        // the base case
+        helper(N - 1, result);
+    }
+
+    public List<Integer> recursivelyPrintNumbersFromNTo1(int N) {
+        // Initialize an empty list to store the result
+        List<Integer> result = new ArrayList<>();
+
+        // Call the helper method to populate the result list with
+        // numbers from N to 1
+        helper(N, result);
+
+        // Return the generated list containing numbers from N to 1
+        return result;
+    }
+}
+```
+
+## Example  Recursively reverse a queue
+
+Given a queue **q**, reverse the contents of this stack **using recursion**. You do not need to return a new reversed queue but reverse the contents of the input queue itself.
+
+```java
+class Solution {
+
+    public void recursivelyReverseAQueue(Queue<Integer> q) {
+
+        // Base case: Queue is empty or has only one element
+
+        if (q.isEmpty() || q.size() == 1) {
+            return;
+        }
+
+        // Dequeue the front element
+        int frontElement = q.poll();
+
+        // Reverse the remaining queue
+        recursivelyReverseAQueue(q);
+
+        // Enqueue the front element to the rear
+        q.add(frontElement);
+    }
+}
+```
