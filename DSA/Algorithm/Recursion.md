@@ -800,3 +800,164 @@ class Solution {
     }
 }
 ```
+
+# Tree Recursion
+
+In tree recursion, each invocation of a function leads to multiple recursive calls, creating a branching effect. Each branch can lead to more branches, forming a tree structure of recursive calls. Tree recursion is commonly used to solve problems that naturally decompose into multiple subproblems, such as the Fibonacci sequence, combinatorial problems, and certain types of searches.
+
+## Example
+
+> Given a number `N`, recursively print the `Nth` fibonacci number.
+
+To calculate the `Nth` Fibonacci number, we sum up the `N-1st` and `N-2nd` Fibonacci numbers, so it is quite easy to create a recursive relation. We know that the 1st and 2nd Fibonacci numbers are `0` and `1`, respectively, making up the problem's base case.
+
+Unlike all the other recursive solutions we have examined, the recursive relation for finding the `Nth` Fibonacci number is calculated from **two** smaller problems. When the recursive relation is processed, branching occurs, and the resulting representation resembles a tree.
+
+The recursive calls trace the path of a tree called the **recursion tree**.
+
+![[Pasted image 20250923111034.png]]
+
+## Implementation
+
+```java
+class Solution {
+
+    public int recursivelyFindTheNthFibonacciNumber(int N) {
+
+        // Base case: If N is 0, return 0
+
+        if (N == 0) {
+            return 0;
+        }
+
+  
+        // Base case: If N is 1, return 1
+        if (N == 1) {
+            return 1;
+        }
+
+        // To find the Nth Fibonacci number, we recursively
+
+        // sum the (N-1)th and (N-2)th Fibonacci numbers since Fibonacci
+
+        // series is defined as F(N) = F(N-1) + F(N-2).
+
+        return (
+            recursivelyFindTheNthFibonacciNumber(N - 1) +
+            recursivelyFindTheNthFibonacciNumber(N - 2)
+
+        );
+    }
+}
+```
+
+#  Multidimensional Recursion
+
+ By breaking down complex problems into smaller, manageable parts, multidimensional recursion allows for elegant and efficient solutions. The primary components of a tree recursive function are:
+
+> - **Base Case:** Conditions that stop the recursion to prevent infinite loops.
+> - **Recursive Case:** The part of the function where the function calls itself, often with indices or parameters that reflect the multidimensional nature of the problem.
+
+
+## Example
+
+In mathematics, the binomial coefficient of `N` from `K` is the number of ways of selecting `K` elements out of a set of `N` elements, which is also called **N choose K.** Through this problem, we can demonstrate **multi-dimensional recursion**.
+
+> Given `N` and `K`, recursively find the value of **N choose K**.
+
+It can be proven mathematically that **N choose K** can be calculated recursively using the following formula.
+
+We use the same mathematical formula as our recursive relation. However, it is interesting to note that ==multidimensional recursion has **more than one base case**.==
+
+![[Pasted image 20250923112538.png]]
+
+As for calculating **N choose K**, we need results from **two** of the same problems on a smaller input. This leads to branching when the recursive relation is processed, and the resulting representation resembles a tree.
+
+![[Pasted image 20250923112621.png]]
+
+## Identifying base cases
+
+The base case for a recursive equation depends on the problem. The diagram below is just the most **common** base cases and is not guaranteed to be true for all problems
+
+![[Pasted image 20250923112906.png]]
+
+
+## Implementation
+
+```java
+class Solution {
+    public int recursivelyCalculateBinomialCoefficient(int N, int K) {
+
+        // Base cases: If N equals K or K is 0, then C(N, K) is 1.
+
+        if (N == K || K == 0) {
+            return 1;
+        }
+
+        // Recursive step:
+
+        // C(N, K) = C(N - 1, K - 1) + C(N - 1, K)
+
+        // Recursively calculate C(N - 1, K - 1) for choosing K elements
+
+        // from N-1 elements, and C(N - 1, K) for choosing K elements
+
+        // from N-1 elements.
+        return (
+            recursivelyCalculateBinomialCoefficient(N - 1, K - 1) +
+            recursivelyCalculateBinomialCoefficient(N - 1, K)
+        );
+    }
+}
+```
+
+# Indirect Recursion
+
+Indirect recursion, or mutual recursion, is a form of recursion where two or more functions circularly call each other. Unlike direct recursion, where a single function calls itself, indirect recursion involves a sequence of function calls that eventually return to the original function
+
+## Example
+
+> Given a number `N`, recursively print the odd and even numbers in **separate functions** .
+
+There is an important observation to make here.
+
+Decrementing an odd number will always result in an even number, and decrementing an even number will always result in an odd number.
+
+The problem's recursive relation has **two** functions that call each other depending on the value of N. Each function calls the other function with a decremented input value, which is guaranteed to be of the other type (odd or even) before printing the input value itself. Both functions call each other until one of them reaches the base case. Once the base case is reached, the stack will unwind, and these functions will start printing the values starting from `1`.
+
+From the point of view of the process executing this code, there is no difference between nested functions, single function (direct) recursion, or multiple function (indirect) recursion, as every function call is treated independently and has a separate stack frame for itself.
+
+## Implementation
+
+```java
+import java.util.*;
+
+class Solution {
+    public void printEven(int N, List<Integer> result) {
+        if (N == 0) {
+            return;
+        }
+        printOdd(N - 1, result);
+        result.add(N);
+    }
+
+    public void printOdd(int N, List<Integer> result) {
+        if (N == 0) {
+            return;
+        }
+        printEven(N - 1, result);
+        result.add(N);
+    }
+
+    public List<Integer> recursivelyPrintNumberFrom1ToNII(int N) {
+        List<Integer> result = new ArrayList<>();
+        if (N % 2 == 0) {
+            printEven(N, result);
+        } else {
+            printOdd(N, result);
+        }
+        return result;
+    }
+}
+```
+

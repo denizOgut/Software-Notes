@@ -11,14 +11,12 @@
             "id": "4db11a880ee3903d",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "DSA/Algorithm/Recursion.md",
-                "mode": "source",
-                "source": false
+                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923142509.png"
               },
-              "icon": "lucide-file",
-              "title": "Recursion"
+              "icon": "lucide-image",
+              "title": "Pasted image 20250923142509"
             }
           }
         ]
@@ -180,21 +178,21 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "4db11a880ee3903d",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921170334.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923132143.png",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
-    "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921173824.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921173542.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921173123.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921173021.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921172753.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921172612.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921172601.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921172048.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250921171503.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923142509.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923141620.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923134059.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923133645.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923133016.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923133001.png",
+    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923132205.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250923111034.png",
+    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250923112621.png",
     "DSA/Algorithm/Recursion.md",
+    "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Screenshots/DSA/Algorithms/Recursion",
     "DSA/Data Structure/Arrays.md",
     "Screenshots/DSA/Algorithms",

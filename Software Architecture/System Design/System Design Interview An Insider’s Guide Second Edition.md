@@ -1737,3 +1737,170 @@ We introduce a heartbeat mechanism to solve this problem. Periodically, an onlin
 	- Message resent mechanism. Retry and queueing are common techniques for resending messages.
 
 # CHAPTER 13: DESIGN A SEARCH AUTOCOMPLETE SYSTEM
+
+## Step 1 - Understand the problem and establish design scope
+
+- Is the matching only supported at the beginning of a search query or in the middle as well?
+- How many autocomplete suggestions should the system return?
+- How does the system know which 5 suggestions to return?
+- Does the system support spell check?
+- Are search queries in English?
+- Do we allow capitalization and special characters?
+- How many users use the product?
+
+
+• **Fast response time**: As a user types a search query, autocomplete suggestions must show up fast enough. An article about Facebook’s autocomplete system [1] reveals that the system needs to return results within 100 milliseconds. Otherwise it will cause stuttering.
+• **Relevant**: Autocomplete suggestions should be relevant to the search term.
+• **Sorted**: Results returned by the system must be sorted by popularity or other ranking models.
+• **Scalable**: The system can handle high traffic volume.
+• **Highly available:** The system should remain available and accessible when part of the system is offline, slows down, or experiences unexpected network errors.
+
+## Step 2 - Propose high-level design and get buy-in
+
+- Data gathering service: It gathers user input queries and aggregates them in real-time. Real-time processing is not practical for large data sets; however, it is a good starting point.
+- Query service: Given a search query or prefix, return 5 most frequently searched terms.
+
+### Data gathering service
+
+Assume we have a frequency table that stores the query string and its frequency
+
+![[Pasted image 20250923132143.png]]
+
+Query service
+Assume we have a frequency table as shown in Table 13-1. It has two fields. 
+• Query: it stores the query string.
+• Frequency: it represents the number of times a query has been searched.
+
+![[Pasted image 20250923132205.png]]
+
+This is an acceptable solution when the data set is small. When it is large, accessing the database becomes a bottleneck. We will explore optimizations in deep dive.
+
+## Step 3 - Design deep dive
+
+### Trie data structure
+
+Relational databases are used for storage in the high-level design. However, fetching the top 5 search queries from a relational database is inefficient. The data structure trie (prefix tree) is used to overcome the problem.
+
+Understanding the basic trie data structure is essential for this interview question. However, this is more of a data structure question than a system design question. Besides, many online materials explain this concept
+
+**==Trie (pronounced “try”) is a tree-like data structure that can compactly store strings. The**==
+==**name comes from the word retrieval, which indicates it is designed for string retrieval**==
+==**operations. The main idea of trie consists of the following:**==
+==**• A trie is a tree-like data structure.**==
+==**• The root represents an empty string.**==
+==**• Each node stores a character and has 26 children, one for each possible character. To**==
+==**save space, we do not draw empty links.**==
+==**• Each tree node represents a single word or a prefix string.==**
+
+![[Pasted image 20250923133001.png]]
+
+Basic trie data structure stores characters in nodes. To support sorting by frequency, frequency info needs to be included in nodes.
+
+![[Pasted image 20250923133016.png]]
+
+**Limit the max length of a prefix**
+
+Users rarely type a long search query into the search box. Thus, it is safe to say p is a small integer number, say 50. If we limit the length of a prefix, the time complexity for “Find the prefix” can be reduced from O(p) to O(small constant), aka O(1)
+
+**Cache top search queries at each node**
+
+To avoid traversing the whole trie, we store top k most frequently used queries at each node. Since 5 to 10 autocomplete suggestions are enough for users, k is a relatively small number.
+
+**==this design requires a lot of space to store top queries at every node. Trading space for time is well worth it as fast response time is very important.==**
+
+### Data gathering service
+
+This approach is not practical for the following two reasons:
+• Users may enter billions of queries per day. Updating the trie on every query
+significantly slows down the query service.
+• Top suggestions may not change much once the trie is built. Thus, it is unnecessary to
+update the trie frequently.
+To design a scalable data gathering service, we examine where data comes from and how
+data is used. Real-time applications like Twitter require up to date autocomplete suggestions.
+However, autocomplete suggestions for many Google keywords might not change much on a
+daily basis.
+Despite the differences in use cases, the underlying foundation for data gathering service
+remains the same because data used to build the trie is usually from analytics or logging
+services.
+
+![[Pasted image 20250923133645.png]]
+
+**Analytics Logs**. It stores raw data about search queries. Logs are append-only and are not indexed.
+
+**Aggregators**. The size of analytics logs is usually very large, and data is not in the right format. We need to aggregate data so it can be easily processed by our system.
+
+aggregate data in a shorter time interval as real-time results are important. On the other hand, aggregating data less frequently, say once per week, might be good enough for many use cases. **==During an interview session, verify whether real-time results are important==**
+
+**Workers.** Workers are a set of servers that perform asynchronous jobs at regular intervals.
+They build the trie data structure and store it in Trie DB.
+
+**Trie Cache.** Trie Cache is a distributed cache system that keeps trie in memory for fast read.
+It takes a weekly snapshot of the DB.
+
+**Trie DB.** Trie DB is the persistent storage. Two options are available to store the data:
+1. **Document store:** Since a new trie is built weekly, we can periodically take a snapshot of it,
+serialize it, and store the serialized data in the database. Document stores like MongoDB [4]
+are good fits for serialized data.
+2. **Key-value store:** A trie can be represented in a hash table form [4] by applying the
+following logic:  
+• Every prefix in the trie is mapped to a key in a hash table.  
+• Data on each trie node is mapped to a value in a hash table.  
+
+### Query service
+
+query service calls the database directly to fetch the top 5 results.
+
+![[Pasted image 20250923134059.png]]
+
+1. A search query is sent to the load balancer.
+2. The load balancer routes the request to API servers.
+3. API servers get trie data from Trie Cache and construct autocomplete suggestions for the client.
+4. In case the data is not in Trie Cache, we replenish data back to the cache. This way, all subsequent requests for the same prefix are returned from the cache. A cache miss can happen when a cache server is out of memory or offline.
+
+**Trie operations**  
+Trie is a core component of the autocomplete system. Let us look at how trie operations
+(create, update, and delete) work.  
+
+**Create**  
+Trie is created by workers using aggregated data. The source of data is from Analytics
+Log/DB.  
+
+**Update**  
+There are two ways to update the trie.  
+**Option 1:** Update the trie weekly. Once a new trie is created, the new trie replaces the old
+one.  
+**Option 2:** Update individual trie node directly. We try to avoid this operation because it is
+slow. However, if the size of the trie is small, it is an acceptable solution. When we update a
+trie node, its ancestors all the way up to the root must be updated because ancestors store top
+queries of children.  
+
+**Delete**
+We have to remove hateful, violent, sexually explicit, or dangerous autocomplete suggestions. We add a filter layer (Figure 13-14) in front of the Trie Cache to filter out unwanted suggestions. Having a filter layer gives us the flexibility of removing results based on different filter rules.
+
+![[Pasted image 20250923141620.png]]
+
+**Scale the storage**
+
+Since English is the only supported language, a naive way to shard is based on the firstcharacter. Here are some examples.   
+• If we need two servers for storage, we can store queries starting with ‘a’ to ‘m’ on the first server, and ‘n’ to ‘z’ on the second server.  
+• If we need three servers, we can split queries into ‘a’ to ‘i’, ‘j’ to ‘r’ and ‘s’ to ‘z’.   Following this logic, we can split queries up to 26 servers because there are 26 alphabetic characters in English. Let us define sharding based on the first character as first level sharding.  
+
+
+At the first glance this approach seems reasonable, until you realize that there are a lot more words that start with the letter ‘c’ than ‘x’. This creates uneven distribution To mitigate the data imbalance problem, we analyze historical data distribution pattern and apply smarter sharding logic as shown in Figure 13-15. The shard map manager maintains a lookup database for identifying where rows should be stored
+
+![[Pasted image 20250923142509.png]]
+
+## Step 4 - Wrap up
+
+How do you extend your design to support multiple languages?
+To support other non-English queries, we store Unicode characters in trie nodes.
+
+What if top search queries in one country are different from others?
+In this case, we might build different tries for different countries. To improve the response time, we can store tries in CDNs.
+
+Interviewer: How can we support the trending (real-time) search queries?
+Assuming a news event breaks out, a search query suddenly becomes popular. Our original design will not work because:
+• Offline workers are not scheduled to update the trie yet because this is scheduled to run on weekly basis.
+• Even if it is scheduled, it takes too long to build the trie.
+
+## CHAPTER 14: DESIGN YOUTUBE
