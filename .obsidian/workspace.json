@@ -4,19 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "2e6eec6e70d6a3c7",
+        "id": "e03748fb3bf1e37d",
         "type": "tabs",
         "children": [
           {
-            "id": "4db11a880ee3903d",
+            "id": "aef99a6ba9838224",
             "type": "leaf",
             "state": {
-              "type": "image",
-              "state": {
-                "file": "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923142509.png"
-              },
-              "icon": "lucide-image",
-              "title": "Pasted image 20250923142509"
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
             }
           }
         ]
@@ -180,17 +178,22 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923132143.png",
+    "DSA/Data Structure/Linked List/Singly Linked List.md",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926145649.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926143332.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926141744.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926141001.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926140616.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926111359.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926115937.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926112918.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926112447.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926112345.png",
+    "DSA/Data Structure/Linked List",
+    "Screenshots/DSA/Data Structure/Linked List/Untitled/Untitled",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List",
+    "Screenshots/DSA/Data Structure/Linked List",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923142509.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923141620.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923134059.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923133645.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923133016.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923133001.png",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots/Pasted image 20250923132205.png",
-    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250923111034.png",
-    "Screenshots/DSA/Algorithms/Recursion/Pasted image 20250923112621.png",
     "DSA/Algorithm/Recursion.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Screenshots/DSA/Algorithms/Recursion",
@@ -207,10 +210,6 @@
     "Java/JAVA APP - 1 NOTES.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots",
     "Screenshots/Software Architecture/System Design Screenshots",
-    "Screenshots/Software Architecture",
-    "Software Architecture/System Design",
-    "Screenshots/DSA/Data Structure/Arrays",
-    "Screenshots/DSA",
     "Java/JAVA APP - 2 NOTES.md",
     "Implementing Domain-Driven Design.md",
     "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md",
@@ -223,7 +222,6 @@
     "OCP-17/OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "JAVA APP - 1 NOTES.md",
     "Google Remote Procedure Call Notes.md",
-    "Golang Notes.md",
-    "100 Go Mistakes and How to Avoid Them.md"
+    "Golang Notes.md"
   ]
 }

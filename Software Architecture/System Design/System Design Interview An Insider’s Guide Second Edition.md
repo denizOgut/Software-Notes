@@ -1904,3 +1904,219 @@ Assuming a news event breaks out, a search query suddenly becomes popular. Our o
 • Even if it is scheduled, it takes too long to build the trie.
 
 ## CHAPTER 14: DESIGN YOUTUBE
+
+## Step 1 - Understand the problem and establish design scope
+
+What features are important?
+What clients do we need to support?
+How many daily active users do we have?
+What is the average daily time spent on the product?
+Do we need to support international users?
+What are the supported video resolutions?
+Is encryption required?
+Any file size requirement for videos?
+Can we leverage some of the existing cloud infrastructures provided by Amazon, Google, or Microsoft?
+
+• Ability to upload videos fast
+• Smooth video streaming
+• Ability to change video quality
+• Low infrastructure cost
+• High availability, scalability, and reliability requirements
+• Clients supported: mobile apps, web browser, and smart TV
+
+## Step 2 - Propose high-level design and get buy-in
+
+CDN and blob storage are the cloud services we will leverage. Some readers might ask why not building everything by ourselves? Reasons are listed below:
+
+• System design interviews are not about building everything from scratch. Within the limited time frame, choosing the right technology to do a job right is more important than explaining how the technology works in detail
+
+• Building scalable blob storage or CDN is extremely complex and costly. Even large companies like Netflix or Facebook do not build everything themselves
+
+![[Pasted image 20250924151202.png]]
+
+**Client**: You can watch YouTube on your computer, mobile phone, and smartTV.
+**CDN**: Videos are stored in CDN. When you press play, a video is streamed from the CDN.
+**API servers**: Everything else except video streaming goes through API servers. This includes feed recommendation, generating video upload URL, updating metadata database and cache, user signup, etc.
+
+### Video uploading flow
+
+![[Pasted image 20250924151552.png]]
+
+**User**: A user watches YouTube on devices such as a computer, mobile phone, or smart TV.
+
+**Load balancer**: A load balancer evenly distributes requests among API servers.
+
+**API servers**: All user requests go through API servers except video streaming.
+
+**Metadata DB**: Video metadata are stored in Metadata DB, which is sharded and replicated to meet performance and high availability requirements.
+
+**Metadata cache**: For better performance, video metadata and user objects are cached.
+
+**Original storage**: A blob storage system is used to store original videos, where a Binary Large Object (BLOB) is a collection of binary data stored as a single entity in a database management system.
+
+**Transcoding servers**: Video transcoding, also called video encoding, is the process of converting a video format to other formats (MPEG, HLS, etc.), which provide the best video streams possible for different devices and bandwidth capabilities.
+
+**Transcoded storage**: It is a blob storage that stores transcoded video files.
+
+**CDN**: Videos are cached in CDN, and when you click the play button, a video is streamed from the CDN.
+
+**Completion queue**: It is a message queue that stores information about video transcoding completion events.
+
+**Completion handler**: This consists of a list of workers that pull event data from the completion queue and update metadata cache and database.
+
+#### Flow a: upload the actual video
+
+1. Videos are uploaded to the original storage.
+    
+2. Transcoding servers fetch videos from the original storage and start transcoding.
+    
+3. Once transcoding is complete, the following two steps are executed in parallel:  
+    3a. Transcoded videos are sent to transcoded storage.  
+    3b. Transcoding completion events are queued in the completion queue.
+    
+    3a.1. Transcoded videos are distributed to CDN.
+    
+    3b.1. Completion handler contains a bunch of workers that continuously pull event data from the queue.  
+    3b.1.a. Completion handler updates the metadata database when video transcoding is complete.  
+    3b.1.b. Completion handler updates the metadata cache when video transcoding is complete.
+    
+1. API servers inform the client that the video is successfully uploaded and is ready for streaming.
+
+#### Flow b: update the metadata
+
+While a file is being uploaded to the original storage, the client in parallel sends a request to update the video metadata as shown in Figure 14-6. The request contains video metadata, including file name, size, format, etc. API servers update the metadata cache and database.
+
+### Video streaming flow
+
+Whenever you watch a video on YouTube, it usually starts streaming immediately and you do not wait until the whole video is downloaded. Downloading means the whole video is copied to your device, while streaming means your device continuously receives video streams from remote source videos. When you watch streaming videos, your client loads a little bit of data at a time so you can watch videos immediately and continuously
+
+The important thing here is to understand that different streaming protocols support different video encodings and playback players.
+
+Videos are streamed from CDN directly. The edge server closest to you will deliver the video. Thus, there is very little latency.
+
+## Step 3 - Design deep dive
+
+### Video transcoding
+
+When you record a video, the device (usually a phone or camera) gives the video file a certain format. If you want the video to be played smoothly on other devices, the video must be encoded into compatible bitrates and formats. Bitrate is the rate at which bits are processed over
+
+**Video transcoding is important for the following reasons**:
+
+• Raw video consumes large amounts of storage space.  
+• Many devices and browsers only support certain types of video formats.  
+• To ensure users watch high-quality videos while maintaining smooth playback.  
+• Network conditions can change, especially on mobile devices.
+
+**Many types of encoding formats are available**:
+
+• Container: This is like a basket that contains the video file, audio, and metadata.  
+• Codecs: These are compression and decompression algorithms.
+
+## Step 4 - Wrap up
+
+**Scale the API tier**: Because API servers are stateless, it is easy to scale the API tier horizontally.
+
+**Scale the database**: You can talk about database replication and sharding.
+
+**Live streaming**: It refers to the process of how a video is recorded and broadcasted in real time. Although our system is not designed specifically for live streaming, live streaming and non-live streaming have some similarities: both require uploading, encoding, and streaming. The notable differences are:  
+• Live streaming has a higher latency requirement, so it might need a different streaming protocol.  
+• Live streaming has a lower requirement for parallelism because small chunks of data are already processed in real-time.  
+• Live streaming requires different sets of error handling, and any error handling that takes too much time is not acceptable.
+
+**Video takedowns**: Videos that violate copyrights, pornography, or other illegal acts shall be removed. Some can be discovered by the system during the upload process, while others might be discovered through user flagging.
+
+# CHAPTER 15: DESIGN GOOGLE DRIVE
+
+## Step 1 - Understand the problem and establish design scope
+
+Candidate: What are the most important features?
+Candidate: Is this a mobile app, a web app, or both?
+Candidate: What are the supported file formats?
+Candidate: Do files need to be encrypted?
+Candidate: Is there a file size limit?
+Candidate: How many users does the product have?
+
+• Add files. The easiest way to add a file is to drag and drop a file into Google drive.
+• Download files.
+• Sync files across multiple devices. When a file is added to one device, it is automatically synced to other devices.
+• See file revisions.
+• Share files with your friends, family, and coworkers
+• Send a notification when a file is edited, deleted, or shared with you.
+
+## Step 2 - Propose high-level design and get buy-in
+
+• A web server to upload and download files.
+• A database to keep track of metadata like user data, login info, files info, etc.
+• A storage system to store files. We allocate 1TB of storage space to store files.
+
+### APIs
+
+**1. Upload a file to Google Drive**
+
+• Simple upload. Use this upload type when the file size is small.
+• Resumable upload. Use this upload type when the file size is large and there is high chance of network interruption.
+
+A resumable upload is achieved by the following 3 steps:
+• Send the initial request to retrieve the resumable URL.
+• Upload the data and monitor upload state.
+• If upload is disturbed, resume the upload.
+
+**2. Download a file from Google Drive**
+
+Example API: https://api.example.com/files/download
+
+**3. Get file revisions**
+
+Example API: https://api.example.com/files/list_revisions
+
+All the APIs require user authentication and use HTTPS. Secure Sockets Layer (SSL) protects data transfer between the client and backend servers.
+
+### Move away from single server
+
+**Load balancer**: Add a load balancer to distribute network traffic. A load balancer ensures evenly distributed traffic, and if a web server goes down, it will redistribute the traffic.
+
+**Web servers**: After a load balancer is added, more web servers can be added or removed easily depending on the traffic load.
+
+**Metadata database**: Move the database out of the server to avoid a single point of failure. In the meantime, set up data replication and sharding to meet the availability and scalability requirements.
+
+**File storage**: Amazon S3 is used for file storage. To ensure availability and durability, files are replicated in two separate geographical regions.
+
+#### Sync conflicts
+
+the first version that gets processed wins, and the version that gets processed later receives a conflict. 
+While multiple users are editing the same document at the same, it is challenging to keep the document synchronized.
+
+### High-level design
+
+![[Pasted image 20250924171945.png]]
+
+## Step 3 - Design deep dive
+
+### Block servers
+
+• Delta sync. When a file is modified, only modified blocks are synced instead of the whole file using a sync algorithm.
+• Compression. Applying compression on blocks can significantly reduce the data size. Thus, blocks are compressed using compression algorithms depending on file types. For example, gzip and bzip2 are used to compress text files. Different compression algorithms are needed to compress images and videos.
+
+![[Pasted image 20250924172248.png]]
+
+• A file is split into smaller blocks.
+• Each block is compressed using compression algorithms.
+• To ensure security, each block is encrypted before it is sent to cloud storage.
+• Blocks are uploaded to the cloud storage.
+
+### High consistency requirement
+
+Memory caches adopt an eventual consistency model by default, which means different replicas might have different data. To achieve strong consistency, we must ensure the following:
+• Data in cache replicas and the master is consistent.
+• Invalidate caches on database write to ensure cache and database hold the same value
+
+### Metadata database
+
+![[Pasted image 20250924172550.png]]
+
+## Step 4 - Wrap up
+
+• First, the same chunking, compression, and encryption logic must be implemented on different platforms (iOS, Android, Web). It is error-prone and requires a lot of engineering effort. In our design, all those logics are implemented in a centralized place: block servers.
+• Second, as a client can easily be hacked or manipulated, implementing encrypting logic on the client side is not ideal.
+
+Another interesting evolution of the system is moving online/offline logic to a separate service. Let us call it presence service. By moving presence service out of notification servers, online/offline functionality can easily be integrated by other services.
