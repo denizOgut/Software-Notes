@@ -941,26 +941,17 @@ class Solution {
         // Traverse the list until reaching the desired distance or the
         // end of the list
         while (current != null && counter < X - 1) {
-
-
             // Move to the next node
-
             current = current.next;
-
             // Increment the counter
             counter++;
-
         }
 
   
-
         // If the list is shorter than X-1, it's not possible to insert
-
         // the new node, so return head.
-
         if (current == null) {
             return head;
-
         }
 
   
@@ -971,7 +962,6 @@ class Solution {
         // new node
         current.next = newNode;
 
-  
         // Return the updated head of the list
         return head;
 
@@ -982,3 +972,756 @@ class Solution {
 
 # Deletion
 
+## Delete On First Node
+
+Deleting the first node of a singly linked list is similar to **inserting a node at the beginning**. We need to consider two cases.
+### 1. The list is empty
+
+When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
+
+## 2. The list is not empty
+
+In this scenario, we update the **head** to hold the reference of the next node in the list, the second node, and then delete the current **head** node. However, before updating the **head**, we need to use a temporary variable to store the reference of the current **head** node so that we can delete it later.
+
+![[Pasted image 20250926192617.png]]
+
+> **Algorithm**
+> 
+> - **Step 1:** Create a temporary pointer to store the current head node.
+> - **Step 2:** Move the head pointer to the next node.
+> - **Step 3:** Delete the original head node to free up memory.
+> - **Step 4:** Return the new head node.
+
+**What happens if there is only one node in the list and we want to delete it? Do we need some special logic for it?** 
+
+The algorithm we have for Case 2 will take care of this situation. If only a single node is in the list, its `next` pointer will be `null`. So, once we update the **head** to hold the reference of the second node, it will just hold `null`, as expected from an empty list. Then, we can delete the old head node.
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+  
+class Solution {
+
+    public ListNode deleteFirstNode(ListNode head) {
+
+        // Check if the list is empty
+
+        if (head == null) {
+            // Return null since there are no nodes to delete
+            return null;
+
+        }
+
+        // Create a temporary pointer to store the current head node
+        ListNode nodeToBeDeleted = head;
+
+
+        // Move the head pointer to the next node
+        head = head.next;
+
+  
+        // Delete the original head node to free memory
+        nodeToBeDeleted = null;
+
+        // Return the new head node
+        return head;
+
+    }
+
+}
+```
+
+
+## Delete On Last Node
+
+access the second last node to delete the last node from a linked list. Then, we can update the `next` pointer of this second last node to `null` and delete the last node. This process involves traversing the linked list and keeping track of the previous node (similar to inserting a node at the end). Let's go through the specific cases we need to consider.
+
+### 1. The list is empty
+
+When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.  
+
+### 2. The list has only one node
+
+Deleting the last node is the same as deleting the first node when only one node is in the list. We follow the same steps in both cases, such as deleting the first/last node. This involves storing the reference to the current **head** in a temporary variable, updating the **head** to the next node in the list (which would be `null` in this case), and then deleting the old **head** node.
+
+![[Pasted image 20250926193530.png]]
+
+**Algorithm**
+
+- **Step 1:** Delete the head node to free up memory.
+- **Step 2:** Return `null` as the list is now empty.
+
+### 3. The list has more than one node
+
+need to update the `next` pointer of the second last node in the list to hold `null` and then delete the last node. We need access to the list's last and second last nodes to accomplish this. We will traverse the list from the beginning while keeping track of the **current** and **previous** nodes. This way, when we reach the last node, we will have access to the second last node. Thereafter, we can update the `next` pointer of the second last node to `null`, or more intuitively, to the next of the last node, which should already be `null`, and then delete the last node.
+
+**Algorithm**
+
+- **Step 1:** Traverse the list while keeping track of the `current` and `previous` nodes until reaching the last node.
+- **Step 2:** Set the `next` pointer of the `previous` node to `null`.
+- **Step 3:** Delete the last node to free up memory.
+- **Step 4:** Return the original head node.
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+  
+class Solution {
+
+    public ListNode deleteLastNode(ListNode head) {
+
+        // If the list is empty, there's nothing to delete
+        if (head == null) {
+            return null;
+        }
+
+  
+
+        // If there's only one node in the list, delete it and return
+        // nullptr
+        if (head.next == null) {
+            head = null;
+            return null;
+        }
+
+  
+
+        // current node being iterated
+        ListNode current = head;
+        // previous node
+        ListNode previous = null;
+
+        // Traverse the list until the last node is reached
+        while (current != null && current.next != null) {
+            // Move the previous pointer to the current node
+
+            previous = current;
+            
+            // Move the current pointer to the next node
+            current = current.next;
+        }
+
+  
+
+        // At this point, current is pointing to the last node and
+        // previous is pointing to the second-to-last node Update the
+        // next pointer of the second-to-last node to skip the last node
+        previous.next = current.next;
+
+        // Delete the last node
+        current = null;
+
+        // Return the updated head of the list
+        return head;
+
+    }
+
+}
+```
+
+## Deletion By Given Data
+
+### 1. The list is empty
+
+When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
+
+### 2. The first node is deleted
+
+If the data matches the first node, this case becomes the same as **deleting the first node**. We update the **head** to store the reference to the second node and delete the old head.
+
+![[Pasted image 20250927160359.png]]
+
+**Algorithm**
+
+- **Step 1:** Create a temporary pointer to store the current head node.
+- **Step 2:** Move the head pointer to the next node.
+- **Step 3:** Delete the original head node to free up memory.
+- **Step 4:** Return the new head node.
+
+
+### 3. The node to be deleted is not the first node
+
+To delete a node that is not the first node of the linked list, we need access to the node 1 step before the one to be deleted. We will traverse the list from the beginning while keeping track of the **current** and **previous** nodes. This way, when we reach the node with the given data, we will have access to its previous node, which we need to update. Deleting the given node involves a three-step process.
+
+**Algorithm**
+
+- **Step 1:** Traverse the list, keeping track of `current` and `previous` nodes until reaching the `given` node.
+- **Step 2:** Set the `previous` node's `next` pointer to hold the node's reference stored in the `next` pointer of the `current` node.
+- **Step 3:** Delete the `current` node to free up memory.
+- **Step 4:** Return the original head node.
+
+
+### 4. The node to be deleted could not be found 
+
+If the data provided does not match the data of any node in the linked list, then such a node does not exist in the list, so we return the existing **head**.
+
+
+```java
+/**
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+ */
+
+  
+class Solution {
+    public ListNode deleteNodeWithGivenData(ListNode head, int data) {
+
+        // If the list is empty, return null
+
+        if (head == null) return null;
+
+        // If the head node contains the given data
+
+        if (head.val == data) {
+
+            // Create a temporary pointer to the head node
+            ListNode nodeToBeDeleted = head;
+
+            // Update the head pointer to the next node
+            head = head.next;
+
+            // Delete the previous head node
+            nodeToBeDeleted = null;
+
+            // Return the updated head pointer
+            return head;
+        }
+
+        // Pointer to the current node, starting from the head
+        ListNode current = head;
+
+  
+        // Pointer to the previous node, initially null
+        ListNode previous = null;
+
+        // If the target data is not in the first node, search for it in
+        // the rest of the list
+        while (current != null && current.val != data) {
+
+            // Move the previous pointer to the current node
+            previous = current;
+
+            // Move the current pointer to the next node
+            current = current.next;
+
+        }
+
+  
+
+        // If the given data is not found, return the original head
+        // pointer
+        if (current == null) {
+            return head;
+        }
+
+        // Update the next pointer of the previous node to skip the
+        // current node
+        previous.next = current.next;
+
+        // Delete the node with the given data
+        current = null;
+
+        // Return the head of the list, with the target data node removed
+        return head;
+    }
+}
+```
+
+## Deletion After a Given Node
+
+When deleting a node, we require access to the node one step before the node to be deleted to manipulate its `next` pointer. If we already have the previous node, the deletion process becomes straightforward. This is what makes this deletion operation the simplest of all delete operations.
+
+### 1. The list is empty
+
+If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Deleting the node after the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
+
+### 2. The given node is the last node
+
+When the given node is the last node in the list, attempting to delete a node after it becomes an invalid operation. This is because, by definition, the last node has no successor, i.e., no node following it in the sequence. We can return the **head** because no other operation needs to be done.
+
+### 3. The given node is not the last node
+
+To delete a node after a given node, we can update the `next` pointer of the given node to skip over the node that needs to be deleted. Then, we can remove the node that we want to delete.
+
+![[Pasted image 20250927163612.png]]
+
+**Algorithm:**
+
+- **Step 1:** Create a temporary pointer to store the reference of the node after the `given` node.
+- **Step 2:** Set the `next` pointer of the `given` node to hold the node's reference stored in the `next` pointer of the node after the `given` node.
+- **Step 3:** Delete the node after the given node to free up memory.
+- **Step 4:** Return the original head node.
+
+```java
+/**
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+ */
+
+class Solution {
+
+    public ListNode deleteNodeAfterTheGivenNode(
+        ListNode head,
+        ListNode node
+    ) {
+        // If the list is empty, there's nothing to delete, so return null.
+        if (head == null) {
+            return null;
+        }
+
+  
+        // If the given node is null or it is the last node in the list,
+        // there's no node to delete, so return the original head.
+
+        if (node == null || node.next == null) {
+            return head;
+        }
+
+  
+        // Store the next node in a temporary variable.
+        ListNode nodeToBeDeleted = node.next;
+
+  
+        // Link the current node (node) to the node after the one being
+        // deleted.
+        node.next = nodeToBeDeleted.next;
+
+  
+        // Delete the node that was after the given node.
+        nodeToBeDeleted = null;
+
+  
+        // Return the original head.
+        return head;
+
+    }
+}
+```
+
+## Deletion Before a Given Node
+
+Deleting the node before the given node is similar to **inserting before the given node**. We need access to the node before the one that has to be deleted.
+
+### 1. The list is empty
+
+If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Deleting the node after the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.  
+
+### 2. The given node is the first node
+
+When the given node is the first node in the list, attempting to delete a node before it becomes an invalid operation. This is because, by definition, the first node has no predecessor, i.e., no node preceding it in the sequence. We can return the **head** because no other operation needs to be done.
+
+### 3. The given node is the second node
+
+This is a unique situation because removing the node before the second node essentially means deleting the linked list's head node. As learned earlier, this scenario is identical to **deleting the first node**. We need to update the head to store the reference to the second node and then delete the old head.
+
+![[Pasted image 20250927165006.png]]
+
+**Algorithm**
+
+- **Step 1:** Create a temporary pointer to store the current head node.
+- **Step 2:** Move the head pointer to the next node.
+- **Step 3:** Delete the original head node to free up memory.
+- **Step 4:** Return the new head node.
+
+### 4. The given node is any other node
+
+To delete the node before a given node, we need to access the node two steps before the given node. We traverse the linked list while keeping track of the **current**, **previous** and **``previousToPrevious``** nodes. As soon as we reach the given node, we update the `next` pointer of the **``previousToPrevious``** node to hold the reference to the current node and then delete the **previous** node.
+
+
+**Algorithm**
+
+- **Step 1:** Traverse the list, keeping track of `current`, `previous` and `previousToPrevious` nodes until reaching the given node.
+- **Step 2:** Set the `previousToPrevious` node's `next` pointer to hold the reference of the `current` node.
+- **Step 3:** Delete the `previous` node to free up memory.
+- **Step 4:** Return the original head node.
+
+```java
+/**
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ * };
+ */
+
+  
+
+class Solution {
+    public ListNode deleteNodeBeforeTheGivenNode(
+        ListNode head,
+        ListNode node
+    ) {
+
+        // If the head or the given node is null, there is nothing to
+        // delete Return the existing head
+        if (head == null || node == null) {
+            return head;
+        }
+
+  
+
+        // If the given node is the head node, we cannot delete the node before it
+
+        if (node == head) {
+            return head;
+        }
+
+  
+
+        // If the node to delete is the immediate next node of the head
+        // Update the head to point to the next node, delete the original
+        // head, and return the updated head
+        if (head.next != null && head.next == node) {
+        
+            ListNode nodeToBeDeleted = head;
+            
+            head = head.next;
+
+
+            // Dereference for garbage collection
+            nodeToBeDeleted = null;
+            
+            return head;
+        }
+
+  
+        // Initialize variables for traversal
+
+        // current node being examined
+        ListNode current = head.next;
+        
+        // Node preceding the current node
+        ListNode previous = head;
+
+  
+
+        // Node preceding the previous node
+
+        ListNode previousToprevious = null;
+
+  
+
+        // Traverse the linked list until we find the node or reach the end.
+
+        while (current != null && current != node) {
+
+            previousToprevious = previous;
+
+            previous = current;
+
+            current = current.next;
+        }
+
+  
+
+        // If the node to delete was not found, return the head as is.
+        if (current == null) {
+            return head;
+        }
+
+  
+
+        // Connect the previous node to the current node, bypassing the
+        // node to delete.
+        previousToprevious.next = current;
+
+        // Dereference for garbage collection
+        previous = null;
+        return head;
+    }
+}
+```
+
+
+## Deletion Of The Given Node
+
+Deleting the given node is identical to **deleting the node with the given data**. The only difference is that instead of seeking the node with the specified data value, we will search for the node that matches the given node.
+
+### 1. The list is empty
+
+If the list is empty and contains no elements, we cannot find the given node because it does not exist within the list. Therefore, deleting the given node is not possible because there is no reference point within the list to perform the deletion. In this case, we can return the existing **head**, as the list is empty, and no node needs to be deleted.
+
+### 2. The first node is deleted
+
+If the given node matches the first node, this case becomes the same as **deleting the first node**. We update the **head** to store the reference to the second node and delete the old head.
+
+![[Pasted image 20250927175912.png]]
+
+**Algorithm**
+
+- **Step 1:** Create a temporary pointer to store the current head node.
+- **Step 2:** Move the head pointer to the next node.
+- **Step 3:** Delete the original head node to free up memory.
+- **Step 4:** Return the new head node.
+
+### 3. The node to be deleted is not the first node
+
+To delete a node that is not the first node of the linked list, we need access to the node 1 step before the one to be deleted. We will traverse the list from the beginning while keeping track of the **current** and **previous** nodes. This way, when we reach the given node, we will have access to its previous node, which we need to update. Deleting the given node involves a three step process.
+
+**Algorithm**
+
+- **Step 1:** Traverse the list, keeping track of `current` and `previous` nodes until reaching the given node.
+- **Step 2:** Set the `previous` node's `next` pointer to hold the node's reference stored in the `next` pointer of the `current` node.
+- **Step 3:** Delete the `current` node to free up memory.
+- **Step 4:** Return the original head node.
+
+```java
+/**
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ * };
+
+ */
+
+class Solution {
+    public ListNode deleteTheGivenNode(ListNode head, ListNode node) {
+
+        // Check if either the head or the given node is null
+
+        if (head == null || node == null) {
+            return head;
+        }
+
+  
+
+        // The given node is the head node
+        if (node == head) {
+
+            // Update the head to the next node
+            head = head.next;
+            
+
+            // Delete the given node
+            node = null;
+
+            // Return the updated head
+            return head;
+
+        }
+
+        // Pointer to traverse the list
+        ListNode current = head;
+
+  
+        // Pointer to track the previous node
+        ListNode previous = null;
+
+  
+
+        // Traverse the list until the current node matches the given node
+        while (current != null && current != node) {
+
+            // Update the previous node
+            previous = current;
+            
+            // Move to the next node
+            current = current.next;
+
+        }
+
+  
+
+        // If the current node becomes null, the given node was not found in the list
+        if (current == null) {
+            // Return the original head
+            return head;
+        }
+
+  
+
+        // Update the previous node's next pointer to skip the current node
+        previous.next = current.next;
+
+        // Delete the current node
+        current = null;
+
+        // Return the head of the modified list
+        return head;
+    }
+}
+```
+
+## Deletion at a Given Distance
+
+Deleting a node at a distance `X` is similar to **inserting a node at a given distance**. Just like inserting at a distance `X` We can solve this problem without keeping track of the previous node while traversing.
+
+### 1. The list is empty
+
+When the list is empty, meaning it contains no elements, any attempt to delete a node is unnecessary because there are no nodes in the list. Since there is nothing to remove, the list remains unchanged. We can return the existing **head**, as the list is empty, and no node needs to be deleted.
+
+### 2. X = 0
+
+When X equals 0, we need to **delete the first node**. We have previously covered this concept. We should update the head to store the reference to the second node and then delete the old head.
+
+![[Pasted image 20250927182241.png]]
+
+**Algorithm**
+
+- **Step 1:** Create a temporary pointer to store the current head node.
+- **Step 2:** Move the head pointer to the next node.
+- **Step 3:** Delete the original head node to free up memory.
+- **Step 4:** Return the new head node.
+
+### 3. X < size of the list
+
+When we need to delete a specific node from a list, we should traverse the list until we reach the node just before the one we want to delete. Keep track of the current node and traverse `X-1` steps instead of `X`. At the end of the loop, we will reach the node one step before the node that needs to be deleted. Then, the problem becomes **deleting a node after a given node**, where the given node is the node one step before the node that has to be deleted. Update the reference in the given node's `next` pointer to point to the node after the one that has to be deleted. Once the connections have been updated, safely delete the next node.
+
+**Algorithm**
+
+- **Step 1:** Traverse the distance X - 1 while keeping track of the `current` node.
+- **Step 2:** Set the `next` pointer of the `current` node to hold the node's reference stored in the `next` pointer of the node to be deleted.
+- **Step 3:** Delete the node after the `current` node to free up memory.
+- **Step 4:** Return the original head node.
+
+### 4. X >= the size of the list
+
+This indicates an invalid query. For example, we cannot delete the 10th node in a list of size 3. We will return the existing **head** node.
+
+**What about the case when X == size of the linked list?**
+
+This is also an invalid case. To clarify, let's consider a list of size 5. In this scenario, the potential values of `X` could range from 0 to 4, meaning `[0, 4]`. Therefore, an input 5 would be invalid. It's important to note that X represents the distance from the head node, not the node's position.
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+  
+class Solution {
+    public ListNode deleteNodeAtGivenDistance(ListNode head, int X) {
+
+        // If the head is null (empty list), return null
+
+        if (head == null) {
+            return null;
+        }
+
+        // If X is 0, delete the head node
+
+        if (X == 0) {
+            ListNode nodeToBeDeleted = head;
+
+            // Update the head to the next node
+            head = head.next;
+
+            // Delete the original head node
+            nodeToBeDeleted = null;
+
+            // Return the updated head
+            return head;
+        }
+
+  
+
+        int counter = 0;
+
+        ListNode current = head;
+
+        // Traverse to the node at position X - 1
+        while (current != null && counter < X - 1) {
+
+            // Move to the next node
+            current = current.next;
+
+            // Increment the counter
+            counter++;
+        }
+
+  
+        // If the node at position X - 1 is null or the next node is null, return the head
+        if (current == null || current.next == null) {
+            return head;
+        }
+
+        // Store the node to be deleted
+        ListNode nodeToBeDeleted = current.next;
+
+  
+        // Update the next pointer of current node
+        current.next = nodeToBeDeleted.next;
+
+        // Delete the node at position X
+        nodeToBeDeleted = null;
+
+  
+        // Return the head
+        return head;
+
+    }
+
+}
+```

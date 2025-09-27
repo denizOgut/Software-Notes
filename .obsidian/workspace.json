@@ -11,10 +11,12 @@
             "id": "aef99a6ba9838224",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
-              "icon": "lucide-file",
-              "title": "New tab"
+              "type": "image",
+              "state": {
+                "file": "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927175912.png"
+              },
+              "icon": "lucide-image",
+              "title": "Pasted image 20250927175912"
             }
           }
         ]
@@ -178,17 +180,17 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927182241.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927175912.png",
     "DSA/Data Structure/Linked List/Singly Linked List.md",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927160359.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927165006.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927163612.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926192617.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926193530.png",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926145649.png",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926143332.png",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926141744.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926141001.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926140616.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926111359.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926115937.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926112918.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926112447.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250926112345.png",
     "DSA/Data Structure/Linked List",
     "Screenshots/DSA/Data Structure/Linked List/Untitled/Untitled",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List",
