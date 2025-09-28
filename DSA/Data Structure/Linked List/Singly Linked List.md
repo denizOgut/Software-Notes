@@ -57,7 +57,7 @@ When represented logically in a diagram, these nodes might look sequential (left
 
 ## Head Node
 
-The first node of a linked list is also called the **head** node.a node in the linked list can only be accessed using its memory reference. This reference, however, is stored in the node before it in the logical representation, and **==this is true for every node except the first node, as it does not have any previous node. This is why, to access a linked list, we should always have the reference to the head node stored somewhere.==**
+The first node of a linked list is also called the **head** node. a node in the linked list can only be accessed using its memory reference. This reference, however, is stored in the node before it in the logical representation, and **==this is true for every node except the first node, as it does not have any previous node. This is why, to access a linked list, we should always have the reference to the head node stored somewhere.==**
 
 ![[Pasted image 20250926112345.png]]
 
@@ -115,48 +115,30 @@ class Solution {
     public String boundaryNode(ListNode head, ListNode node) {
 
         // If either head or node is null, return "none"
-
         if (head == null || node == null) {
-
             return "none";
-
         }
 
-
-        // If head and node are the same, and node has no next node,
-
-        // return "both"
+        // If head and node are the same, and node has no next node, return "both"
 
         else if (node == head && node.next == null) {
-
             return "both";
-
         }
 
-        // If head and node are the same, but node has a next node,
-
-        // return "first"
+        // If head and node are the same, but node has a next node, return "first"
 
         else if (node == head) {
-
             return "first";
-
         }
 
 
-        // If node is the last node (i.e., it has no next node), return
-
-        // "last"
+        // If node is the last node (i.e., it has no next node), return "last"
 
         else if (node.next == null) {
-
             return "last";
-
         }
 
-
         // If none of the above conditions are met, return "none"
-
         return "none";
     }
 }
@@ -644,7 +626,6 @@ class Solution {
 }
 ```
 
-
 ## Insertion After The Given Node
 
 Unlike arrays, we can insert data at any point in a linked list without recreating the entire list. When inserting after a node in a linked list, there are two cases to consider.
@@ -689,7 +670,6 @@ class Solution {
         // Check if the given node is null
 
         if (node == null) {
-
             // If the given node is null, there is nothing to do
             return;
         }
@@ -779,16 +759,13 @@ class Solution {
     ) {
 
         // Check if the head or node is null
-
         if (head == null || node == null) {
             return head;
         }
 
-
         // Create a new node with the given data
         ListNode newNode = new ListNode(data);
 
-  
         // If the given node is the head, insert the new node before it
         if (node == head) {
             newNode.next = head;
@@ -925,14 +902,11 @@ class Solution {
             // making the new node the new head.
             newNode.next = head;
             // Return the newNode as this is the new head
-
             return newNode;
         }
 
-
         // Pointer to traverse the list
         ListNode current = head;
-
 
         // Counter to track the number of nodes traversed
         int counter = 0;
@@ -1723,5 +1697,179 @@ class Solution {
 
     }
 
+}
+```
+
+# Floyd's Cycle Finding Algorithm
+
+Sometimes, a linked list may not terminate at a `null` reference but instead, hold the reference to some other node in the next section of its last node. Such a list is said to have a cycle, as now, if we traverse the list from the start, we will loop indefinitely and never reach a `null` reference.
+
+![[Pasted image 20250928181045.png]]
+
+### Algorithm
+
+Floyd's cycle finding algorithm uses the fast and slow pointer technique to move two pointers through the list until they meet each other. We use two references, `slow` and `fast` initialized with the head node, traverse the list using `fast`. In each iteration, we move `fast` two steps ahead while `slow` only moves 1 step. If they both reach the same node at any point in the traversal, it means there is a cycle; otherwise, `fast` will eventually hit `null` at the end of the list, meaning the list does not have a cycle.
+
+The `fast` and `slow` pointers can meet at any node in the cycle and not necessarily the node where the cycle starts.
+
+![[Pasted image 20250928181419.png]]
+
+Once we confirm that a linked list has a cycle, the next step is to find where the cycle starts. After the `fast` and `slow` pointer meet at some node, we move `fast` back to the head of the list and traverse the list again using both `fast` and `slow`. However, this time, both `fast` and `slow` move at the same speed of one step in each iteration until they meet. The node at which they meet this time is where the cycle starts.
+
+- **Step 1:** Initialize references `slow` and `fast` with the head of the list.
+- **Step 2:** Loop while `fast` and `fast.next` are not `null` and do the following:
+    - **Step 2.1:** Move ahead `slow` by one step and fast by two steps
+    - **Step 2.2:** Check if `slow` == `fast`. If yes, break out of the loop as the list has a cycle.
+- **Step 3:** If `slow` != `fast` it means the list doesn't have a cycle, so terminate. Otherwise, continue to the following steps.
+- **Step 4:** Set `fast` to the head of the list
+- **Step 5:** Loop while `fast` and `slow` are not equal and move both one step in each iteration
+- **Step 6:** Return `slow` as the node where the cycle starts.
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+  
+class Solution {
+
+    public ListNode findCycle(ListNode head) {
+
+        ListNode slow = head;
+
+        ListNode fast = head;
+
+        boolean hasLoop = false;
+
+  
+        // Check if there is a loop in the linked list
+        while (fast != null && fast.next != null) {
+
+            // Move slow pointer by one step
+            slow = slow.next;
+
+            // Move fast pointer by two steps
+            fast = fast.next.next;
+
+  
+
+            // If slow and fast pointers meet, there is a loop
+            if (slow == fast) {
+                hasLoop = true;
+                break;
+            }
+        }
+
+        // If no loop is found, return null
+
+        if (!hasLoop) {
+            return null;
+        }
+
+  
+        // Reset fast pointer to the head and move both pointers at the same pace
+        fast = head;
+        while (slow != fast) {
+        
+            slow = slow.next;
+
+            fast = fast.next;
+        }
+
+        // Return the node where the loop starts
+        return slow;
+
+    }
+}
+```
+
+## Proof of correctness
+
+Floyd's cycle-finding algorithm can detect cycles and find where the cycle starts in any automata (sequence of connected nodes) and not necessarily only a singly linked list.
+
+![[Pasted image 20250928182302.png]]
+
+It can be proved that if we move the `slow` and `fast` pointers at different speeds, they meet at some node in the cycle. This is because, after `m` iterations when `slow` pointer reaches the node `b`, the `fast` pointer will have traversed a distance `2*m` and so will be at some node `c` such that the distance between the node `b` and `c` is `k = m % n`.
+
+![[Pasted image 20250928182334.png]]
+
+From here on, the `slow` and `fast` pointers go around in the cycle but at different speeds. In each iteration, the gap `k` between `slow` and `fast` increases by one, but since it is a cycle, the gap between `fast` and `slow` i.e. `n-k` decreases by one, and so after `n-k` iterations `fast` and `slow` both point to the same node `d` that is at a distance `x` from the node `b` such that `x = n - k`
+
+![[Pasted image 20250928182408.png]]
+
+To find where the cycle starts (node `b`), we move the `fast` pointer back to the head and move both `fast` and `slow` pointer 1 step at a time (at the same speed). It is guaranteed that they will eventually meet at node `b`. This is because after `m` iterations, `fast` will reach node `b`, and `slow` will be at a distance `(x + m) % n` from node `b`. Expanding equations as given below, it can be proved that `(x + m) % n` **equals 0**,
+
+![[Pasted image 20250928182435.png]]
+
+Based on the above, after `m` iterations the `fast` pointer will be at a distance `(x + m) % n` from node `b` but since `(x + m) % n = 0` it means it will be at the node `b` where it will meet the `slow` pointer.
+
+![[Pasted image 20250928182502.png]]
+
+## Example Remove Loop
+
+Given the **head** of a singly linked list that may contain a loop, write a function to remove the loop **in place** if it is present.
+
+> A loop here means that the last node of the list is connected to the node at position X.
+
+```java
+class Solution {
+    public void removeLoop(ListNode head) {
+        if (head == null || head.next == null) {
+            return;
+        }
+
+        ListNode slow = head;
+        ListNode fast = head;
+        boolean hasLoop = false;
+
+        // Döngü tespiti
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            
+            if (slow == fast) {
+                hasLoop = true;
+                break;
+            }
+        }
+
+        if (!hasLoop) {
+            return;
+        }
+
+        // Döngüyü kaldırma işlemi başlıyor
+        fast = head;
+
+        // ÖZEL DURUM: Döngü head'de başlıyorsa
+        if (slow == fast) {
+            while (slow.next != fast) {
+                slow = slow.next;
+            }
+        }
+        // NORMAL DURUM: Döngü head'de başlamıyorsa  
+        else {
+            while (slow.next != fast.next) {
+                slow = slow.next;
+                fast = fast.next;
+            }
+        }
+
+        // Döngüyü kır
+        slow.next = null;
+    }
 }
 ```
