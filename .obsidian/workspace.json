@@ -11,14 +11,12 @@
             "id": "aef99a6ba9838224",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "DSA/Data Structure/Linked List/Singly Linked List.md",
-                "mode": "source",
-                "source": false
+                "file": "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929110918.png"
               },
-              "icon": "lucide-file",
-              "title": "Singly Linked List"
+              "icon": "lucide-image",
+              "title": "Pasted image 20250929110918"
             }
           }
         ]
@@ -180,19 +178,19 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "aef99a6ba9838224",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250928181045.png",
     "DSA/Data Structure/Linked List/Singly Linked List.md",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250928182502.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250928182435.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250928182408.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250928182334.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250928182302.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250928181419.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927175912.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927182241.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250927160359.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929124333.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929124011.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122446.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122427.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122403.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122344.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122015.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929111405.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929111346.png",
+    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929111002.png",
     "DSA/Data Structure/Linked List",
     "Screenshots/DSA/Data Structure/Linked List/Untitled/Untitled",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List",

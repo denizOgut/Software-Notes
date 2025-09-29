@@ -1873,3 +1873,722 @@ class Solution {
     }
 }
 ```
+
+# Pattern Reversal
+
+Many linked list problems require us to reverse the entire list or a part of it. For some problems, we may have to perform a reversal many times along with other more complex operations. While we can reverse a linked list using loops in multiple passes, it is not the best way to do it, as the code is complicated and error-prone. The most concise and efficient way to reverse a linked list is to use a single-pass in-place reversal algorithm,
+
+![[Pasted image 20250929110918.png]]
+
+## Reversing the entire list
+
+Reversing the entire linked list is a special case of the generic reversal algorithm to reverse a segment between `start` and `end`. Consider we are given a linked list denoted by `head` and need to reverse it completely.
+
+![[Pasted image 20250929111002.png]]
+
+We initialize two references `previous` and `current` with `nullptr` and the `head` of the list respectively and traverse the list from the head node using `current`. We save the reference of the node after `current` in a reference variable `next`, set the next section of each node to `previous` and update `previous` and `current` for the next iteration.
+
+**Algorithm**
+
+- **Step 1:** Create two references, `previous` and `current`, and initialize them with `nullptr`, and `head` respectively.
+- **Step 2:** Loop while `current` is not equal to `nullptr`, do the following:
+    - **Step 2.1:** Initialize a reference `next` to store the reference of the node after the `current` node.
+    - **Step 2.2:** Update the next section of the `current` node to hold the node held by `previous`.
+    - **Step 2.3:** Update `previous` to hold the reference of the `current` node.
+    - **Step 2.4:** Update the `current` to hold the node held by `next`
+- **Step 3:** Return `previous` as the head of the reversed list.
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+public ListNode reverse(ListNode head) {
+    // Initialize references
+
+    ListNode current = head;
+
+    ListNode previous = null;
+
+    // Set the next reference of each node to its previous node
+    while (current != null) {
+    
+        ListNode next = current.next;
+        
+        current.next = previous;
+
+        previous = current;
+
+        current = next;
+
+    }
+    return previous;
+}
+```
+
+## Reversing a segment
+
+![[Pasted image 20250929111346.png]]
+
+To connect the first node of the segment back to the list after reversal, we need to know the node after `end`. We create a reference variable `rightBound` and initialize it with the node after `end`.
+
+![[Pasted image 20250929111405.png]]
+
+Next, we initialize two references `previous` and `current` with the `rightBound` and `start` respectively and traverse the list from `start` to `end` using `current`.
+
+In each iteration, we save the reference to the node after `current` in a reference `next` to use it later. We then set the next section of `current` node to `previous`.  We then set `previous` to `current` and `current` to `next` for the next iteration. At the end of all iterations, the node held in `previous` becomes the new head of the reversed segment.
+
+The last step is to connect the reversed head back to the list.
+
+**Algorithm**
+
+- **Step 1:** Create three references, `previous`, `current`, and `rightBound` and initialize them with `end.next`, `start`, and `end.next` respectively.
+- **Step 2:** Loop while `current` is not equal to `rightBound`, do the following:
+    - **Step 2.1:** Initialize a reference `next` to store the reference of the node after the `current` node.
+    - **Step 2.2:** Update the next section of the `current` node to hold the node held by `previous`.
+    - **Step 2.3:** Update `previous` to hold the reference of the `current` node.
+    - **Step 2.4:** Update the `current` to hold the node held by `next`
+- **Step 3:** Return `previous` as the new head of the list and connect the node before `start` to this new head in the caller of this reverse function.
+
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+public ListNode reverse(ListNode start, ListNode end) {
+
+    // Initialize references
+
+    ListNode current = start;
+
+    ListNode rightBound = end.next;
+
+    ListNode previous = rightBound;
+
+  
+
+    // Set the next reference of each node to its previous node
+    while (current != rightBound) {
+
+        ListNode next = current.next;
+
+        current.next = previous;
+
+        previous = current;
+
+        current = next;
+
+    }
+
+    return previous;
+
+}
+```
+
+## Example Reverse first K nodes
+
+Given the **head** of a singly linked list and a positive integer **k**, write a function to reverse the first k nodes of the list and return the head of the reversed list.
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+  
+class Solution {
+
+    public ListNode reverseFirstKNodes(ListNode head, int k) {
+
+        // if K is less than or equal to 0, return the original head
+
+        if (k <= 0) {
+            return head;
+        }
+
+        // Initialize pointers current and previous
+        ListNode current = head;
+
+        ListNode previous = null;
+
+        int count = 0;
+
+  
+        while (current != null && count < k) {
+            // Save the address of next node
+            ListNode next = current.next;
+
+            // Update the next of current node
+            current.next = previous;
+
+            // Move previous to hold current node
+            previous = current;
+
+            // Move current ahead
+            current = next;
+
+            // Increment count
+            count++;
+
+        }
+
+        // Connect the reversed sublist with the remaining part
+        if (head != null) {
+            head.next = current;
+        }
+        
+        return previous;
+    }
+}
+```
+
+## Example Reverse the given segment
+
+Given the **head** of a singly linked list and two integers **left** and **right** where **left <= right**. Write a function to reverse the list nodes from the position left to the right and return the head of the reversed list.
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+  
+
+class Solution {
+
+    public ListNode getNodeAtPosition(ListNode head, int position) {
+
+        ListNode current = head;
+        for (int i = 1; i < position; ++i) {
+            current = current.next;
+
+        }
+        return current;
+
+    }
+
+  
+
+    public ListNode reverse(ListNode start, ListNode end) {
+
+        ListNode current = start;
+
+        ListNode rightBound = end.next;
+
+        ListNode previous = rightBound;
+
+  
+        while (current != rightBound) {
+
+            ListNode next = current.next;
+
+            current.next = previous;
+
+            previous = current;
+
+            current = next;
+
+        }
+
+        return previous;
+    }
+
+  
+
+    public ListNode reverseTheGivenSegment(
+
+        ListNode head,
+
+        int left,
+
+        int right
+
+    ) {
+
+
+        // Handle cases where reversal is not needed
+
+        if (head == null || head.next == null || left == right) {
+            return head;
+        }
+
+  
+
+        // Get the end node of the segment
+        ListNode end = getNodeAtPosition(head, right);
+
+  
+        // If the left position is 1, reverse from the head
+        if (left == 1) {
+            return reverse(head, end);
+        }
+
+  
+
+        // Get the node before the 'left' position to connect after reversal
+        ListNode leftBound = getNodeAtPosition(head, left - 1);
+
+  
+        // Node at the start of the segment to reverse
+        ListNode start = leftBound.next;
+
+  
+        // Reverse the segment and connect to the leftBound node
+        leftBound.next = reverse(start, end);
+
+        // Return the modified list
+        return head;
+    }
+}
+```
+
+# Pattern Reversal Subproblem
+
+Asking yourself the following questions will help you determine whether a problem is a reversal subproblem pattern problem or not.
+
+**Ask yourself questions:**
+
+Q1. Can the problem or solution be broken down into smaller subproblems?
+
+Q2. Can any subproblem be solved by reversing a part of the linked list?
+
+## Example
+
+> **Problem statement:** Given a linked list, reverse the list in groups of K in-place. If the last group in the list does not have K nodes, don't reverse it.
+
+![[Pasted image 20250929122015.png]]
+
+**Template:**
+
+Q1. Can the problem or solution be broken down into smaller subproblems?
+
+A1. Yes, we can break down the solution as a combination `length / k` reversal operations, where `length` is the length of the linked list.
+
+Q2. Can any subproblem be solved by reversing a part of the linked list?
+
+A2. Yes, all subproblems except finding the length can be solved by reversing a part of the linked list.
+
+The critical observation here is that reversing a group of size `k` is the same as reversing a part of the linked list between start and end. We traverse the linked list `k` nodes at a time and reverse each group as we go. We initialize a variable `groups` with the number of k-groups (`length / k`) to reverse, truncating the fractional part as the number of k groups will always be a whole number. We use `groups` to iterate, reversing a k-group in each iteration.
+
+![[Pasted image 20250929122344.png]]
+
+We use two reference variables `start` and `end` to denote the boundary of a k-group that we need to reverse and a variable `leftBound` to hold the node before `start` that is used to correctly connect the head of the reversed segment to the list.
+
+We initialize `start` and `end` with the `head` of the list and iterate `k-1` times using `end` to find the end of the first k-group. We initialize `leftBound` with null for the first k-group, as there is no node before the head of the list.
+
+![[Pasted image 20250929122403.png]]
+
+After reversing the first k-group, we need to update the `head` of the list, as the previous `end` node will be the new head of the list.
+
+![[Pasted image 20250929122427.png]]
+
+Similarly, after reversing the first k-group, the previous `start` and the node after it would be the `leftBound` and `start` for the next k-group respectively.
+
+![[Pasted image 20250929122446.png]]
+
+We repeat the process to find the `end` of the next segment and reverse the list between `start` and `end` and for all the subsequent k-group reversals, we use `leftBound` to connect the reversed head of the segment back to the list. At the end of all iterations, all the k-groups in the list are reversed in place
+
+```java
+class Solution {
+    public int findLength(ListNode head) {
+        int length = 0;
+        while (head != null) {
+            length++;
+            head = head.next;
+        }
+        return length;
+    }
+
+    public ListNode getNodeAtPosition(ListNode head, int position) {
+        ListNode current = head;
+        for (int i = 1; i < position; ++i) {
+            current = current.next;
+        }
+        return current;
+    }
+
+    public ListNode reverse(ListNode start, ListNode end) {
+        ListNode current = start;
+        ListNode rightBound = end.next;
+        ListNode previous = rightBound;
+
+        while (current != rightBound) {
+            ListNode next = current.next;
+            current.next = previous;
+            previous = current;
+            current = next;
+        }
+
+        return previous;
+    }
+
+    public ListNode reverseKSegments(ListNode head, int k) {
+        if (head == null || head.next == null || k == 1) {
+            return head;
+        }
+
+        ListNode start = head;
+        ListNode leftBound = null;
+        int totalSegments = findLength(head) / k;
+
+        for (int i = 0; i < totalSegments; i++) {
+            ListNode end = getNodeAtPosition(start, k);
+            ListNode reversedHead = reverse(start, end);
+
+            if (leftBound == null) {
+                head = reversedHead;
+            } else {
+                leftBound.next = reversedHead;
+            }
+
+            leftBound = start;
+            start = leftBound.next;
+        }
+
+        return head;
+    }
+}
+```
+
+## Example Pairwise swap
+
+Given the **head** of a singly linked list, write a function to **swap every two adjacent nodes** of this list and return the head of the reordered list.
+
+The problem needs to be solved without modifying the values in the list's nodes. The nodes should be reordered by updating links.
+
+```java
+class Solution {
+    public ListNode reverse(ListNode start, ListNode end) {
+        ListNode current = start;
+        ListNode rightBound = end.next;
+        ListNode previous = rightBound;
+
+        while (current != rightBound) {
+            ListNode next = current.next;
+            current.next = previous;
+            previous = current;
+            current = next;
+        }
+
+        return previous;
+    }
+
+    public ListNode pairwiseSwap(ListNode head) {
+        if (head == null || head.next == null) {
+            return head;
+        }
+
+        ListNode start = head;
+        ListNode leftBound = null;
+
+        while (start != null && start.next != null) {
+            ListNode end = start.next;
+            ListNode reversedHead = reverse(start, end);
+
+            if (leftBound == null) {
+                head = reversedHead;
+            } else {
+                leftBound.next = reversedHead;
+            }
+
+            leftBound = start;
+            start = start.next;
+        }
+
+        return head;
+    }
+}
+```
+
+## Example Reverse K-segments
+
+Given the **head** of a singly linked list and a positive integer **k**, write a function to reverse the list in groups of k and return the head of the reversed list.
+
+If, at the end, the length of the remaining list is less than k, do not reverse that part of the list.
+
+```java
+class Solution {
+    public int findLength(ListNode head) {
+        int length = 0;
+        while (head != null) {
+            length++;
+            head = head.next;
+        }
+        return length;
+    }
+
+    public ListNode getNodeAtPosition(ListNode head, int position) {
+        ListNode current = head;
+        for (int i = 1; i < position; ++i) {
+            current = current.next;
+        }
+        return current;
+    }
+
+    public ListNode reverse(ListNode start, ListNode end) {
+        ListNode current = start;
+        ListNode rightBound = end.next;
+        ListNode previous = rightBound;
+
+        while (current != rightBound) {
+            ListNode next = current.next;
+            current.next = previous;
+            previous = current;
+            current = next;
+        }
+
+        return previous;
+    }
+
+    public ListNode reverseKSegments(ListNode head, int k) {
+        if (head == null || head.next == null || k == 1) {
+            return head;
+        }
+
+        ListNode start = head;
+        ListNode leftBound = null;
+        int totalSegments = findLength(head) / k;
+
+        for (int i = 0; i < totalSegments; i++) {
+            ListNode end = getNodeAtPosition(start, k);
+            ListNode reversedHead = reverse(start, end);
+
+            if (leftBound == null) {
+                head = reversedHead;
+            } else {
+                leftBound.next = reversedHead;
+            }
+
+            leftBound = start;
+            start = leftBound.next;
+        }
+
+        return head;
+    }
+}
+```
+
+# Pattern: Sliding Window Traversal
+
+The traversal of a linked list is generally done using a single reference variable to hold the current node. Some problems, however, require you to perform some operations on two nodes at some distance from each other. Unlike arrays, where we can access item **k** steps ahead of the current item by adding **k** to the current index, we need to iterate **k** times and traverse the list from the current node for a singly linked list, which is inefficient if we need to do this for multiple nodes.
+
+This presents another use case for the sliding window technique, apart from aggregating values in a subarray or sublist. We can use a window of size **k** denoted by two references and move it to access all nodes **k** steps apart in a singly linked list.
+
+![[Pasted image 20250929124011.png]]
+
+Consider we are given a singly linked list and need to perform some operations on all nodes that are at a distance of `k` from each other. We create two references `start` and `end`, and initialize them with the head of the linked list.
+
+We then iterate `k` times and move the `end` reference `k` steps ahead from `start`. This way, `start` and `end` denote a window of size `k+1` such that `end` is exactly `k` steps away from `start`.
+
+It is important to note that two nodes that are at a distance `k` from each other denote a window of size `k+1` as both nodes are included in the window.
+
+![[Pasted image 20250929124333.png]]
+
+We perform the required operations on the nodes held in `start` and `end` and move both of them one step ahead by setting them to their respective next nodes. We repeat this process until `end` hits `null` at the end of the list. At the end of all iterations, we would have applied the given operation on all nodes that are `k` steps away from each other.
+
+## Algorithm
+
+The algorithm given below outlines the sliding window traversal technique for a window of size k.
+
+> - **Step 1:** Initialize two references, `start` and `end` to the head of the list.
+> - **Step 2:** Iterate k times using a loop and move `end` reference k steps ahead
+> - **Step 3:** Loop while `end` != `null` and do the following
+>     - **Step 3.1:** Process nodes held in `start` and `end` as they are k steps apart
+>     - **Step 3.2:** Move both `start` and `end` one step ahead by setting them to their next nodes.
+
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+class SlidingWindowTraversal {
+
+    void slidingWindowTraversal(ListNode head, int k) {
+
+        // Initialize start and end to head
+
+        ListNode start = head;
+
+        ListNode end = head;
+
+        // Move end k steps ahead
+
+        for (int i = 0; i < k; i++) {
+            if (end == null) {
+                return; // Exit early if the list is shorter than k
+            }
+            end = end.next;
+        }
+
+        // Traverse the list while end is not null
+        while (end != null) {
+
+            // Apply operation on start and end
+            // these nodes are k steps apart
+            // Example: start.val = start.val + end.val;
+            // Move ahead both start and end by one step
+
+            start = start.next;
+
+            end = end.next;
+        }
+    }
+}
+```
+
+## Example K maximum sum
+
+Given the **head** of a singly linked list and a positive integer **k**, write a function to find and return the maximum sum of any contiguous k nodes. If the list contains fewer than `k` nodes, return `-1`.
+
+```java
+class Solution {
+    public int kMaximumSum(ListNode head, int k) {
+        if (head == null || k <= 0) {
+            return -1;
+        }
+
+        ListNode start = head;
+        ListNode end = head;
+        int sum = 0;
+        int count = 0;
+
+        while (end != null && count < k) {
+            sum += end.val;
+            end = end.next;
+            count++;
+        }
+
+        if (count < k) {
+            return -1;
+        }
+
+        int maxSum = sum;
+
+        while (end != null) {
+            sum = sum - start.val + end.val;
+
+            if (sum > maxSum) {
+                maxSum = sum;
+            }
+
+            start = start.next;
+            end = end.next;
+        }
+
+        return maxSum;
+    }
+}
+```
+
+## Example Trim Nth node
+
+Given the **head** of a singly linked list and a non-negative integer **N**, write a function to remove the Nth node from the end of the list and return the head of the updated list.
+
+```java
+class Solution {
+    public ListNode trimNthNode(ListNode head, int N) {
+        if (head == null) {
+            return null;
+        }
+
+        ListNode current = head;
+
+        for (int i = 1; i < N; i++) {
+            if (current == null) {
+                return head;
+            }
+            current = current.next;
+        }
+
+        if (current.next == null) {
+            return head.next;
+        }
+
+        ListNode nthNodeFromEnd = head;
+        ListNode prevToNthNodeFromEnd = null;
+
+        while (current != null && current.next != null) {
+            prevToNthNodeFromEnd = nthNodeFromEnd;
+            nthNodeFromEnd = nthNodeFromEnd.next;
+            current = current.next;
+        }
+
+        prevToNthNodeFromEnd.next = nthNodeFromEnd.next;
+
+        return head;
+    }
+}
+```
+
+# Pattern Fast and Slow Pointers
+
