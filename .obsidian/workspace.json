@@ -13,13 +13,26 @@
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929110918.png"
+                "file": "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929162733.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250929110918"
+              "title": "Pasted image 20250929162733"
+            }
+          },
+          {
+            "id": "db677d005dfcd522",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001105921.png"
+              },
+              "icon": "lucide-image",
+              "title": "Pasted image 20251001105921"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -180,17 +193,19 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
+    "DSA/Data Structure/Linked List/Doubly Linked List.md",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001133907.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001125746.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001125109.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001111751.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001111642.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001111410.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001110827.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001110243.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001110216.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001105921.png",
     "DSA/Data Structure/Linked List/Singly Linked List.md",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929124333.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929124011.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122446.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122427.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122403.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122344.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929122015.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929111405.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929111346.png",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929111002.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List",
     "DSA/Data Structure/Linked List",
     "Screenshots/DSA/Data Structure/Linked List/Untitled/Untitled",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List",
@@ -211,7 +226,6 @@
     "backend-tools/RabbitMQ Notes.md",
     "Java/JAVA APP - 1 NOTES.md",
     "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots",
-    "Screenshots/Software Architecture/System Design Screenshots",
     "Java/JAVA APP - 2 NOTES.md",
     "Implementing Domain-Driven Design.md",
     "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md",
@@ -223,7 +237,6 @@
     "Head First Software Architecture.md",
     "OCP-17/OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md",
     "JAVA APP - 1 NOTES.md",
-    "Google Remote Procedure Call Notes.md",
-    "Golang Notes.md"
+    "Google Remote Procedure Call Notes.md"
   ]
 }

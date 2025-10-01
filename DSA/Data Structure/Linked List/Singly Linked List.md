@@ -2592,3 +2592,517 @@ class Solution {
 
 # Pattern Fast and Slow Pointers
 
+ unlike arrays, singly linked lists don't have a fixed size, and we cannot randomly access items using indices. **==Finding the middle node in the list requires two passes, first to find the length of the list and second to find the node at half the length from the start==**.
+
+The problem can be further extended to find a node between two given nodes at a proportional distance from both. The fast and slow pointer technique can find that node in a single pass.
+
+![[Pasted image 20250929162733.png]]
+
+Consider we are given a singly linked list and two nodes `start` and `end`, and we need to find a node that is at a distance `x` from `start` and `n*x` from `end`. It is guaranteed that a solution node node exists.
+
+It should be noted that a solution node will only exist if the length **L** between start and end is a multiple of **n** i.e, **L % n == 0**
+
+The idea is to initialize two references `flast` and `slow` with `start` and move them forward at different speeds until `fast` reaches `end`.The `slow` reference moves **1** step in each iteration, while the `fast` reference moves **(n+1)** steps. This way, at the end of every iteration, the `slow` reference is at a proportional distance from the `start` and `fast` reference. When the `fast` reference reaches `end`, the `slow` reference points to the solution node.
+
+## Algorithm
+
+- **Step 1:** Initialize two references, `slow` and `fast` with the head of the list.
+- **Step 2:** Loop while `fast.next` != `null` and `fast` != `end` and do the following
+    - **Step 2.1:** Move slow 1 step ahead by setting `slow` = `slow.next`
+    - **Step 2.2:** Move `fast` `n+1` times setting `fast` = `fast.next` `n+1` times.
+- **Step 3:** Node held in `slow` is the solution node
+
+```java
+/**
+
+ * Definition for singly-linked list.
+
+ * class ListNode {
+
+ *     int val;
+
+ *     ListNode next;
+
+ *     ListNode() {}
+
+ *     ListNode(int val) { this.val = val; }
+
+ * };
+
+ */
+
+  
+public ListNode findTheSolutionNode(ListNode start, ListNode end, int n) {
+    // Create two references slow and fast and point them to the start
+    ListNode slow = start;
+
+    ListNode fast = start;
+
+    // Null checks to take care of edge cases
+    while(fast.next != null && fast != end) {
+        // Move slow 1 step
+        slow = slow.next;
+
+  
+        // Move fast n+1 step
+        for(int i=0; i<n+1; i++) {
+            if(fast && fast.next)
+                fast = fast.next;
+        }
+    }
+  
+    // Node pointed by slow is the solution
+    return slow;
+}
+```
+
+## Example Middle node search
+
+Given the **head** of a singly linked list, write a function to find and return the reference of the middle node of this list.
+
+If there are two middle nodes, return the reference of the second one.
+
+```java
+class Solution {
+    public ListNode middleNodeSearch(ListNode head) {
+        ListNode slow = head;
+        ListNode fast = head;
+
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+
+        return slow;
+    }
+}
+```
+
+## Example Split list in half
+
+Given the **head** of a singly linked list, write a function to split the input linked list into two halves and return the heads of the two split halves. 
+
+If there is only one middle node, that node should be part of the first half.
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<ListNode> splitListInHalf(ListNode head) {
+        // If the list is empty or has only one element, return the original head and null
+        if (head == null || head.next == null) {
+            return Arrays.asList(head, null);
+        }
+
+        ListNode slow = head;
+        ListNode fast = head;
+        ListNode prevToSlow = null;
+
+        // Find the midpoint of the list using the slow and fast pointer technique
+        while (fast != null && fast.next != null) {
+            // Keep track of the node before the midpoint
+            prevToSlow = slow;
+            // Move the slow pointer by one step
+            slow = slow.next;
+            // Move the fast pointer by two steps
+            fast = fast.next.next;
+        }
+
+        ListNode secondHalf;
+
+        // If the fast pointer reached the end of the list, it has an even number of nodes
+        if (fast == null) {
+            // The second half starts from the next node of the previous slow pointer
+            secondHalf = prevToSlow.next;
+            // Disconnect the two halves by setting the next of the previous slow pointer to null
+            prevToSlow.next = null;
+        } else {
+            // The list has an odd number of nodes
+            // The second half starts from the node after the slow pointer
+            secondHalf = slow.next;
+            // Disconnect the two halves by setting the next of the slow pointer to null
+            slow.next = null;
+        }
+
+        // Return a list containing the head of the first half and the head of the second half
+        return Arrays.asList(head, secondHalf);
+    }
+}
+```
+
+
+# Pattern Split
+
+Many linked list problems require splitting a given linked list into two or more lists based on the outcome of some function. One solution to this problem is traversing the list for every new list that has to be created and copying items from the original list into the new nodes created for the new lists. However, this requires multiple passes over the list and is inefficient. Also, in many cases, we need to split the original list into separate lists instead of creating copies of nodes. The linked list split technique can be applied to such problems to solve them efficiently in a single pass.
+
+![[Pasted image 20250929163700.png]]
+
+Consider we are given a singly linked list that we need to split into `k` lists using a function `f` that maps every node in the original list to the list it should go to after splitting. the function`f`simply round robins amongst all the`k`lists. The split technique uses dummy nodes to simplify splitting the original lists. We create two arrays of node references `dummy` and `tails` of size `k` each. Both the arrays initialized it with references of newly created dummy nodes where the item at the index `i` is the dummy node for the list `i`.
+
+We initialize a `current` reference with the head of the list and traverse the original list from start to end. In each iteration, we use the function `f` to identify which list the current node should go to. We get the tail node for that list from the `tail` array, update its next section to hold the current node, and update the tail reference. Then, we move `current` one step ahead for the next iteration and finally set the next section of the new tail node to `null`. This process is repeated until we reach the end of the list when the original list is split into `k` lists.
+
+At the end of all iterations, we iterate in `dummy` and move the references one step ahead to hold the real head of the corresponding list and delete the dummy node.
+
+## Algorithm
+
+- **Step 1:** Create two arrays of node references `dummy` and `tails` of size `k` and initialize each item in both arrays with the reference of a newly created dummy node.
+- **Step 2:** Create a reference `current` and initialize it with the head of the list.
+- **Step 3:** Loop while `current` != `null` and do the following:
+    - **Step 3.1:** Apply the function `f` to the `current` node and retrieve `idx`, which is the index of the list where this node should be placed.
+    - **Step 3.2:** Add the `current` node to the end of the list stored at `idx` using `tails` array.
+    - **Step 3.3:** Update `tails[idx]` to now store the reference of the new tail node.
+    - **Step 3.4:** Update the `current` pointer to hold the reference of the node after the `current` node.
+    - **Step 3.5:** Set the next section of `tails[idx]` to `null`
+- **Step 4:** Move all the dummy nodes one step ahead to obtain the heads of the split lists and delete the old dummy nodes.
+
+```java
+class SplitLists {
+    ListNode[] splitLists(ListNode head, int k) {
+        // Create an array of references for dummy and tail nodes
+        ListNode[] dummy = new ListNode[k];
+        ListNode[] tails = new ListNode[k];
+
+        // Initialize the dummy and tail nodes
+        for (int i = 0; i < k; i++) {
+            dummy[i] = new ListNode();
+            tails[i] = dummy[i];
+        }
+
+        // Iterate in the list using current
+        ListNode current = head;
+        while (current != null) {
+            // Use the function `f` to decide which list this node should go to
+            int idx = f(current);
+
+            // Add node to the list and update tail
+            tails[idx].next = current;
+            tails[idx] = current;
+
+            // Move current ahead
+            current = current.next;
+
+            // Set the next of the current tail node to null
+            tails[idx].next = null;
+        }
+
+        // Remove the dummy nodes and assign actual heads to the dummy array
+        for (int i = 0; i < k; i++) {
+            ListNode dummyNode = dummy[i];
+            dummy[i] = dummy[i].next;
+            dummyNode = null;
+        }
+
+        // Return the array of split lists' heads
+        return dummy;
+    }
+}
+```
+
+## Example  K-way list split
+
+```java
+class KWayListSplit {
+    
+    // Function to find the length of a linked list
+    int lengthOfLinkedList(ListNode head) {
+        int length = 0;
+        while (head != null) {
+            ++length;
+            head = head.next;
+        }
+        return length;
+    }
+
+    List<ListNode> kWayListSplit(ListNode head, int k) {
+        // Count the number of nodes in the linked list
+        int length = lengthOfLinkedList(head);
+        // Calculate the size of each part
+        int partSize = length / k;
+        // Calculate the number of lists with partSize + 1 nodes
+        int bigLists = length % k;
+
+        // Create an array of references for dummy and tail nodes
+        List<ListNode> dummy = new ArrayList<>(Collections.nCopies(k, null));
+        List<ListNode> tails = new ArrayList<>(Collections.nCopies(k, null));
+
+        for (int i = 0; i < k; i++) {
+            dummy.set(i, new ListNode(0));
+            tails.set(i, dummy.get(i));
+        }
+
+        // Iterate in the list using current
+        ListNode current = head;
+
+        // Initialize counter to count number of nodes added to current split list
+        int count = 0;
+
+        // Initialize variable to denote current split list
+        int idx = 0;
+
+        while (current != null) {
+            // Add node to the current split list and update tail
+            tails.get(idx).next = current;
+            tails.set(idx, current);
+
+            // Move current ahead
+            current = current.next;
+
+            // Set the next section of tail node to null
+            tails.get(idx).next = null;
+
+            // Increment count after adding the node
+            count++;
+
+            if (bigLists > 0 && count == partSize + 1) {
+                count = 0;
+                idx++;
+                bigLists--;
+            } else if (bigLists == 0 && count == partSize) {
+                count = 0;
+                idx++;
+            }
+        }
+
+        // Delete the dummy nodes
+        for (int i = 0; i < k; i++) {
+            dummy.set(i, dummy.get(i).next);
+        }
+
+        // Return the list of split lists' heads
+        return dummy;
+    }
+}
+```
+
+## Example Even odd split
+
+Given the **head** of a singly linked list, write a function to split the list into two separate lists such that the first list contains the nodes with even values and the second list contains the nodes with odd values. Your function should return the heads of both these lists.
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<ListNode> evenOddSplit(ListNode head) {
+        // Initialize head and tail references for the two split lists
+        ListNode evenDummy = new ListNode(0);
+        ListNode evenTail = evenDummy;
+
+        ListNode oddDummy = new ListNode(0);
+        ListNode oddTail = oddDummy;
+
+        // Create current reference to iterate through the list
+        ListNode current = head;
+
+        // Iterate through the list and split nodes into two lists
+        while (current != null) {
+            // If the current node's value is even then the node goes to the even list
+            if (current.val % 2 == 0) {
+                // `current` node goes to the even split list
+                evenTail.next = current;
+                // Move evenTail forward
+                evenTail = evenTail.next;
+            } else {
+                // `current` node goes to the odd split list
+                oddTail.next = current;
+                // Move oddTail forward
+                oddTail = oddTail.next;
+            }
+
+            // Move to the next node in the original list
+            current = current.next;
+        }
+
+        // Terminate the even list
+        evenTail.next = null;
+
+        // Terminate the odd list
+        oddTail.next = null;
+
+        return Arrays.asList(evenDummy.next, oddDummy.next);
+    }
+}
+```
+
+# Pattern Merge
+
+Like splitting a linked list into multiple lists, many linked list problems require merging multiple linked lists into one based on the outcome of some function. Also, in most cases, we must merge the lists by moving around the original nodes instead of creating copies.
+
+![[Pasted image 20250930104102.png]]
+
+Consider that we are given two singly linked lists denoted by `headA` and `headB`, and we have to merge them into a single list based on the output of some function `f`. Given any two nodes, one from each list, the function `f` decides which node goes before the other node in the merged list.
+
+The merge technique uses a dummy node to simplify the merging algorithm. We create a `dummy` node and a reference variable `tail` which we initialize with it. We create two references `currentA` and `currentB` and initialize them with `headA` and `headB` which we use to traverse the respective lists. We then simultaneously traverse both lists using these references and, in each iteration, apply the function `f` on nodes held in `currentA` and `currentB` to decide which node should be added to the merged list. We use the `tail` reference to easily add the node at the end of the merged list, update `tail`, and move ahead either `currentA` or `currentB` accordingly.
+
+If either `currentA` or `currentB` hits `null`, it means we have traversed one of the lists completely, and we terminate the iterations. At this point, we identify the list that is not completely traversed and add the remaining nodes at the end of the merged lists to completely merge both lists. Consider the example below where the function `f` is a simple function that alternates (round robin) between both lists to select the node that goes to the merged list.
+
+## Algorithm
+
+The algorithm given below summarizes the linked list merge technique for two lists. It can be easily extended for `k` lists.
+
+ 
+> - **Step 1:** Create a `dummy` node and initialize a `tail` reference with it.
+> - **Step 2:** Create two references `currentA` and `currentB` and initialize them with `headA` and `headB` respectively.
+> - **Step 3:** Loop while `currentA` != `null` and `currentB` != `null` and do the following:
+>     - **Step 3.1:** Apply the function `f` to the node held in `currentA` and `currentB` to decide which node to add to the merged list.
+>     - **Step 3.2:** If `currentA` has to be added, add it to the end of the merged list by updating `tail` and moving `currentA` ahead.
+>     - **Step 3.3:** If `currentB` has to be added, add it to the end of the merged list by updating `tail` and moving `currentB` ahead.
+>     - **Step 4:** If `currentA` != `null` attach the remaining list to the merged list using `tail`
+>     - **Step 5:** If `currentB` != `null` attach the remaining list to the merged list using `tail`
+>     - **Step 6:** Delete the `dummy` node and return the next node as real head of merged list.
+
+
+```java
+class MergeLists {
+    // Function to merge two linked lists
+    ListNode mergeLists(ListNode headA, ListNode headB) {
+        // Create a dummy node and a tail reference for the merged list
+        ListNode dummy = new ListNode();
+        ListNode tail = dummy;
+
+        // Create current references
+        ListNode currentA = headA;
+        ListNode currentB = headB;
+
+        while (currentA != null && currentB != null) {
+            // Use the function `f` to determine which node to merge
+            boolean mergeA = f(currentA, currentB);
+
+            if (mergeA) {
+                tail.next = currentA;
+                currentA = currentA.next;
+                tail = tail.next;
+            } else {
+                tail.next = currentB;
+                currentB = currentB.next;
+                tail = tail.next;
+            }
+        }
+
+        // If the first list is not completely traversed, attach remaining nodes to merged list
+        if (currentA != null) {
+            tail.next = currentA;
+        } else if (currentB != null) {
+            tail.next = currentB;
+        }
+
+        // Return the real head of the merged list
+        return dummy.next;
+    }
+
+    // Example function `f` that determines which node to merge (for demonstration)
+    boolean f(ListNode nodeA, ListNode nodeB) {
+        // Custom comparison logic: e.g., merge nodeA if its value is smaller
+        return nodeA.val <= nodeB.val;
+    }
+}
+```
+
+
+# Pattern Reorder
+
+Some linked list problems require us to reorder the nodes of the given list in place based on some conditions. In most cases, this requires first splitting the list based on the outcome of some function `f1` and then merging back the split list together either by using another function `f2` or simply concatenating them.
+
+![[Pasted image 20250930104857.png]]
+
+Consider that we are given a singly linked list whose nodes must be reordered. The problem almost always has a split function `f1` that we use to split the list into multiple lists using the split technique.
+
+In most cases, concatenating these split lists to merge them is sufficient, but sometimes, we may also have a function `f2` that must be used to merge the lists. We use the merge technique to merge them back together to solve the problem.
+
+Consider the example execution below, where we use the function `f2` that merges alternate nodes to merge back the split lists starting with the second list, effectively reordering the nodes.
+
+## Algorithm
+
+The algorithm given below summarizes the reorder technique for **two** lists. It can be easily extended for `k` lists.
+
+> - **Step 1:** Use the split technique to split the list in **two** using the function `f1`
+> - **Step 2:** Use the merge technique to merge the **two** lists using the function `f2`.
+> - **Step 3:** Return the head of the merged list.
+
+
+```java
+class ReorderNodes {
+    // Function to reorder nodes based on conditions defined by f1 and f2
+    public ListNode reorderNodes(ListNode head) {
+        // Create dummy nodes and tail references for the two split lists
+        ListNode dummyA = new ListNode(0);
+        ListNode tailA = dummyA;
+
+        ListNode dummyB = new ListNode(0);
+        ListNode tailB = dummyB;
+
+        // Create current reference to iterate through the list
+        ListNode current = head;
+
+        while (current != null) {
+            // Use the function `f1` to decide which list this node should go to
+            boolean splitFirst = f1(current);
+
+            if (splitFirst) {
+                // `current` node goes to the first split list
+                tailA.next = current;
+                tailA = tailA.next;
+            } else {
+                // `current` node goes to the second split list
+                tailB.next = current;
+                tailB = tailB.next;
+            }
+
+            // Move to the next node in the original list
+            current = current.next;
+        }
+
+        // Ensure the two split lists end properly
+        tailA.next = null;
+        tailB.next = null;
+
+        // Move ahead dummy nodes of split lists to hold the real head
+        ListNode currentA = dummyA.next;
+        ListNode currentB = dummyB.next;
+
+        // Create dummy node and tail reference for the merged list
+        ListNode dummy = new ListNode(0);
+        ListNode tail = dummy;
+
+        while (currentA != null && currentB != null) {
+            // Use the function `f2` to determine which node to merge
+            boolean mergeA = f2(currentA, currentB);
+
+            if (mergeA) {
+                tail.next = currentA;
+                currentA = currentA.next;
+            } else {
+                tail.next = currentB;
+                currentB = currentB.next;
+            }
+
+            // Move tail forward to the merged node
+            tail = tail.next;
+        }
+
+        // If currentA is not completely traversed, attach remaining nodes
+        if (currentA != null) {
+            tail.next = currentA;
+        }
+
+        // If currentB is not completely traversed, attach remaining nodes
+        if (currentB != null) {
+            tail.next = currentB;
+        }
+
+        // Capture the merged list's head
+        ListNode newHead = dummy.next;
+
+        return newHead;
+    }
+
+    // Placeholder for the function `f1`, which decides how to split the nodes
+    private boolean f1(ListNode node) {
+        return node.val % 2 == 0;
+    }
+
+    // Placeholder for the function `f2`, which decides how to merge nodes
+    private boolean f2(ListNode a, ListNode b) {
+        return a.val <= b.val;
+    }
+}
+```
