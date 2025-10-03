@@ -13,26 +13,13 @@
             "state": {
               "type": "image",
               "state": {
-                "file": "Screenshots/DSA/Data Structure/Linked List/Singly Linked List/Pasted image 20250929162733.png"
+                "file": "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003125906.png"
               },
               "icon": "lucide-image",
-              "title": "Pasted image 20250929162733"
-            }
-          },
-          {
-            "id": "db677d005dfcd522",
-            "type": "leaf",
-            "state": {
-              "type": "image",
-              "state": {
-                "file": "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001105921.png"
-              },
-              "icon": "lucide-image",
-              "title": "Pasted image 20251001105921"
+              "title": "Pasted image 20251003125906"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -64,7 +51,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": " image 20241001195117.png",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -191,26 +178,27 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "aef99a6ba9838224",
   "lastOpenFiles": [
     "DSA/Data Structure/Linked List/Doubly Linked List.md",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001133907.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001125746.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001125109.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001111751.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001111642.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001111410.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001110827.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001110243.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001110216.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251001105921.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003152103.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003133653.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132850.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132836.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132737.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132524.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132455.png",
     "DSA/Data Structure/Linked List/Singly Linked List.md",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003130544.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003130421.png",
+    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003130357.png",
+    "Software Architecture/Hexagonal Architecture.md",
+    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List",
     "DSA/Data Structure/Linked List",
     "Screenshots/DSA/Data Structure/Linked List/Untitled/Untitled",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List",
     "Screenshots/DSA/Data Structure/Linked List",
-    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "DSA/Algorithm/Recursion.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Screenshots/DSA/Algorithms/Recursion",
@@ -230,7 +218,6 @@
     "Implementing Domain-Driven Design.md",
     "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md",
     "Software Architecture/Domain Driven Design/Learning Domain-Driven Design Aligning Software Architecture and Business Strategy.md",
-    "Software Architecture/Hexagonal Architecture.md",
     "Java/Reactive Programming.md",
     "Software Architecture/Onion Architecture.md",
     "Software Architecture/Hexagonal Architecture Main.md",
