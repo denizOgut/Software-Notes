@@ -25,14 +25,12 @@
             "id": "3d15133070a58eb7",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
-                "mode": "source",
-                "source": false
+                "file": "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009121554.png"
               },
-              "icon": "lucide-file",
-              "title": "Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems"
+              "icon": "lucide-image",
+              "title": "Pasted image 20251009121554"
             }
           }
         ],
@@ -197,22 +195,24 @@
   },
   "active": "6241a3657894e912",
   "lastOpenFiles": [
+    "Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
+    "DSA/Algorithm/Sorting.md",
+    "Screenshots/DSA/Algorithms/Sorting",
+    "DSA/Data Structure/Linked List/Doubly Linked List.md",
+    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009122239.png",
+    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009122210.png",
+    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009122028.png",
+    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009121928.png",
+    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009121725.png",
+    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009121643.png",
+    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009121554.png",
     "Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems Screenshoot",
     "Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems Screenshoot/Pasted image 20251008152458.png",
     "Java/JAVA APP - 1 NOTES.md",
-    "Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
     "ddd.md",
-    "DSA/Data Structure/Linked List/Doubly Linked List.md",
     "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003125906.png",
     "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003152103.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003133653.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132850.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132836.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132737.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132524.png",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003132455.png",
     "DSA/Data Structure/Linked List/Singly Linked List.md",
-    "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List/Pasted image 20251003130544.png",
     "Software Architecture/Hexagonal Architecture.md",
     "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
     "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List",
@@ -226,14 +226,12 @@
     "DSA/Data Structure/Arrays.md",
     "Screenshots/DSA/Algorithms",
     "Screenshots/DSA/Data Structure",
-    "DSA/Algorithm",
     "Software Principles/Algorithms_4TH Edition Summary.md",
     "Go/Golang Notes.md",
     "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Head First Software Architecture.md",
     "backend-tools/Apache Kafka Notes.md",
     "backend-tools/RabbitMQ Notes.md",
-    "Screenshots/Software Architecture/System Design Screenshots/System Design Interview An Insider’s Guide Second Edition Screenshots",
     "Java/JAVA APP - 2 NOTES.md",
     "Implementing Domain-Driven Design.md",
     "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md",
@@ -241,7 +239,6 @@
     "Java/Reactive Programming.md",
     "Software Architecture/Onion Architecture.md",
     "Software Architecture/Hexagonal Architecture Main.md",
-    "Head First Software Architecture.md",
-    "OCP-17/OCP Oracle® Certified Professional Java SE 17 Developer Study Guide Exam 1Z0-829 Notes.md"
+    "Head First Software Architecture.md"
   ]
 }
