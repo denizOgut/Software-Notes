@@ -291,3 +291,326 @@ class Solution {
     }
 }
 ```
+
+# Counting Sort
+
+Counting sort is a non-comparison-based sorting algorithm that operates by counting the number of occurrences of each unique element in the input list and using this information to place each element in the correct position in the output list. It is particularly useful when the range of input elements is known and relatively small compared to the number of elements to be sorted.
+
+## Real life example
+
+Let's again become a teacher to understand the real-world application of this algorithm. Let's say you were a teacher assigned the task of sorting answer sheets of students who scored out of 10. However, the catch is that there is a large number of students. For this example, let's say there are 200 students. You could use some of the sorts we studied earlier, but they would be quite time-consuming as you would need to do a lot of comparisons. Since the range of scores is relatively small, you could use a different strategy. You could count the times each score appears and stack the sheets with the same score on top of each other. To do so, you would only need one pass over all the answer sheets and no comparison.
+
+Once you have all the different stacks, you can arrange the individual answer sheets by incrementally unwinding the stacks, starting with the stack with the lowest (or highest, depending on the sorting order) score. You keep doing this until the sheets from all the stacks are lined up.  
+
+> - **Step 1:** Stack the answer sheets with the same score on top of each other.
+> - **Step 2:** Unwind the stack with the lowest (or highest, depending on the sorting order) score and start lining the sheets.
+> - **Step 3:** Pick the next stack that fulfills the sorting order and repeat step 2 until all the stacks are unwinded.
+
+## Advantages
+
+> - **Simplicity:** Counting sort is quite simple to understand and implement.
+> - **Efficiency:** With its linear time complexity, counting sort is very efficient when the range of input values is small compared to the number of elements in the input list. It outperforms comparison-based sorting algorithms like quicksort or merge sort in such cases.
+> - **Stable:** Counting sort is stable i.e. it does not change the relative order of equal values in the list.
+
+## Limitations
+
+> - **Space complexity:** Counting Sort requires additional space to store the count array and the output list, both of which have a size proportional to the range of input values. This can be a limitation when the range of input values is large or when memory is limited.
+> - **Not In-place:** Counting sort is not an in-place algorithm; it needs to write the output to a different list, which could be problematic if memory is limited.
+
+## Algorithm
+
+This algorithm can be divided into three major steps
+
+> - **Step 1:** Calculate the frequency of each element.
+> - **Step 2:** Calculate the cumulative sum of frequencies.
+> - **Step 3:** Build the sorted list.
+
+### Step 1: Calculate the frequency of each element
+
+The first step is to calculate the frequency of each unique element in the input array and store it in an auxiliary array called **count**. The size of this auxiliary array is equal to the maximum value in the input array + 1. The algorithm uses this count array as a key value mapping where each array index is a key, and the index's value is that key's frequency
+
+### Step 2: Calculate the cumulative sum of frequencies
+
+The second step is to iterate over the count array and convert it to a cumulative sum array.
+
+### Step 3: Build the sorted list
+
+The final phase of the algorithm is to iterate over the input array in **reverse order** and place each element in the output array using the count array. Once an element is placed in the input array, its count is decreased from the count array. At the end of the iteration, all the elements on the input array will be placed in the output array in a sorted manner.
+
+**Algorithm**
+
+- **Step 1:** Create a new array called "count" with its size equal to the (maximum element in the list + 1).
+- **Step 2:** Count the occurrences of each unique element in the input list and store these counts in the "count" array.
+- **Step 3:** Modify the count array to store the cumulative sum of counts. Each element in the count array represents the number of elements less than or equal to the index value.
+- **Step 4:** Iterate through the original input list in reverse order and use the count array to determine the correct position of each element in the sorted output list.
+- **Step 5:** Decrement the count of the element's value in the count array and use this value as the index in the output list.
+
+## Implementation
+
+```java
+class Solution {
+    public int[] countingSort(int[] arr, int k) {
+        int n = arr.length;
+        // Create a count array to store the frequency of each key
+        int[] count = new int[k + 1];
+        // Store the frequency of each key in the count array
+        for (int i = 0; i < n; i++) {
+            count[arr[i]]++;
+        }
+        // Modify the count array to store the actual position of each
+        // key in the sorted array
+        for (int i = 1; i <= k; i++) {
+            count[i] += count[i - 1];
+        }
+        // Create a temporary array to store the sorted result
+        int[] result = new int[n];
+        // Build the sorted result array
+        for (int i = n - 1; i >= 0; i--) {
+            result[count[arr[i]] - 1] = arr[i];
+            count[arr[i]]--;
+        }
+        return result;
+    }
+}
+```
+
+# Quick Sort
+
+Quicksort is a widely used comparison-based sorting algorithm based on the divide and conquer algorithm paradigm. It is known to be slightly faster than Merge sort and Heap sort for randomized data, especially on more significant distributions. The algorithm selects a pivot in the input list and then partitions the list into two sublists: one containing all elements less than the pivot and the other containing all elements greater than the pivot. This process continues recursively on the sublists until the entire list is sorted.
+
+## Real life example
+
+A real-life example of this sorting in action would be if you were a librarian. You would have books scattered everywhere and be tasked with arranging them alphabetically by title. You could choose a random book, make it a pivot, and start placing all the books along this pivot. Place all the books where the title comes before the pivot on the left and books where their titles come after the pivot to the right. Doing so ensures that the book chosen as the pivot is in its correct spot. You then repeat the same process on the books on the left and right sides of the pivot. At the end, you will have all the books ordered correctly.
+
+> - **Step 1:** Chose a random book from all the leftover books and make it a pivot
+> - **Step 2:** Place the books with the titles before the pivot to the left and those with the titles after the pivot to the right.
+> - **Step 3:** Repeat steps 1-2 for the left and right partitions produced in step 2.
+
+The space complexity of quicksort is **O(logN)** due to the recursive calls on the sublists. Each recursive call requires a constant amount of space for the function call stack, and the depth of the call stack is **O(logN)** in the average and worst cases.
+
+## Advantages
+
+> - **Efficiency:** Quicksort is very efficient, especially for large datasets. The average case's time complexity is **O(N*logN)**, faster than many other sorting algorithms.
+> - **Adaptive:** Quicksort is adaptive, meaning its performance improves when the input list is partially or nearly sorted. The partitioning step becomes more efficient when the list is partially sorted.
+> - **Parallelization:** Quicksort can be easily parallelized, allowing it to take advantage of multi-core processors and parallel computing environments
+> - **In-place:** Quicksort can sort the input list itself without allocating new memory for the algorithm to run.
+
+## Limitations
+
+> - **Unstable:** Quicksort is unstable; it can change the list's relative order of equal values.
+> - **Inefficient:** Quicksort is not as efficient for small datasets, as the partitioning step's overhead can outweigh the algorithm's efficiency benefits.
+
+## Algorithm
+
+The quicksort algorithm operates when at least two elements are in the input array. It follows a partitioning process, which divides the input array into two consecutive non-empty subarrays around a pivot. Elements smaller than the pivot are placed on its left side, while elements greater than the pivot are placed on its right side. After partitioning, the quicksort algorithm recursively repeats this process on the two subarrays. The pivot element is not included in the recursion as it is already in its correct position. The result is a sorted array once all the recursive steps are completed.
+
+- **Step 1:** If the range has less than two elements, return as there is nothing to do
+- **Step 2:** Randomly pick a "pivot". This could be any random element in the input list.
+- **Step 3:** Partition the elements of the input list into two sublists such that all elements less than the pivot go to the the first sublist and all the elements greater than the pivot go to the second sublist. The elements equal to the pivot can go either way.
+- **Step 4:** Recursively apply the above steps to the two sublists produced in Step 3.
+
+```java
+import java.util.*;
+
+class Solution {
+    // Helper method to swap elements in the array
+    private void swap(int[] arr, int i, int j) {
+        int temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+
+    private int partition(int[] arr, int left, int right) {
+        // Randomly select a pivot index between left and right
+        Random rand = new Random();
+        int pivot = left + rand.nextInt(right - left + 1);
+        // Get the pivot value
+        int pivotVal = arr[pivot];
+        // Move the pivot to the end
+        swap(arr, pivot, right);
+        // Index of smaller element
+        int cursor = left;
+        for (int i = left; i < right; i++) {
+            if (arr[i] < pivotVal) {
+                // Swap elements
+                swap(arr, cursor, i);
+                cursor++;
+            }
+        }
+        // Swap pivot to its correct position
+        swap(arr, cursor, right);
+        // Return the pivot index
+        return cursor;
+    }
+
+    private void quicksort(int[] arr, int left, int right) {
+        if (left < right) {
+            // Partition the array
+            int pivot = partition(arr, left, right);
+            // Recursively sort the left subarray
+            quicksort(arr, left, pivot - 1);
+            // Recursively sort the right subarray
+            quicksort(arr, pivot + 1, right);
+        }
+    }
+
+    public void quickSort(int[] arr) {
+        int n = arr.length;
+        // Call Quicksort function
+        quicksort(arr, 0, n - 1);
+    }
+}
+```
+
+# Merge Sort
+
+Merge sort is one of the most efficient and widely used sorting algorithms. It is a general-purpose comparison-based sort that uses a divide-and-conquer approach under the hood. It works by recursively dividing the input list into smaller sublists, sorting each, and merging them to produce a single list.
+
+## Real life example
+
+Continuing on the quicksort example. Imagine you're a librarian tasked with organizing a large number of books in alphabetical order by title. Instead of using quicksort, you could use the merge sort approach. You can divide the books into smaller, manageable groups and sort them independently. Then, you can merge the sorted groups to create a larger, fully sorted group. Repeat this process until all the groups are merged into the final ordered list of books.  
+
+> - **Step 1:** Divide the books into smaller groups of manageable size.
+> - **Step 2:** Sort each group of books alphabetically by title.
+> - **Step 3:** Merge the groups to create larger sorted groups.
+> - **Step 4:** Repeat steps 1-3 until all books are sorted into one large group.
+
+## Advantages
+
+> - **Efficiency:** Merge sort is one of the most efficient, especially for large datasets. Its time complexity for all cases is **O(N*logN)**, faster than many other sorting algorithms.
+> - **Stable:** Merge sort is stable, i.e., it does not change the list's relative order of equal values.
+> - **Parallelization:** Merge sort can be easily parallelized, allowing it to use multi-core processors and parallel computing environments.
+
+## Limitations
+
+> - **Space complexity:** Merge sort requires additional space to store the sorted subarrays during the merge phase. This can be a limitation when memory is limited.
+> - **Not In-place:** Merge sort is not an in-place algorithm; it needs to write the output to a different list, which could be problematic if memory is limited.
+
+## Algorithm
+
+The algorithm starts by dividing the input array into two subarrays of equal size. It then recursively calls the left and right subarrays and keeps on doing so until the left and right subarrays have only a single element left. Thereafter, the algorithm starts merging the subarrays in a sorted manner and returning them to the caller. This process keeps on repeating until the entire array is sorted.
+
+
+- **Step 1:** If the size of the input list is <= 1 return the array. (Base case)
+- **Step 2:** Divide the unsorted list into two halves (left and right).
+- **Step 3:** Call Step 1 with each of these halves and store their results in two output lists.
+- **Step 4:** Merge the two output lists obtained from the above step in a sorted manner.
+- **Step 5:** Return the merged list back to the caller.
+
+```java
+import java.util.*;
+
+class Solution {
+    public int[] merge(int[] leftArr, int[] rightArr) {
+        // Create an empty array to store the merged array
+        int[] mergedArr = new int[leftArr.length + rightArr.length];
+        // Initialize two pointers, i for leftArr and j for rightArr
+        int i = 0, j = 0, k = 0;
+        // Compare elements from both arrays and add the smaller one to
+        // the mergedArr
+        while (i < leftArr.length && j < rightArr.length) {
+            // If the element in leftArr is smaller or equal to the
+            // element in rightArr add the element from leftArr to
+            // mergedArr
+            if (leftArr[i] <= rightArr[j]) {
+                // Add element from leftArr to mergedArr
+                mergedArr[k] = leftArr[i];
+                // Move the pointer for leftArr to the next element
+                i++;
+            }
+            // Else if the element in rightArr is smaller than the
+            // element in leftArr add the element from rightArr to
+            // mergedArr
+            else {
+                // Add element from rightArr to mergedArr
+                mergedArr[k] = rightArr[j];
+                // Move the pointer for rightArr to the next element
+                j++;
+            }
+            k++;
+        }
+        // Add any remaining elements from leftArr (if any) to the
+        // mergedArr
+        while (i < leftArr.length) {
+            mergedArr[k] = leftArr[i];
+            i++;
+            k++;
+        }
+        // Add any remaining elements from rightArr (if any) to the
+        // mergedArr
+        while (j < rightArr.length) {
+            mergedArr[k] = rightArr[j];
+            j++;
+            k++;
+        }
+        // Return the sorted and merged array
+        return mergedArr;
+    }
+
+    public int[] mergeSort(int[] arr) {
+        // Base case: if the array has 1 or fewer elements, it is
+        // already sorted
+        if (arr.length <= 1) {
+            return arr;
+        }
+        // Find the middle index of the array
+        int mid = arr.length / 2;
+        // Split the array into two halves
+        int[] leftArr = Arrays.copyOfRange(arr, 0, mid);
+        int[] rightArr = Arrays.copyOfRange(arr, mid, arr.length);
+        // Recursively sort the left half
+        leftArr = mergeSort(leftArr);
+        // Recursively sort the right half
+        rightArr = mergeSort(rightArr);
+        // Merge the sorted halves and return the result
+        return merge(leftArr, rightArr);
+    }
+}
+```
+
+# Heap Sort
+
+Heapsort is another efficient sort algorithm that uses the heap data structure under the hood to sort a list. It can be considered an efficient implementation of selection sort using the heap data structure.
+
+## Real life example
+
+There are no concrete real-life examples of heapsort, as a heap is a data structure in computer memory. However, a scenario that closely resembles heapsort is working in the customer support team of a telecom company, where you have to handle customer calls based on their priority. This priority queue is maintained using a heap. When a new call comes in, it is placed in the correct order in the existing queue using a heap.  
+
+## Advantages
+
+> - **Efficiency:** Heapsort is one of the most efficient sorting algorithms, especially for large datasets. Its time complexity for all cases is **O(N*logN)**, faster than many other sorting algorithms.
+> - **In-place:** Heapsort can sort the input list without allocating new memory for the algorithm.
+
+## Limitations
+
+> - **Unstable:** Heapsort is not stable, i.e., it can change the relative order of equal values in the list.
+
+## Algorithm
+
+Heapsort can be divided into two major steps.
+
+> - **Step 1:** Build the heap.
+> - **Step 2**: Remove the top element and heapify again
+
+### Step 1: Build the heap
+
+The first step is to convert the input array into a binary max heap. This is achieved by repeatedly "heapifying" the array, starting from the last non-leaf node and moving up the tree. Once the input array has been transformed into a heap, its root element will contain the largest number in the input array.
+
+### Step 2: Remove the top element and heapify again
+
+Once we have a binary max heap, we know that the root element is the largest among all the other elements. The root element is then swapped with the last element of the heap to move the largest element to the last. After doing so, the size of the heap is reduced by one by removing this last element from the heap, and the heap is "heapified" again to find the next largest element. This process is repeated until the heap becomes empty.
+
+**Why is the last element removed from the heap?**
+
+The last element is removed to ensure it is no longer part of the next "heapify" operation, as it is already the largest among the heap elements. The aim of the next "heapify" operation is to find the second largest element. If the largest element is not removed from the heap, the "heapify" process will always move this element to the top instead of the second largest element.
+
+Like selection sort, heapsort maintains an unsorted space of elements, the heap, and a sorted space consisting of all the elements removed from the heap. Each iteration picks an item from the unsorted space and moves it to the sorted space by swapping elements.
+
+
+
+- **Step 1:** Convert the input array into a max (or min, depending on the sorting order) heap.
+- **Step 2:** Extract the root element from the heap and swap it with the last element in the heap.
+- **Step 3:** Reduce the size of the heap by removing the last element from the heap.
+- **Step 4:** Apply the "heapifiy" process to the heap.
+- **Step 5:** Repeat steps 2-4 until the heap is empty.
+
