@@ -11,17 +11,28 @@
             "id": "637bc9e2b111de2a",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "DSA/Algorithm/Sorting.md",
-                "mode": "source",
-                "source": false
+                "file": "Screenshots/Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems Screenshoot/Pasted image 20251012170710.png"
               },
-              "icon": "lucide-file",
-              "title": "Sorting"
+              "icon": "lucide-image",
+              "title": "Pasted image 20251012170710"
+            }
+          },
+          {
+            "id": "7bdef8e7db064f5e",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012201707.png"
+              },
+              "icon": "lucide-image",
+              "title": "Pasted image 20251012201707"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -180,24 +191,28 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "637bc9e2b111de2a",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Pasted image 20251010200546.png",
-    "DSA/Algorithm/Sorting.md",
-    "Pasted image 20251010200610.png",
-    "Java/JAVA APP - 1 NOTES.md",
-    "Pasted image 20251010151311.png",
-    "Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
-    "Pasted image 20251010164051.png",
-    "Pasted image 20251010152003.png",
-    "Pasted image 20251010151013.png",
-    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
-    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009121554.png",
-    "Screenshots/DSA/Algorithms/Sorting",
+    "DSA/Data Structure/Stack.md",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012203622.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012203456.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012203434.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012203412.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012203328.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012203027.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012202926.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012202904.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012202656.png",
+    "Screenshots/DSA/Data Structure/Stack/Pasted image 20251012202645.png",
+    "DSA/Algorithm/Recursion.md",
     "DSA/Data Structure/Linked List/Doubly Linked List.md",
-    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009122239.png",
-    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009122210.png",
-    "Screenshots/DSA/Algorithms/Sorting/Pasted image 20251009122028.png",
+    "DSA/Data Structure/Arrays.md",
+    "Screenshots/DSA/Data Structure/Stack",
+    "Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
+    "DSA/Algorithm/Sorting.md",
+    "Java/JAVA APP - 1 NOTES.md",
+    "Software Architecture/System Design/System Design Interview An Insider’s Guide Second Edition.md",
+    "Screenshots/DSA/Algorithms/Sorting",
     "Screenshots/Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems Screenshoot",
     "ddd.md",
     "DSA/Data Structure/Linked List/Singly Linked List.md",
@@ -207,12 +222,9 @@
     "Screenshots/DSA/Data Structure/Linked List/Untitled/Untitled",
     "Screenshots/DSA/Data Structure/Linked List/Singly Linked List",
     "Screenshots/DSA/Data Structure/Linked List",
-    "DSA/Algorithm/Recursion.md",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Screenshots/DSA/Algorithms/Recursion",
-    "DSA/Data Structure/Arrays.md",
     "Screenshots/DSA/Algorithms",
-    "Screenshots/DSA/Data Structure",
     "Software Principles/Algorithms_4TH Edition Summary.md",
     "Go/Golang Notes.md",
     "Software Architecture/Fundamentals of Software Architecture.md",
@@ -225,7 +237,6 @@
     "Software Architecture/Domain Driven Design/Learning Domain-Driven Design Aligning Software Architecture and Business Strategy.md",
     "Java/Reactive Programming.md",
     "Software Architecture/Onion Architecture.md",
-    "Software Architecture/Hexagonal Architecture Main.md",
-    "Head First Software Architecture.md"
+    "Software Architecture/Hexagonal Architecture Main.md"
   ]
 }
