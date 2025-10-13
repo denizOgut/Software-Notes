@@ -201,5 +201,270 @@ You must abide by the following constraints
 > 5. For each index in the first array that contains **pop1**, **top1**, **pop2**, or **top2** operations, the corresponding index in the second array should contain an empty array.
 
 ```java
+class TwoStack {
+    // Array to store elements
+    public int[] arr;
+    // Capacity of the array
+    public int capacity;
+    // Top index of the first stack
+    public int topIndex1;
+    // Top index of the second stack
+    public int topIndex2;
 
+    public TwoStack(int capacity) {
+        this.capacity = capacity;
+        arr = new int[capacity];
+        // Initialize top index of the first stack as -1 (empty)
+        topIndex1 = -1;
+        // Initialize top index of the second stack as capacity (empty)
+        topIndex2 = capacity;
+    }
+
+    public int top1() {
+        if (topIndex1 == -1) {
+            // Stack 1 is empty, return -1
+            return -1;
+        }
+        // Return the element at the top of Stack 1
+        return arr[topIndex1];
+    }
+
+    public int top2() {
+        if (topIndex2 == capacity) {
+            // Stack 2 is empty, return -1
+            return -1;
+        }
+        // Return the element at the top of Stack 2
+        return arr[topIndex2];
+    }
+
+    public boolean push1(int val) {
+        if (topIndex1 + 1 >= topIndex2) {
+            // Stack 1 is full, cannot push more elements
+            return false;
+        }
+        // Increment top index of Stack 1 and assign val to that position
+        arr[++topIndex1] = val;
+        // Push operation was successful
+        return true;
+    }
+
+    public boolean push2(int val) {
+        if (topIndex2 - 1 <= topIndex1) {
+            // Stack 2 is full, cannot push more elements
+            return false;
+        }
+        // Decrement top index of Stack 2 and assign val to that position
+        arr[--topIndex2] = val;
+        // Push operation was successful
+        return true;
+    }
+
+    public int pop1() {
+        if (topIndex1 == -1) {
+            // Stack 1 is empty, cannot pop any element
+            return -1;
+        }
+        // Return the element at the top of Stack 1 and decrement top index
+        return arr[topIndex1--];
+    }
+
+    public int pop2() {
+        if (topIndex2 == capacity) {
+            // Stack 2 is empty, cannot pop any element
+            return -1;
+        }
+        // Return the element at the top of Stack 2 and increment top index
+        return arr[topIndex2++];
+    }
+}
 ```
+
+# Linked List Implementation Of Stack
+
+ a linked list is another data structure that is the perfect candidate for implementing a stack. Unlike arrays, which have a fixed size and are used to implement **bounded** stacks, linked lists can be as big as the computer memory permits, so they can be used to implement an **unbounded** stack.
+
+![[Pasted image 20251013122824.png]]
+
+## State information
+
+Like the array implementation, when implementing a stack using a linked list, we need to hold and keep updated certain **state information** alongside the linked list that holds all the data items to ensure all stack operations work as desired. Let us look at all the state information we need to maintain.
+
+### Top
+
+Unlike in the array implementation, where we had to use the `topIndex` to store the index of the top item in the array, in the linked list implementation, we can use the `head` or `tail` of the list as a reference to the top. If we restrict inserting data items only at the beginning of the list, the `head` of the list is also becomes the top of the stack. On the other hand, if we restrict inserting data items only at the end of the list, the `tail` becomes the top of the stack. In this course, we will use a linked list implementation that only allows insertion at the beginning of the list and hence the `head`  will be at the top of the stack.
+
+![[Pasted image 20251013122852.png]]
+
+### Current Size
+
+Unlike the array implementation of a stack, where we derive the stack size using the value stored in the `topIndex` variable, the linked list implementation has no `topIndex` variable. To always know the current size of the stack, we need to store this information in a `currentSize` variable. Every time data is pushed onto or popped from the stack, the value of `currentSize` variable is incremented or decremented by 1.
+
+![[Pasted image 20251013122915.png]]
+
+### Capacity
+
+The linked list implementation of a stack can be used to implement both **bounded** and **unbounded** stacks. Since unbounded stacks have unlimited capacity, we don't need to store the maximum limit in any variable. However, when implementing a bounded stack using linked lists, we store that maximum limit in a `capacity`variable similar to the array implementation. Whenever we add a data item to the stack, we must ensure that the queue size doesn't exceed the stack's capacity.
+
+## Stack class
+
+The fundamental idea is the same. However, the implementation is different.
+
+![[Pasted image 20251013123425.png]]
+
+## Implementation
+
+```java
+/**
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ * };
+ */
+
+class Stack {
+    // Reference to the head of the stack
+    public ListNode head;
+    // Maximum capacity of the stack
+    public int capacity;
+    // Current number of elements in the stack
+    public int currentSize;
+
+    public Stack(int capacity) {
+        // Initialize the capacity of the stack
+        this.capacity = capacity;
+        // Initialize the currentSize to zero
+        this.currentSize = 0;
+        // Initialize the head reference to null
+        this.head = null;
+    }
+
+    public int size() {
+        // Return the current number of elements in the stack
+        return currentSize;
+    }
+
+    public boolean empty() {
+        // Return true if the stack is empty, false otherwise
+        return currentSize == 0;
+    }
+
+    public int top() {
+        if (empty()) {
+            // If the stack is empty, return -1 (an invalid value)
+            return -1;
+        }
+        // Return the value of the element at the top of the stack
+        return head.val;
+    }
+
+    public boolean push(int val) {
+        if (currentSize == capacity) {
+            // If the stack is already full, return false
+            return false;
+        }
+        // Create a new node with the given val
+        ListNode newNode = new ListNode(val);
+        // Set the next reference of the new node to the current head
+        newNode.next = head;
+        // Update the head reference to the new node
+        head = newNode;
+        // Increment the count of elements in the stack
+        currentSize++;
+        // Return true to indicate a successful push operation
+        return true;
+    }
+
+    public int pop() {
+        if (empty()) {
+            // If the stack is empty, return -1 (an invalid value)
+            return -1;
+        }
+        // Store the value of the element at the top of the stack
+        int value = head.val;
+        // Create a temporary reference to the current head
+        ListNode temp = head;
+        // Update the head reference to the next node
+        head = head.next;
+        // Delete the old head node to free memory
+        temp = null;
+        // Decrement the count of elements in the stack
+        currentSize--;
+        // Return the value of the popped element
+        return value;
+    }
+}
+```
+
+# Infix Postfix and Prefix Notations
+
+## Infix Notation
+
+The style of writing mathematical expression we humans are used to is called the **infix notation**. It is characterized by the placement of operation **between** its operands.
+
+![[Pasted image 20251013141740.png]]
+
+The infix notation seems very intuitive and easy to understand for us humans; however, parsing evaluation and expression written in this notation is quite a challenge for computer systems.
+
+### Challenges with the infix notation
+
+Let's consider how a computer evaluates a mathematical expression to understand the problem better. Most CPUs at the root level only do one mathematical operation, such as addition, subtraction, etc., at a time. Since all these are binary operations, they only take two input values at a time.
+
+Consider the example of a mathematical expression where we must add two numbers. A CPU takes these two numbers as its input, performs the addition, and generates the result.
+
+![[Pasted image 20251013141810.png]]
+
+![[Pasted image 20251013141836.png]]
+
+An expression must be evaluated in the correct order of precedence of its operations to get the correct results. Consider the following mathematical expression with different types of operations. To evaluate it correctly, the evaluation order of operation should follow the operator precedence rule, which means, in this case, we must start the evaluation from the middle and not the left.
+
+Such an evaluation is quite easy for humans because we can easily jump back and forth in the expression, solve parts of expressions first, save contextual information in our brain, and iteratively evaluate each operation in the order of precedence until the entire expression is evaluated.
+
+However, formulating this entire process as an algorithm for a CPU that only performs one binary operation at a time is very difficult. We would first need to parse the entire expression, identify all operations and their precedence, solve individual operations in the correct order, save the intermediate results, and repeat this process multiple times. All this becomes even more difficult when we add parentheses to this mix that can create an arbitrary level of nesting.
+
+![[Pasted image 20251013141923.png]]
+
+## Postfix Notation
+
+The idea behind the postfix notation is quite simple: instead of writing operations between the operands, the operation is written **after** the operand. Hence, the name postfix notation is also known as the reverse Polish notation.
+
+![[Pasted image 20251013142246.png]]
+
+### Examples
+
+![[Pasted image 20251013142455.png]]
+
+### How does postfix notation work
+
+In the infix notation, parentheses dictate the order in which operations are performed, and all operators follow specific precedence rules. The postfix notation, on the other hand, can be evaluated by traversing the expression sequentially from start to end.
+
+![[Pasted image 20251013142644.png]]
+
+To evaluate the postfix notation, we start from the leftmost item and keep moving to the right until we encounter an operator. We then use the required number of operands from the most recently seen operands to evaluate the operation, store the result, and keep moving right. This left-to-right evaluation implicitly enforces precedence, i.e., the operator operand pair that comes first is evaluated first. Hence, the postfix notation also eliminates the need for parentheses and operator precedence rules.
+
+![[Pasted image 20251013142733.png]]
+
+## Prefix Notation
+
+ It is an alternative notation to write the mathematical expression where the operator is written **before** the operands. It is also called the Polish notation.
+
+![[Pasted image 20251013143207.png]]
+
+### Examples
+
+![[Pasted image 20251013143232.png]]
+
+### How does prefix notation work
+
+The prefix notation is evaluated very similarly to the postfix notation, the only difference being that we evaluate the expression in reverse from end to start.
+
+![[Pasted image 20251013143338.png]]
+
+ start from the rightmost item and move to the left until we encounter any operator. We then use the required number of operands from the most recently seen operands to evaluate the operation, store the result, and keep moving left. This right-to-left evaluation implicitly enforces precedence, i.e., the operator operand pair that comes first is evaluated first. Hence, the prefix notation eliminates the need for parentheses and operator precedence rules.
+
+
+![[Pasted image 20251013143419.png]]
+
