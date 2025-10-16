@@ -1117,3 +1117,629 @@ Two major storage philosophies:
 
 Log-structured designs improve write throughput; B-trees dominate traditional databases.  
 Understanding these concepts helps developers choose and tune the right database for their workloads.
+
+## CHAPTER 4 Encoding and Evolution
+
+In most cases, a change to an application’s features also requires a change to data that it stores: perhaps a new field or record type needs to be captured, or perhaps existing data needs to be presented in a new way.
+
+Relational databases generally assume that all data in the database conforms to one schema: although that schema can be changed (through schema migrations; i.e., ALTER statements), there is exactly one schema in force at any one point in time. By contrast, schema-on-read (“schemaless”) databases don’t enforce a schema, so the database can contain a mixture of older and newer data formats written at different times
+
+When a data format or schema changes, a corresponding change to application code often needs to happen (for example, you add a new field to a record, and the application code starts reading and writing that field). However, in a large application, code changes often cannot happen instantaneously:
+
+With server-side applications you may want to perform a rolling upgrade (also
+known as a staged rollout), deploying the new version to a few nodes at a time,
+checking whether the new version is running smoothly, and gradually working
+your way through all the nodes. This allows new versions to be deployed without
+service downtime, and thus encourages more frequent releases and better evolvability.
+
+• With client-side applications you’re at the mercy of the user, who may not install
+the update for some time.
+
+This means that old and new versions of the code, and old and new data formats,
+may potentially all coexist in the system at the same time. In order for the system to
+continue running smoothly, we need to maintain compatibility in both directions:
+
+**Backward compatibility**  
+Newer code can read data that was written by older code.
+
+**Forward compatibility**  
+Older code can read data that was written by newer code.
+
+
+Backward compatibility is normally not hard to achieve: as author of the newer code, you know the format of data written by older code, and so you can explicitly handle it (if necessary by simply keeping the old code to read the old data). Forward compatibility can be trickier, because it requires older code to ignore additions made by a newer version of the code.
+
+### Formats for Encoding Data
+
+Programs usually work with data in (at least) two different representations:
+
+1. In memory, data is kept in objects, structs, lists, arrays, hash tables, trees, and so
+   on. These data structures are optimized for efficient access and manipulation by
+   the CPU (typically using pointers).
+
+2. When you want to write data to a file or send it over the network, you have to
+   encode it as some kind of self-contained sequence of bytes (for example, a JSON
+   document). Since a pointer wouldn’t make sense to any other process, this
+   sequence-of-bytes representation looks quite different from the data structures
+   that are normally used in memory.ᵢ
+
+==The translation from the in-memory representation to a byte sequence is called **encoding** (also known as **serialization** or **marshalling**), and the reverse is called **decoding** (**parsing**, **deserialization**, **unmarshalling**)==
+
+#### Language-Specific Formats
+
+Many programming languages come with built-in support for encoding in-memory objects into byte sequences
+
+These encoding libraries are very convenient, because they allow in-memory objects
+to be saved and restored with minimal additional code. However, they also have a number of deep problems:
+
+• The encoding is often tied to a particular programming language, and reading the data in another language is very difficult. If you store or transmit data in such an encoding, you are committing yourself to your current programming language for potentially a very long time, and precluding integrating your systems with those of other organizations (which may use different languages).
+
+• In order to restore data in the same object types, the decoding process needs to be able to instantiate arbitrary classes. This is frequently a source of security problems [5]: if an attacker can get your application to decode an arbitrary byte sequence, they can instantiate arbitrary classes, which in turn often allows them to do terrible things such as remotely executing arbitrary code.
+
+• Versioning data is often an afterthought in these libraries: as they are intended for quick and easy encoding of data, they often neglect the inconvenient problems  of forward and backward compatibility.
+
+• Efficiency (CPU time taken to encode or decode, and the size of the encoded structure) is also often an afterthought. For example, Java’s built-in serialization  is notorious for its bad performance and bloated encoding.
+
+#### JSON, XML, and Binary Variants
+
+XML is often criticized for being too verbose and unnecessarily complicated [9]. JSON’s popularity is mainly due to its built-in support in web browsers (by virtue of being a subset of JavaScript) and simplicity relative to XML. CSV is another popular language-independent format, albeit less powerful. JSON, XML, and CSV are textual formats, and thus somewhat human-readable (although the syntax is a popular topic of debate). Besides the superficial syntactic issues, they also have some subtle problems:
+
+• There is a lot of ambiguity around the encoding of numbers. In XML and CSV, you cannot distinguish between a number and a string that happens to consist of digits (except by referring to an external schema). JSON distinguishes strings and numbers, but it doesn’t distinguish integers and floating-point numbers, and it doesn’t specify a precision.
+
+• JSON and XML have good support for Unicode character strings (i.e., human readable text), but they don’t support binary strings (sequences of bytes without a character encoding). Binary strings are a useful feature, so people get around this limitation by encoding the binary data as text using Base64
+
+• There is optional schema support for both XML [11] and JSON [12]. These schema languages are quite powerful, and thus quite complicated to learn and implement. Use of XML schemas is fairly widespread, but many JSON-based tools don’t bother using schemas. Since the correct interpretation of data (such as numbers and binary strings) depends on information in the schema, applications that don’t use XML/JSON schemas need to potentially hardcode the appropriate encoding/decoding logic instead.
+
+• CSV does not have any schema, so it is up to the application to define the meaning of each row and column. If an application change adds a new row or column, you have to handle that change manually.
+
+**Binary encoding**
+
+For data that is used only internally within your organization, there is less pressure to use a lowest-common-denominator encoding format 
+
+JSON is less verbose than XML, but both still use a lot of space compared to binary formats. This observation led to the development of a profusion of binary encodings for JSON 
+
+These formats have been adopted in various niches, but none of them are as widely adopted as the textual versions of JSON and XML. Some of these formats extend the set of datatypes (e.g., distinguishing integers and floating-point numbers, or adding support for binary strings), but otherwise they keep the JSON/XML data model unchanged. In particular, since they don’t prescribe a schema, they need to include all the object field names within the encoded data. That is, in a binary encoding of the JSON document
+
+#### Thrift and Protocol Buffers
+
+Both Thrift and Protocol Buffers require a schema for any data that is encoded.
+
+```json
+struct Person {
+1: required string userName,
+2: optional i64 favoriteNumber,
+3: optional list<string> interests
+}
+```
+
+```json
+message Person {
+required string user_name = 1;
+optional int64 favorite_number = 2;
+repeated string interests = 3;
+}
+```
+
+Thrift and Protocol Buffers each come with a code generation tool that takes a schema definition like the ones shown here, and produces classes that implement the schema in various programming languages
+
+#### The Merits of Schemas
+
+Protocol Buffers, Thrift, and Avro all use a schema to describe a binary encoding format. Their schema languages are much simpler than XML Schema or JSON Schema, which support much more detailed validation rules As Protocol Buffers, Thrift, and Avro are simpler to implement and simpler to use, they have grown to support a fairly wide range of programming languages. The ideas on which these encodings are based are by no means new
+
+We can see that although textual data formats such as JSON, XML, and CSV are widespread, binary encodings based on schemas are also a viable option. They have a number of nice properties:  
+
+• They can be much more compact than the various “binary JSON” variants, since they can omit field names from the encoded data.  
+• The schema is a valuable form of documentation, and because the schema is required for decoding, you can be sure that it is up to date (whereas manually maintained documentation may easily diverge from reality).  
+• Keeping a database of schemas allows you to check forward and backward compatibility of schema changes, before anything is deployed.  
+• For users of statically typed programming languages, the ability to generate code from the schema is useful, since it enables type checking at compile time.
+
+### Modes of Dataflow
+
+whenever you want to send some data to another process with which you don’t share memory—for example, whenever you want to send data over the network or write it to a file—you need to encode it as a sequence of bytes. We then discussed a variety of different encodings for doing this.
+
+there are many ways data can flow from one process to another. Who encodes the data, and who decodes it?
+
+#### Dataflow Through Databases
+
+In a database, the process that writes to the database encodes the data, and the process that reads from the database decodes it. There may just be a single process accessing the database, in which case the reader is simply a later version of the same process—in that case you can think of storing something in the database as sending a message to your future self. Backward compatibility is clearly necessary here; otherwise your future self won’t be able to decode what you previously wrote.  
+
+In general, it’s common for several different processes to be accessing a database at the same time. Those processes might be several different applications or services, or they may simply be several instances of the same service (running in parallel for scalability or fault tolerance). Either way, in an environment where the application is changing, it is likely that some processes accessing the database will be running newer code and some will be running older code—for example because a new version is currently being deployed in a rolling upgrade, so some instances have been updated while others haven’t yet.
+
+This means that a value in the database may be written by a newer version of the code, and subsequently read by an older version of the code that is still running. Thus, forward compatibility is also often required for databases.  
+
+However, there is an additional snag. Say you add a field to a record schema, and the newer code writes a value for that new field to the database. Subsequently, an older version of the code (which doesn’t yet know about the new field) reads the record, updates it, and writes it back. In this situation, the desirable behavior is usually for the old code to keep the new field intact, even though it couldn’t be interpreted.
+
+
+![[Pasted image 20251015145628.png]]
+
+**Different values written at different times**
+
+A database generally allows any value to be updated at any time. This means that within a single database you may have some values that were written five milliseconds ago, and some values that were written five years ago.  
+
+When you deploy a new version of your application (of a server-side application, at least), you may entirely replace the old version with the new version within a few minutes. The same is not true of database contents: the five-year-old data will still be there, in the original encoding, unless you have explicitly rewritten it since then. This observation is sometimes summed up as **data outlives code**.  
+
+Rewriting (migrating) data into a new schema is certainly possible, but it’s an expensive thing to do on a large dataset, so most databases avoid it if possible. Most relational databases allow simple schema changes, such as adding a new column with a null default value, without rewriting existing data.ᵛ When an old row is read, the database fills in nulls for any columns that are missing from the encoded data on disk.
+
+
+**Archival storage**
+
+Perhaps you take a snapshot of your database from time to time, say for backup purposes or for loading into a data warehouse (see “Data Warehousing” on page 91). In this case, the data dump will typically be encoded using the latest schema, even if the original encoding in the source database contained a mixture of schema versions from different eras. Since you’re copying the data anyway, you might as well encode the copy of the data consistently .As the data dump is written in one go and is thereafter immutable, formats like Avro object container files are a good fit.
+
+#### Dataflow Through Services: REST and RPC
+
+When you have processes that need to communicate over a network, there are a few different ways of arranging that communication. The most common arrangement is to have two roles: **clients** and **servers**. The servers expose an API over the network, and the clients can connect to the servers to make requests to that API. The API exposed by the server is known as a **service**.  
+
+Web browsers are not the only type of client. For example, a native app running on a mobile device or a desktop computer can also make network requests to a server, and a client-side JavaScript application running inside a web browser can use `XMLHttpRequest` to become an HTTP client.  
+
+Moreover, a server can itself be a client to another service (for example, a typical web app server acts as client to a database). This approach is often used to decompose a large application into smaller services by area of functionality, such that one service makes a request to another when it requires some functionality or data from that other service. This way of building applications has traditionally been called a **service-oriented architecture (SOA)**, more recently refined and rebranded as **microservices architecture** [31, 32].  
+
+In some ways, services are similar to databases: they typically allow clients to submit and query data. However, while databases allow arbitrary queries using the query languages we discussed in Chapter 2, services expose an application-specific API that only allows inputs and outputs that are predetermined by the business logic (application code) of the service.  
+
+A key design goal of a service-oriented/microservices architecture is to make the application easier to change and maintain by making services independently deployable and evolvable.
+
+
+**Web services**
+
+When HTTP is used as the underlying protocol for talking to the service, it is called a **web service**. This is perhaps a slight misnomer, because web services are not only used on the web, but in several different contexts. For example:  
+
+1. A client application running on a user’s device  
+2. One service making requests to another service owned by the same organization, often located within the same datacenter, as part of a service-oriented/microservices architecture  
+3. One service making requests to a service owned by a different organization, usually via the internet. This is used for data exchange between different organizations’ backend systems. This category includes public APIs provided by online services, such as credit card processing systems, or OAuth for shared access to user data.  
+
+**REST** is not a protocol, but rather a design philosophy that builds upon the principles of HTTP [34, 35]. It emphasizes simple data formats, using URLs for identifying resources and using HTTP features for cache control, authentication, and content type negotiation. REST has been gaining popularity compared to SOAP, at least in the context of cross-organizational service integration.  
+
+By contrast, **SOAP** is an XML-based protocol for making network API requests.ᵛᶦᶦ Although it is most commonly used over HTTP, it aims to be independent from HTTP and avoids using most HTTP features. Instead, it comes with a sprawling and complex multitude of related standards.  
+
+The API of a SOAP web service is described using an XML-based language called the **Web Services Description Language (WSDL)**. WSDL enables code generation so that a client can access a remote service using local classes and method calls.  
+
+Even though SOAP and its various extensions are ostensibly standardized, interoperability between different vendors’ implementations often causes problems.  
+
+RESTful APIs tend to favor simpler approaches, typically involving less code generation and automated tooling. A definition format such as **``OpenAPI``**, also known as **Swagger**.
+
+
+**The problems with remote procedure calls (RPCs)**
+
+A network request is very different from a local function call:  
+
+• A local function call is predictable and either succeeds or fails, depending only on parameters that are under your control. A network request is unpredictable: the request or response may be lost due to a network problem, or the remote machine may be slow or unavailable, and such problems are entirely outside of your control. Network problems are common, so you have to anticipate them, for example by retrying a failed request.  
+
+• A local function call either returns a result, or throws an exception, or never returns (because it goes into an infinite loop or the process crashes). A network request has another possible outcome: it may return without a result, due to a timeout. In that case, you simply don’t know what happened: if you don’t get a response from the remote service, you have no way of knowing whether the request got through or not.  
+
+• If you retry a failed network request, it could happen that the requests are actually getting through, and only the responses are getting lost. In that case, retrying will cause the action to be performed multiple times, unless you build a mechanism for deduplication (**idempotence**) into the protocol. Local function calls don’t have this problem.  
+
+• Every time you call a local function, it normally takes about the same time to execute. A network request is much slower than a function call, and its latency is also wildly variable: at good times it may complete in less than a millisecond, but when the network is congested or the remote service is overloaded it may take many seconds to do exactly the same thing.  
+
+• When you call a local function, you can efficiently pass it references (pointers) to objects in local memory. When you make a network request, all those parameters must be serialized. That’s okay if the parameters are primitives like numbers or strings, but quickly becomes problematic with larger objects.  
+
+• The client and the service may be implemented in different programming languages, so the RPC framework must translate datatypes from one language into another.  
+
+All of these factors mean that there’s no point trying to make a remote service look too much like a local object in your programming language, because it’s a fundamentally different thing. Part of the appeal of REST is that it doesn’t try to hide the fact that it’s a network protocol.
+
+#### Message-Passing Dataflow
+
+asynchronous message-passing systems, which are somewhere between RPC and databases. They are similar to RPC in that a client’s request (usually called a message) is delivered to another process with low latency. They are similar to databases in that the message is not sent via a direct network connection, but goes via an intermediary called a message broker
+
+Using a message broker has several advantages compared to direct RPC:  
+
+• It can act as a buffer if the recipient is unavailable or overloaded, and thus improve system reliability.  
+• It can automatically redeliver messages to a process that has crashed, and thus prevent messages from being lost.  
+• It avoids the sender needing to know the IP address and port number of the recipient (which is particularly useful in a cloud deployment where virtual machines often come and go).  
+• It allows one message to be sent to several recipients.  
+• It logically decouples the sender from the recipient (the sender just publishes messages and doesn’t care who consumes them).  
+
+
+However, a difference compared to RPC is that message-passing communication is usually one-way: a sender normally doesn’t expect to receive a reply to its messages. It is possible for a process to send a response, but this would usually be done on a separate channel.
+
+**Message brokers**
+
+The detailed delivery semantics vary by implementation and configuration, but in general, message brokers are used as follows: one process sends a message to a named queue or topic, and the broker ensures that the message is delivered to one or more consumers of or subscribers to that queue or topic. There can be many producers and many consumers on the same topic.
+
+Message brokers typically don’t enforce any particular data model—a message is just a sequence of bytes with some metadata, so you can use any encoding format. If the encoding is backward and forward compatible, you have the greatest flexibility to change publishers and consumers independently and deploy them in any order.
+
+**Distributed actor frameworks**
+
+The actor model is a programming model for concurrency in a single process. Rather than dealing directly with threads (and the associated problems of race conditions, locking, and deadlock), logic is encapsulated in **actors**. Each actor typically represents one client or entity, it may have some local state (which is not shared with any other actor), and it communicates with other actors by sending and receiving asynchronous messages. Message delivery is not guaranteed: in certain error scenarios, messages will be lost. Since each actor processes only one message at a time, it doesn’t need to worry about threads, and each actor can be scheduled independently by the framework.  
+
+In distributed actor frameworks, this programming model is used to scale an application across multiple nodes. The same message-passing mechanism is used, no matter whether the sender and recipient are on the same node or different nodes. If they are on different nodes, the message is transparently encoded into a byte sequence, sent over the network, and decoded on the other side.  
+
+Location transparency works better in the actor model than in RPC, because the actor model already assumes that messages may be lost, even within a single process. Although latency over the network is likely higher than within the same process, there is less of a fundamental mismatch between local and remote communication when using the actor model.  
+
+A distributed actor framework essentially integrates a message broker and the actor programming model into a single framework. However, if you want to perform rolling upgrades of your actor-based application, you still have to worry about forward and backward compatibility, as messages may be sent from a node running the new version to a node running the old version, and vice versa.
+
+### Summary
+
+Rolling upgrades allow new versions of a service to be deployed gradually, avoiding downtime and reducing deployment risks. During these upgrades, different nodes may run different versions of the code, so data must maintain **backward compatibility** (new code can read old data) and **forward compatibility** (old code can read new data).  
+
+**Data encoding formats:**  
+- **Language-specific encodings**: restricted to one language, often lack compatibility.  
+- **Textual formats (JSON, XML, CSV)**: widely used; optional schemas; somewhat vague about datatypes.  
+- **Binary schema-driven formats (Thrift, Protocol Buffers, Avro)**: compact, efficient, with clear forward/backward compatibility; good for documentation and code generation; not human-readable without decoding.  
+
+**Modes of dataflow:**  
+- **Databases**: writer encodes, reader decodes.  
+- **RPC/REST APIs**: client encodes request, server decodes request and encodes response, client decodes response.  
+- **Asynchronous messaging (message brokers, actors)**: sender encodes messages, recipient decodes them.  
+
+With careful design, backward/forward compatibility and rolling upgrades are achievable, enabling rapid evolution and frequent, safe deployments.
+
+
+# PART II Distributed Data
+
+**Reasons to Distribute a Database Across Multiple Machines**
+
+**Scalability**  
+When your data volume, read load, or write load grows beyond the capacity of a single machine, you can distribute the data across multiple machines. This allows the system to handle increased traffic and data more efficiently by spreading the workload.
+
+**Fault Tolerance / High Availability**  
+To ensure the application remains operational even if one or more machines fail, multiple machines can be used to provide redundancy. If one node or datacenter goes down, another can take over, preventing downtime and data loss.
+
+**Latency**  
+For applications with a global user base, deploying servers in multiple geographic locations helps reduce latency. Users can connect to the datacenter closest to them, avoiding the delays caused by long-distance network communication.
+
+## Scaling to Higher Load
+
+If all you need is to scale to higher load, the simplest approach is to buy a more powerful machine 
+The problem with a shared-memory approach is that the cost grows faster than linearly: a machine with twice as many CPUs, twice as much RAM, and twice as much disk capacity as another typically costs significantly more than twice as much. And due to bottlenecks, a machine twice the size cannot necessarily handle twice the load.
+
+Another approach is the shared-disk architecture, which uses several machines with independent CPUs and RAM, but stores data on an array of disks that is shared between the machines, which are connected via a fast network
+
+#### Shared-Nothing Architectures
+
+By contrast, shared-nothing architectures [3] (sometimes called horizontal scaling or scaling out) have gained a lot of popularity. In this approach, each machine or virtual machine running the database software is called a node. Each node uses its CPUs, RAM, and disks independently. Any coordination between nodes is done at the software level, using a conventional network.
+
+No special hardware is required by a shared-nothing system, so you can use whatever machines have the best price/performance ratio. You can potentially distribute data across multiple geographic regions, and thus reduce latency for users and potentially be able to survive the loss of an entire datacenter
+
+While a distributed shared-nothing architecture has many advantages, it usually also
+incurs additional complexity for applications and sometimes limits the expressiveness
+of the data models you can use
+
+#### Replication Versus Partitioning
+
+There are two common ways data is distributed across multiple nodes:  
+
+Replication  
+Keeping a copy of the same data on several different nodes, potentially in different locations. Replication provides redundancy: if some nodes are unavailable, the data can still be served from the remaining nodes. Replication can also help improve performance. We discuss replication in Chapter 5.  
+
+Partitioning  
+Splitting a big database into smaller subsets called partitions so that different partitions can be assigned to different nodes (also known as sharding). We discuss partitioning in Chapter 6.
+## CHAPTER 5 Replication
+
+Replication means keeping a copy of the same data on multiple machines that are connected via a network
+
+• To keep data geographically close to your users (and thus reduce latency)
+• To allow the system to continue working even if some of its parts have failed (and thus increase availability)
+• To scale out the number of machines that can serve read queries (and thus increase read throughput)
+
+If the data that you’re replicating does not change over time, then replication is easy: you just need to copy the data to every node once, and you’re done. **==All of the difficulty in replication lies in handling changes to replicated data==**
+
+There are many trade-offs to consider with replication: for example, whether to use synchronous or asynchronous replication, and how to handle failed replicas. Those are often configuration options in databases, and although the details vary by database, the general principles are similar across many different implementations
+
+### Leaders and Followers
+
+Each node that stores a copy of the database is called a replica. With multiple replicas, a question inevitably arises: how do we ensure that all the data ends up on all the replicas? 
+
+Every write to the database needs to be processed by every replica; otherwise, the replicas would no longer contain the same data. The most common solution for this is called leader-based replication
+
+1. **==One of the replicas is designated the leader (also known as master or primary). When clients want to write to the database, they must send their requests to the leader, which first writes the new data to its local storage.**==
+    
+2. ==**The other replicas are known as followers (read replicas, slaves, secondaries, or hot standbys). Whenever the leader writes new data to its local storage, it also sends the data change to all of its followers as part of a replication log or change stream. Each follower takes the log from the leader and updates its local copy of the database accordingly, by applying all writes in the same order as they were processed on the leader.==**
+
+3. ==**When a client wants to read from the database, it can query either the leader or any of the followers==**
+
+![[Pasted image 20251016164858.png]]
+
+#### Synchronous Versus Asynchronous Replication
+
+An important detail of a replicated system is whether the replication happens synchronously or asynchronously
+
+**==The advantage of synchronous replication is that the follower is guaranteed to have an up-to-date copy of the data that is consistent with the leader. If the leader suddenly fails, we can be sure that the data is still available on the follower. The disadvantage is that if the synchronous follower doesn’t respond (because it has crashed, or there is a network fault, or for any other reason), the write cannot be processed. The leader must block all writes and wait until the synchronous replica is available again.==**
+
+For that reason, it is impractical for all followers to be synchronous: any one node outage would cause the whole system to grind to a halt. In practice, if you enable synchronous replication on a database, it usually means that one of the followers is synchronous, and the others are asynchronous. If the synchronous follower becomes unavailable or slow, one of the asynchronous followers is made synchronous. This guarantees that you have an up-to-date copy of the data on at least two nodes: the leader and one synchronous follower. This configuration is sometimes also called semi-synchronous 
+
+#### Setting Up New Followers
+
+From time to time, you need to set up new followers—perhaps to increase the number of replicas, or to replace failed nodes. How do you ensure that the new follower has an accurate copy of the leader’s data?  
+Simply copying data files from one node to another is typically not sufficient: clients are constantly writing to the database, and the data is always in flux, so a standard file copy would see different parts of the database at different points in time. The result might not make any sense.  
+
+You could make the files on disk consistent by locking the database (making it unavailable for writes), but that would go against our goal of high availability. Fortunately, setting up a follower can usually be done without downtime. Conceptually, the process looks like this:
+
+1. ==**Take a consistent snapshot of the leader’s database at some point in time—if possible, without taking a lock on the entire database.**==
+    
+2. ==**Copy the snapshot to the new follower node.**==
+    
+3. ==**The follower connects to the leader and requests all the data changes that have happened since the snapshot was taken. This requires that the snapshot is associated with an exact position in the leader’s replication log. That position has various names: for example, PostgreSQL calls it the log sequence number, and MySQL calls it the bin log coordinates.**==
+    
+4. ==**When the follower has processed the backlog of data changes since the snapshot, we say it has caught up. It can now continue to process data changes from the leader as they happen.==**
+
+#### Handling Node Outages
+
+Any node in the system can go down, perhaps unexpectedly due to a fault, but just as likely due to planned maintenance (for example, rebooting a machine to install a kernel security patch). Being able to reboot individual nodes without downtime is a big advantage for operations and maintenance. Thus, our goal is to keep the system as a whole running despite individual node failures, and to keep the impact of a node outage as small as possible.
+
+**Follower failure: Catch-up recovery**
+
+On its local disk, each follower keeps a log of the data changes it has received from the leader. If a follower crashes and is restarted, or if the network between the leader and the follower is temporarily interrupted, the follower can recover quite easily: from its log, **==it knows the last transaction that was processed before the fault occurred. Thus, the follower can connect to the leader and request all the data changes that occurred during the time when the follower was disconnected.==** When it has applied these changes, it has caught up to the leader and can continue receiving a stream of data changes as before.
+
+**Leader failure: Failover**
+
+Handling a failure of the leader is trickier: one of the followers needs to be promoted to be the new leader, clients need to be reconfigured to send their writes to the new leader, and the other followers need to start consuming data changes from the new leader 
+An automatic failover process usually involves:
+
+1. **Detecting leader failure:** Nodes monitor each other, and if the leader doesn’t respond within a timeout (e.g., 30 seconds), it’s assumed to have failed.
+    
+2. **Selecting a new leader:** The most up-to-date replica is chosen, either through an election or by a controller node.
+    
+3. **Reconfiguring the system:** Clients redirect writes to the new leader, and the old leader becomes a follower if it recovers.
+
+Failover is fraught with things that can go wrong:
+
+• With **asynchronous replication**, the new leader may miss some writes from the old leader. Those un-replicated writes are usually discarded, which can break durability guarantees.  
+• **Discarding writes** is risky if other systems must stay in sync with the database.  
+• A **split brain** can occur when two nodes both think they’re the leader, leading to conflicting writes and possible data loss. Some systems shut down one node to prevent this, but poor design can cause both to shut down.  
+• **Choosing the right timeout** is tricky: too long delays recovery, too short causes false failovers due to temporary load spikes or network issues.
+
+#### Implementation of Replication Logs
+
+How does leader-based replication work under the hood? Several different replication methods are used in practice, so let’s look at each one briefly.
+**Statement-based replication**
+
+In the simplest case, the leader logs every write request (statement) that it executes and sends that statement log to its followers. For a relational database, this means that every INSERT, UPDATE, or DELETE statement is forwarded to followers, and each follower parses and executes that SQL statement as if it had been received from a client.
+
+• **Nondeterministic functions** like `NOW()` or `RAND()` can produce different results on each replica.  
+• **Autoincrement columns** or queries depending on existing data must run in the same order across replicas; otherwise, results may diverge.  
+• **Statements with side effects** (triggers, stored procedures, user-defined functions) can behave differently on replicas unless they are fully deterministic.
+
+**Write-ahead log (WAL) shipping**
+
+• For a **log-structured storage engine** (SSTables and LSM-Trees), the log is the main storage. Log segments are compacted and garbage-collected in the background.  
+• For a **B-tree**, which overwrites disk blocks, every modification is first written to a write-ahead log to ensure consistency after a crash.  
+In both cases, the log is an append-only sequence of all writes. The leader writes it to disk and also sends it to followers, allowing them to build an identical copy of the data structures.
+
+This method of replication is used in PostgreSQL and Oracle, among others. The main disadvantage is that the log describes the data on a very low level: a WAL contains details of which bytes were changed in which disk blocks. This makes replication closely coupled to the storage engine. If the database changes its storage format from one version to another, it is typically not possible to run different versions of the database software on the leader and the followers.
+
+**Logical (row-based) log replication**
+
+A logical log for a relational database is typically a sequence of records describing writes to tables at the row level:  
+• **Inserted row:** log contains the new values of all columns.  
+• **Deleted row:** log contains enough information to uniquely identify the row, usually the primary key, or all column values if no primary key exists.  
+• **Updated row:** log contains enough information to identify the row and the new values of all changed columns.
+
+A transaction modifying multiple rows generates multiple log records, followed by a commit record. MySQL’s bin log (with row-based replication) follows this approach. Since a logical log is independent of storage engine internals, it can support backward compatibility, allowing the leader and follower to run different database versions or storage engines.
+
+### Problems with Replication Lag
+
+Being able to tolerate node failures is just one reason for wanting replication. other reasons are scalability and latency
+
+Leader-based replication requires all writes to go through a single node, but read only queries can go to any replica. For workloads that consist of mostly reads and only a small percentage of writes (a common pattern on the web), there is an attractive option: create many followers, and distribute the read requests across those followers. This removes load from the leader and allows read requests to be served by nearby replicas.
+
+In this read-scaling architecture, you can increase the capacity for serving read-only requests simply by adding more followers. However, this approach only realistically works with asynchronous replication—if you tried to synchronously replicate to all followers, a single node failure or network outage would make the entire system unavailable for writing. And the more nodes you have, the likelier it is that one will be down, so a fully synchronous configuration would be very unreliable.
+
+Unfortunately, if an application reads from an asynchronous follower, it may see outdated information if the follower has fallen behind. This leads to apparent inconsistencies in the database: if you run the same query on the leader and a follower at the same time, you may get different results, because not all writes have been reflected in the follower. This inconsistency is just a temporary state—if you stop writing to the database and wait a while, the followers will eventually catch up and become consistent with the leader
+
+#### Reading Your Own Writes
+
+Many applications let the user submit some data and then view what they have submitted. This might be a record in a customer database, or a comment on a discussion thread, or something else of that sort. When new data is submitted, it must be sent to the leader, but when the user views the data, it can be read from a follower. This is especially appropriate if data is frequently viewed but only occasionally written.
+
+if the user views the data shortly after making a write, the new data may not yet have reached the replica. To the user, it looks as though the data they submitted was lost, so they will be understandably unhappy. 
+
+![[Pasted image 20251016205052.png]]
+
+**==In this situation, we need read-after-write consistency, also known as read-your-writes consistency. This is a guarantee that if the user reloads the page, they will always see any updates they submitted themselves. It makes no promises about other users: other users’ updates may not be visible until some later time. However, it reassures the user that their own input has been saved correctly.==**
+
+• **Read from the leader** if the data may have been modified by the user; otherwise, read from a follower. This requires knowing which data might have changed without querying it.  
+• If most data is editable, reading from the leader for everything reduces read scaling benefits. Alternative criteria, like reading from the leader for a short time after the last update, can be used.  
+• The client can track the timestamp of its most recent write to ensure reads reflect updates at least until that time. If a replica isn’t up to date, the read can be redirected or delayed until it catches up. Timestamps can be logical (e.g., log sequence numbers) or based on system clocks (requiring synchronization).  
+• With replicas in multiple datacenters, requests needing the leader must be routed to the datacenter hosting the leader, adding routing complexity.
+
+Another complication arises when the same user is accessing your service from multiple devices, for example a desktop web browser and a mobile app. In this case you may want to provide cross-device read-after-write consistency: if the user enters some information on one device and then views it on another device, they should see the information they just entered.
+
+**==• Tracking the timestamp of a user’s last update is harder across multiple devices, since one device may not know updates made on another. This metadata needs to be centralized.**==  
+==**• With replicas in different datacenters, there’s no guarantee that requests from different devices will reach the same datacenter.==**
+
+#### Monotonic Reads
+
+when reading from asynchronous followers is that it’s possible for a user to see things moving backward in time. This can happen if a user makes several reads from different replicas
+
+**==Monotonic reads is a guarantee that this kind of anomaly does not happen. It’s a lesser guarantee than strong consistency, but a stronger guarantee than eventual consistency. When you read data, you may see an old value; monotonic reads only means that if one user makes several reads in sequence, they will not see time go backward— i.e., they will not read older data after having previously read newer data.==**
+
+#### Consistent Prefix Reads
+
+Preventing this anomaly requires **consistent prefix reads**, which ensure that a sequence of writes is always seen in the same order by readers. This issue is common in partitioned (sharded) databases. If writes are applied in the same order, reads see a consistent prefix and the anomaly is avoided. However, many distributed databases have partitions that operate independently, so there’s no global write ordering; a user may see some parts of the database updated while others are stale. One solution is to write causally related updates to the same partition, though this is not always efficient.
+
+#### Solutions for Replication Lag
+
+When using an eventually consistent system, consider how the application behaves if replication lag grows to minutes or hours. If this doesn’t affect users, it’s fine. Otherwise, the system may need stronger guarantees, like **read-after-write**. Treating asynchronous replication as synchronous can lead to problems.
+
+Applications can sometimes enforce stronger guarantees by reading from the leader, but handling this in code is complex and error-prone. Ideally, developers shouldn’t need to manage replication subtleties themselves—this is where **transactions** come in, providing stronger guarantees and simplifying application logic.
+
+While single-node transactions are well-established, many distributed systems have moved away from them, arguing that transactions are costly for performance and availability, and claiming that eventual consistency is inevitable in scalable systems.
+
+### Multi-Leader Replication
+
+Leader-based replication has a key limitation: all writes must go through a single leader. If the leader becomes unreachable, for example due to a network issue, writes cannot proceed.
+
+A natural extension is **multi-leader replication** (also called master–master or active/active), where multiple nodes can accept writes. Each node that processes a write forwards the change to all other nodes. In this setup, each leader also acts as a follower to the other leaders.
+
+#### Use Cases for Multi-Leader Replication
+
+It rarely makes sense to use a multi-leader setup within a single datacenter, because the benefits rarely outweigh the added complexity. However, there are some situations in which this configuration is reasonable.
+
+**Multi-datacenter operation**
+
+In a multi-leader configuration, you can have a leader in each datacenter. Figure 5-6 shows what this architecture might look like. Within each datacenter, regular leader– follower replication is used; between datacenters, each datacenter’s leader replicates its changes to the leaders in other datacenters.
+
+![[Pasted image 20251016210457.png]]
+
+**Comparison of Single-Leader vs. Multi-Leader in Multi-Datacenter Deployments**
+
+**Performance**
+
+- _Single-leader:_ Every write must travel to the datacenter hosting the leader, adding latency and reducing the benefit of multiple datacenters.
+    
+- _Multi-leader:_ Writes can be processed locally in each datacenter and replicated asynchronously to others, hiding inter-datacenter delays and improving perceived performance.
+    
+
+**Tolerance of Datacenter Outages**
+
+- _Single-leader:_ If the leader’s datacenter fails, failover promotes a follower elsewhere to become leader.
+    
+- _Multi-leader:_ Each datacenter continues independently; replication catches up when the failed datacenter returns.
+    
+
+**Tolerance of Network Problems**
+
+- _Single-leader:_ Sensitive to inter-datacenter network issues because writes depend on synchronous communication.
+    
+- _Multi-leader:_ Asynchronous replication allows continued operation despite network problems between datacenters.
+
+**Clients with offline operation**
+Another situation in which multi-leader replication is appropriate is if you have an application that needs to continue to work while it is disconnected from the internet.
+
+**Collaborative editing**
+
+Real-time collaborative editing applications allow several people to edit a document simultaneously
+
+This is similar to the offline editing scenario: when a user edits a document, changes are applied immediately to their local replica and asynchronously replicated to the server and other users.
+
+To prevent editing conflicts, the application must lock the document before editing. Other users must wait until the lock is released after changes are committed. This model is analogous to **single-leader replication with transactions on the leader**.
+
+#### Handling Write Conflicts
+
+**==The biggest problem with multi-leader replication is that write conflicts can occur, which means that conflict resolution is required.==**
+
+**Synchronous vs. Asynchronous Conflict Detection**
+
+- In a **single-leader database**, a second write either blocks until the first completes or aborts, forcing a retry.
+    
+- In a **multi-leader setup**, both writes succeed initially, and conflicts are detected asynchronously later, potentially too late for user intervention.
+    
+- Making conflict detection synchronous (waiting for replication to all nodes) negates the main advantage of multi-leader replication—independent writes at each replica—so at that point, single-leader replication would be simpler.
+    
+
+**Conflict Avoidance**
+
+- The simplest strategy is to avoid conflicts by ensuring all writes for a record go through the same leader. Since many multi-leader systems handle conflicts poorly, avoiding them is often the recommended approach.
+
+**Custom conflict resolution logic**
+
+Most multi-leader replication systems let applications handle conflict resolution, which can occur **on write** or **on read**:
+
+**On write**
+
+- The conflict handler is invoked as soon as the system detects a conflict in the replication log.
+    
+- It runs in the background and must execute quickly; it typically cannot prompt the user.
+    
+- Example: Bucardo allows writing a Perl snippet for this purpose.
+    
+
+**On read**
+
+- Conflicting writes are stored, and when the data is next read, all versions are returned.
+    
+- The application can prompt the user or resolve the conflict automatically, then write the result back.
+    
+- Example: CouchDB uses this approach.
+    
+
+Conflict resolution generally applies at the **row or document level**, not across an entire transaction. Multiple writes within a transaction are treated individually for conflict resolution.
+
+#### Multi-Leader Replication Topologies
+
+**==A replication topology describes the communication paths along which writes are propagated from one node to another==** 
+
+![[Pasted image 20251016211400.png]]
+
+The most general topology is **all-to-all**, where every leader sends writes to every other leader. However, **circular** and **star topologies** are also used.
+
+In circular and star topologies, a write may pass through multiple nodes to reach all replicas. Nodes forward changes they receive, and each write is tagged with the identifiers of nodes it has passed through to prevent infinite loops. If a node fails, it can block replication between other nodes until fixed. Reconfiguring around the failed node is possible but usually requires manual intervention.
+
+All-to-all topologies have better fault tolerance since messages can take multiple paths, avoiding a single point of failure. However, they can still face issues if some network links are slower than others.
+
+### Leaderless Replication
+
+Single-leader and multi-leader replication rely on a leader node that receives client writes and determines their order, with followers applying the writes in the same order.
+
+Some systems take a **leaderless** approach, allowing any replica to accept writes directly. Early replicated systems used this model, but it was largely forgotten during the rise of relational databases and has recently regained popularity. In leaderless systems, clients may send writes to multiple replicas directly, or a coordinator node may do so, but no node enforces a global write order. This design difference has significant implications for how the database is used.
+
+#### Writing to the Database When a Node Is Down
+
+To solve that problem, when a client reads from the database, it doesn’t just send its request to one replica: read requests are also sent to several nodes in parallel. The client may get different responses from different nodes; i.e., the up-to-date value from one node and a stale value from another. Version numbers are used to determine which value is newer
+
+#### Sloppy Quorums and Hinted Handoff
+
+Databases using quorums can tolerate node failures or slow nodes without full failover, making **leaderless replication** attractive for high-availability, low-latency use cases that can tolerate occasional stale reads.
+
+However, standard quorums aren’t fully fault-tolerant: network interruptions can prevent a client from reaching the nodes needed to form a quorum, even if those nodes are alive. In large clusters, a client may reach some nodes but not the designated ones for a particular value.
+
+**Trade-off:**
+
+- Return errors when a quorum cannot be reached.
+    
+- Accept writes on reachable nodes that aren’t the usual “home” nodes.
+    
+
+The latter is called a **sloppy quorum**: writes and reads still require w and r successful responses, but these may include non-home nodes. Once the network is restored, **hinted handoff** moves those writes to their proper home nodes.
+
+Sloppy quorums increase write availability, but they don’t guarantee that a read sees the latest value until hinted handoff completes. They provide durability assurance (data exists on w nodes somewhere) rather than traditional quorum guarantees.
+
+- In Riak, sloppy quorums are enabled by default.
+    
+- In Cassandra and Voldemort, they are disabled by default.
+
+#### Detecting Concurrent Writes
+
+Dynamo-style databases allow multiple clients to write concurrently to the same key, so conflicts are inevitable, even with strict quorums. This resembles **multi-leader replication**, but conflicts can also arise during **read repair** or **hinted handoff**.
+
+Conflicts occur because events may arrive in different orders at different nodes due to network delays or partial failures. For example, with two clients, A and B, writing to key X in a three-node cluster:
+
+- Node 1 receives A but misses B.
+    
+- Node 2 receives A then B.
+    
+- Node 3 receives B then A.
+    
+
+If no resolution occurs, nodes become permanently inconsistent: node 2 might consider X = B, while nodes 1 and 3 see X = A.
+
+To achieve **eventual consistency**, replicas must converge to the same value. However, most implementations handle this poorly, so developers must understand the database’s conflict-handling mechanisms to avoid data loss. Conflict resolution techniques, briefly mentioned earlier, are crucial in **leaderless** systems.
+
+### Summary 
+
+Replication serves several purposes:
+
+- **High availability:** Keeps the system running even if machines or entire datacenters fail.
+    
+- **Disconnected operation:** Allows applications to function during network interruptions.
+    
+- **Latency:** Stores data closer to users for faster interactions.
+    
+- **Scalability:** Enables higher read volumes by using replicas.
+    
+
+Despite its apparent simplicity, replication is complex, requiring careful handling of concurrency, unavailable nodes, network interruptions, and potential faults like silent data corruption.
+
+**Main approaches to replication:**
+
+- **Single-leader replication:** All writes go to a single leader, which propagates changes to followers. Reads from followers may be stale.
+    
+- **Multi-leader replication:** Multiple leaders accept writes and propagate changes to each other and followers. Conflicts can occur.
+    
+- **Leaderless replication:** Clients write to and read from several nodes in parallel to detect and correct stale data.
+    
+
+Each approach has trade-offs: single-leader is simple and avoids conflicts; multi-leader and leaderless can be more robust but provide weaker consistency guarantees.
+
+Replication can be **synchronous or asynchronous**, which affects behavior during faults. Asynchronous replication is fast but can risk data loss if a leader fails and a follower is promoted before catching up.
+
+**Consistency models helpful under replication lag:**
+
+- **Read-after-write:** Users always see their own submitted data.
+    
+- **Monotonic reads:** Users never see older data after seeing newer data.
+    
+- **Consistent prefix reads:** Users see data in a causally consistent order.
+    
+
+Multi-leader and leaderless replication introduce concurrency challenges. Conflicts may occur with concurrent writes, requiring mechanisms to determine the order of operations and merge updates.
+
+## CHAPTER 6 Partitioning
+
