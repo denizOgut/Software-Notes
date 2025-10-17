@@ -227,3 +227,121 @@ class Queue {
 
 # Linked List Implementation Of Queue
 
+Like an array, a linked list is another data structure that is the perfect candidate for implementing a queue. Unlike arrays, which have a fixed size and are used to implement **bounded** queues, linked lists can be as big as the computer memory permits, so they can be used to implement an **unbounded** queue.
+
+![[Pasted image 20251017110057.png]]
+
+Like arrays, a class can **encapsulate** all the state information needed to implement a queue using a linked list, along with the linked list itself and all the operations that can be performed on a queue. The fundamental idea is the same. However, the implementation is different.
+
+![[Pasted image 20251017110351.png]]
+
+```java
+/**
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ * };
+ */
+
+class Queue {
+    // Capacity of the queue (maximum number of elements it can hold)
+    public int capacity;
+    // Current number of elements in the queue
+    public int currentSize;
+    // Reference to the front of the queue
+    public ListNode head;
+    // Reference to the rear of the queue
+    public ListNode tail;
+
+    public Queue(int capacity) {
+        this.capacity = capacity;
+        currentSize = 0;
+        head = null;
+        tail = null;
+    }
+
+    public int size() {
+        // Returns the current number of elements in the queue
+        return currentSize;
+    }
+
+    public boolean empty() {
+        // Returns true if the queue is empty, false otherwise
+        return currentSize == 0;
+    }
+
+    public int front() {
+        // Returns -1 if the queue is empty
+        if (empty()) {
+            return -1;
+        }
+        // Returns the value of the element at the front of the queue
+        return head.val;
+    }
+
+    public int back() {
+        // Returns -1 if the queue is empty
+        if (empty()) {
+            return -1;
+        }
+        // Returns the value of the element at the back of the queue
+        return tail.val;
+    }
+
+    public boolean enqueue(int val) {
+        // Returns false if the queue is full and cannot enqueue more
+        // elements
+        if (currentSize == capacity) {
+            return false;
+        }
+        // Create a new node with the given val
+        ListNode newNode = new ListNode(val);
+        // If the queue is empty, the new node becomes both the front
+        // and rear node
+        if (empty()) {
+            head = newNode;
+            tail = newNode;
+        }
+        // Otherwise, add the new node to the end of the queue and update
+        // the tail reference
+        else {
+            // Add the new node to the end of the queue
+            tail.next = newNode;
+            // Update the tail reference to the new node
+            tail = newNode;
+        }
+        // Increase the current size of the queue
+        currentSize++;
+        // Return true to indicate successful enqueue operation
+        return true;
+    }
+
+    public int dequeue() {
+        // Returns -1 if the queue is empty and cannot dequeue any
+        // elements
+        if (empty()) {
+            return -1;
+        }
+        // Create a temporary reference to the front node
+        ListNode frontNode = head;
+        // Get the value of the front node
+        int dequeuedData = frontNode.val;
+        // Update the front reference to the next node in the queue
+        head = head.next;
+        // Delete the previous front node
+        frontNode = null;
+        // If the front reference is null after dequeue, the queue
+        // becomes empty, so update the tail reference as well
+        if (head == null) {
+            tail = null;
+        }
+        // Decrease the current size of the queue
+        currentSize--;
+        // Return the dequeued value
+        return dequeuedData;
+    }
+}
+```
