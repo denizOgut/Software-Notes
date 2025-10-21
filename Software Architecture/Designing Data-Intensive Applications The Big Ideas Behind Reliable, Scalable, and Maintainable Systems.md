@@ -1966,3 +1966,929 @@ Partitioning aims to **evenly distribute data and query load** across nodes to a
 
 **Caution:** Each partition operates mostly independently, so multi-partition writes can fail partially, making reasoning about consistency more difficult.
 
+## CHAPTER 7 Transactions
+
+**In the harsh reality of data systems, many things can go wrong:**
+
+- Database software or hardware can fail anytime — even mid-write.
+    
+- Applications might crash during multi-step operations.
+    
+- Network interruptions can disconnect applications or database nodes.
+    
+- Multiple clients may write simultaneously, overwriting each other’s data.
+    
+- Clients might read partially updated or inconsistent data.
+    
+- Race conditions between clients can lead to unpredictable bugs.
+
+A transaction groups multiple reads and writes into a single logical unit. Conceptually, all operations in a transaction execute as one:
+
+- If successful → **commit**
+    
+- If something fails → **abort (rollback)**
+    
+
+This ensures that applications don’t have to deal with partial failures and can safely retry when errors occur.
+
+
+Not every application requires transactions, and in some cases, relaxing or removing transactional guarantees can offer benefits like higher performance or availability. Certain safety properties can still be maintained without full transactions.
+
+To determine whether transactions are necessary, it’s important to understand the specific **safety guarantees** they provide and the **costs** that come with them.
+
+### The Slippery Concept of a Transaction
+
+#### The Meaning of ACID
+
+in practice, one database’s implementation of ACID does not equal another’s implementation.
+
+**Atomicity**
+In general, atomic refers to something that cannot be broken down into smaller parts
+
+For example, in multi-threaded programming, if one thread performs an **atomic operation**, no other thread can observe a half-finished result. The system is either in the state before or after the operation — never in between.
+
+In contrast, within the **ACID** context, atomicity isn’t about concurrency or multiple processes accessing the same data.
+
+==**Rather, ACID atomicity describes what happens if a client wants to make several writes, but a fault occurs after some of the writes have been processed.**==
+
+If these writes are grouped into an atomic transaction and the transaction cannot be completed (committed) due to a fault, the database **aborts the transaction** and **discards or rolls back** any partial changes made so far.
+
+The ability to abort a transaction on error and have all writes from that transaction discarded is the defining feature of ACID atomicity.
+
+**Consistency**
+
+The idea of **ACID consistency** is that certain statements about the data—called **invariants**—must always hold true. For example, in an accounting system, **total credits and debits must always balance**.
+
+If a transaction begins with a valid database state and its operations preserve these invariants, the database remains consistent. However, this concept of consistency depends entirely on the **application’s logic**. It’s the **application’s responsibility** to design transactions that maintain validity.
+
+==**Atomicity, isolation, and durability are properties of the database, whereas consistency (in the ACID sense) is a property of the application.**==
+
+**Isolation**
+
+Most databases handle requests from multiple clients simultaneously. This works fine when clients read and write to **different parts** of the database. However, when they access the **same records**, **concurrency issues** can arise.
+
+**Isolation** in the context of ACID ensures that concurrently running transactions **don’t interfere** with each other. In database theory, this is formalized as **serializability**, meaning each transaction behaves **as if it were the only one** running on the database.
+
+The database guarantees that once all transactions are committed, the **final result** is the same as if they had executed **one after another** (serially).
+
+**Durability**
+
+The purpose of a database system is to provide a **safe place** to store data without the risk of losing it.
+
+**Durability is the promise that once a transaction has committed successfully, any data it has written will not be forgotten, even if there is a hardware fault or the database crashes.**
+
+In a **single-node database**, durability means data is written to **nonvolatile storage** (like HDDs or SSDs) and often recorded in a **write-ahead log (WAL)** for recovery if corruption occurs.
+
+In a **replicated database**, durability means the data has been **copied to multiple nodes**. To ensure this guarantee, the database must **wait until all writes or replications complete** before confirming a transaction as successfully committed.
+
+#### Single-Object and Multi-Object Operations
+
+Multi-object transactions need a mechanism to identify which read and write operations belong to the same transaction. In **relational databases**, this is usually tied to the client’s **TCP connection** — everything between `BEGIN TRANSACTION` and `COMMIT` is treated as one transaction.
+
+In contrast, many **nonrelational databases** lack such grouping mechanisms. Even if they support multi-object operations (like a key-value store’s `multi-put`), these do not always ensure full transaction semantics — some writes may succeed while others fail, leaving partial updates.
+
+**Single-object writes** still rely on **atomicity** and **isolation**. Most storage engines ensure this by:
+
+- Using **logs** for crash recovery (atomicity)
+    
+- Using **locks** to prevent concurrent access (isolation)
+    
+
+Some databases extend this with operations like **increment** or **compare-and-set**, which eliminate the need for a full read-modify-write cycle and help prevent **lost updates** when multiple clients write to the same object.
+
+However, these **single-object operations are not true transactions**. While sometimes marketed as “lightweight transactions” or even “ACID,” this is misleading — genuine transactions group **multiple operations on multiple objects** into a single, atomic unit of work.
+
+
+**The need for multi-object transactions**
+
+Multi-object transactions are challenging to implement across partitions and can sometimes hinder systems that require extremely high availability or performance. Still, there’s **no fundamental barrier** to having transactions in a distributed database — implementations of **distributed transactions** are discussed in Chapter 9.
+
+But do we really need multi-object transactions? Could every application be built using only a **key-value model** with **single-object operations**?
+
+While some cases work fine with single-object inserts, updates, or deletes, many real-world scenarios require **coordinated writes** across multiple objects:
+
+- In a **relational model**, a row in one table often references another via a **foreign key**. Multi-object transactions ensure these references remain valid — when inserting or updating related records, the foreign keys must be consistent or the data becomes meaningless.
+    
+- In a **document model**, fields that need to change together usually reside within one document (a single object), so transactions may not be necessary. However, since document databases often encourage **denormalization**, updating duplicated information across documents requires multi-object transactions to avoid inconsistencies.
+    
+- In **databases with secondary indexes**, every update must also modify the related indexes — separate database objects from a transaction’s perspective. Without transaction isolation, you might see a record appear in one index but not another.
+    
+
+Applications **can** be built without transactions, but doing so makes **error handling complex** and introduces **concurrency risks** due to the absence of atomicity and isolation.**
+
+**Handling errors and aborts**
+
+A key feature of a transaction is that it can be **aborted and safely retried** if an error occurs. ACID databases follow this principle: if executing a transaction risks violating **atomicity, isolation, or durability**, the database will **abort the transaction** rather than leave it half-finished.
+
+However, this retry mechanism has limitations:
+
+- If the transaction actually succeeded but the **network failed** while acknowledging the commit, retrying may **perform the transaction twice**, unless you have **application-level deduplication**.
+    
+- If the error is due to **overload**, retrying can worsen the problem. To prevent feedback loops, use **retry limits**, **exponential back off**, and differentiate **overload errors** from other transient errors.
+    
+- Retry is only useful for **transient errors** (e.g., deadlocks, isolation violations, temporary network interruptions). For **permanent errors** (like constraint violations), retrying is pointless.
+    
+- Transactions with **side effects outside the database** may still execute those effects even if aborted. For instance, sending an email should not repeat on every retry.
+    
+- If you need multiple systems to **commit or abort together**, **two-phase commit** can help coordinate them.
+    
+- If the **client process fails** during retry, any data it was writing may be lost.
+
+### Weak Isolation Levels
+
+If two transactions access **different data**, they can safely run in parallel, since neither depends on the other. **Concurrency issues** (race conditions) only arise when one transaction reads data being modified by another, or when two transactions try to **modify the same data simultaneously**.
+
+These bugs are difficult to detect through testing because they depend on unlucky timing.
+
+To address this, databases provide **transaction isolation**, which aims to **hide concurrency from the application**. In theory, **serializable isolation** ensures transactions behave **as if they ran one at a time**, without interference.
+
+In practice, full serializable isolation comes with a **performance cost**, so many databases use **weaker isolation levels**. These protect against some concurrency issues but not all, making them **harder to reason about** and prone to subtle bugs.
+
+Weak isolation has real-world consequences: it has **caused financial losses, auditor investigations, and data corruption**. While ACID databases are recommended for financial data, many popular relational systems use **weaker isolation by default**, so ACID compliance alone doesn’t always prevent concurrency bugs.
+
+#### Read Committed
+
+The **most basic level** of transaction isolation is **read committed**. It provides two guarantees:
+
+1. When reading, you only see **committed data** (**no dirty reads**).
+    
+2. When writing, you only overwrite **committed data** (**no dirty writes**).
+    
+
+**No dirty reads**  
+==**Imagine a transaction has written some data to the database, but the transaction has not yet committed or aborted. Can another transaction see that uncommitted data? If yes, that is called a dirty read.**==
+
+Transactions at the **read committed** level prevent dirty reads by making sure **writes only become visible after the transaction commits**.
+
+There are a few reasons why it’s useful to prevent dirty reads:
+
+• If a transaction needs to update several objects, a dirty read means that another transaction may see some of the updates but not others
+• If a transaction aborts, any writes it has made need to be rolled back
+
+**No dirty writes**
+
+What happens if two transactions try to update the same object concurrently? Normally, the later write **overwrites the earlier write**.
+
+==**However, what happens if the earlier write is part of a transaction that has not yet committed, so the later write overwrites an uncommitted value? This is called a dirty write.**==
+
+Transactions at the **read committed** level prevent dirty writes, typically by **delaying the second write** until the first transaction has either **committed or aborted**.
+
+By preventing dirty writes, this isolation level avoids some concurrency problems:
+
+- If transactions update multiple objects, dirty writes can cause incorrect results.
+    
+- However, read committed **does not prevent race conditions**, such as two counter increments happening sequentially after the first transaction commits — it’s still incorrect, but for a different reason.
+
+#### Snapshot Isolation and Repeatable Read
+
+If you look superficially at **read committed** isolation, you might think it handles all transactional needs: it allows **aborts** (for atomicity), prevents reading incomplete transaction results, and stops concurrent writes from intermingling. These are useful features and stronger than a system without transactions.
+
+However, there are still many ways **concurrency bugs** can occur at this isolation level.
+
+==**This anomaly is called a nonrepeatable read or read skew:** if Alice reads the balance of account 1 again later in the transaction, she might see a different value ($600) than before. Read skew is **acceptable under read committed** — the balances Alice saw were indeed committed at the time of her read.==
+
+**Backups**  
+Taking a backup requires copying the entire database, which can take hours. During this time, **writes continue**, so some parts of the backup may have **older data** while others have **newer data**. Restoring from such a backup can create **permanent inconsistencies** (e.g., disappearing money).
+
+**Analytic queries and integrity checks**  
+Queries that scan large portions of the database — common in **analytics** or **periodic integrity checks** — may return **nonsensical results** if they see parts of the database at different times.
+
+==**Snapshot isolation** is the most common solution. Each transaction reads from a **consistent snapshot** of the database, seeing all data **committed at the start of the transaction**, even if other transactions modify data later.==
+
+#### Preventing Lost Updates
+
+The **read committed** and **snapshot isolation** levels discussed so far focus mainly on **what read-only transactions see** during concurrent writes. They don’t fully address **concurrent writes** themselves.
+
+One common conflict between concurrently writing transactions is the **lost update problem**.
+
+The **lost update problem** occurs when an application performs a **read-modify-write cycle**: it reads a value, modifies it, and writes it back. If two transactions do this at the same time, one modification can be **overwritten** by the other, causing a lost update. Examples include:
+
+- Incrementing a **counter** or updating an **account balance**
+    
+- Making a local change to a **complex value** (e.g., adding an element to a JSON list)
+    
+- Two users editing a **wiki page** simultaneously, each sending the full page back
+    
+
+To prevent this, many databases offer **atomic write operations**, eliminating the need for manual read-modify-write cycles in application code. These operations are often the most effective solution when your logic can be expressed using them.
+
+**Atomic write operations**
+
+Many databases offer **atomic update operations**, which eliminate the need for manual **read-modify-write cycles** in application code. These are often the best solution when your logic can be expressed using them. For example, this instruction is **concurrency-safe** in most relational databases:
+
+```sql
+UPDATE counters SET value = value + 1 WHERE key = 'foo';
+```
+
+Atomic operations are typically implemented by taking an **exclusive lock** on the object when it’s read, preventing other transactions from accessing it until the update completes. This technique is sometimes called **cursor stability**.
+
+Alternatively, some systems ensure atomicity by executing all such operations on a **single thread**.
+
+**Explicit locking**
+
+If built-in atomic operations aren’t sufficient, an application can **explicitly lock objects** before updating them. This allows a safe **read-modify-write cycle**: any other transaction attempting to access the locked object must wait until the first transaction completes.
+
+Example in SQL:
+
+```sql
+BEGIN TRANSACTION;
+SELECT * FROM figures
+WHERE name = 'robot' AND game_id = 222
+FOR UPDATE;
+-- Check whether move is valid, then update the piece
+UPDATE figures SET position = 'c4' WHERE id = 1234;
+COMMIT;
+```
+
+The `FOR UPDATE` clause instructs the database to **lock all rows** returned by the query.
+
+This approach works, but it requires **careful application design**. Missing a necessary lock can easily introduce **race conditions**.
+
+**Automatically detecting lost updates**
+
+Instead of preventing lost updates with **atomic operations** or **locks**, another approach is to let read-modify-write cycles run **in parallel** and detect conflicts afterward. If a lost update is detected, the transaction is **aborted** and must **retry** its cycle.
+
+This method works efficiently with **snapshot isolation**. For example, PostgreSQL’s **repeatable read**, Oracle’s **serializable**, and SQL Server’s **snapshot isolation** automatically detect lost updates and abort the conflicting transaction.
+
+**Compare-and-set**
+
+In databases without full transaction support, an **atomic compare-and-set (CAS)** operation can help prevent **lost updates**. The update only occurs if the current value matches what was previously read. If it doesn’t match, the update fails, and the **read-modify-write cycle must be retried**.
+
+Example: preventing two users from concurrently updating the same wiki page:
+
+```sql
+-- May or may not be safe depending on the database
+UPDATE wiki_pages SET content = 'new content'
+WHERE id = 1234 AND content = 'old content';
+```
+
+If the content no longer matches `'old content'`, the update has no effect, so the application must **check the result** and **retry if necessary**.
+
+However, this approach can fail if the database reads from an **old snapshot**, because the condition may appear true even while another write is happening, failing to prevent lost updates.
+
+#### Write Skew and Phantoms
+
+**Characterizing write skew**
+
+This anomaly is called **write skew**. Unlike a dirty write or lost update, it occurs when **two transactions update different objects** (e.g., Alice’s and Bob’s on-call records). It’s a **race condition**: if the transactions had run sequentially, the second doctor would have been prevented from going off call. The anomaly only arises because the transactions run **concurrently**.
+
+Write skew can be seen as a generalization of the **lost update problem**. It happens when two transactions **read the same objects** but then update **different objects**. If they update the same object, it degenerates into a **dirty write** or **lost update**.
+
+Preventing write skew is harder than preventing lost updates:
+
+- **Atomic single-object operations** don’t help, since multiple objects are involved.
+    
+- **Automatic lost-update detection** in some snapshot isolation implementations doesn’t catch write skew (e.g., PostgreSQL repeatable read, MySQL/InnoDB repeatable read, Oracle serializable, SQL Server snapshot isolation). Preventing write skew requires **true serializable isolation**.
+    
+- Some databases allow **constraints** (uniqueness, foreign keys, value restrictions), but multi-object constraints like “at least one doctor must be on call” usually require **triggers or materialized views**.
+    
+- If serializable isolation isn’t available, the next best solution is **explicitly locking rows** the transaction depends on. Example:
+    
+
+```sql
+BEGIN TRANSACTION;
+SELECT * FROM doctors
+WHERE on_call = true
+AND shift_id = 1234
+FOR UPDATE;
+UPDATE doctors
+SET on_call = false
+WHERE name = 'Alice'
+AND shift_id = 1234;
+COMMIT;
+```
+
+Here, `FOR UPDATE` locks all selected rows, preventing concurrent modifications that could cause write skew.
+
+**Phantoms causing write skew**
+
+Many write skew examples follow this pattern:
+
+1. A `SELECT` query checks whether a condition is satisfied (e.g., at least two doctors on call, no existing bookings for a room, a board position is empty, the username is available, or there is sufficient account balance).
+    
+2. Based on the result, the application decides how to proceed — either performing the operation or aborting with an error.
+    
+3. If proceeding, the application performs a **write** (`INSERT`, `UPDATE`, or `DELETE`) and commits the transaction.
+    
+
+==**The effect of this write changes the precondition of the decision in step 2. In other words, if you were to repeat the SELECT query from step 1 after committing the write, you would get a different result, because the write changed the set of rows matching the search condition.**==
+
+**Materializing conflicts**
+
+If **phantoms** occur because there’s no object to lock, one solution is to **introduce an artificial lock object** in the database.
+
+For example, a transaction creating a booking can `SELECT FOR UPDATE` the rows corresponding to the desired **room and time period**. Once the locks are acquired, it can check for overlapping bookings and insert the new booking. The extra table is **not used to store booking data**, only to enforce locking.
+
+This method is called **materializing conflicts**, as it converts a phantom into a **lock conflict** on actual database rows. However, it can be **difficult and error-prone** to implement correctly and requires **exposing concurrency control** in the application’s data model, which is generally considered undesirable.
+
+### Serializability
+
+Serializable isolation is usually regarded as the strongest isolation level. It guarantees that even though transactions may execute in parallel, the end result is the same as if they had executed one at a time, serially, without any concurrency. Thus, the database guarantees that if the transactions behave correctly when run individually, they continue to be correct when run concurrently—**==in other words, the database prevents all possible race conditions==**
+
+#### Actual Serial Execution
+
+The simplest way of avoiding concurrency problems is to remove the concurrency entirely: to execute only one transaction at a time, in serial order, on a single thread. By doing so, we completely sidestep the problem of detecting and preventing conflicts between transactions: the resulting isolation is by definition serializable
+
+ A system designed for single-threaded execution can sometimes perform better than a system that supports concurrency, because it can avoid the coordination overhead of locking. However, its throughput is limited to that of a single CPU core. In order to make the most of that single thread, transactions need to be structured differently from their traditional form
+
+**Encapsulating transactions in stored procedures**
+
+systems with single-threaded serial transaction processing don’t allow interactive multi-statement transactions. Instead, the application must submit the entire transaction code to the database ahead of time, as a stored procedure
+
+**Pros and Cons of Stored Procedures**
+
+Stored procedures have been part of relational databases for decades and standardized in **SQL/PSM (since 1999)**. While powerful, they come with a mixed reputation due to several drawbacks:
+
+**Cons:**
+
+- Every database vendor has its **own stored procedure language** (PL/SQL, T-SQL, PL/pgSQL, etc.), which are **outdated**, verbose, and lack modern **language features and ecosystems**.
+    
+- Code inside the database is **harder to manage** — it’s difficult to debug, version control, deploy, test, and monitor compared to application code.
+    
+- The **database is a shared and performance-sensitive resource**. Poorly written stored procedures (e.g., high CPU or memory use) can degrade performance for all users.
+    
+
+**Pro:**  
+Despite the drawbacks, with **stored procedures and in-memory data**, it becomes **feasible to execute all transactions on a single thread**, improving consistency and potentially reducing contention.
+
+**Partitioning**
+
+Executing all transactions serially greatly simplifies **concurrency control**, but it also limits throughput to **a single CPU core on one machine**. While **read-only transactions** can still run elsewhere using **snapshot isolation**, applications with **high write throughput** can quickly hit a bottleneck — the single-threaded transaction processor becomes the limiting factor.
+
+**Summary of Serial Execution**  
+Serial execution offers a practical path to achieving **serializable isolation**, but only under strict constraints:
+
+- Each **transaction must be small and fast**, since a single slow transaction blocks all others.
+    
+- The **active dataset must fit in memory**; infrequently accessed data can reside on disk but will slow down single-threaded processing if accessed.
+    
+- **Write throughput** must be low enough for a single CPU core, or transactions must be **partitioned** to distribute the load without requiring cross-partition coordination.
+    
+- **Cross-partition transactions** are possible but inherently limited — they reduce the scalability benefits of partitioning.
+
+### Two-Phase Locking (2PL)
+
+Two-phase locking works similarly to other locking mechanisms but enforces **much stricter rules**. It allows **multiple transactions to read** the same object concurrently **as long as no one is writing** to it. However, once a transaction wants to **modify or delete** an object, it requires **exclusive access**:
+
+- If **Transaction A** has **read** an object and **Transaction B** wants to **write** to it, **B must wait** until **A commits or aborts**.  
+    _(This prevents B from changing the object behind A’s back.)_
+    
+- If **Transaction A** has **written** an object and **Transaction B** wants to **read** it, **B must also wait** until **A commits or aborts**.  
+    _(Unlike snapshot isolation, reading an old version is not allowed under 2PL.)_
+    
+
+In **two-phase locking**, **writers block readers** and **readers block writers** — a strict mutual exclusion.  
+By contrast, **snapshot isolation** follows the mantra:
+
+> _“Readers never block writers, and writers never block readers.”_
+
+This distinction is key: while **2PL** can reduce concurrency due to blocking, it also provides **true serializability**, protecting against **all race conditions** — including **lost updates** and **write skew**.
+
+**Implementation of two-phase locking**
+
+In **two-phase locking**, concurrency control is enforced through **locks** on each object in the database.  
+Each lock can be held in one of two modes:
+
+- **Shared mode (S-lock)** → allows **reading**
+    
+- **Exclusive mode (X-lock)** → allows **writing**
+    
+
+Here’s how it works:
+
+- 🔹 **Reading an object:**
+    
+    - The transaction must first **acquire a shared lock (S-lock)**.
+        
+    - **Multiple transactions** can hold shared locks on the same object **at the same time**,  
+        but if **any transaction already holds an exclusive lock**, others must **wait**.
+        
+- 🔹 **Writing an object:**
+    
+    - The transaction must **acquire an exclusive lock (X-lock)**.
+        
+    - **No other transaction** can hold a lock (shared or exclusive) on that object at the same time.
+        
+    - If there is an existing lock, the writer must **wait**.
+        
+- 🔹 **Read → Write upgrade:**
+    
+    - If a transaction first **reads** and later wants to **write** the same object,  
+        it must **upgrade its shared lock to an exclusive lock**, following the same waiting rules.
+        
+- 🔹 **Two phases of locking:**
+    
+    - **Phase 1 (Growing phase):** Locks are **acquired** as needed during execution.
+        
+    - **Phase 2 (Shrinking phase):** Locks are **released** only at the **end of the transaction** (commit or abort).
+        
+
+This strict acquire-then-release pattern is what gives **two-phase locking** its name —  
+and it’s essential to guarantee **serializability** by preventing conflicting interleavings of reads and writes.
+
+### Serializable Snapshot Isolation (SSI)
+
+**Pessimistic vs. Optimistic Concurrency Control**
+
+**Two-phase locking (2PL)** is a **pessimistic concurrency control** mechanism —  
+it assumes that conflicts _will_ happen, so it prevents them in advance by making transactions wait.  
+If something _might_ go wrong (for example, another transaction holds a conflicting lock),  
+the transaction pauses until it’s safe to proceed.  
+It’s similar to using **mutual exclusion** in multi-threaded programming.
+
+**Serial execution** represents the extreme form of pessimism:  
+it’s as if each transaction held an **exclusive lock on the entire database** (or partition)  
+for its entire duration. The pessimism is offset by making transactions **very short and fast**,  
+so they hold the "global lock" only briefly.
+
+By contrast, **serializable snapshot isolation (SSI)** uses an **optimistic concurrency control** approach.  
+Here, transactions **don’t block** even if potential conflicts might occur.  
+Instead, they proceed **optimistically**, assuming everything will work out.  
+When a transaction tries to **commit**, the database **checks** whether conflicts actually happened.  
+If a violation is detected, the transaction is **aborted and retried** —  
+only transactions that can be serialized are allowed to commit.
+
+Optimistic concurrency control is a **well-established technique [52]**  
+with long-debated trade-offs [53]:
+
+- ⚠️ **Disadvantage:** Performs poorly under **high contention**,  
+    because many transactions may need to abort and retry.  
+    In high-load situations, retries add even more pressure to the system.
+    
+- ✅ **Advantage:** Performs **better under low contention**,  
+    especially when there’s **spare capacity**, since transactions rarely need to block.
+    
+
+> Contention can often be reduced by using **commutative atomic operations**,  
+> which allow multiple transactions to proceed safely without interfering with one another.
+
+
+**Decisions based on an outdated premise**
+
+A common cause of serialization anomalies occurs when a transaction makes a decision based on data that was **true at the start**, but **no longer valid** by the time it tries to commit.
+
+For example, a transaction might act on the premise:
+
+> “There are currently two doctors on call.”
+
+If, during the course of the transaction, another doctor goes off call, the **premise becomes outdated**, yet the transaction may still proceed with actions that are now invalid.
+
+When the application queries the database (e.g., _“How many doctors are currently on call?”_),  
+the **database has no knowledge of how that result is used** by the application’s logic.  
+To guarantee **serializable isolation**, the database must therefore **assume** that  
+any change in the query result — any alteration to the underlying data —  
+means the transaction’s writes might be based on **stale or invalid premises**.
+
+Thus, to remain correct, the database must **detect and abort** transactions that may have acted on outdated information.
+
+There are **two key cases** the database must detect:
+
+1. **Detecting reads of stale MVCC versions** —  
+    when an **uncommitted write** happened **before** the transaction’s read,  
+    meaning the transaction observed outdated data.
+    
+2. **Detecting writes that affect prior reads** —  
+    when a **write** by another transaction **occurs after** a read,  
+    invalidating the earlier read’s assumption.
+    
+
+These mechanisms ensure that the system can recognize when a transaction’s logic depends on **obsolete facts** and prevent committing results that would break **serializability**.
+
+### Summary
+
+### Purpose of Transactions
+
+- Transactions act as an abstraction layer that hides concurrency issues and system faults (crashes, network errors, power failures, etc.).
+    
+- Instead of handling complex errors, the application only needs to retry after an abort.
+    
+- For simple single-record operations, transactions may be unnecessary, but for complex access patterns they are extremely valuable.
+    
+
+---
+
+### Common Concurrency Problems and Their Prevention
+
+|Problem|Description|Prevented by|
+|---|---|---|
+|**Dirty Reads**|Reading another transaction’s uncommitted data|Read Committed or stronger|
+|**Dirty Writes**|Overwriting data written by an uncommitted transaction|Almost all implementations|
+|**Read Skew (Nonrepeatable Reads)**|Seeing different parts of the database at different times|Snapshot Isolation (MVCC)|
+|**Lost Updates**|Two transactions overwrite each other’s changes|Snapshot Isolation (sometimes requires explicit locking)|
+|**Write Skew**|Acting on an outdated premise|Only Serializable Isolation|
+|**Phantom Reads**|Results of a query change due to concurrent writes|Snapshot Isolation (partially), Serializable with index-range locks|
+
+---
+
+### Isolation Levels
+
+- Weak isolation levels prevent only a subset of anomalies; developers must handle others manually.
+    
+- Only **Serializable isolation** protects against all concurrency issues.
+    
+
+---
+
+### Implementations of Serializable Transactions
+
+1. **Serial Execution**
+    
+    - Transactions run one at a time in order.
+        
+    - Simple and reliable if transactions are short and system load is low.
+        
+2. **Two-Phase Locking (2PL)**
+    
+    - Pessimistic approach using shared/exclusive locks.
+        
+    - Strong consistency but lower performance due to blocking.
+        
+3. **Serializable Snapshot Isolation (SSI)**
+    
+    - Optimistic approach allowing transactions to run without blocking.
+        
+    - Checked at commit; non-serializable transactions are aborted.
+        
+    - Modern and efficient for systems with moderate contention.
+        
+
+---
+
+### Key Points
+
+- Transactions simplify reasoning about concurrency and failures.
+    
+- Each isolation level has trade-offs between safety and performance.
+    
+- **Serializable isolation** ensures full correctness.
+    
+- **SSI** is the preferred modern approach for combining safety and good performance.
+    
+
+
+## CHAPTER 8 The Trouble with Distributed Systems
+
+Working with distributed systems is fundamentally different from writing software on a single computer—and the main difference is that there are lots of new and exciting ways for things to go wrong
+
+### Faults and Partial Failures
+
+An individual computer with good software is usually either fully functional or entirely broken, but not something in between. This is a deliberate choice in the design of computers: if an internal fault occurs, we prefer a computer to crash completely rather than returning a wrong result, because wrong results are difficult and confusing to deal with.
+
+When you are writing software that runs on several computers, connected by a network, the situation is fundamentally different. In distributed systems, we are no longer operating in an idealized system model—we have no choice but to confront the messy reality of the physical world. And in the physical world, a remarkably wide range of things can go wrong
+
+**==In a distributed system, there may well be some parts of the system that are broken in some unpredictable way, even though other parts of the system are working fine. This is known as a partial failure. The difficulty is that partial failures are nondeterministic==**
+
+#### Cloud Computing and Supercomputing
+
+• High-performance computing (HPC) involves supercomputers with thousands of CPUs used for heavy computational tasks like weather forecasting or molecular simulations.  
+• Cloud computing sits at the other extreme—using large-scale datacenters with commodity hardware, IP-based networking, elastic resource allocation, and pay-per-use billing.  
+• Traditional enterprise datacenters fall between these two extremes.  
+• Fault handling differs significantly:
+
+- In HPC, systems use **checkpointing** (saving computation state to durable storage).
+    
+- If a node fails, the cluster often stops entirely, waits for repairs, and then **restarts from the last checkpoint**.
+
+If we want to make distributed systems work, we must accept the possibility of partial failure and build fault-tolerance mechanisms into the software. In other words, we need to build a reliable system from unreliable components
+
+### Unreliable Networks
+
+• **Shared-nothing architecture**: Each machine has its own memory and disk; communication happens only via the network.  
+• Dominant for internet services due to **low cost**, **use of commodity cloud hardware**, and **high reliability through redundancy**.  
+• Networks (like Ethernet) are **asynchronous** — messages may be delayed, lost, or duplicated.  
+• Possible issues when sending a request:
+
+- Request lost or delayed.
+    
+- Remote node crashed or paused.
+    
+- Response lost or delayed on the way back.
+
+The usual way of handling this issue is a timeout: after some time you give up waiting and assume that the response is not going to arrive. However, when a timeout occurs, you still don’t know whether the remote node got your request or not (and if the request is still queued somewhere, it may still be delivered to the recipient, even if the sender has given up on it).
+
+#### Network Faults in Practice
+
+Handling network faults doesn’t necessarily mean tolerating them: if your network is normally fairly reliable, a valid approach may be to simply show an error message to users while your network is experiencing problems. However, you do need to know how your software reacts to network problems and ensure that the system can recover from them
+
+#### Detecting Faults
+
+• Systems often need to **detect faulty nodes** automatically:
+
+- Load balancers remove dead nodes from rotation.
+    
+- Distributed databases promote a follower if the leader fails.
+    
+
+• **Network uncertainty** makes fault detection difficult — you can’t always tell if a node is dead or just slow.
+
+• Sometimes, **explicit feedback** helps:
+
+- OS may send a **RST/FIN** if the process crashed but the host is reachable.
+    
+- Monitoring scripts can notify others when a process crashes.
+    
+
+• However, you **can’t rely** on such signals — a node may crash **after** acknowledging a message.  
+→ To be certain a request succeeded, you need a **positive confirmation** from the application itself.
+
+#### Timeouts and Unbounded Delays
+
+Timeouts are the main way to detect node failures, but choosing the right duration is tricky.  
+A **long timeout** delays fault detection, causing users to wait longer or see errors.  
+A **short timeout** reacts faster but risks **false positives**—declaring a node dead when it’s just slow due to temporary load or network issues.
+
+Prematurely marking a node as dead can lead to duplicated actions (e.g., an email being sent twice) and increases stress on other nodes that take over its work.  
+If the system is already under high load, this can trigger a **cascading failure**, where overloaded nodes continually declare each other dead until the entire system fails.
+
+**Network congestion and queueing**
+
+Just like cars face traffic jams, data packets experience **delays due to congestion and queueing** in networks. The main causes are:
+
+- When multiple nodes send packets to the same destination, the **network switch queues them**, leading to **delays or packet drops** if the queue overflows.
+    
+- At the destination, if all CPU cores are busy, **incoming packets are queued by the OS** until the application can handle them.
+    
+- In **virtualized environments**, a paused VM cannot process network data, causing **buffering and delay**.
+    
+- **TCP flow control** slows down sending rates to prevent overload, and **retransmits lost packets** after a timeout—making the network appear reliable to the application but increasing overall delay.
+    
+
+In short, most variability in network latency stems from **queueing, congestion, and retransmission delays**, not from total network failure.
+
+
+#### Synchronous Versus Asynchronous Networks
+
+Distributed systems would be far easier to build if networks always delivered packets on time and never dropped them.  
+However, **networks can’t guarantee reliability at the hardware level** because doing so would be too rigid and inefficient for modern, shared environments.
+
+In traditional **telephone networks**, a call establishes a **dedicated circuit**—a fixed bandwidth reserved for the entire duration of the call.  
+By contrast, **datacenter and internet networks use packet switching**, where packets dynamically share network links. This allows **efficient resource use** and supports **millions of concurrent connections**, but it also introduces **unpredictable delays, congestion, and packet loss**.
+
+**Can we not simply make network delays predictable?**
+
+Why do datacenter networks and the internet use packet switching? The answer is that they are optimized for bursty traffic. A circuit is good for an audio or video call, which needs to transfer a fairly constant number of bits per second for the duration of the call. On the other hand, requesting a web page, sending an email, or transferring a file doesn’t have any particular bandwidth requirement—we just want it to complete as quickly as possible.
+
+### Unreliable Clocks
+
+Clocks are central to many application functions — from measuring performance to scheduling and logging.  
+They help answer questions like:
+
+- Has a request timed out?
+    
+- How long did a user stay on the site?
+    
+- When should a reminder or cache expire?
+    
+
+In distributed systems, **time becomes complex** because:
+
+- **Message delays vary** — a message is always received later than sent, but by an unknown amount.
+    
+- **Each machine has its own imperfect clock**, driven by quartz oscillators that drift over time.
+    
+
+As a result, it’s hard to **determine the exact order of events across machines**, making coordination and consistency in distributed systems more challenging.
+
+#### Monotonic Versus Time-of-Day Clocks
+
+Modern computers have two main types of clocks:
+
+**Time-of-day clocks**
+
+- Show the _current calendar time_ (e.g., via `System.currentTimeMillis()` or `CLOCK_REALTIME`).
+    
+- Synchronized via **NTP** so timestamps are comparable across machines.
+    
+- Can **jump backward or forward** (e.g., during NTP adjustments or leap seconds).
+    
+- Not reliable for measuring durations or timeouts.
+    
+
+**Monotonic clocks**
+
+- Measure **elapsed time** or durations (e.g., `System.nanoTime()`, `CLOCK_MONOTONIC`).
+    
+- **Never move backward**, making them ideal for measuring performance, delays, and timeouts.
+    
+- Not tied to real-world dates — only to the passage of time.
+
+#### Relying on Synchronized Clocks
+
+Clock problems are often **hard to detect** because most systems continue functioning normally even when their clocks drift. Unlike CPU or network failures, faulty or misconfigured clocks don’t usually cause crashes — they cause **subtle data inconsistencies or corruption** instead.
+
+Therefore, systems that rely on synchronized clocks must:
+
+- **Continuously monitor clock offsets** between nodes.
+    
+- **Remove or isolate nodes** whose clocks drift too far from the cluster’s consensus.
+    
+
+This proactive monitoring prevents hidden time drift from silently damaging data or coordination logic.
+
+#### Process Pauses
+
+This example illustrates the pitfalls of **lease-based leader election** in distributed systems:
+
+- **Reliance on synchronized clocks:** The lease expiry is based on a remote node’s clock. If clocks drift significantly, a node may incorrectly believe it still holds the lease or has already lost it, causing **split-brain behavior**.
+    
+- **Assumption of uninterrupted execution:** The code assumes negligible delay between checking the lease and processing a request. Unexpected pauses (e.g., garbage collection, CPU scheduling, or overload) could allow the lease to expire mid-processing, leading to **concurrent leadership** or lost requests.
+    
+
+Key takeaway: lease-based leadership must account for **clock uncertainty** and **unpredictable execution pauses** to avoid correctness issues.
+
+In distributed systems, unexpected pauses in a node’s execution—due to scheduling, garbage collection, or other system events—are a major source of complexity:
+
+- A node can be **paused at any moment** and resume later without noticing, similar to arbitrary thread preemption in multi-threaded programs.
+    
+- Unlike on a single machine, traditional concurrency tools (mutexes, semaphores, atomic operations) **don’t apply**, because distributed systems lack shared memory—nodes communicate only via messages.
+    
+- During a pause, the rest of the system continues operating and may **declare the paused node dead**, potentially causing duplicate work or leadership conflicts.
+    
+- When the node resumes, it may be unaware of what it missed until it consults its clock, making **timing assumptions unsafe**.
+    
+
+Key point: distributed nodes must **always assume arbitrary pauses and message delays** when designing protocols.
+
+### Knowledge, Truth, and Lies
+
+In distributed systems, nodes **cannot know the true state of other nodes**—they can only make inferences based on messages received (or not received).
+
+- A lack of response does not distinguish between **network failures** and **node failures**.
+    
+- Nodes rely entirely on communication to infer state, which makes uncertainty inherent.
+    
+
+The solution is to **define a system model**:
+
+- Explicitly state the assumptions about node behavior, message delivery, and timing.
+    
+- Design algorithms that are **provably correct within that model**, ensuring reliable behavior even under uncertainty.
+    
+
+Key idea: correctness in distributed systems comes from **designing for the assumptions you make**, not from eliminating uncertainty entirely.
+
+#### The Truth Is Defined by the Majority
+
+In distributed systems, a single node **cannot be fully trusted**—it may fail or be isolated, leaving the system unable to make correct decisions on its own.
+
+- Many algorithms rely on a **quorum** (a minimum number of nodes agreeing) to make decisions, including declaring nodes dead.
+    
+- Typically, a **majority quorum** is used, ensuring the system can tolerate some node failures while maintaining safety (no conflicting decisions).
+    
+
+**Leader and Lock Principles:**
+
+- Only one node should be the leader for a partition to avoid **split-brain**.
+    
+- Only one transaction or client should hold a lock on a resource to prevent concurrent writes.
+    
+- Only one user should hold a unique identifier (e.g., username).
+    
+
+**Key challenge:**  
+Even if a node believes it is “the chosen one,” the **quorum may have elected a different leader** due to network issues or pauses. Acting without quorum approval can lead to **incorrect system behavior**, as other nodes may act on conflicting information.
+
+**Takeaway:** distributed coordination relies on **majority agreement**, not individual node judgment.
+
+**Fencing tokens**
+
+A way to prevent a node that lost a lock or lease from continuing to write is to use **fencing tokens**:
+
+- Every time the lock server grants a lock or lease, it returns a **fencing token**, which increases monotonically.
+    
+- Clients must include this token in **every write request** to the storage service.
+    
+- The **resource itself** must check the token, rejecting any write with an older token than what has already been processed.
+    
+
+Key points:
+
+- Clients cannot enforce this themselves; the resource must actively validate tokens.
+    
+- For systems without native fencing token support, workarounds like embedding the token in a filename can be used, but some form of **token checking** is essential to prevent unauthorized writes.
+
+#### Byzantine Faults
+
+Fencing tokens help **prevent accidental misbehavior** by blocking nodes that act after their lease expires.
+
+However, they **cannot stop malicious nodes** that deliberately send fake tokens.
+
+This introduces **Byzantine faults**, where nodes may send arbitrary or incorrect responses.
+
+- Handling this requires **Byzantine fault-tolerant (BFT) systems**, which continue operating correctly even if some nodes are faulty or malicious.
+    
+- Consensus in such an environment is known as the **Byzantine Generals Problem**.
+    
+
+BFT is crucial only in systems where **nodes cannot be fully trusted** or may be attacked.
+
+A bug in the software could be regarded as a Byzantine fault, but if you deploy the same software to all nodes, then a Byzantine fault-tolerant algorithm cannot save you. Most Byzantine fault-tolerant algorithms require a supermajority of more than two thirds of the nodes to be functioning correctly (i.e., if you have four nodes, at most one may malfunction). To use this approach against bugs, you would have to have four independent implementations of the same software and hope that a bug only appears in one of the four implementations.
+
+### System Model and Reality
+
+
+Algorithms in distributed systems must **not rely heavily on hardware or software details**. To reason about them, we define a **system model** describing assumptions about timing and failures.
+
+**Timing models:**
+
+- **Synchronous:** Network delays, process pauses, and clock errors are bounded. Unrealistic in practice because delays can be unbounded.
+    
+- **Partially synchronous:** Behaves like synchronous most of the time, but occasionally exceeds bounds. More realistic for real-world systems.
+    
+- **Asynchronous:** No timing assumptions; algorithms cannot use clocks or timeouts. Very restrictive.
+    
+
+**Node failure models:**
+
+- **Crash-stop:** Node may fail by crashing and never returns.
+    
+- **Crash-recovery:** Node may crash and later recover. Stable storage is preserved; in-memory state is lost.
+    
+- **Byzantine:** Nodes may behave arbitrarily or maliciously, potentially sending false or misleading information.
+    
+
+Understanding these models is essential for designing correct distributed algorithms under realistic conditions.
+
+**Correctness of an algorithm**
+
+Correctness of a distributed algorithm is defined in terms of **properties it must satisfy** under a given system model.
+
+**Example: fencing token generation**
+
+- **Uniqueness:** No two requests return the same token.
+    
+- **Monotonic sequence:** If request `x` finishes before `y` starts, the token for `x` is smaller than that for `y`.
+    
+- **Availability:** A non-crashed node requesting a token eventually gets a response.
+    
+
+An algorithm is **correct** if it satisfies all its properties **under all conditions allowed by the system model**. Note that this assumes the system model itself is respected—if all nodes crash or network delays are infinite, no algorithm can guarantee progress.
+
+In distributed systems, algorithm properties are classified as **safety** or **liveness**:
+
+**Safety properties**
+
+- Nothing bad happens.
+    
+- Example: uniqueness or monotonicity of fencing tokens.
+    
+- If violated, the violation is immediate and irreversible (e.g., a duplicate token has already been issued).
+    
+
+**Liveness properties**
+
+- Something good eventually happens.
+    
+- Example: availability or eventual consistency.
+    
+- Temporary violations are acceptable, as they may still be satisfied in the future (e.g., a node eventually receives a response).
+    
+
+**Key point:**
+
+- Safety must hold **always**, under all conditions, even if all nodes crash or the network fails.
+    
+- Liveness guarantees eventual success, but can tolerate temporary delays or failures.
+
+### Summary
+
+In distributed systems, partial failures are the norm and must be tolerated, unlike on a single reliable machine. Key points:
+
+- **Message unreliability:** Packets and replies may be lost or delayed, making it impossible to know if a message got through without a response.
+    
+- **Clock issues:** Node clocks may be out of sync, jump forward/back, or drift unpredictably, making reliance on local time risky.
+    
+- **Process pauses:** Nodes can pause (e.g., due to GC), be considered dead, and later resume without realizing it.
+    
+
+**Fault tolerance challenges:**
+
+- Detecting failures is hard; timeouts are the common mechanism but can falsely suspect slow nodes or network issues.
+    
+- Degraded nodes (“limping”) can be more difficult than completely failed nodes.
+    
+- Nodes have no shared memory or global knowledge; all communication is over an unreliable network. Decisions require quorum-based protocols rather than relying on a single node.
+    
+
+**Design implications:**
+
+- Distributed systems are messy compared to single-machine deterministic environments.
+    
+- Whenever possible, keep operations on a single machine to avoid unnecessary complexity.
+    
+- Distributed systems provide scalability, fault tolerance, and low latency that single nodes cannot.
+    
+
+**Trade-offs:**
+
+- Perfect reliability (hard real-time networks, guaranteed clock synchronization) is possible but expensive and inefficient.
+    
+- Most distributed systems accept cheap, unreliable components and handle faults at the node level.
+    
+- Supercomputers assume reliable components and restart entirely on failure, whereas distributed systems can continue running despite node-level faults.
+    
+
+In short, distributed systems must **expect partial failures, design for quorum-based decision making, and accept trade-offs between reliability, cost, and performance**.
+
+## CHAPTER 9 Consistency and Consensus
+
