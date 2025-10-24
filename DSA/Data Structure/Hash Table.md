@@ -2422,3 +2422,657 @@ class Solution {
 }
 ```
 
+# Pattern Fixed Sized Sliding Window 
+
+e value to which the data items of a window are mapped is defined by the problem, which, in most cases, is the frequency of data items in the window, but it could also be something else.
+
+We maintain a fixed-sized window and move it through the sequence, adding the contributions of new items that get added and removing the contributions of the old items that get removed when the window moves.
+
+The fixed-sized sliding window technique uses two variables `start` and `end`, to maintain a fixed-sized **window** in a sequential data structure. We also maintain a hash map to map data items in the window to some value defined by the problem.
+
+For this example, consider an array of characters `arr` and a window of size `k` where we need to find the frequency characters in **all** windows of size `k` in the array. In this case, the value to be mapped with each data item in a window is its frequency(count) in the window. We initialize a hash map `frequency` to map a character to an integer.
+
+For a fixed-sized widow of size `k`, we initialize `start` and `end` with 0 and iterate until `end` reaches the end of the array. In each iteration, we add the contribution of `arr[end]` to the `frequency` map by incrementing the mapped value of the character `arr[end]` in the `frequency` map.
+
+We then check if the window size `end - start + 1` is greater than `k`. If the window size is greater than `k`, we remove the contribution of the item at `arr[start]` from the `frequency` map by decrementing the mapped value of character `arr[start]` in the `frequency` map and then contract the current window from the start by incrementing `start` by 1.
+
+Next, we check if the size of the current window equals `k`. If size equals `k`, we use the `frequency` map to find a solution for the current window as dictated by the problem. Finally, we increment `end` by 1 to expand the window from the end.
+
+## Algorithm
+
+The algorithm given below outlines the generic fixed-sized sliding window technique for a window of size `k`.
+
+> - **Step 1:** Initialize two variables, `start` and `end` to 0.
+> - **Step 2:** Initialize a hash map `map` to map data items to some value dictated by the problem.
+> - **Step 3:** Loop while `end` < `arr.size()` and do the following
+>     - **Step 3.1:** Add contribution of `arr[end]` to `map`
+>     - **Step 3.2:** If the size of the current window (`end` - `start` + 1) is **greater** than `k` remove the contribution of `arr[start]` from `map` and increment `start` by 1
+>     - **Step 3.2:** If the size of the current window (`end` - `start` + 1) is **equals** `k`, process `map` to solve the problem.
+>     - **Step 3.3:** Increment `end` by 1
+
+```java
+public class FixedSizeSlidingWindow {
+
+    public void fixedSizeSlidingWindow(char[] arr, int k) {
+        // Initialize start and end to 0
+        int start = 0, end = 0;
+
+        // Initialize hash map to map characters to integer values
+        HashMap<Character, Integer> frequency = new HashMap<>();
+
+        // Move the window one step to the right until
+        // it reaches the end of the array
+        while (end < arr.length) {
+            // Add contribution of arr[end] to the frequency map
+            frequency.put(arr[end], frequency.getOrDefault(arr[end], 0) + 1);
+
+            // Check if window size is greater than k
+            if (end - start + 1 > k) {
+                // Remove contribution of arr[start] from frequency map
+                frequency.put(arr[start], frequency.get(arr[start]) - 1);
+                if (frequency.get(arr[start]) == 0) {
+                    frequency.remove(arr[start]); // Remove key if count is 0
+                }
+                // Increment start to contract the window from start
+                start++;
+            }
+
+            // Check if window size equals k
+            if (end - start + 1 == k) {
+                // Process the values in frequency map
+            }
+
+            // Increment end to expand the window from end
+            end++;
+        }
+
+        return;
+    }
+}
+```
+
+## Example Duplicate detection
+
+Given an array of integer **arr** and a positive integer **k**, write a function that returns `true` if the array contains any duplicates in the subarray of size k. Return `false` otherwise.
+
+```java
+import java.util.*;
+
+class Solution {
+    public boolean duplicateDetection(int[] arr, int k) {
+        // Map to store elements within the window and their counts
+        Map<Integer, Integer> frequency = new HashMap<>();
+
+        // The start and end pointers for the window
+        int start = 0;
+        int end = 0;
+
+        while (end < arr.length) {
+            // Add the current element to the window
+            int endElement = arr[end];
+            frequency.put(
+                endElement,
+                frequency.getOrDefault(endElement, 0) + 1
+            );
+
+            // Check if there's a duplicate in the window
+            if (frequency.get(endElement) > 1) {
+                return true;
+            }
+
+            // Adjust the window size if it exceeds k
+            if (end - start >= k) {
+                int startElement = arr[start];
+                frequency.put(
+                    startElement,
+                    frequency.get(startElement) - 1
+                );
+
+                // Erase the current element from the window if its
+                // frequency becomes 0
+                if (frequency.get(startElement) == 0) {
+                    frequency.remove(startElement);
+                }
+                start++;
+            }
+
+            // Move the end pointer to expand the window
+            end++;
+        }
+
+        return false;
+    }
+}
+```
+
+
+## Example  Subarray distinctness
+
+Given an array of integer **arr** and a positive integer **k**, write a function to find and return the number of distinct elements in every contiguous subarray of size k.
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<Integer> subarrayDistinctness(int[] arr, int k) {
+        // Initialize a map to keep track of the count of elements in the
+        // current window
+        Map<Integer, Integer> frequency = new HashMap<>();
+
+        // Initialize the start and end indices of the window
+        int start = 0;
+        int end = 0;
+
+        // Initialize the result list to hold the count of distinct
+        // elements in every subarray
+        List<Integer> result = new ArrayList<>();
+
+        // Loop through the array
+        while (end < arr.length) {
+            // Add the current element to the count map
+            frequency.put(
+                arr[end],
+                frequency.getOrDefault(arr[end], 0) + 1
+            );
+
+            // If the current window size is equal to k, calculate the
+            // count of distinct elements
+            if (end - start + 1 == k) {
+                result.add(frequency.size());
+
+                // Remove the leftmost element from the count map
+                int startElement = arr[start];
+                frequency.put(
+                    startElement,
+                    frequency.get(startElement) - 1
+                );
+                if (frequency.get(startElement) == 0) {
+                    frequency.remove(startElement);
+                }
+
+                // Contract the window
+                start++;
+            }
+
+            // Expand the window to the right
+            end++;
+        }
+
+        return result;
+    }
+}
+```
+
+## Example Contains variation
+
+Given two strings, **s1** and **s2**, write a function that returns `true` if s2 contains a permutation of s1, or `false` otherwise
+
+```java
+import java.util.*;
+
+class Solution {
+    public Map<Character, Integer> countFrequency(String s) {
+        Map<Character, Integer> frequency = new HashMap<>();
+        for (char ch : s.toCharArray()) {
+            frequency.put(ch, frequency.getOrDefault(ch, 0) + 1);
+        }
+        return frequency;
+    }
+
+    public boolean containsVariation(String s1, String s2) {
+        // Frequency map for s1
+        Map<Character, Integer> s1Frequency = countFrequency(s1);
+
+        // Frequency maps for characters in sliding window in s2
+        Map<Character, Integer> frequency = new HashMap<>();
+
+        // The start and end pointers for the window
+        int start = 0;
+        int end = 0;
+
+        while (end < s2.length()) {
+            // Add the current character to the window
+            char endChar = s2.charAt(end);
+            frequency.put(
+                endChar,
+                frequency.getOrDefault(endChar, 0) + 1
+            );
+
+            // If the window size matches s1's length, check for a match
+            if (end - start + 1 == s1.length()) {
+                if (frequency.equals(s1Frequency)) {
+                    return true;
+                }
+
+                // Shrink the window from the left
+                char startChar = s2.charAt(start);
+                frequency.put(startChar, frequency.get(startChar) - 1);
+                if (frequency.get(startChar) == 0) {
+                    frequency.remove(startChar);
+                }
+                start++;
+            }
+
+            // Expand the window to the right
+            end++;
+        }
+
+        return false;
+    }
+}
+```
+
+## Example Anagram finder
+
+Given two strings, **s**, and **p**, write a function to find and return an array of all the start indices of p's anagrams in s. You can return the answer in **any order**.
+
+An anagram is a word or phrase formed by rearranging the letters of another word or phrase.
+
+```java
+import java.util.*;
+
+class Solution {
+    public Map<Character, Integer> countFrequency(String s) {
+        Map<Character, Integer> frequency = new HashMap<>();
+        for (char ch : s.toCharArray()) {
+            frequency.put(ch, frequency.getOrDefault(ch, 0) + 1);
+        }
+        return frequency;
+    }
+
+    public List<Integer> findAnagramsInWindow(
+        String s,
+        Map<Character, Integer> frequency,
+        int K
+    ) {
+        int start = 0;
+        int end = 0;
+        int count = K;
+        List<Integer> result = new ArrayList<>();
+
+        // Traverse the string using two pointers
+        while (end < s.length()) {
+            char endChar = s.charAt(end);
+
+            // If the character is in the pattern, update the frequency
+            // map
+            if (frequency.containsKey(endChar)) {
+                if (frequency.get(endChar) > 0) {
+                    count--;
+                }
+                frequency.put(endChar, frequency.get(endChar) - 1);
+            }
+
+            // If all characters in the pattern are found, add start
+            // index to result
+            if (count == 0) {
+                result.add(start);
+            }
+
+            // Shrink the window from the left if the window size is
+            // equal to p's size
+            if (end - start + 1 == K) {
+                char startChar = s.charAt(start);
+                if (frequency.containsKey(startChar)) {
+                    if (frequency.get(startChar) >= 0) {
+                        count++;
+                    }
+                    frequency.put(
+                        startChar,
+                        frequency.get(startChar) + 1
+                    );
+                }
+                start++;
+            }
+            end++;
+        }
+
+        return result;
+    }
+
+    public List<Integer> anagramFinder(String s, String p) {
+        if (s.isEmpty() || p.isEmpty() || s.length() < p.length()) {
+            return new ArrayList<>();
+        }
+
+        // Create a frequency map for characters in the pattern
+        Map<Character, Integer> pFrequency = countFrequency(p);
+
+        // Use sliding window approach to find anagrams of p in s
+        return findAnagramsInWindow(s, pFrequency, p.length());
+    }
+}
+```
+
+# Pattern the Variable Sized Sliding Window
+
+![[Pasted image 20251023115713.png]]
+
+The variable-sized sliding window technique uses two variables `start` and `end` to maintain a window in the sequence and a hash map to map data items in the window to some value defined by the problem.
+
+For this example, consider the sequence is an array of characters `arr`. We create a hash to map `map` as required by the problem dictated by the problem and initialize `start` and `end` with 0 that denotes a zero-sized window. We iterate until `end` reaches the end of the sequence, and, in each interaction, we do some or all of the operations given below.
+
+## 1. Add the item at end to the hash map
+
+We update `map` by adding the contribution of `arr[end]` to it so that it can be processed later in this iteration.
+
+![[Pasted image 20251023115736.png]]
+
+## 2. Process the hash map
+
+The hash map `map` has all data items in the current window (`start` to `end`) mapped to some values defined by the problem. We process it to solve the problem for the current window.
+
+![[Pasted image 20251023115844.png]]
+
+## 3. Contract the window by incrementing start
+
+If we can skip all remaining subarrays starting at `start` (the ones ending beyond `end`) we update `map` to remove the contribution of `arr[start]` and increment `start` by 1, which also contracts the window.
+
+![[Pasted image 20251023115901.png]]
+
+## 4. Expand the window by incrementing end
+
+If we want to consider the next subarray starting at `start` (`start` to `end+1`)  in the next iteration, we can increment `end` by one, which also expands the window. We don't add the contribution of the newly added item to `map` as that will be done in beginning of the next iteration.
+
+![[Pasted image 20251023115919.png]]
+
+## Algorithm
+
+The algorithm given below outlines the generic variable-sized sliding window technique using an array `arr` and a hash map `map`.
+
+> - **Step 1:** Initialize a hash map `map` to map data items in a window to some value dictated by the problem.
+> - **Step 2:** Initialize two variables, `start` and `end` to 0.
+> - **Step 3:** Loop until `end` < `arr.size()` and do the following
+>     - **Step 3.1:** Check if we should add `arr[end]` to the window
+>         - **Step 3.1.1:** Add contribution of `arr[end]` to `map`
+>     - **Step 3.2:** Process `map` to get solution for the current window
+>     - **Step 3.3:** Check if we should contract the window
+>         - **Step 3.3.1:** Remove the contribution of `arr[start]` from `map`
+>         - **Step 3.3.2:** Increment `start`
+>     - **Step 3.3:** Check if we should expand the window
+>         - **Step 3.3.2:** Increment `end`
+
+
+```java
+public class SlidingWindow {
+    public void slidingWindow(List<Integer> arr) {
+        // Map to store the data about the window
+        HashMap<Integer, Integer> map = new HashMap<>();
+    
+        // Sliding window pointers
+        int start = 0;
+        int end = 0;
+
+        // Move the window one step to the right until
+        // it reaches the end of the array
+        while (end < arr.size()) {
+            if (shouldAddContribution) {
+                // Add contribution of arr[end]
+                map.put(arr.get(end), map.getOrDefault(arr.get(end), 0) + 1);
+            }
+
+            // Process the data in the map to solve the problem
+            // for the current window
+            // ......
+            // (Add your processing code here)
+
+            if (shouldContractWindow) {
+                // Remove contribution of arr[start] from the map
+                map.put(arr.get(start), map.get(arr.get(start)) - 1);
+
+                // Contract window
+                start++;
+            }
+
+            if (shouldExpandWindow) {
+                end++;
+            }
+        }
+    }
+}
+```
+
+## Example Unique character span
+
+Given a string **s**, write a function to find and return the length of the longest substring with distinct characters.
+
+```java
+import java.util.*;
+
+class Solution {
+    public int uniqueCharacterSpan(String s) {
+        // Map to store the last index of each character
+        Map<Character, Integer> charIndex = new HashMap<>();
+
+        // To store the maximum length of the substring
+        int maxLength = 0;
+
+        // Sliding window pointers
+        int start = 0;
+        int end = 0;
+
+        while (end < s.length()) {
+            char endChar = s.charAt(end);
+
+            // If the character is already in the map and its index is
+            // within the current window
+            if (
+                charIndex.containsKey(endChar) &&
+                charIndex.get(endChar) >= start
+            ) {
+                // Move the start pointer to the right of the last
+                // occurrence of the current character
+                start = charIndex.get(endChar) + 1;
+            }
+
+            // Update the last index of the current character
+            charIndex.put(endChar, end);
+
+            // Calculate the length of the current window and update
+            // maxLength
+            maxLength = Math.max(maxLength, end - start + 1);
+
+            // Expand the window
+            end++;
+        }
+
+        return maxLength;
+    }
+}
+```
+
+## Example Two characters span
+
+```java
+import java.util.*;
+
+class Solution {
+    public int twoCharactersSpan(String s) {
+        // Map to store character frequencies
+        Map<Character, Integer> frequency = new HashMap<>();
+
+        // To store the maximum length of the substring
+        int maxLength = 0;
+
+        // Sliding window pointers
+        int start = 0;
+        int end = 0;
+
+        while (end < s.length()) {
+            // Add the end character to the map
+            char endChar = s.charAt(end);
+            frequency.put(
+                endChar,
+                frequency.getOrDefault(endChar, 0) + 1
+            );
+
+            // If the number of distinct characters exceeds 2, shrink the
+            // window
+            while (frequency.size() > 2) {
+                char startChar = s.charAt(start);
+                frequency.put(startChar, frequency.get(startChar) - 1);
+
+                // Remove character if count is 0
+                if (frequency.get(startChar) == 0) {
+                    frequency.remove(startChar);
+                }
+
+                // Move the start pointer to shrink the window
+                start++;
+            }
+
+            // Update the maximum length of the valid substring
+            maxLength = Math.max(maxLength, end - start + 1);
+
+            // Expand the window
+            end++;
+        }
+
+        return maxLength;
+    }
+}
+```
+
+# Pattern Prefix Sum
+
+Consider we have an array `arr` and a function `f` where `agg[i]` is the aggregated value of `f` over `arr[0] .. arr[i]`. A prefix sum data structure is one where we map the index `i` to `agg[i]`. In most cases, we can use an array as a prefix sum data structure by storing `agg[i]` at the index `i` as we can easily access aggregated values of prefixes using indices.
+
+![[Pasted image 20251023120341.png]]
+
+However, there are cases where we need to store the reverse mapping i.e., mapping `agg[i]` to `i`. We cannot use an array for this as the aggregated values themselves can be arbitrary and not be used as indices of an array. In such cases, we use a hash table to map `agg[i]` to `i` where `agg[i]` is the key and `i` is the mapped value since hash tables can map arbitrary values together.
+
+![[Pasted image 20251023120358.png]]
+
+When mapping indices to aggregated values where each index is unique, there is no collision. However, when mapping aggregate values to indices, there can be multiple prefixes (indices) that can have the same aggregated values. When we use these aggregated values as keys of the hash map, there is a chance that a given aggregated value maps to multiple indices. To make sure we don't lose overwrite indices, the hash map, in this case, maps aggregated values to a list of indices. Consider a case below where `agg[1]` and `agg[n-2]` is the same and `agg[1]` is mapped to two indices 1 and n-1.
+
+![[Pasted image 20251023120411.png]]
+
+The prefix sum technique is a precomputation method where we calculate the aggregated value of the function `f` over all prefixes of a sequential data structure. Consider we have an array of items `arr` and a function `f` such that we can add and remove contributions of items from the aggregated value. Examples of such functions are sum, product, etc.
+
+To store the reverse mapping, i.e., for mapping `agg[i]` to `i`, we create a hash map `prefixSumIndices` and initialize a variable `aggregate` with some default value. We traverse the array from start to end using `i`, and in each iteration, we compute the `agg[i]` in aggregate using the function `f` and aggregate itself, which should have the value of `agg[i-1].` We then map the value of `aggregate` to `i` in the `prefixSumIndices` map.
+
+Consider the below example where `agg[1]` and `agg[n-2]` is the same.
+
+### Algorithm
+
+The algorithm given below outlines the generic hash assignment technique on any container.
+
+> - **Step 1:** Create a hash map `prefixSumIndices` to map aggregated values of function `f` over all prefixes to a list of indices
+> - **Step 2:** Initialize a variable `aggregate` with default value to compute prefix aggregates
+> - **Step 3:** Iterate in the container from start to end and using index variable `i`:
+>     - **Step 3.1:** Compute aggregate value of `f` over the current prefix using the current value of `aggregate` and function `f` in `aggregate`
+>     - **Step 3.2:** Map the current value of `aggregate` to index `i` in `prefixSumIndices`
+
+```java
+public class prefixSum {
+
+    public HashMap<Integer, List<Integer>> prefixSumTechnique(List<Integer> arr) {
+        // Initialize a hash map to map prefix aggregated values
+        // to a list of indices
+        HashMap<Integer, List<Integer>> prefixSumIndices = new HashMap<>();
+
+        // Initialize an aggregate with a default value
+        int aggregate = 0;
+
+        // Traverse the array from start to end
+        for (int i = 0; i < arr.size(); i++) {
+            // Compute the prefix sum from 0 to i
+            aggregate = f(aggregate, arr.get(i)); // Replace `f` with the appropriate function
+
+            // Map aggregated value to current index
+            if (prefixSumIndices.containsKey(aggregate)) {
+                prefixSumIndices.get(aggregate).add(i);
+            } else {
+                List<Integer> indices = new ArrayList<>();
+                indices.add(i);
+                prefixSumIndices.put(aggregate, indices);
+            }
+        }
+        return prefixSumIndices;
+    }
+}
+```
+
+## Example  Zero sum subarrays
+
+Given an array **arr**, write a function to find and return the starting and ending indexes of all subarrays in the array that sum to `0`. You can return the answer in **any order**.
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<Integer>> zeroSumSubarrays(int[] arr) {
+        // Map to store prefix sums and their indices
+        Map<Integer, List<Integer>> prefixSumIndices = new HashMap<>();
+
+        // To store the actual start and end indices of all subarrays
+        List<List<Integer>> result = new ArrayList<>();
+        int prefixSum = 0;
+
+        // Add a base case for prefixSum = 0
+        prefixSumIndices.put(0, new ArrayList<>());
+        prefixSumIndices.get(0).add(-1);
+
+        for (int i = 0; i < arr.length; i++) {
+            prefixSum += arr[i];
+
+            // If the prefixSum exists in the map, it means we found
+            // subarrays summing to 0
+            if (prefixSumIndices.containsKey(prefixSum)) {
+                for (int prevIndex : prefixSumIndices.get(prefixSum)) {
+                    // Add (prevIndex + 1) as the correct start index
+                    List<Integer> subarray = new ArrayList<>();
+                    subarray.add(prevIndex + 1);
+                    subarray.add(i);
+                    result.add(subarray);
+                }
+            }
+
+            // Add the current index to the list of indices for this
+            // prefixSum
+            prefixSumIndices
+                .computeIfAbsent(prefixSum, k -> new ArrayList<>())
+                .add(i);
+        }
+
+        return result;
+    }
+}
+```
+
+## Example First equilibrium point
+
+Given an array of integers **arr**, write a function to find and return the first equilibrium point in an array. If there is no such point, return `-1` instead.
+
+The equilibrium Point in an array is a position such that the sum of elements before it is equal to the sum of elements after it.
+
+```java
+class Solution {
+    public int firstEquilibriumPoint(int[] arr) {
+        // calculate the prefix sum of the array
+        int[] prefixSum = new int[arr.length + 1];
+        prefixSum[0] = 0;
+        for (int i = 1; i <= arr.length; i++) {
+            prefixSum[i] = prefixSum[i - 1] + arr[i - 1];
+        }
+
+        // check for equilibrium point
+        for (int i = 1; i <= arr.length; i++) {
+            // calculate sum of elements before and after the current
+            // index
+            int leftSum = prefixSum[i] - arr[i - 1];
+            int rightSum = prefixSum[arr.length] - prefixSum[i];
+
+            // if both sums are equal, return the current index as
+            // equilibrium point
+            if (leftSum == rightSum) {
+                return i - 1;
+            }
+        }
+
+        // no equilibrium point found
+        return -1;
+    }
+}
+```
+

@@ -2892,3 +2892,873 @@ In short, distributed systems must **expect partial failures, design for quorum-
 
 ## CHAPTER 9 Consistency and Consensus
 
+The best way of building fault-tolerant systems is to find some general-purpose abstractions with useful guarantees, implement them once, and then let applications rely on those guarantees.
+
+We need to understand the scope of what can and cannot be done: in some situations, it’s possible for the system to tolerate faults and continue working; in other situations, that is not possible. The limits of what is and isn’t possible have been explored in depth, both in theoretical proofs and in practical implementations
+
+### Consistency Guarantees
+
+Most replicated databases guarantee **eventual consistency**, meaning that if updates stop and the system stabilizes, **all replicas will eventually return the same value**. This reflects **temporary inconsistency** that resolves over time as replicas **converge**—hence, “convergence” may be a more accurate term.
+
+However, **eventual consistency is a very weak guarantee**: it doesn’t specify _when_ replicas will converge.
+
+For developers, this model is difficult because it breaks the intuitive behavior of variables in single-threaded programs—where writing a value and reading it right after always returns the new value. Distributed databases behave differently due to replication delays and network faults.
+
+When using weakly consistent systems, developers must remain aware of these limitations; assuming stronger consistency than provided often leads to **subtle, hard-to-reproduce bugs** that may only appear under specific timing or failure conditions.
+
+### Linearizability
+
+In an **eventually consistent** database, **two replicas queried at the same time may return different results**, which can be confusing for clients.
+
+Wouldn’t it be simpler if the database gave the **illusion of a single replica**—so that every client always saw the same, up-to-date data?
+
+That’s the idea behind **linearizability** (also called **atomic consistency**, **strong consistency**, **immediate consistency**, or **external consistency**).
+
+The **core concept**:
+
+> Make the system behave **as if there were only one copy of the data**, and **all operations on it were atomic**.
+
+In a **linearizable system**:
+
+- As soon as one client **completes a write**,
+    
+- **All other clients must immediately see** that new value on subsequent reads.
+    
+
+Thus, linearizability provides a **recency guarantee** — every read reflects the **most recent successful write**, never a stale or outdated value.
+
+#### What Makes a System Linearizable?
+
+The basic idea behind linearizability is simple: to make a system appear as if there is only a single copy of the data. However, nailing down precisely what that means actually requires some care 
+
+It is possible (though computationally expensive) to test whether a system’s behavior is linearizable by recording the timings of all requests and responses, and checking whether they can be arranged into a valid sequential order
+
+#### Relying on Linearizability
+
+In a **single-leader replication** system, it’s crucial to ensure there is **only one leader** at any time to prevent **split brain**. One common method is **leader election via a lock**—each node attempts to acquire the lock, and the one that succeeds becomes the leader. However, this lock must be **linearizable**, so all nodes agree on which node holds it.
+
+Similarly, **uniqueness constraints** (like unique usernames, email addresses, or file paths) also require **linearizability**. When multiple clients try to create the same item concurrently, linearizability ensures that only one operation succeeds and the other correctly fails.
+
+#### Implementing Linearizable Systems
+
+Since **linearizability** means the system behaves as if there were **only one atomic copy of the data**, the simplest way to achieve it would be to actually keep a **single copy**. However, this would make the system **fault-intolerant**—if that node failed, the data would be lost or unavailable. The usual solution is **replication** for fault tolerance.
+
+**Consensus algorithms** (like those used in **ZooKeeper** and **etcd**) provide **linearizable** guarantees by preventing **split brain** and **stale replicas**, allowing safe, fault-tolerant storage.
+
+**Multi-leader replication** is **not linearizable**, since multiple nodes process writes concurrently and replicate them asynchronously, which can cause **conflicting writes**.
+
+**Leaderless replication** (Dynamo-style) also is **not truly linearizable**—even with quorum reads and writes (w + r > n), the guarantee falls short of full strong consistency depending on configuration and definition.
+
+### Ordering Guarantees
+
+#### Ordering and Causality
+
+There are several reasons why ordering keeps coming up, and one of the reasons is that it helps preserve causality
+
+Causality imposes an ordering on events: cause comes before effect; a message is sent before that message is received; the question comes before the answer. And, like in real life, one thing leads to another: one node reads some data and then writes something as a result, another node reads the thing that was written and writes something else in turn, and so on. These chains of causally dependent operations define the causal order in the system
+
+**The causal order is not a total order**
+
+A **total order** allows any two elements to be compared (e.g., numbers like 5 and 13), while a **partial order** allows comparison only when one element clearly precedes another (e.g., sets like {a, b} and {b, c} are incomparable).
+
+In **databases**, these concepts relate to **consistency models**:
+
+- **Linearizability** provides a **total order** of operations. The system behaves as if there were only one atomic copy of data, meaning for any two operations, we can always tell which one happened first—no true concurrency exists.
+    
+- **Causality** provides only a **partial order**: operations are ordered only if they are causally related, while concurrent operations are **incomparable**.
+    
+
+Thus, in a **linearizable datastore**, all operations appear on a **single global timeline**, executed **atomically** and **sequentially**, without concurrency.
+
+**Linearizability is stronger than causal consistency**
+
+**Linearizability implies causality**, meaning any linearizable system automatically preserves the correct causal order of operations—even across multiple communication channels—without needing extra mechanisms like timestamps.
+
+This property makes **linearizable systems simple and intuitive**, but **achieving linearizability harms performance and availability**, especially in the presence of **network delays**.
+
+The **middle ground** is **causal consistency**, which preserves causality **without requiring linearizability**. It is the **strongest consistency model** that remains **available and performant** even during **network partitions**, and unlike linearizability, the **CAP theorem does not apply** to it.
+
+In practice, many systems that seem to need linearizability only require causal consistency. New research explores **causally consistent databases** that offer performance and availability similar to **eventually consistent systems**, though most of these approaches are still experimental and not yet widely used in production.
+
+**Capturing causal dependencies**
+
+To **maintain causality**, the system must know **which operations happened before others**. This forms a **partial order**: concurrent operations can occur in any order, but **causally dependent operations must be applied in order** on every replica.
+
+When a replica processes an operation, it must first ensure that **all causally preceding operations** have been processed; if any are missing, it must **wait** until those arrive.
+
+To track these dependencies, the system needs a way to represent each node’s **“knowledge”**—what operations it has already seen. If a node had seen value **X** before issuing a write **Y**, then **X → Y** (X happened before Y), meaning they are **causally related**.
+
+This analysis mirrors an investigation: _did the system (or node) “know” about X when it made decision Y?_
+
+#### Sequence Number Ordering
+
+Although **causality** is theoretically important, **explicitly tracking all causal dependencies** is often **impractical**, since clients may read large amounts of data before performing a write—making it unclear which reads the write depends on. Tracking every dependency would cause significant **overhead**.
+
+A more practical solution is to use **sequence numbers or timestamps** to order events. These timestamps don’t need to come from physical clocks (which are unreliable) but can come from **logical clocks**—algorithms that generate a sequence of numbers (usually simple **counters** incremented for each operation).
+
+These **sequence numbers or timestamps** are compact and establish a **total order**—every operation has a unique number, and any two can be compared to determine which came later.
+
+In a **single-leader replication** setup, the **replication log** naturally defines this total order of writes consistent with causality: the leader assigns **monotonically increasing sequence numbers** to operations as they are added to the log.
+
+#### Total Order Broadcast
+
+If a program runs on a **single CPU core**, defining a **total order of operations** is straightforward—it’s simply the order in which the CPU executes them.  
+However, in a **distributed system**, getting all nodes to agree on a **single total order of operations** is much more difficult.
+
+**Single-leader replication** solves this by letting one node (the leader) **sequence all operations** on its own CPU. The problems then become **scaling throughput** beyond what a single leader can handle and **handling failover** if the leader crashes.
+
+**Total order broadcast** provides a general way to achieve this ordering across multiple nodes. It requires two key **safety properties**:
+
+- **Reliable delivery:** No messages are lost—if one node delivers a message, all nodes eventually do.
+    
+- **Totally ordered delivery:** All nodes deliver messages **in the same order**.
+    
+
+A correct total order broadcast algorithm guarantees these properties even when nodes or networks fail (messages may be delayed but not lost).
+
+**Using total order broadcast**  
+It’s the foundation for **database replication**—if each message represents a write and all replicas process writes in the same order, they remain **consistent**. This idea is known as **state machine replication**.  
+The same mechanism can also be used to implement **serializable transactions**.
+
+An important rule is that once a message is delivered, its position in the order **cannot change**—no retroactive insertion is allowed. This makes total order broadcast **stronger than timestamp ordering**.
+
+Another way to view it: **total order broadcast creates a log** (like a replication or transaction log). Delivering a message equals **appending to the log**, and since every node sees the same log sequence, they all remain in sync.
+
+### Distributed Transactions and Consensus
+
+Consensus is one of the most important and fundamental problems in distributed computing. On the surface, it seems simple: informally, the goal is simply to get several nodes to agree on something. You might think that this shouldn’t be too hard. Unfortunately, many broken systems have been built in the mistaken belief that this problem is easy to solve
+
+There are several situations in distributed systems where **nodes must reach agreement**—that is, achieve **consensus**.
+
+**Leader election**  
+In systems with **single-leader replication**, all nodes must agree on **which node is currently the leader**. Problems arise if network faults prevent some nodes from communicating, causing multiple nodes to believe they are the leader.  
+To prevent this **split-brain** scenario, a **consensus mechanism** is required to ensure that leadership is uniquely and consistently assigned.
+
+**Atomic commit**  
+In databases supporting **distributed transactions** (spanning multiple nodes or partitions), a transaction might **succeed on some nodes but fail on others**.  
+To preserve **transaction atomicity** (i.e., “all or nothing” behavior), nodes must agree on whether to **commit or abort** the transaction.  
+Thus, consensus is essential to ensure that **all participants make the same final decision**.
+
+#### Atomic Commit and Two-Phase Commit (2PC)
+
+Atomicity ensures that a transaction’s writes are **all applied or all discarded**, preventing partial updates that could leave the database in an inconsistent state. This is especially important for **multi-object transactions** and databases with **secondary indexes**, as changes must remain consistent across all data structures.
+
+**Single-node atomic commit**  
+On a single node, atomicity is handled by the storage engine. The typical process is:
+
+1. Transaction writes are made durable (e.g., in a write-ahead log).
+    
+2. A **commit record** is appended to disk.
+    
+3. The commit is considered final once the commit record is successfully written.
+    
+
+If the database crashes before the commit record is written, the transaction can be rolled back. The **disk controller of a single node** ensures that this process is atomic.
+
+**Challenges in distributed atomic commit**  
+In a distributed system, committing a transaction requires agreement across multiple nodes. Problems include:
+
+- Some nodes may detect conflicts and need to abort, while others are ready to commit.
+    
+- Commit requests may be lost in the network or delayed, leading to inconsistent outcomes.
+    
+- Nodes may crash mid-commit, rolling back locally while others commit.
+    
+
+Because **a committed transaction cannot be undone**, a node must only commit **once it is certain that all other nodes will also commit**, ensuring the atomicity and irreversibility of distributed transactions. This underpins the **read committed isolation level**.
+
+**Introduction to two-phase commit**
+
+Two-phase commit is an algorithm for achieving atomic transaction commit across multiple nodes—i.e., to ensure that either all nodes commit or all nodes abort. It is a classic algorithm in distributed databases
+
+**Two-Phase Commit (2PC)**
+
+2PC introduces a **coordinator** (or transaction manager), which is not present in single-node transactions. The coordinator can be a library embedded in the application (e.g., in a Java EE container) or a separate service, with examples including Narayana, JOTM, BTM, and MSDTC.
+
+In a 2PC transaction, the application performs reads and writes on multiple **participant** nodes. When it’s ready to commit, the coordinator starts **Phase 1 (prepare phase)** by sending a prepare request to each participant, asking if they can commit.
+
+- If all participants respond **“yes”**, the coordinator proceeds to **Phase 2 (commit phase)**, sending a commit request so the transaction is finalized.
+    
+- If any participant responds **“no”**, the coordinator sends an **abort** request to all participants, ensuring that the transaction is rolled back everywhere.
+
+**A system of promises**
+
+**How 2PC works:**
+
+1. The application requests a globally unique transaction ID from the coordinator.
+    
+2. It begins single-node transactions on each participant, tagging them with the transaction ID. If anything fails, the transaction can be aborted.
+    
+3. The coordinator sends a **prepare** request to all participants. If any request fails, it aborts the transaction.
+    
+4. Participants ensure they can commit (writing data to disk, checking constraints) and reply “yes” if ready, surrendering the right to abort.
+    
+5. The coordinator collects all responses and makes a final commit/abort decision, logging it to disk (the commit point).
+    
+6. The coordinator sends the final commit or abort request to all participants.
+
+**Coordinator failure**
+
+If the coordinator fails before sending the prepare requests, a participant can safely abort the transaction. But once the participant has received a prepare request and voted “yes,” it can no longer abort unilaterally—it must wait to hear back from the coordinator whether the transaction was committed or aborted. If the coordinator crashes or the network fails at this point, the participant can do nothing but wait. A participant’s transaction in this state is called in doubt or uncertain.
+
+Without hearing from the coordinator, the participant has no way of knowing whether to commit or abort. In principle, the participants could communicate among themselves to find out how each participant voted and come to some agreement, but that is not part of the 2PC protocol.
+
+**Three-phase commit**
+
+Two-phase commit is called a blocking atomic commit protocol due to the fact that 2PC can become stuck waiting for the coordinator to recover. In theory, it is possible to make an atomic commit protocol nonblocking, so that it does not get stuck if a node fails. However, making this work in practice is not so straightforward.
+
+In general, nonblocking atomic commit requires a perfect failure detector [67, 71]— i.e., a reliable mechanism for telling whether a node has crashed or not. In a network with unbounded delay a timeout is not a reliable failure detector, because a request may time out due to a network problem even if no node has crashed.
+
+#### Distributed Transactions in Practice
+
+Some implementations of distributed transactions carry a heavy performance penalty
+
+**Types of distributed transactions:**
+
+**Database-internal distributed transactions**  
+These occur within a single distributed database that uses replication or partitioning (e.g., VoltDB, MySQL Cluster NDB). All participants run the same database software and can use protocols or optimizations specific to that system.
+
+**Heterogeneous distributed transactions**  
+These span multiple different systems, such as databases from different vendors or non-database systems like message brokers. They must ensure atomic commit across entirely different technologies.
+
+#### Fault-Tolerant Consensus
+
+Informally, consensus means getting several nodes to agree on something. The consensus problem is normally formalized as follows: one or more nodes may propose values, and the consensus algorithm decides on one of those values
+
+**Consensus algorithm properties:**
+
+**Uniform agreement** – No two nodes decide differently.  
+**Integrity** – No node decides twice.  
+**Validity** – Any decided value was proposed by some node.  
+**Termination** – Every non-crashed node eventually decides a value.
+
+Uniform agreement and integrity ensure everyone agrees and cannot change their decision. Validity prevents trivial solutions like always deciding `null`. Termination formalizes fault tolerance: even if some nodes fail, the remaining nodes must eventually decide. Two-phase commit (2PC) fails termination because if the coordinator crashes, participants can remain indefinitely uncertain.
+
+#### Membership and Coordination Services
+
+**Linearizable atomic operations** – An atomic compare-and-set can implement a lock; only one node succeeds if multiple try concurrently. Consensus ensures atomicity and linearizability even with node failures or network interruptions. Distributed locks are often leases with expiry times.
+
+**Total ordering of operations** – Fencing tokens prevent conflicts during process pauses. Each lock acquisition increments the token. ZooKeeper provides this with totally ordered operations, giving each a monotonically increasing transaction ID (zxid) and version number (cversion).
+
+**Failure detection** – Clients maintain sessions with ZooKeeper servers and exchange heartbeats. If heartbeats stop beyond the session timeout, the session is declared dead, and any locks can be automatically released (ephemeral nodes).
+
+**Change notifications** – Clients can watch locks and values for changes, allowing them to detect other clients joining or failing without constant polling.
+
+### Summary
+
+In this chapter we examined consistency and consensus from multiple perspectives. Linearizability aims to make replicated data appear as if there is a single copy, with all operations acting atomically. It is simple to understand but can be slow in environments with large network delays. Causality, by contrast, orders events based on cause and effect, allowing concurrent operations and branching timelines. Causal consistency avoids the coordination overhead of linearizability and is less sensitive to network problems.
+
+However, some problems—like ensuring a username is unique—cannot be solved by causality alone, leading to the need for consensus. Achieving consensus means all nodes agree on a decision, and that decision is irrevocable. Many problems reduce to consensus, including linearizable compare-and-set registers, atomic transaction commits, total order broadcast, locks and leases, membership/coordination services, and uniqueness constraints.
+
+Single-leader databases assign decision-making to the leader, enabling linearizable operations and totally ordered replication logs. If the leader fails or becomes unreachable, the system can be blocked. Solutions include waiting for the leader to recover, manual failover by humans, or using an algorithm to automatically elect a new leader—requiring consensus. Even with a leader, consensus is still needed for leadership changes, though less frequently.
+
+Fault-tolerant consensus algorithms exist, and tools like ZooKeeper provide outsourced consensus, failure detection, and membership services. Not all systems need consensus: leaderless and multi-leader replication systems can operate without global consensus, though this introduces conflicts that must be resolved.
+
+The chapter emphasizes that theoretical research on distributed systems, while sometimes abstract, is crucial for understanding what is possible, what is safe, and how to reason about the often counterintuitive behavior of distributed systems.
+
+
+## CHAPTER 10 Batch Processing
+
+
+In such online systems, whether it’s a web browser requesting a page or a service calling a remote API, we generally assume that the request is triggered by a human user, and that the user is waiting for the response. They shouldn’t have to wait too long, so we pay a lot of attention to the response time of these systems
+
+The web and HTTP/REST-based APIs have made the request/response style very common, but it’s not the only way to build systems. There are three main types of systems:
+
+**Services (online systems)**  
+A service waits for a client request, handles it quickly, and sends back a response. Response time and availability are key performance measures.
+
+**Batch processing systems (offline systems)**  
+These take large input data, process it through jobs, and produce output. Jobs run periodically and focus on throughput rather than immediate response.
+
+**Stream processing systems (near-real-time systems)**  
+These operate between online and offline modes. They consume and produce data continuously, working on events shortly after they occur for lower latency compared to batch systems.
+### Batch Processing with Unix Tools
+
+#### Simple Log Analysis
+
+Various tools can analyze log files and generate reports about website traffic.
+
+```
+cat /var/log/nginx/access.log | 
+awk '{print $7}' | 
+sort | 
+uniq -c | 
+sort -r -n | 
+head -n 5
+```
+
+- Read the log file.
+    
+- Split each line by whitespace and extract the seventh field (the requested URL).
+    
+- Sort the URLs alphabetically; repeated URLs appear consecutively.
+    
+- `uniq -c` counts how many times each unique URL appears.
+    
+- The second `sort` orders the output numerically and in reverse, showing most frequent requests first.
+    
+- `head -n 5` displays only the top five results.
+    
+
+Example output:
+
+```
+4189 /favicon.ico
+3631 /2013/05/24/improving-security-of-ssh-private-keys.html
+2124 /2012/12/05/schema-evolution-in-avro-protocol-buffers-thrift.html
+1369 /
+915 /css/typography.css
+```
+
+**Chain of commands versus custom program**
+
+Instead of the chain of Unix commands, you could write a simple program to do the
+same thing 
+
+```
+counts = Hash.new(0)
+File.open('/var/log/nginx/access.log') do |file|
+  file.each do |line|
+    url = line.split[6]
+    counts[url] += 1
+  end
+end
+top5 = counts.map { |url, count| [count, url] }.sort.reverse[0...5]
+top5.each { |count, url| puts "#{count} #{url}" }
+```
+
+- `counts` is a hash that tracks how many times each URL appears, starting from zero.
+    
+- Each line is split by whitespace; the seventh field (index 6) is the URL.
+    
+- Increment the counter for each URL.
+    
+- Sort by count in descending order and take the top five results.
+    
+- Print those top five entries.
+    
+
+This Ruby program is less concise than the Unix pipe version but more readable. The main difference lies in their execution flow, especially noticeable on large files.
+
+**Sorting versus in-memory aggregation**
+
+Which approach is better depends on how many different URLs exist. For small to mid-sized websites, all distinct URLs and their counters can usually fit in memory.
+
+However, if the dataset is too large to fit into memory, the sorting approach is better since it can efficiently use disks. Similar to SSTables and LSM-Trees, chunks of data can be sorted in memory, written to disk as segment files, and later merged into larger sorted files.
+
+#### The Unix Philosophy
+
+The Unix philosophy made it easy to analyze a log file using chained commands. This idea dates back to 1964 when Doug McIlroy, the inventor of Unix pipes, described programs as segments of a “garden hose” that could be connected to process data. The plumbing analogy became the foundation of the Unix philosophy, summarized in 1978 as:
+
+1. Make each program do one thing well. To handle new tasks, build new programs instead of overcomplicating existing ones.
+    
+2. Expect every program’s output to serve as input to another unknown program. Keep outputs clean and simple, avoiding rigid formats or interactive-only input.
+    
+3. Design software to be tested early and often; rebuild clumsy parts without hesitation.
+    
+4. Use tools to automate and simplify programming, even if they’re temporary.
+    
+
+This mindset—automation, rapid iteration, experimentation, and modular design—closely mirrors modern Agile and DevOps principles.
+
+**A uniform interface**  
+For one program’s output to become another’s input, they must share a common format. Most Unix programs use plain ASCII text for this, treating input as a sequence of records separated by the newline (`\n`) character. This convention allowed commands like `awk`, `sort`, `uniq`, and `head` to work together seamlessly. While the choice of `\n` was arbitrary, the ASCII record separator (0x1E) might have been a more intentional design.
+
+**Separation of logic and wiring**
+
+Another characteristic feature of Unix tools is their use of standard input (stdin) and standard output (stdout). If you run a program and don’t specify anything else, stdin comes from the keyboard and stdout goes to the screen. However, you can also take input from a file and/or redirect output to a file
+
+A program can still read and write files directly if it needs to, but the Unix approach works best if a program doesn’t worry about particular file paths and simply uses stdin and stdout. This allows a shell user to wire up the input and output in whatever way they want; the program doesn’t know or care where the input is coming from and where the output is going to. (One could say this is a form of loose coupling, late binding [15], or inversion of control [16].) Separating the input/output wiring from the program logic makes it easier to compose small tools into bigger systems.
+
+### MapReduce and Distributed Filesystems
+
+MapReduce is similar to Unix tools but operates across many machines. Like Unix processes, each MapReduce job takes one or more inputs and produces one or more outputs.
+
+While Unix tools use `stdin` and `stdout` for input and output, MapReduce reads and writes files on a distributed filesystem. In Hadoop, this filesystem is called **HDFS**.
+
+HDFS follows the **shared-nothing** principle, unlike shared-disk systems such as NAS or SAN, which rely on centralized storage hardware. Instead, HDFS uses ordinary datacenter machines connected over a standard network.
+
+Each machine runs a daemon process that exposes local disks as part of a unified storage system. A central **NameNode** tracks which file blocks are stored on which machines, making HDFS appear as a single large filesystem spanning all nodes.
+
+To handle failures, HDFS replicates file blocks across multiple machines, maintaining multiple copies to ensure data reliability.
+
+#### MapReduce Job Execution
+
+MapReduce is a programming framework for processing large datasets in distributed filesystems like HDFS. It’s conceptually similar to the web server log analysis process:
+
+1. Read input files and split them into records (for example, each line in a log file).
+    
+2. The **mapper** function extracts a key-value pair from each record (like `awk '{print $7}'`, which outputs URLs).
+    
+3. The system sorts all key-value pairs by key (as done by `sort`).
+    
+4. The **reducer** function processes each group of identical keys, combining their values (like `uniq -c` counting occurrences).
+    
+
+Steps 2 and 4 are user-defined (map and reduce), while step 1 is handled by an input parser and step 3 is automatically managed by MapReduce.
+
+**Mapper**  
+Processes one input record at a time, extracting key-value pairs. It’s stateless and independent for each record.
+
+**Reducer**  
+Receives all values associated with a given key and processes them, producing new output records (e.g., counts per URL).
+
+**Distributed execution of MapReduce**  
+Unlike Unix pipelines, MapReduce automatically parallelizes computation across many machines. Mappers and reducers operate independently on records, while the framework handles data transfer between nodes.
+
+Before execution, the framework distributes the program code (like JAR files) to the machines running map tasks. Each map task reads input, applies the mapper, and outputs sorted key-value pairs locally.
+
+Reducers are assigned based on a hash of the key, ensuring that all data for a given key goes to the same reducer. Sorting happens in stages: each mapper writes sorted partitions to disk, and reducers merge these sorted files while maintaining order.
+
+Finally, the reducer processes each key’s data (which may not fit entirely in memory) and generates any number of output records.
+
+**MapReduce workflows**
+
+The range of problems solvable by a single MapReduce job is limited. For example, one job can count page views per URL but cannot determine the most popular URLs without an additional sorting step.
+
+Because of this, MapReduce jobs are often **chained into workflows**, where the output of one job becomes the input for the next. Hadoop MapReduce doesn’t provide built-in workflow support, so this chaining is managed through directory configurations: one job writes its output to an HDFS directory, and the next reads from that same directory.
+
+From the framework’s perspective, each job is independent.  
+These chained jobs resemble a sequence of Unix commands where each step writes to a temporary file and the next reads from it, rather than a direct in-memory pipeline.
+
+#### Reduce-Side Joins and Grouping
+
+In many datasets, records are linked to each other—through foreign keys in relational databases, document references in document stores, or edges in graph models. A **join** is required whenever code needs to access records from both sides of such relationships.
+
+In databases, queries involving few records typically rely on **indexes** to quickly find relevant data. Joins may require multiple index lookups.
+
+MapReduce, however, has **no built-in concept of indexes**. When given input files, it reads their entire contents—essentially performing a full table scan. While inefficient for small queries, this approach is acceptable for **analytic workloads** that aggregate data across large datasets. In those cases, scanning everything is reasonable, especially when computation is parallelized across many machines.
+
+#### Map-Side Joins
+
+Join algorithms that perform the join logic in reducers are called **reduce-side joins**. In this approach, mappers prepare input data by extracting keys and values, assigning them to reducer partitions, and sorting by key.
+
+The benefit of reduce-side joins is flexibility—they work regardless of input structure or data properties. However, they are costly since sorting, shuffling, and merging data across reducers can involve multiple disk writes, depending on memory limits.
+
+If certain assumptions about the input data can be made, a **map-side join** can be used instead. This method skips reducers and sorting entirely. Each mapper reads a block of input data and directly writes an output file, making it much faster and simpler.
+
+#### The Output of Batch Workflows
+
+Where does batch processing fit in? It is not transaction processing, nor is it analytics. It is closer to analytics, in that a batch process typically scans over large portions of an input dataset. However, a workflow of MapReduce jobs is not the same as a SQL query used for analytic purposes
+
+**Building search indexes**
+
+Batch processes are effective for building **full-text search indexes** over a fixed set of documents. Mappers partition documents, reducers build indexes for each partition, and the results are written to the distributed filesystem. These indexes are **immutable**, and if documents change, the entire indexing workflow can be rerun to replace the old indexes. This is simple to reason about, though potentially computationally expensive for small changes.
+
+**Key-value stores as batch process output**  
+Batch jobs often produce databases that the web application queries, such as user ID–based friend suggestions or product recommendations. Instead of writing directly to a database one record at a time, a better approach is to build the database inside the batch job, write it as immutable files to the output directory, and then load them in bulk into read-only servers. For example, Voldemort allows atomic switching to new files while keeping old ones for rollback.
+
+**Philosophy of batch process outputs**  
+Following the Unix philosophy, MapReduce outputs are immutable and side-effect-free: inputs remain unchanged, previous outputs are replaced, and no external systems are modified. This provides several advantages:
+
+- Bugs can be rolled back by rerunning the job or switching to old outputs, unlike read-write databases where corrupted data cannot be easily undone.
+    
+- Easier rollback accelerates feature development and supports Agile practices.
+    
+- Failed map or reduce tasks are automatically retried safely because inputs are immutable and outputs from failed tasks are discarded.
+    
+- The same input files can serve multiple jobs, including monitoring or validation tasks.
+    
+- Logic is separated from wiring (input/output configuration), enabling code reuse: one team can focus on processing logic while others manage job scheduling and execution.
+
+#### Comparing Hadoop to Distributed Databases
+
+**Diversity of storage**
+
+Databases require data to follow a specific model (relational, document, etc.), whereas files in a distributed filesystem are just sequences of bytes. These files can represent database records, text, images, videos, sensor readings, sparse matrices, feature vectors, genome sequences, or any other kind of data.
+
+This approach is similar to a **data warehouse**: collecting data from across an organization in one place enables joins across previously disparate datasets. Unlike MPP databases, which require careful schema design, storing data in raw form speeds up collection—this is often called a **data lake** or **enterprise data hub**. The burden of interpreting the data shifts to the consumer, following a **schema-on-read** approach.
+
+**Diversity of processing models**  
+MPP databases are monolithic systems optimized for storage layout, query planning, scheduling, and execution. They perform well for the queries they are designed for, and SQL provides expressive, accessible queries compatible with tools like Tableau. However, not all processing can be effectively expressed in SQL. MapReduce allows engineers to run custom code over large datasets.
+
+**Designing for frequent faults**  
+Batch processes, like MapReduce jobs, are less sensitive to faults than online systems—they can be retried without affecting users. In MPP databases, a node failure usually aborts the entire query, which is acceptable for short-running queries.
+
+MapReduce tolerates task-level failures by retrying individual map or reduce tasks. It frequently writes data to disk both for fault tolerance and to handle datasets too large for memory. This approach is ideal for large jobs that run long enough to expect task failures, avoiding the inefficiency of rerunning entire jobs. Even though task-level recovery may add overhead in fault-free scenarios, it’s worthwhile when task failures are common.
+
+### Beyond MapReduce
+
+To simplify the complexity of using **MapReduce** directly, higher-level frameworks like **Pig, Hive, Cascading,** and **Crunch** were developed. These abstractions make common batch-processing tasks easier once you understand MapReduce.
+
+However, the **MapReduce execution model itself** has inherent performance limitations that abstractions can’t fix. While MapReduce is extremely **robust**—able to handle massive datasets on unreliable systems—it can also be **very slow**. For certain types of processing, other tools can perform **orders of magnitude faster**.
+
+#### Materialization of Intermediate State
+
+The **input and output directories** of a MapReduce job are its main connection points with the outside world. When one job’s output becomes another’s input, the next job must be configured to read from the previous job’s output and started only after it finishes—typically managed by a **workflow scheduler**.
+
+If the output is meant to be **shared widely**, publishing it to a known filesystem location promotes **loose coupling** between teams. But often, the output is **only used internally** by the next job in the same workflow—these files are just **intermediate state**. Writing such intermediate data to disk is called **materialization** (similar to materialized views).
+
+However, **fully materializing intermediate results** has downsides compared to Unix-style **streaming pipes**:
+
+- Each job must **wait** for the previous one to fully complete, causing slowdowns due to **straggler tasks**.
+    
+- **Mappers may be redundant**, re-reading recent reducer output when their logic could have been merged.
+    
+- **Replicating temporary files** across the distributed filesystem adds unnecessary overhead.
+    
+
+In short, materialization improves fault tolerance and clarity but sacrifices **speed and efficiency** compared to **streamed, in-memory processing**.
+
+**Dataflow engines**
+
+Dataflow engines explicitly model **data movement through multiple processing stages**, similar to MapReduce but more flexible. They repeatedly apply **user-defined functions (operators)** to records and connect these operators in various ways to define complex workflows.
+
+Key characteristics and advantages:
+
+- Operators can be connected flexibly — not just alternating **map** and **reduce** stages.
+    
+- Different data transfer options exist:
+    
+    - **Repartition + sort by key** → for sort-merge joins and grouping (like MapReduce shuffle).
+        
+    - **Repartition only (no sort)** → for faster **hash joins**, since order doesn’t matter.
+        
+    - **Broadcast join** → one operator’s output is sent to all partitions of another operator.
+        
+- Inspired by research systems like **Dryad** and **Nephele**.
+    
+
+**Advantages over MapReduce:**
+
+- **Sorting is optional** — done only when necessary, reducing overhead.
+    
+- **No redundant map tasks** — mappers can often be merged into preceding operators.
+    
+- **Smarter scheduling** — since data dependencies are explicit, the engine can **optimize data locality**, running related tasks on the same machine to reduce network transfer.
+    
+
+In short, **dataflow engines** generalize and optimize the MapReduce model, improving performance and flexibility by explicitly modeling how data moves and is processed through each stage.
+
+**Fault tolerance**
+
+Fully materializing intermediate data to a distributed filesystem makes **fault tolerance simple** in systems like MapReduce — if a task fails, it can just be restarted elsewhere and reread its input from disk.
+
+Modern systems like **Spark** and **Flink** improve this idea using different fault recovery mechanisms:
+
+- **Spark’s RDDs (Resilient Distributed Datasets)** track how data was derived (its “lineage”) so lost partitions can be **recomputed** from their ancestors.
+    
+- **Flink** instead uses **checkpoints** to save the internal state of operators, allowing it to **resume execution** instead of restarting from scratch.
+    
+
+However, recomputation only works reliably if computations are **deterministic** — i.e., they always produce the same output for the same input.
+
+- If an operator is **nondeterministic** (e.g., depends on random numbers, timestamps, or external systems), recomputation can produce inconsistent data, forcing downstream operators to restart too.
+    
+- To prevent cascading failures, operators should therefore be designed to be deterministic.
+    
+
+Finally, recomputation isn’t always ideal: if **intermediate data is small** or **computation is very expensive**, it’s often better to **materialize (save)** the intermediate results to disk instead of recomputing them.
+
+#### Graphs and Iterative Processing
+
+In batch processing, graphs are often analyzed offline for use cases such as **recommendation engines** or **ranking systems**.
+
+Many graph algorithms work by **traversing edges repeatedly**, joining connected vertices to propagate information until a condition is met—like reaching all reachable nodes or achieving convergence (e.g., in a **transitive closure**).
+
+Although a graph can be stored in a distributed filesystem (as files listing vertices and edges), **MapReduce alone cannot handle iterative algorithms**, since it performs only a **single pass** over the data.
+
+To support iterative graph computations, a **scheduler-driven loop** is used:
+
+1. The scheduler runs a batch job that performs one step of the algorithm.
+    
+2. After completion, it checks whether the algorithm has converged or finished.
+    
+3. If not, the scheduler triggers another round of the batch job, repeating the process until the stopping condition is met.
+
+#### High-Level APIs and Languages
+
+Dataflow APIs provide **relational-style operations**—such as joins, groupings, filters, and aggregations—to define computations declaratively. Internally, these operations rely on the **join and grouping algorithms** described earlier.
+
+Beyond simplifying code, these **high-level interfaces** enable **interactive and exploratory development**: developers can iteratively write, test, and observe code behavior in a shell environment. This interactive style promotes experimentation and mirrors the **Unix philosophy** of building complex workflows from simple, composable operations.
+
+### Summary
+
+Unix tools like **awk**, **grep**, and **sort** inspired the design of **MapReduce** and modern **dataflow engines**, emphasizing composability, immutability, and simplicity—programs that _“do one thing well”_ and pass data through standardized interfaces.  
+In Unix, this interface is **files and pipes**; in MapReduce, it’s a **distributed filesystem** (e.g., HDFS). Dataflow engines extend this model by adding **in-memory, pipe-like mechanisms** to reduce the need for fully materializing intermediate state, though input and output still typically reside in HDFS.
+
+Distributed batch systems mainly address two challenges:
+
+- **Partitioning:**  
+    MapReduce partitions data across mappers and repartitions it for reducers so that related records (e.g., same key) end up together. Later dataflow engines keep this concept but minimize unnecessary sorting.
+    
+- **Fault Tolerance:**  
+    MapReduce achieves robustness by frequently writing to disk, enabling retries of failed tasks but at the cost of slower execution. Dataflow engines keep more data in memory, recomputing as needed, relying on **deterministic operators** to ensure consistent results after recovery.
+    
+
+Common join strategies illustrate how partitioned algorithms work:
+
+- **Sort-merge joins:** Inputs are partitioned, sorted, and merged so all records with the same key meet in the same reducer.
+    
+- **Broadcast hash joins:** A small dataset is loaded into a hash table and broadcast to all mappers processing partitions of a larger dataset.
+    
+- **Partitioned hash joins:** Both inputs are partitioned identically, allowing independent joins per partition.
+    
+
+Batch frameworks enforce a **restricted programming model**—stateless functions with no side effects—making retries and fault recovery transparent. This guarantees **consistent final output** even if some tasks fail and restart.
+
+Ultimately, batch jobs:
+
+- **Read bounded input data**,
+    
+- **Produce new output without modifying inputs**, and
+    
+- **Eventually complete** once all data is processed.
+    
+
+The next step—**stream processing**—extends these ideas to **unbounded, continuously arriving data**, where jobs never truly finish and must handle data incrementally and in real time.
+
+## CHAPTER 11 Stream Processing
+
+In reality, a lot of data is unbounded because it arrives gradually over time: your users produced data yesterday and today, and they will continue to produce more data tomorrow. Unless you go out of business, this process never ends, and so the dataset is never “complete” in any meaningful way. Thus, batch processors must artificially divide the data into chunks of fixed duration—for example, processing a day’s worth of data at the end of every day, or an hour’s worth of data at the end of every hour.
+
+The problem with daily batch processes is that changes in the input are only reflected in the output a day later, which is too slow for many impatient users. To reduce the delay, we can run the processing more frequently—say, every second—or even continuously, processing every event as it happens. That is the idea behind stream processing.
+
+#### Transmitting Event Streams
+
+In batch processing, inputs and outputs are files. When the input is a file (a sequence of bytes), it is first parsed into a sequence of records. In stream processing, a record is called an event—an immutable, self-contained object describing something that happened at a specific time, usually with a timestamp.
+
+Events can be encoded as text, JSON, or binary formats, allowing them to be stored (e.g., in files or databases) or sent across networks. In batch systems, a file is written once and read by multiple jobs. Similarly, in streaming, an event is produced once by a producer (or publisher) and processed by multiple consumers.
+
+A simple approach to connect producers and consumers is for producers to write events to a datastore, and consumers to periodically check for new ones—similar to batch jobs that process daily data. However, traditional databases are not designed for real-time notifications; triggers exist but are limited. Therefore, specialized tools have been created to handle event delivery and notifications efficiently.
+
+#### Messaging Systems
+
+A simple producer–consumer setup can form a basic messaging system, but most systems extend this model. Unlike Unix pipes or TCP, which connect one sender to one recipient, messaging systems allow multiple producers to publish to a topic and multiple consumers to receive from it.
+
+In the publish/subscribe model, systems differ mainly based on two questions:
+
+1. **Handling overload:** What happens when producers send messages faster than consumers can process them? Systems may drop messages, buffer them in a queue, or apply **backpressure** (flow control) to slow producers. Unix pipes and TCP, for instance, use backpressure with fixed-size buffers.
+    
+2. **Handling failures:** What happens if nodes crash or go offline? Ensuring durability often requires writing to disk or replication, which adds cost. If occasional message loss is acceptable, higher throughput and lower latency are possible.
+    
+
+Batch processing systems provide strong reliability: failed tasks are retried automatically, and partial outputs are discarded, ensuring results are as if no failure occurred. Stream processing aims to offer similar reliability guarantees.
+
+**Direct messaging from producers to consumers**
+
+• **UDP multicast** is widely used in finance for low-latency streams like stock market feeds. Although UDP is unreliable, higher-level protocols can recover lost packets if the producer retains and retransmits them on demand.  
+• **Brokerless messaging libraries** such as ZeroMQ and nanomsg use TCP or IP multicast to implement publish/subscribe messaging without central brokers.  
+• **StatsD** and **Brubeck** use unreliable UDP to collect and monitor metrics across machines. Since UDP doesn’t guarantee delivery, counter metrics become approximate.  
+• **Direct HTTP or RPC delivery:** Producers can push messages directly to consumers via network services, as in webhooks, where one service registers a callback URL and receives requests whenever an event occurs.
+
+If a consumer goes offline, it may miss messages sent during downtime. Some protocols retry failed deliveries, but this fails if the producer crashes and loses its retry buffer.
+
+**Message brokers**
+
+A common alternative is to use a **message broker** (or message queue), a specialized database optimized for handling message streams. It runs as a server, with producers and consumers connecting as clients. Producers send messages to the broker, and consumers read them from it.
+
+By centralizing data, brokers handle client disconnections or crashes more gracefully, shifting durability concerns to the broker itself. Some brokers keep messages in memory, while others persist them to disk to prevent loss during crashes. When consumers are slow, brokers typically allow **unbounded queueing** rather than dropping messages or applying backpressure, though this depends on configuration.
+
+Because of this queuing, consumers operate **asynchronously**—producers wait only for the broker’s confirmation that the message is buffered, not for it to be processed. Delivery to consumers happens later, usually within milliseconds, but potentially delayed if a backlog builds up.
+
+**Message brokers compared to databases**
+
+• **Data retention:** Databases keep data until explicitly deleted, while most message brokers automatically delete messages after successful delivery, making them unsuitable for long-term storage.  
+• **Working set size:** Because brokers delete messages quickly, they assume short queues. If consumers are slow and the broker must buffer many messages (even spilling to disk), processing latency and overall throughput can degrade.  
+• **Data access:** Databases offer secondary indexes and complex queries; message brokers provide topic subscriptions or pattern-based filtering—different mechanisms serving the same purpose of selecting relevant data.  
+• **Change awareness:** Database queries return point-in-time snapshots and require polling to detect changes, while brokers don’t support arbitrary queries but **push** new messages to clients when data changes.
+
+**Multiple consumers**
+
+- **Load balancing:** Each message is delivered to only one consumer, allowing parallel processing. The broker distributes messages among consumers (e.g., multiple clients on the same queue in AMQP, or shared subscriptions in JMS).
+    
+- **Fan-out:** Each message is delivered to all consumers, enabling independent processing—similar to multiple batch jobs reading the same file (e.g., topic subscriptions in JMS or exchange bindings in AMQP).
+    
+
+**Acknowledgments and redelivery**
+
+Consumers may crash before fully processing a message. To avoid message loss, brokers require **acknowledgments**—the consumer must confirm successful processing before the broker removes the message from the queue.
+
+#### Partitioned Logs
+
+Sending a network packet or request is usually a **transient operation**—it leaves no permanent record unless explicitly captured. Even message brokers that persist messages to disk delete them soon after delivery, reflecting this transient mindset.
+
+**Databases and filesystems**, on the other hand, treat written data as permanent until explicitly deleted. This fundamental difference affects how **derived data** is created. In batch processing, inputs are immutable, allowing safe reprocessing and experimentation. In contrast, with traditional messaging systems (like AMQP or JMS), message consumption is **destructive**—acknowledging a message deletes it, preventing reprocessing or recovery.
+
+When a new consumer joins a messaging system, it only receives **new messages**, missing all prior ones. Databases and filesystems, however, allow clients to read old data at any time, as long as it hasn’t been overwritten or deleted.
+
+To bridge these worlds, systems emerged that combine **durable storage** with **low-latency messaging**—this concept is known as **log-based message brokers**.
+
+**Consumer offsets**
+
+Consuming a partition sequentially simplifies progress tracking: all messages with offsets lower than the current consumer offset are processed, and those with higher offsets remain unprocessed. This eliminates the need for per-message acknowledgments—only **periodic offset recording** is required. The reduced bookkeeping, along with batching and pipelining, significantly boosts the throughput of log-based systems.
+
+This **offset mechanism** closely resembles the **log sequence number (LSN)** used in single-leader database replication. Just as followers resume replication from the last processed LSN, consumers can resume reading from their last recorded offset after disconnection. Here, the broker functions like a leader database, and the consumer like a follower.
+
+**When consumers cannot keep up with producers**
+
+If a consumer lags so far behind that it needs messages older than the broker’s retention window, those messages are lost—it can no longer read them. Systems typically **monitor consumer lag** and trigger alerts when it grows too large, giving operators time to resolve issues before data loss occurs.
+
+Even if a consumer misses messages, **only that consumer** is affected—other consumers continue uninterrupted. This isolation offers major operational flexibility: developers can safely attach experimental consumers to production logs for testing or debugging without impacting live systems. When a consumer stops or crashes, it simply halts consumption; the only persistent state is its **offset position**.
+
+### Databases and Streams
+
+#### Keeping Systems in Sync
+
+There is no single system that meets all **data storage, querying, and processing** needs. Real-world applications usually combine multiple technologies to fulfill different requirements.
+
+When the same or related data exists in multiple systems, they must be **kept in sync**. For example, updating an item in a database also requires updating the cache, search indexes, and data warehouse. In data warehouses, this synchronization is often done through **ETL processes**, which copy, transform, and bulk-load data—typically as a **batch process**. Similarly, systems like search indexes or recommendation engines often rely on batch jobs to generate derived data.
+
+If full database dumps are too slow, applications may use **dual writes**, where the code updates multiple systems directly (e.g., writing to the database, updating the search index, and invalidating caches). However, this introduces the risk of inconsistencies if one of those writes fails.
+
+In a single-leader replicated database, the leader enforces a **total order of writes**, ensuring consistent replication across followers. But when multiple independent systems each have their own leaders (like a database and a search index), **conflicts** can arise because there is no shared ordering. The situation improves if one system—such as the database—acts as the **leader**, and other systems (like the search index) behave as **followers**. The question then becomes: can we make that practical?
+
+#### Change Data Capture
+
+Most databases treat their **replication logs** as internal implementation details, not public APIs. Clients are expected to interact with the database through its query language—not by reading replication logs directly.
+
+Recently, **change data capture (CDC)** has gained attention. CDC observes all data changes written to a database and extracts them in a streamable form that can be replicated to other systems. This makes it possible to propagate updates in near real time.
+
+**Initial snapshot**
+
+If a complete log of all database changes were available, the entire database state could be **reconstructed by replaying the log**. However, since keeping all history is often impractical due to storage and replay time, logs are usually **truncated**.
+
+When building a new system such as a full-text search index, you need more than recent changes—you need a **consistent snapshot** of the current full database. Once that snapshot is created, the system can then **apply ongoing changes** from the log to stay synchronized.
+
+#### Event Sourcing
+
+Similarly to **change data capture (CDC)**, **event sourcing** records all changes as a log of events, but at a different level of abstraction:
+
+- **CDC:** The application mutates the database (updates, deletes), and a log of changes is extracted from the database (e.g., replication log). This ensures the extracted write order matches the actual order, avoiding race conditions. The application itself doesn’t need to know CDC is happening.
+    
+- **Event sourcing:** The application explicitly writes immutable events to an **append-only event log**. Updates or deletes are discouraged, and events represent high-level application actions rather than low-level database state changes.
+    
+
+Event sourcing resembles the **chronicle data model** and shares similarities with a **fact table** in a star schema. Specialized tools like **Event Store** exist, but conventional databases or log-based message brokers can also support event-sourced applications.
+
+**Deriving current state from the event log**
+
+An event log alone isn’t sufficient; users expect to see **current state**, not the full history. Applications must transform the log of events into **application state** suitable for presentation. This transformation should be deterministic, so replaying the log always produces the same state.
+
+- **CDC compaction:** The most recent event for a key typically determines its current value, so prior events can be discarded.
+    
+- **Event sourcing compaction:** Events represent user actions, not state mechanics, so prior events usually cannot be discarded. Full history is needed to reconstruct the final state.
+    
+
+To avoid reprocessing the full log repeatedly, event-sourced applications often store **snapshots** of derived current state alongside the event log.
+
+**Commands and events**
+
+Event sourcing carefully distinguishes between **commands** and **events**.
+
+- A **command** is a user request that may fail, for example if it violates some integrity constraint. The application must validate the command before execution.
+    
+- Once validated and accepted, the command becomes an **event**, which is **durable and immutable**.
+    
+
+For example, registering a username or reserving a seat requires checking availability first. Once the check succeeds, an event is generated indicating the action (e.g., username registered or seat reserved). That event becomes a **fact**: even if the user later cancels, the original reservation event remains in the log, and the cancellation is recorded as a separate event.
+
+Consumers of the event stream **cannot reject events**; by the time they see it, the event is immutable and may already have been seen by others. Therefore, command validation must happen **synchronously** before the event is published, possibly using a serializable transaction.
+
+Alternatively, a user request can be split into two events: a **tentative event** followed by a **confirmation event** once validation succeeds.
+#### State, Streams, and Immutability
+
+**Advantages of immutable events**
+
+In accounting, mistakes are never erased; instead, a **compensating transaction** is added (e.g., refunding an incorrect charge). The original transaction remains in the ledger for auditing. If incorrect figures have been published, future periods include corrections. This **append-only approach** ensures traceability and auditability.
+
+While critical in finance, immutable logs are also valuable in other systems. If buggy code writes bad data, recovery is easier with an **append-only log of events** than with a destructively updated database. Immutable events also capture more information than current state alone—for instance, a shopping cart event log preserves both added and removed items, which is useful for analytics.
+
+**Deriving multiple views from the same event log**
+
+By separating **mutable state** from the **immutable event log**, multiple read-oriented representations can be derived from the same log, just like having multiple consumers of a stream.
+
+**Concurrency control**
+
+A challenge of event sourcing and CDC is that consumers are usually asynchronous. A user may write to the log and then read from a derived view before the write is reflected. One solution is to update the read view **synchronously** with the log append, using a transaction to make the operation atomic—either by storing the log and view together or via a distributed transaction.
+
+Conversely, deriving current state from an event log **simplifies some concurrency issues**, reducing the need for multi-object transactions.
+
+### Processing Streams
+
+1. **Writing to storage:** Extract data from events and write it to a database, cache, search index, or similar system for querying by other clients. This keeps the storage system **in sync** with changes elsewhere, especially if the consumer is the only writer. It is the streaming equivalent of batch workflow outputs.
+    
+2. **Pushing to users:** Deliver events directly to users via email, push notifications, or real-time dashboards. Here, humans are the ultimate consumers of the stream.
+    
+3. **Stream processing:** Transform one or more input streams into output streams. Streams may pass through **multiple processing stages** before reaching their final output.
+
+#### Uses of Stream Processing
+
+1. **Writing to storage:** Extract data from events and write it to a database, cache, search index, or similar system for querying by other clients. This keeps the storage system **in sync** with changes elsewhere, especially if the consumer is the only writer. It is the streaming equivalent of batch workflow outputs.
+    
+2. **Pushing to users:** Deliver events directly to users via email, push notifications, or real-time dashboards. Here, humans are the ultimate consumers of the stream.
+    
+3. **Stream processing:** Transform one or more input streams into output streams. Streams may pass through **multiple processing stages** before reaching their final output.
+
+### Summary
+
+**AMQP/JMS-style message broker**
+
+- The broker assigns individual messages to consumers.
+    
+- Consumers acknowledge messages once processed.
+    
+- Messages are deleted after acknowledgment.
+    
+- Suitable for asynchronous RPC or task queues where message order and replaying old messages are not required.
+    
+
+**Log-based message broker**
+
+- All messages in a partition go to the same consumer, maintaining order.
+    
+- Parallelism is achieved via partitioning.
+    
+- Consumers track progress by checkpointing offsets.
+    
+- Messages are retained on disk, allowing replay of old messages.
+    
+- Similar to database replication logs and log-structured storage engines.
+    
+- Ideal for stream processing, generating derived state or output streams.
+    
+
+**Sources of streams**
+
+- User activity events, sensor readings, data feeds.
+    
+- Database writes represented as streams via **change data capture** or **event sourcing**.
+    
+- Log compaction enables retaining a full database snapshot.
+    
+
+**Benefits of stream-based database representation**
+
+- Keeps derived systems (search indexes, caches, analytics) up to date.
+    
+- Allows building fresh views from the beginning of the log.
+    
+- Enables **stream joins** and **fault-tolerant processing**.
+    
+
+**Stream processing purposes**
+
+- Detecting event patterns (complex event processing).
+    
+- Computing windowed aggregations (stream analytics).
+    
+- Maintaining derived data systems (materialized views).
+    
+
+**Time considerations**
+
+- Distinguish between **processing time** and **event timestamps**.
+    
+- Handle **straggler events** that arrive late.
+    
+
+**Types of joins**
+
+- **Stream-stream joins:** Match related events from two streams within a time window; can be a self-join.
+    
+- **Stream-table joins:** Join activity events with a database changelog; outputs enriched events.
+    
+- **Table-table joins:** Join two database changelogs to produce changes to a materialized view.
+    
+
+**Fault tolerance and exactly-once semantics**
+
+- Discard partial output of failed tasks.
+    
+- Continuous stream processing requires **fine-grained recovery**: microbatching, checkpointing, transactions, or idempotent writes.
