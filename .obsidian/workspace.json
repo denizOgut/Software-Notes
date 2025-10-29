@@ -11,14 +11,12 @@
             "id": "637bc9e2b111de2a",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
-                "mode": "source",
-                "source": false
+                "file": "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029145956.png"
               },
-              "icon": "lucide-file",
-              "title": "Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems"
+              "icon": "lucide-image",
+              "title": "Pasted image 20251029145956"
             }
           }
         ]
@@ -180,20 +178,25 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "637bc9e2b111de2a",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023115713.png",
+    "DSA/Data Structure/Binary Trees/Binary Tree.md",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155346.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155317.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155206.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155141.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029154926.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029154823.png",
     "DSA/Data Structure/Hash Table.md",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023120411.png",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023120358.png",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023120341.png",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023115919.png",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023115901.png",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023115844.png",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251023115736.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029152037.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029151949.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029151901.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029151254.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree",
+    "Screenshots/DSA/Data Structure/Binary Trees/Untitled.md",
     "Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251021164312.png",
-    "Screenshots/DSA/Data Structure/Hash Table/Pasted image 20251021163713.png",
+    "DSA/Data Structure/Binary Trees",
+    "Screenshots/DSA/Data Structure/Binary Trees",
     "DSA/Data Structure/Arrays.md",
     "DSA/Data Structure/Queue.md",
     "DSA/Data Structure/Stack.md",
@@ -212,9 +215,6 @@
     "Software Architecture/Hexagonal Architecture.md",
     "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List",
     "DSA/Data Structure/Linked List",
-    "Screenshots/DSA/Data Structure/Linked List/Untitled/Untitled",
-    "Screenshots/DSA/Data Structure/Linked List/Singly Linked List",
-    "Screenshots/DSA/Data Structure/Linked List",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Software Principles/Algorithms_4TH Edition Summary.md",
     "Go/Golang Notes.md",
@@ -224,8 +224,6 @@
     "backend-tools/RabbitMQ Notes.md",
     "Java/JAVA APP - 2 NOTES.md",
     "Implementing Domain-Driven Design.md",
-    "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md",
-    "Software Architecture/Domain Driven Design/Learning Domain-Driven Design Aligning Software Architecture and Business Strategy.md",
-    "Java/Reactive Programming.md"
+    "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md"
   ]
 }
