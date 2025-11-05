@@ -1242,6 +1242,25 @@ func getModulus() func(int) int {
 }
 ```
 
+```go
+func createPriceCalculator(taxRate float64) func(float64) float64 {  
+return func(price float64) float64 {  
+return price * (1 + taxRate)  
+}  
+}  
+  
+func main() {  
+// Create calculators for different tax rates  
+calculateNYPrice := createPriceCalculator(0.08) // 8% tax  
+calculateCAPrice := createPriceCalculator(0.0725) // 7.25% tax  
+  
+product := 100.0  
+fmt.Printf("Product: $%.2f\n", product) // $100.00  
+fmt.Printf("Price in NY: $%.2f\n", calculateNYPrice(product)) // $108.00  
+fmt.Printf("Price in CA: $%.2f\n", calculateCAPrice(product)) // $107.25  
+}
+```
+
 #### Higher Order Function
 
 - Functions that either accept a function as a type or return a function.

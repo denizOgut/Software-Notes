@@ -11,12 +11,14 @@
             "id": "637bc9e2b111de2a",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029145956.png"
+                "file": "DSA/Data Structure/Binary Trees/Binary Search Tree.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-image",
-              "title": "Pasted image 20251029145956"
+              "icon": "lucide-file",
+              "title": "Binary Search Tree"
             }
           }
         ]
@@ -178,20 +180,25 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "6241a3657894e912",
+  "active": "637bc9e2b111de2a",
   "lastOpenFiles": [
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105110144.png",
+    "DSA/Data Structure/Binary Trees/Binary Search Tree.md",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105114143.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105114124.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105114122.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105114103.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105113938.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105113835.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105113811.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105113740.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105112554.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105112531.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree",
     "DSA/Data Structure/Binary Trees/Binary Tree.md",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155346.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155317.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155206.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029155141.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029154926.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029154823.png",
+    "Go/Golang Notes.md",
+    "Go/Untitled.md",
     "DSA/Data Structure/Hash Table.md",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029152037.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029151949.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029151901.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree/Pasted image 20251029151254.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree",
     "Screenshots/DSA/Data Structure/Binary Trees/Untitled.md",
     "Software Architecture/Designing Data-Intensive Applications The Big Ideas Behind Reliable, Scalable, and Maintainable Systems.md",
@@ -214,16 +221,12 @@
     "DSA/Data Structure/Linked List/Singly Linked List.md",
     "Software Architecture/Hexagonal Architecture.md",
     "Screenshots/DSA/Data Structure/Linked List/Doubly Linked List",
-    "DSA/Data Structure/Linked List",
     "Software Architecture/Get Your Hands Dirty on Clean Architecture.md",
     "Software Principles/Algorithms_4TH Edition Summary.md",
-    "Go/Golang Notes.md",
     "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Head First Software Architecture.md",
     "backend-tools/Apache Kafka Notes.md",
     "backend-tools/RabbitMQ Notes.md",
-    "Java/JAVA APP - 2 NOTES.md",
-    "Implementing Domain-Driven Design.md",
-    "Software Architecture/Domain Driven Design/Domain-Driven Design Tackling Complexity in the Heart of Software.md"
+    "Java/JAVA APP - 2 NOTES.md"
   ]
 }
