@@ -2415,7 +2415,7 @@ class Threadjoindemo
 - Java doesn't mandate time-slicing for threads, though many operating systems implement it.
 - Thread priorities range from 1 to 10, with 10 being the highest, 1 the lowest, and 5 the normal priority.
 - The thread scheduler determines which thread to execute, and priorities should be set before the thread's start method is invoked.
-- The `yield()` method is a static and native method in Java, allowing a thread to indicate its willingness to give up the processor to other threads with equal priority.
+- ==The `yield()` method is a static and native method in Java, allowing a thread to indicate its willingness to give up the processor to other threads with equal priority.==
 - `yield()` does not guarantee an immediate transition to the runnable state and only moves a thread from running to runnable state, not from wait or blocked state.
 - `Thread.yield()` is often used to improve relative progression between threads in the thread pool.
 - The `join()` method is used to make one thread wait for the completion of another. The calling thread will block until the thread it joins with has finished executing.
@@ -2440,8 +2440,10 @@ In this method, we check a _boolean_ flag periodically, or after every step in
 
 Note that in this design, generally, there are two threads. One thread sets the _flag_ value to _true_, and another thread checks the _flag_ value. To **ensure that both threads see the same value** all the time, we must make the _flag_ variable _**volatile**_. Or we can use **``AtomicBoolean``** class that **supports atomic operations on an underlying _volatile_ _boolean_ variable**.
 
+Checking flag periodically
+
 ```java
-Checking flag periodicallypublic class CustomTask implements Runnable {
+public class CustomTask implements Runnable {
   private volatile boolean flag = false;
   private Thread worker;
   public void start() {
@@ -2818,7 +2820,7 @@ A synchronized block in Java is synchronized on some object. All synchronized bl
 ```java
 // Only one thread can execute at a time. 
 // sync_object is a reference to an object
-// whose lock associates with the [monitor](https://www.geeksforgeeks.org/monitors-in-process-synchronization/). 
+// whose lock associates with the monitor
 // The code is said to be synchronized on
 // the monitor object
 synchronized(sync_object)
