@@ -1244,3 +1244,376 @@ class Solution {
     }
 }
 ```
+
+# Constructing a Binary Search Tree
+
+## Construction From a Sorted Array
+
+reconstructing a **height-balanced** binary search tree from this sorted sequence is also possible. This is only true for a binary search tree because of its special properties.
+
+### Resolving ambiguity
+
+Using just the inorder traversal sequence to reconstruct a generic binary tree is impossible. We cannot identify the root by looking at the inorder traversal sequence. This ambiguity is generally resolved by using either the preorder or postorder traversal sequence in tandem with the inorder sequence, as for them, the position of the root is always at the beginning or the end, respectively.
+
+This means that for reconstructing a binary tree from the inorder traversal sequence, the other sequence(preorder or postorder) is just used to identify the location of the root node for every subtree
+
+### Construction
+
+To construct a **height balanced** binary search tree from a sorted array, we follow a simple idea. For a binary tree to be height balanced, every node in the tree should typically have a similar number of nodes in its left and right subtrees. To ensure this happens, we make the value at the **middle** of the sorted array the root of the binary tree.
+
+All the values to the left of this value will make up the root's left subtree, and all the values to the right make up the right subtree. This way, both the left and right subtree of the root will have a similar number of nodes. We construct the left and the right subtree in the same way by applying the same logic recursively. As evident from above, imposing the condition of height balance effectively resolves the ambiguity in selecting the root node for every subtree.
+
+![[Pasted image 20251112111727.png]]
+
+### Algorithm
+
+![[Pasted image 20251112111859.png]]
+
+- **Step 1:** If the `start` index is greater than the `end` index, there are no elements in this subarray. In this case, return `null` to indicate an empty subtree (base case).
+- **Step 2:** Calculate the `middle` index of the current subarray.
+- **Step 3:** Create a new node with the element's value at the array's `middle` index.
+- **Step 4:** Recursively build this new node's `left` subtree using the elements to the left of the `middle` index.
+- **Step 5:** Recursively build this new node's `right` subtree using the elements to the right of the `middle` index.
+- **Step 6:** Return the new node at the end of recursion.
+
+```java
+import java.util.*;
+
+/**
+ * Definition for a binary tree node.
+ * class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ * }
+ */
+
+class Solution {
+    public TreeNode buildTree(int[] arr, int st, int en) {
+        // Base case: If the start index is greater than the end index,
+        // there are no elements in this subarray, return null
+        if (st > en) {
+            return null;
+        }
+
+        // Calculate the middle index of the current subarray
+        int mid = (st + en) / 2;
+
+        // Create a new TreeNode using the value at the middle index
+        TreeNode node = new TreeNode(arr[mid]);
+
+        // Recursively build the left subtree using the elements to the left of mid
+        node.left = buildTree(arr, st, mid - 1);
+
+        // Recursively build the right subtree using the elements to the right of mid
+        node.right = buildTree(arr, mid + 1, en);
+
+        // Return the root of the constructed binary search tree
+        return node;
+    }
+
+    public TreeNode sortedArrayToBST(int[] arr) {
+        // Call the buildTree function with the start index as 0 and the
+        // end index as the last index of the array
+        return buildTree(arr, 0, arr.length - 1);
+    }
+}
+```
+
+## Construction From an Unsorted Array
+
+- **Step 1:** Initialize the `root` of the BST as `null` (empty tree).
+- **Step 2:** Iterate through the elements of the input array, do the following:
+    - **Step 2.1**: Insert the `current` element into the BST rooted at `root`.
+- **Step 3:** Return the `root` of the BST, representing the `root` of the constructed BST.
+
+```java
+import java.util.*;
+
+/**
+ * Definition for a binary tree node.
+ * class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ * }
+ */
+
+class Solution {
+    public TreeNode insert(TreeNode root, int data) {
+        // If the root is null, create a new node with data and return it as the new root
+        if (root == null) {
+            return new TreeNode(data);
+        }
+
+        // If data is less than the current root's value, insert it in the left subtree
+        if (data < root.val) {
+            root.left = insert(root.left, data);
+        }
+        // If data is greater than or equal to the current root's value,
+        // insert it in the right subtree
+        else {
+            root.right = insert(root.right, data);
+        }
+
+        // Return the updated root of the BST after insertion
+        return root;
+    }
+
+    public TreeNode unsortedArrayToBST(int[] arr) {
+        // Initialize the root of the BST as null (empty tree)
+        TreeNode root = null;
+
+        // Iterate through the elements of the input array
+        for (int i = 0; i < arr.length; i++) {
+            // Insert the current element into the BST rooted at root
+            root = insert(root, arr[i]);
+        }
+
+        // Return the root of the BST, which represents the root of the constructed BST
+        return root;
+    }
+}
+```
+
+# Iterators in a Binary Search Trees
+
+A binary search tree follows the special binary search property, which means the value of all the nodes in the left subtree of a node is smaller than it and the value of all the nodes in the right subtree is greater. Consequently, the inorder traversal that follows the left-node-right sequence traverses the tree in the sorted order(**ascending**) of values, while the reverse inorder traversal that follows the right-node-left sequence traverses the tree in the reverse sorted(**descending**) order.
+
+![[Pasted image 20251112112648.png]]
+
+Consider that we have a binary search tree and must traverse all its nodes in the sorted(`ascending`) order of values. However, we don't want to traverse the entire tree at once, but move to the next node on demand, i.e. only when needed. The recursive or iterative inorder traversal traverses the entire tree all at once, and we cannot stop and resume the traversal from where we left off.
+
+An iterator is an abstraction over the underlying data structure that allows lazily traversing it only one item at a time and only moves to the next item when explicitly requested by calling its `next()` function. Internally, it may maintain some state to quickly move to the next item when requested without traversing the entire data structure at once. This allows traversing the items of a data structure on demand instead of the whole and is generally more memory efficient.
+
+An iterator implements the iterator interface, which defines the functions available to the caller of an iterator to traverse the underlying data structure.
+
+```java
+/**
+
+ * Definition for a binary tree node.
+
+ * class TreeNode {
+
+ *      int val;
+
+ *      TreeNode left;
+
+ *      TreeNode right;
+
+ *      TreeNode() {}
+
+ *      TreeNode(int val) { this.val = val; }
+
+ * }
+
+ */
+
+class BSTIterator {
+
+    public BSTIterator(TreeNode root) {
+
+    }
+
+    public boolean hasNext() {
+
+        // Is there a next item?
+    }
+
+    public TreeNode next() {
+        // Return the next node
+    }
+}
+```
+
+##  the Forward BST Iterator
+
+For a binary search tree, the forward iterator traverses the nodes of a tree on demand in the inorder sequence. This allows traversing the tree in the sorted order(**ascending**) of values, one node at a time, moving to the next node only when explicitly requested.
+
+We can modify the iterative inorder traversal algorithm by separating the traversal to the left and right subtrees to devise an algorithm for the forward iterator. The iterator class has the stack from the iterative traversal as a data member `stack`. Upon creating the iterator, we repeatedly move to the **left** of each node starting from the root node and add all the nodes to the stack until we hit a `null` reference. At this point, the node at the top of the stack is the first node from the inorder traversal.
+
+To get the next item of the inorder traversal, we extract the node at the top of the stack and repeat the same process for its **right** child, i.e repeatedly move to the **left** of each node starting from the **right** child and add them to the stack until we hit a `null` reference. At this point, the node at the top of the stack will be the next item in the inorder traversal.
+
+The same process can be repeated to get the next and further nodes in the inorder traversal, and so is the algorithm for the `next()` function of the forward iterator.
+
+### Algorithm
+
+```
+**ForwardBstIterator**
+
+**constructor(root):**
+
+- **Step 1:** Initialize a stack `stack` to hold references of tree nodes as a member variable
+- **Step 2:** Call `pushAllLeft(root)`
+
+**pushAllLeft(node):**
+
+- **Step 1:** Repeat the following steps while `node` is not a `null` reference:
+    - **Step 1.1:** Push `node` onto the `stack`
+    - **Step 1.2:** Set `node` to `node.left`
+
+**hasNext():**
+
+- **Step 1:** Return `true` if `stack` is not empty otherwise return `false`
+
+**next():**
+
+- **Step 1:** If there are no more elements in the stack
+    - **Step 1.1:** Return `null`
+- **Step 2:** Initialize a local variable `node` with the node at the top of the `stack`
+- **Step 3:** Pop the item at the top of `stack`
+- **Step 4:** Call `pushAllLeft(node.right)`
+- **Step 5:** Return `node`
+```
+
+```java
+import java.util.*;
+
+/**
+ * Definition for a binary tree node.
+ * class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ * }
+ */
+
+class ForwardBstIterator {
+    // Create a stack to store tree nodes
+    Stack<TreeNode> stack;
+
+    public ForwardBstIterator(TreeNode root) {
+        stack = new Stack<>();
+        // Push all left child nodes of the root onto the stack
+        pushAllLeft(root);
+    }
+
+    // Helper function to push all left child nodes of the current node onto the stack
+    public void pushAllLeft(TreeNode node) {
+        while (node != null) {
+            // Push the node onto the stack
+            stack.push(node);
+            // Move to the left child
+            node = node.left;
+        }
+    }
+
+    public boolean hasNext() {
+        // If the stack is not empty, there are more elements
+        return !stack.empty();
+    }
+
+    public TreeNode next() {
+        // If there are no more nodes to visit in the BST, return null
+        if (!hasNext()) {
+            return null;
+        }
+
+        // Get the top node from the stack
+        TreeNode node = stack.pop();
+        // Push all left child nodes of the right subtree onto the stack
+        pushAllLeft(node.right);
+        // Return the current node
+        return node;
+    }
+}
+```
+
+## the Reverse BST Iterator
+
+For a binary search tree, the reverse iterator traverses the nodes of a tree on demand in the reverse inorder sequence. This allows traversing the tree in the reverse sorted order(**descending**) of values, one node at a time, moving to the next node only when explicitly requested.
+
+The algorithm for a reverse iterator is very similar to a forward iterator, as we only need to flip the order of traversal. The iterator class has the stack from the iterative traversal as a data member `stack`. Upon creating the iterator, we repeatedly move to the **right** of each node starting from the root node and add all the nodes to the stack until we hit a `null` reference. At this point, the node at the top of the stack is the first node from the reverse inorder traversal.
+
+To get the next item of the reverse inorder traversal, we extract the node at the top of the stack and repeat the same process for its **left** child, i.e repeatedly move to the **right** of each node starting from the **left** child and add them to the stack until we hit a `null` reference. At this point, the node at the top of the stack will be the next item in the reverse inorder traversal.
+
+The same process can be repeated to get the next and further nodes in the reverse inorder traversal, and so is the algorithm for the `next()` function of the forward iterator.
+
+### Algorithm
+
+**ReverseBstIterator**
+
+**constructor(root):**
+
+- **Step 1:** Initialize a stack `stack` to hold references of tree nodes as a member variable
+- **Step 2:** Call `pushAllRight(root)`
+
+**pushAllRight(node):**
+
+- **Step 1:** Repeat the following steps while `node` is not a `null` reference:
+    - **Step 1.1:** Push `node` onto the `stack`
+    - **Step 1.2:** Set `node` to `node.right`
+
+**hasNext():**
+
+- **Step 1:** Return `true` if `stack` is not empty otherwise return `false`
+
+**next():**
+
+- **Step 1:** If there are no more elements in the stack
+    - **Step 1.1:** Return `null`
+- **Step 2:** Initialize a local variable `node` with the node at the top of the `stack`
+- **Step 3:** Pop the item at the top of `stack`
+- **Step 4:** Call `pushAllRight(node.left)`
+- **Step 5:** Return `node`
+
+```java
+import java.util.*;
+
+/**
+ * Definition for a binary tree node.
+ * class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ * }
+ */
+
+class ReverseBstIterator {
+    // Create a stack to store tree nodes
+    Stack<TreeNode> stack;
+
+    public ReverseBstIterator(TreeNode root) {
+        stack = new Stack<>();
+        // Push all right child nodes of the root onto the stack
+        pushAllRight(root);
+    }
+
+    // Helper function to push all right child nodes of the current node onto the stack
+    public void pushAllRight(TreeNode node) {
+        while (node != null) {
+            // Push the node onto the stack
+            stack.push(node);
+            // Move to the right child
+            node = node.right;
+        }
+    }
+
+    public boolean hasNext() {
+        // If the stack is not empty, there are more elements
+        return !stack.empty();
+    }
+
+    public TreeNode next() {
+        // If there are no more nodes to visit in the BST, return null
+        if (!hasNext()) {
+            return null;
+        }
+
+        // Get the top node from the stack
+        TreeNode node = stack.pop();
+        // Push all right child nodes of the left subtree onto the stack
+        pushAllRight(node.left);
+        // Return the current node
+        return node;
+    }
+}
+```

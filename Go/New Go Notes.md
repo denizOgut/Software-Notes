@@ -1743,3 +1743,493 @@ func main() {
 
 ## 3.2 Maps
 
+### Map creation & initialization
+
+Maps are created with the built-in make function, just as for slices. The type for a map is specified using the map keyword, followed by the key type in square brackets, followed by the value type. The final argument to the make function specifies the initial capacity of the map
+
+```go
+map[KeyType]ValueType
+```
+
+```go
+var m map[string]int                // nil map of string-int pairs
+
+m1 := make(map[string]float64)      // Empty map of string-float64 pairs
+m2 := make(map[string]float64, 100) // Preallocate room for 100 entries
+
+m3 := map[string]float64{           // Map literal
+    "e":  2.71828,
+    "pi": 3.1416,
+}
+fmt.Println(len(m3))                // Size of map: 2
+```
+
+### CRUD operations
+
+```go
+m := make(map[string]float64)
+
+m["pi"] = 3.14             // Add a new key-value pair
+m["pi"] = 3.1416           // Update value
+fmt.Println(m)             // Print map: "map[pi:3.1416]"
+
+v := m["pi"]               // Get value: v == 3.1416
+v = m["pie"]               // Not found: v == 0 (zero value)
+
+_, found := m["pi"]        // found == true
+_, found = m["pie"]        // found == false
+
+if x, found := m["pi"]; found {
+	fmt.Println(x)
+}                           // Prints "3.1416"
+
+delete(m, "pi")             // Delete a key-value pair
+fmt.Println(m)              // Print map: "map[]"
+```
+
+- When you index a map you get two return values; the second one (which is optional) is a boolean that indicates if the key exists.
+- If the key doesn’t exist, the first value will be the default zero value
+
+### Checking existence
+
+To check if a key exists in a map, use the two value assignment syntax.  The first value return is the existing value and the second value is a boolean type. The boolean type will return true if the key exists, or false otherwise.
+
+```go
+package main
+ 
+import (
+   "fmt"
+)
+ 
+func main() {
+   users := map[string]int{
+       "John":  21,
+       "David": 43,
+       "Paul":  54,
+   }
+ 
+   value, exist := users["John"]
+ 
+   if exist {
+       fmt.Printf("Found %d %v \n", value, exist)
+   } else {
+       fmt.Printf("Not found %d %v ", value, exist)
+   }
+}
+
+```
+
+## 3.3 Structs
+
+a struct is a named collection of data fields that can be of different types. It serves as a container for different heterogeneous data types, representing an entity.
+
+### Struct definition
+
+```go
+type struct_name struct {
+    field_name1 field_type1
+    field_name2 field_type2
+    // ...
+}
+
+type Person struct { Name string Age int }
+
+```
+
+```go
+// Value struct (named fields)
+p := Person{Name: "Alice", Age: 30}
+fmt.Println(p.Name)    // Acces
+
+//Value struct (positional fields)
+p := Person{"Bob", 25} 
+fmt.Println(p.Name)
+
+//Zero value with var
+var p Person
+fmt.Println(p.Name) // prints ""
+fmt.Println(p.Age) // prints 0
+
+//Pointer using address-of (&)
+p := &Person{Name: "Dana", Age: 40}
+fmt.Println(p.Name)    // Go auto-dereferences
+fmt.Println((*p).Name) // Manual dereference
+
+//Pointer using new()
+p := new(Person)
+p.Name = "Eve"
+fmt.Println(p.Name)     // Auto-dereference
+fmt.Println((*p).Name)  // Manual dereference
+
+// Inside slices/arrays
+people := []Person{{Name: "Frank", Age: 33}}
+fmt.Println(people[0].Name)
+
+
+```
+
+|Creation Method|Type|Access Syntax|
+|---|---|---|
+|`Person{...}`|Value|`p.Name`|
+|`var p Person`|Value|`p.Name`|
+|`&Person{...}`|Pointer|`p.Name` or `(*p).Name`|
+|`new(Person)`|Pointer|`p.Name` or `(*p).Name`|
+|In slices/arrays|Value|`slice[i].Name`|
+
+|Struct Type|Access Syntax|Notes|
+|---|---|---|
+|Value|`p.Name`|Direct field access|
+|Pointer|`p.Name`|Auto-dereferenced|
+|Pointer|`(*p).Name`|Manual dereference (optional)|
+
+### Embedded Structs
+
+Struct embedding in Go is a form of composition where one struct is included within another. Unlike traditional inheritance found in other programming languages, Go's embedding promotes the fields and methods of the embedded struct to the containing struct. This means that the outer struct can directly access the embedded struct's fields and methods as if they were its own.
+
+```go
+type Address struct {
+    City    string
+    Country string
+}
+
+type Person struct {
+    Name    string
+    Age     int
+    Addr    Address  // Regular field with name "Addr"
+}
+
+func main() {
+    p := Person{
+        Name: "Alice",
+        Age:  25,
+        Addr: Address{City: "Istanbul", Country: "Turkey"},
+    }
+    
+    fmt.Println(p.Addr.City) // Must use: p.Addr.City
+}
+```
+
+```go
+type Address struct {
+    City    string
+    Country string
+}
+
+type Person struct {
+    Name    string
+    Age     int
+    Address // Embedded! No field name
+}
+
+func main() {
+    p := Person{
+        Name: "Alice",
+        Age:  25,
+        Address: Address{City: "Istanbul", Country: "Turkey"},
+    }
+    
+    // Can access directly!
+    fmt.Println(p.City)    // Direct access
+    fmt.Println(p.Country) // Direct access
+    
+    // OR still use full path
+    fmt.Println(p.Address.City) // Also works
+}
+```
+
+With embedding, fields from the embedded struct become **accessible directly**:
+
+**Use embedding when:**
+
+- You want to "add" functionality from one struct to another
+- Similar to inheritance in OOP (but it's composition!)
+- You want direct access to fields/methods
+- Building "has-a" relationships
+
+### Anonymous Structs
+
+**Anonymous struct** = a struct **without a type name**, defined on the spot.
+
+```go
+
+// Pattern:
+variable := struct {
+    field1 type1
+    field2 type2
+}{
+    field1: value1,
+    field2: value2,
+}
+
+func main() {
+    // Define and use directly - no type name!
+    p := struct {
+        Name string
+        Age  int
+    }{
+        Name: "Alice",
+        Age:  25,
+    }
+    
+    fmt.Println(p) // {Alice 25}
+}
+```
+
+```go
+func TestSomething(t *testing.T) {
+    tests := []struct {
+        input    int
+        expected int
+    }{
+        {input: 2, expected: 4},
+        {input: 3, expected: 9},
+        {input: 4, expected: 16},
+    }
+    
+    for _, test := range tests {
+        result := square(test.input)
+        if result != test.expected {
+            t.Errorf("Expected %d, got %d", test.expected, result)
+        }
+    }
+}
+
+func square(n int) int {
+    return n * n
+}
+```
+
+```go
+func TestAdd(t *testing.T) {
+    testCases := []struct {
+        name     string
+        a        int
+        b        int
+        expected int
+    }{
+        {name: "positive numbers", a: 2, b: 3, expected: 5},
+        {name: "negative numbers", a: -2, b: -3, expected: -5},
+        {name: "mixed", a: 2, b: -3, expected: -1},
+        {name: "zeros", a: 0, b: 0, expected: 0},
+    }
+    
+    for _, tc := range testCases {
+        t.Run(tc.name, func(t *testing.T) {
+            result := add(tc.a, tc.b)
+            if result != tc.expected {
+                t.Errorf("add(%d, %d) = %d; want %d", 
+                    tc.a, tc.b, result, tc.expected)
+            }
+        })
+    }
+}
+```
+
+==**Important:** Anonymous structs **cannot have methods**!==
+
+### Struct tags (JSON, DB, validation)
+
+tags allow developers to attach metadata to struct fields. These tags can drive features and behaviors in various libraries and tools which access the tags via reflection.
+
+Go tags are attached to struct fields. The common convention is to structure your tags as key value pairs. A field may have more than one tag, and the value of a tag is a string.
+
+```go
+type Example struct {
+	Field1 int    `tag1:"value1" tag2:"value2"`
+    Field2 string `tag1:"value3,value4"`
+}
+```
+
+#### JSON Tags
+
+```go
+type User struct {
+    ID        int    `json:"id"`
+    Name      string `json:"name"`
+    Email     string `json:"email"`
+    Password  string `json:"-"`              // Never in JSON
+    Age       int    `json:"age,omitempty"`  // Omit if zero value
+    IsActive  bool   `json:"is_active"`
+}
+
+func main() {
+    user := User{ID: 1, Name: "Alice", Email: "alice@example.com"}
+    
+    data, _ := json.Marshal(user)
+    fmt.Println(string(data))
+    // {"id":1,"name":"Alice","email":"alice@example.com","is_active":false}
+}
+```
+
+####  Database Tags
+
+Used by ORMs (GORM, sqlx, etc.):
+
+```go
+type User struct {
+    ID        int       `db:"id" gorm:"primaryKey"`
+    Username  string    `db:"username" gorm:"unique;not null"`
+    Email     string    `db:"email" gorm:"type:varchar(100);unique"`
+    CreatedAt time.Time `db:"created_at" gorm:"autoCreateTime"`
+    UpdatedAt time.Time `db:"updated_at" gorm:"autoUpdateTime"`
+}
+```
+
+####  Validation Tags
+
+Used by validation libraries (go-playground/validator):
+
+```go
+import "github.com/go-playground/validator/v10"
+
+type User struct {
+    Name     string `validate:"required,min=3,max=50"`
+    Email    string `validate:"required,email"`
+    Age      int    `validate:"required,gte=18,lte=100"`
+    Password string `validate:"required,min=8"`
+    Website  string `validate:"omitempty,url"`
+}
+
+func main() {
+    validate := validator.New()
+    
+    user := User{
+        Name:     "Al",  // Too short!
+        Email:    "invalid-email",
+        Age:      15,    // Too young!
+        Password: "123", // Too short!
+    }
+    
+    err := validate.Struct(user)
+    if err != nil {
+        fmt.Println(err)
+    }
+}
+```
+
+**Multiple Tags**
+
+```go
+type Product struct {
+    ID          int     `json:"id" db:"id" gorm:"primaryKey"`
+    Name        string  `json:"name" db:"name" validate:"required,min=3"`
+    Price       float64 `json:"price" db:"price" validate:"required,gt=0"`
+    Description string  `json:"description,omitempty" db:"description" validate:"max=500"`
+    InStock     bool    `json:"in_stock" db:"in_stock"`
+}
+```
+
+**Reading Tags**
+
+```go
+import "reflect"
+
+type User struct {
+    Name string `json:"username" validate:"required"`
+}
+
+func main() {
+    t := reflect.TypeOf(User{})
+    field, _ := t.FieldByName("Name")
+    
+    jsonTag := field.Tag.Get("json")      // "username"
+    validateTag := field.Tag.Get("validate") // "required"
+    
+    fmt.Println(jsonTag, validateTag)
+}
+```
+
+### Methods (value vs pointer receivers)
+
+ a method is nothing but a function with a receiver. A receiver is an instance of a specific type, such as a struct or any other custom type.
+
+```go
+func (receiver receiver_type) some_func_name(arguments) return_values
+```
+
+- A method is defined with a receiver argument.
+- Methods differ from functions in terms of functionality.
+- Methods can be used for chaining on the receiver, and different methods can have the same name with a different receiver.
+
+```go
+type Rectangle struct {
+    Width  float64
+    Height float64
+}
+
+// Method attached to Rectangle
+func (r Rectangle) Area() float64 {
+    return r.Width * r.Height
+}
+
+func main() {
+    rect := Rectangle{Width: 10, Height: 5}
+    fmt.Println(rect.Area()) // 50
+}
+```
+
+####  Value Receiver vs Pointer Receiver
+
+#####  Value Receiver
+
+Gets a **copy** of the struct - **cannot modify** original:
+
+```go
+type Counter struct {
+    Count int
+}
+
+// Value receiver (c Counter)
+func (c Counter) Increment() {
+    c.Count++ // Modifies the COPY, not original!
+}
+
+func main() {
+    counter := Counter{Count: 0}
+    counter.Increment()
+    fmt.Println(counter.Count) // 0 (unchanged!)
+}
+```
+
+#####  Pointer Receiver
+
+Gets a **reference** to the struct - **can modify** original:
+
+```go
+type Counter struct {
+    Count int
+}
+
+// Pointer receiver (c *Counter)
+func (c *Counter) Increment() {
+    c.Count++ // Modifies the ORIGINAL!
+}
+
+func main() {
+    counter := Counter{Count: 0}
+    counter.Increment()
+    fmt.Println(counter.Count) // 1 (modified!)
+}
+```
+
+
+#### When to Use Pointer Receivers
+
+- When changes to the receiver made inside the method need to be visible to the caller.
+- When the struct is large to avoid making a copy of the struct every time a method is called.
+
+#### Key Points
+
+|Aspect|Value Receiver|Pointer Receiver|
+|---|---|---|
+|Syntax|`func (t Type)`|`func (t *Type)`|
+|Modifies original?|❌ No|✅ Yes|
+|Gets|Copy|Reference|
+|Use when|Read-only, small|Modify, large|
+|Memory|Copies data|Just pointer|
+
+**Rule of thumb:** If you need to modify OR struct is large, use pointer (`*`). Otherwise, value is fine. 
+
+# 4. Object-Oriented Go
+
+## 4.1 Interfaces

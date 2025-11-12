@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "308bb0a645b4c07f",
+        "id": "78b9238748580ce8",
         "type": "tabs",
         "children": [
           {
-            "id": "f6f7445d9cf9cb18",
+            "id": "0b9d834cb90f2666",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -22,7 +22,7 @@
             }
           },
           {
-            "id": "20d836b3f45af2fc",
+            "id": "655b53bbc024c15e",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -194,24 +194,24 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "f6f7445d9cf9cb18",
+  "active": "0b9d834cb90f2666",
   "lastOpenFiles": [
     "Go/Golang Notes.md",
     "Go/New Go Notes.md",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251112111727.png",
+    "DSA/Data Structure/Binary Trees/Binary Search Tree.md",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251112112648.png",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251112111859.png",
     "Go/100 Go Mistakes and How to Avoid Them.md",
     "Java/JAVA APP - 2 NOTES.md",
     "Screenshots/JAVA APP Screen Shots/Pasted image 20241001195117.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251111113804.png",
-    "DSA/Data Structure/Binary Trees/Binary Search Tree.md",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251111115336.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251111115308.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251110114022.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251110120308.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251110115751.png",
     "DSA/Data Structure/Arrays.md",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105110144.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105114143.png",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251105114124.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree",
     "DSA/Data Structure/Binary Trees/Binary Tree.md",
     "DSA/Data Structure/Hash Table.md",
@@ -240,7 +240,6 @@
     "Software Principles/Algorithms_4TH Edition Summary.md",
     "Software Architecture/Fundamentals of Software Architecture.md",
     "Software Architecture/Head First Software Architecture.md",
-    "backend-tools/Apache Kafka Notes.md",
-    "backend-tools/RabbitMQ Notes.md"
+    "backend-tools/Apache Kafka Notes.md"
   ]
 }
