@@ -8,7 +8,7 @@
         "type": "tabs",
         "children": [
           {
-            "id": "0b9d834cb90f2666",
+            "id": "655b53bbc024c15e",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -22,7 +22,7 @@
             }
           },
           {
-            "id": "655b53bbc024c15e",
+            "id": "b1851f2644171ab2",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -194,12 +194,13 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "0b9d834cb90f2666",
+  "active": "655b53bbc024c15e",
   "lastOpenFiles": [
     "Go/Golang Notes.md",
     "Go/New Go Notes.md",
-    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251112111727.png",
     "DSA/Data Structure/Binary Trees/Binary Search Tree.md",
+    "DSA/Data Structure/Binary Trees/Binary Tree.md",
+    "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251112111727.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251112112648.png",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251112111859.png",
     "Go/100 Go Mistakes and How to Avoid Them.md",
@@ -213,7 +214,6 @@
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree/Pasted image 20251110115751.png",
     "DSA/Data Structure/Arrays.md",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Search Tree",
-    "DSA/Data Structure/Binary Trees/Binary Tree.md",
     "DSA/Data Structure/Hash Table.md",
     "Screenshots/DSA/Data Structure/Binary Trees/Binary Tree",
     "Screenshots/DSA/Data Structure/Binary Trees/Untitled.md",

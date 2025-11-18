@@ -2233,3 +2233,1366 @@ func main() {
 # 4. Object-Oriented Go
 
 ## 4.1 Interfaces
+
+- A type that specifies **a set of method signatures**.
+- It lets different types be used **interchangeably**, if they implement those methods.
+
+### Implicit implementation
+
+- **Implicit implementation**: A type **automatically implements** an interface if it has all the methods.
+- **No keyword like `implements` or `extends`** is needed.
+
+In Go, a type **implements an interface implicitly**, not explicitly.
+
+That means:
+
+- A struct **doesn’t have to implement all interface methods** _unless_ you are **assigning the struct to a variable of that interface type**.
+
+```go
+type InterfaceName interface {
+    Method1()
+    Method2() string
+}
+```
+
+```go
+type Speaker interface {
+    Speak() string
+}
+
+type Dog struct{}
+
+func (d Dog) Speak() string {
+    return "Woof"
+}
+```
+
+In Go, **a type must implement _all_ methods of an interface** to satisfy it.
+
+There is **no partial implementation**—unlike some languages, Go does **not support abstract base classes or partial interfaces**.
+### Empty interface
+
+- **Definition**: An interface with **no methods**.
+- **All types implement it** (because it requires nothing).
+- **Used for**:
+    - Generic data containers (pre-generics)
+    - Accepting any type in a function
+    - Decoding unknown JSON structure
+
+
+```go
+func PrintAny(val interface{}) {
+	fmt.Println(val)
+}
+```
+
+### Type Assertions
+
+**What:** Extract the concrete value from an interface.
+
+**Why:** When you have `interface{}` or any interface, you need to access the actual underlying type.
+
+ **Basic Syntax (Unsafe)**
+
+```go
+var x interface{} = 10
+v := x.(int) // v == 10
+
+// If wrong type → PANIC!
+v := x.(string) // PANIC: interface conversion: interface {} is int, not string
+```
+
+ **Safe Version (Comma-OK Idiom)** 
+
+```go
+var x interface{} = 10
+
+// Returns (value, bool)
+v, ok := x.(int)
+if ok {
+    fmt.Println("It's an int:", v) // v == 10
+} else {
+    fmt.Println("Not an int")
+}
+
+// Or check in one line
+if v, ok := x.(string); ok {
+    fmt.Println("It's a string:", v)
+}
+```
+### Type Switch
+
+**What:** Handle multiple possible types in a clean way.
+
+**Why:** Cleaner than multiple `if/else` type assertions.
+
+ **Basic Syntax**
+
+```go
+func printType(val interface{}) {
+    switch v := val.(type) {
+    case int:
+        fmt.Println("int:", v)
+    case string:
+        fmt.Println("string:", v)
+    case bool:
+        fmt.Println("bool:", v)
+    default:
+        fmt.Printf("unknown type: %T\n", v)
+    }
+}
+```
+
+ **Multiple Types per Case**
+
+```go
+func describe(val interface{}) {
+    switch v := val.(type) {
+    case int, int64, int32:
+        fmt.Println("Some kind of int:", v)
+    case string:
+        fmt.Println("String length:", len(v))
+    case []int:
+        fmt.Println("Int slice length:", len(v))
+    case nil:
+        fmt.Println("It's nil!")
+    default:
+        fmt.Printf("Unknown: %T\n", v)
+    }
+}
+```
+
+
+ **Type Assertion vs Type Switch**
+
+|Feature|Type Assertion|Type Switch|
+|---|---|---|
+|**Use case**|Check 1-2 types|Check multiple types|
+|**Syntax**|`val.(Type)`|`val.(type)`|
+|**Safety**|Use comma-ok|Built-in safety|
+|**When**|Know expected type|Multiple possibilities|
+
+## 4.2 Generics
+
+### Type parameters
+
+> **Type parameters** = writing functions/structs that work with **any type**, not just one specific type.
+
+**Old Problematic**
+
+```go
+// For integers
+func MaxInt(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+// For floats
+func MaxFloat(a, b float64) float64 {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+// For strings
+func MaxString(a, b string) string {
+    if a > b {
+        return a
+    }
+    return b
+}
+```
+
+**New Solution**
+
+```go
+// [T comparable] = type parameter
+func Max[T comparable](a, b T) T {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+func main() {
+    fmt.Println(Max(10, 20))       // 20 (int)
+    fmt.Println(Max(3.14, 2.71))   // 3.14 (float64)
+    fmt.Println(Max("apple", "banana")) // "banana" (string)
+}
+```
+
+```go
+func FunctionName[T TypeConstraint](param T) T {
+    // function body
+}
+```
+
+- `[T TypeConstraint]` = type parameter declaration
+- `T` = the type parameter (like a variable for types)
+- `TypeConstraint` = what types T can be
+
+###  Type Constraints
+
+> **Type constraints** = rules that define what types are allowed for a type parameter.
+
+#### Built-in Constraints
+
+##### 1. `any` - No restrictions
+
+```go
+func Print[T any](val T) {
+    fmt.Println(val)
+}
+
+// Works with ANY type
+Print(42)
+Print("hello")
+Print([]int{1, 2, 3})
+Print(struct{}{})
+```
+
+##### 2. `comparable` - Can use `==` and `!=`
+
+```go
+func Equal[T comparable](a, b T) bool {
+    return a == b
+}
+
+Equal(10, 10)           // true
+Equal("hi", "bye")      // false
+Equal(3.14, 3.14)       // true
+// Equal([]int{}, []int{}) // ERROR: slices not comparable
+```
+
+#### Custom Constraints 
+
+##### Union Types (Type Sets)
+
+Use `|` to allow specific types:
+
+```go
+// Only int OR float64
+type Number interface {
+    int | float64
+}
+
+func Add[T Number](a, b T) T {
+    return a + b
+}
+
+Add(10, 20)      // ✅ Works (int)
+Add(3.14, 2.86)  // ✅ Works (float64)
+// Add("a", "b") // ❌ ERROR: string not allowed
+```
+
+```go
+type Integer interface {
+    int | int8 | int16 | int32 | int64
+}
+
+func Sum[T Integer](numbers []T) T {
+    var total T
+    for _, n := range numbers {
+        total += n
+    }
+    return total
+}
+```
+
+##### Approximation Constraint (~)
+
+
+```go
+// Type Set
+type Num interface {
+    ~int | ~float32 | ~float64 | ~string | ~bool
+}
+
+func Compare[T Num](a, b T) bool {
+    return a == b
+}
+
+func main() {
+    type Integer int
+    type Str string
+    type Double float64
+
+    var a Integer = 1
+    var b Integer = 2
+
+    var s1 Str = "Hello"
+    var s2 Str = "Hello"
+
+    var d1 Double = 1.1
+    var d2 Double = 1.2
+
+    println(Compare(a, b))   // false
+    println(Compare(s1, s2)) // true
+    println(Compare(d1, d2)) // false
+}
+```
+
+ the `Compare` function can correctly compare values of types like `Integer`, `Str`, and `Double`. The underlying operator (~) provides flexibility in working with underlying types, enhancing the capabilities of generics in Go.
+
+# 5. Pointers & Memory
+
+## 5.1 Pointers
+
+==_**Pointers in Golang are utilized to enhance performance and flexibility by avoiding unnecessary copies of data and enabling efficient data structures and function calls.**_==
+
+### Pointer basics
+
+```go
+var p *<type> [= expression]
+```
+
+- A pointer stores the **memory address** of a variable.
+- Syntax: `var ptr *int` means `ptr` is a pointer to an `int`.
+- You use `&` to get the address, and to dereference (access the value at the address).
+
+```go
+var x int = 10
+var p *int = &x   // p stores the address of x
+fmt.Println(*p)   // dereference: prints 10
+*p = 20           // updates x to 20
+```
+
+**About `*` or Dereferencing Pointer**
+
+Dereferencing a pointer means getting the value at the address stored in the pointer. Changing the value at that pointer location reflects in the original variable.
+
+```go
+a := 2
+b := &a // b = 2
+fmt.Println(a)  // 2
+fmt.Println(*b) // 2
+
+*b = 3
+fmt.Println(a)  // 3
+fmt.Println(*b) // 3
+
+a = 4
+fmt.Println(a)  // 4
+fmt.Println(*b) // 4
+```
+
+Both `a` and `*b` refer to the same variable internally. Changing the value of one reflects in the other.
+
+**Pointer to a Pointer**
+
+```go
+a := 2
+b := &a
+c := &b
+
+fmt.Printf("a: %d\n", a)    // 2
+fmt.Printf("b: %p\n", b)    // c000018078
+fmt.Printf("c: %p\n", c)    // c00000e028
+
+fmt.Println()
+fmt.Printf("a: %d\n", a)    // 2 
+fmt.Printf("*&a: %d\n", *&a) // 2
+fmt.Printf("*b: %d\n", *b)   // 2
+fmt.Printf("**c: %d\n", **c) // 2
+
+fmt.Println()
+fmt.Printf("&a: %d\n", &a)    // 824633819256
+fmt.Printf("b: %d\n", b)      // 824633819256
+fmt.Printf("&*b: %d\n", &*b)  // 824633819256
+fmt.Printf("*&b: %d\n", *&b)  // 824633819256
+fmt.Printf("*c: %d\n", *c)    // 824633819256
+
+fmt.Println()
+fmt.Printf("b: %d\n", &b)     // 824633778216
+fmt.Printf("*c: %d\n", c)     // 824633778216
+```
+
+### Pointer receivers vs value receivers
+
+```go
+// Value receiver - gets a COPY
+func (t Type) Method() {}
+
+// Pointer receiver - gets a REFERENCE
+func (t *Type) Method() {}
+```
+
+**Key Difference**
+
+```go
+type Counter struct {
+    Count int
+}
+
+// Value receiver - CANNOT modify original
+func (c Counter) IncrementValue() {
+    c.Count++ // Modifies the COPY only
+}
+
+// Pointer receiver - CAN modify original
+func (c *Counter) IncrementPointer() {
+    c.Count++ // Modifies the ORIGINAL
+}
+
+func main() {
+    counter := Counter{Count: 0}
+    
+    counter.IncrementValue()   // Count still 0
+    fmt.Println(counter.Count) // 0
+    
+    counter.IncrementPointer() // Count changed!
+    fmt.Println(counter.Count) // 1
+}
+```
+
+ **Quick Decision**
+
+|Need to modify?|Struct size|Use|
+|---|---|---|
+|Yes|Any|`*Type`|
+|No|Large|`*Type`|
+|No|Small|`Type`|
+
+**Rule of thumb:** When in doubt, use `*Type`
+
+###  Nil pointers
+
+"points to nothing
+```go
+var p *int        // p is nil (points to nothing)
+fmt.Println(p)    // <nil>
+fmt.Println(p == nil) // true
+```
+
+```go
+var p *int
+fmt.Println(*p) // PANIC: invalid memory address or nil pointer dereference
+```
+
+```go
+var p *int
+
+// Always check for nil before dereferencing
+if p != nil {
+    fmt.Println(*p) // Safe
+} else {
+    fmt.Println("Pointer is nil")
+}
+```
+
+
+###  Common Use-Cases
+
+- Mutating function parameters.
+- Efficient passing of large structs.
+- Shared state between functions.
+- Managing optional values (`nil` as a signal).
+- Dependency injection in applications.
+
+# 6. Error Handling
+
+## 6.1 Error Patterns
+
+- In Go, errors are **values**.
+- Represented using the built-in `error` **interface**:
+
+```go
+type error interface {
+    Error() string
+}
+```
+
+Any type implementing the Error() string method becomes an  error  .
+
+### Creating an Error
+
+ **Using `errors.New`**
+
+```go
+import "errors"
+
+err := errors.New("something went wrong")
+
+```
+
+ **Using `fmt.Errorf` (for formatted errors)**
+
+```go
+import "fmt"
+
+err := fmt.Errorf("error code %d: %s", 404, "not found")
+
+```
+
+### Returning Errors From Functions
+
+```go
+func divide(a, b int) (int, error) {
+    if b == 0 {
+        return 0, errors.New("division by zero")
+    }
+    return a / b, nil
+}
+```
+
+```go
+result, err := divide(10, 0)
+if err != nil {
+    fmt.Println("Error:", err)
+} else {
+    fmt.Println("Result:", result)
+}
+```
+
+### Custom error types
+
+```go
+type MyError struct {
+    Code int
+    Msg  string
+}
+
+func (e MyError) Error() string {
+    return fmt.Sprintf("Code %d: %s", e.Code, e.Msg)
+}
+```
+
+### Error wrapping (Go 1.13+)
+
+Add context to errors:
+
+```go
+import "fmt"
+
+err := someFunc()
+if err != nil {
+    return fmt.Errorf("operation failed: %w", err)
+}
+```
+
+- `%w` wraps the original error for later unwrapping.
+
+### ``errors.Is()`` & ``errors.As()``
+
+#### `Is()` function
+
+The standard library offers `errors.Is()` to traverse wrapped errors. It walks the error tree and returns `true` if any error in the chain matches the **target error value**:
+
+```go
+err := fileChecker("not_here.txt")  
+if errors.Is(err, os.ErrNotExist) {  
+    fmt.Println("That file doesn't exist")  
+}
+```
+
+> Use `errors.Is` _when you care about_ **_a specific error instance or value_** _(e.g., sentinel errors)._
+
+#### `As()` function
+
+While `errors.Is` checks values, `errors.As` finds the **first error of a specific type** in the error tree.
+
+```go
+var myErr MyErr  
+if errors.As(err, &myErr) {  
+	fmt.Println("Got custom error with codes:", myErr.Codes)  
+}
+```
+
+You must pass a **pointer** to a variable of the desired type. If a match is found, `errors.As()` assigns the matching error into that pointer.
+
+> _Use_ `errors.As` _when you're trying to extract a_ **_specific error type_** _from a wrapped chain._
+
+
+# 7. Standard Library Essentials 
+
+## 7.1 I/O & Files
+
+### io Package Interfaces
+
+The `io` package defines fundamental interfaces for I/O operations that are implemented throughout Go's standard library:
+
+```go
+import "io"
+
+// Core interfaces
+type Reader interface {
+    Read([]byte) (n int, err error)
+}
+
+type Writer interface {
+    Write([]byte) (n int, err error)
+}
+
+type Closer interface {
+    Close() error
+}
+
+// Combined interfaces
+type ReadWriter interface { Reader; Writer }
+type ReadCloser interface { Reader; Closer }
+type WriteCloser interface { Writer; Closer }
+type ReadWriteCloser interface { Reader; Writer; Closer }
+
+// Common io functions
+data, err := io.ReadAll(reader)              // Read everything into []byte
+n, err := io.Copy(dst, src)                  // Copy from reader to writer
+n, err := io.CopyN(dst, src, 1024)          // Copy exactly N bytes
+n, err := io.WriteString(w, "hello")        // Write string to writer
+
+// Useful utilities
+reader := io.LimitReader(r, 1024)            // Limit reading to N bytes
+reader = io.TeeReader(r, w)                  // Read from r, write to w simultaneously
+writer := io.MultiWriter(w1, w2, w3)         // Write to multiple writers at once
+```
+
+### bufio for Buffered I/O
+
+Buffered I/O significantly improves performance by reducing system calls:
+
+```go
+import "bufio"
+
+// Buffered reading
+file, err := os.Open("data.txt")
+if err != nil {
+    return err
+}
+defer file.Close()
+
+// Create buffered reader (default 4KB buffer)
+reader := bufio.NewReader(file)
+// Or with custom size
+reader = bufio.NewReaderSize(file, 16*1024)  // 16KB buffer
+
+// Read line by line
+for {
+    line, err := reader.ReadString('\n')     // Read until delimiter
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        return err
+    }
+    fmt.Print(line)
+}
+
+// Alternative: ReadBytes
+bytes, err := reader.ReadBytes('\n')         // Returns []byte instead of string
+
+// Peek without consuming
+peeked, err := reader.Peek(10)              // Look ahead 10 bytes
+
+// Scanner for convenient iteration
+scanner := bufio.NewScanner(file)
+scanner.Split(bufio.ScanLines)              // Default, can also use ScanWords, ScanBytes
+for scanner.Scan() {
+    line := scanner.Text()                   // or scanner.Bytes()
+    fmt.Println(line)
+}
+if err := scanner.Err(); err != nil {
+    return err
+}
+
+// Buffered writing
+outFile, _ := os.Create("output.txt")
+defer outFile.Close()
+
+writer := bufio.NewWriter(outFile)
+writer.WriteString("Hello, ")
+writer.WriteString("World!\n")
+writer.Flush()  // IMPORTANT: Always flush buffered writers!
+
+// Or use defer to ensure flush
+defer writer.Flush()
+```
+
+### os Package for File Operations
+
+The `os` package provides platform-independent file and directory operations:
+
+```go
+import "os"
+
+// Opening files
+file, err := os.Open("file.txt")            // Read-only
+file, err = os.Create("new.txt")            // Create/truncate for writing
+file, err = os.OpenFile("data.txt",         // Full control
+    os.O_RDWR|os.O_CREATE|os.O_APPEND, 
+    644)  // Unix permissions
+defer file.Close()
+
+// File flags for OpenFile
+// os.O_RDONLY, os.O_WRONLY, os.O_RDWR    - Access modes
+// os.O_CREATE                              - Create if doesn't exist
+// os.O_EXCL                                - Fail if exists (with O_CREATE)
+// os.O_APPEND                              - Append mode
+// os.O_TRUNC                               - Truncate when opening
+// os.O_SYNC                                - Synchronous I/O
+
+// Reading entire file (simple but loads all in memory)
+data, err := os.ReadFile("config.json")     // Returns []byte
+
+// Writing entire file
+err = os.WriteFile("output.txt", []byte("data"), 0644)
+
+// File operations
+info, err := file.Stat()                    // Get FileInfo
+size := info.Size()                         // File size in bytes
+modTime := info.ModTime()                   // Last modification time
+isDir := info.IsDir()                       // Is directory?
+
+// Seeking in files
+newPos, err := file.Seek(0, io.SeekStart)   // Beginning
+newPos, err = file.Seek(0, io.SeekEnd)      // End
+newPos, err = file.Seek(-10, io.SeekCurrent) // Current position - 10
+
+// File system operations
+err = os.Rename("old.txt", "new.txt")       // Rename/move
+err = os.Remove("file.txt")                 // Delete file
+err = os.RemoveAll("directory")             // Delete directory recursively
+
+// Directory operations
+err = os.Mkdir("newdir", 0755)              // Create directory
+err = os.MkdirAll("path/to/dir", 0755)      // Create with parents
+
+// List directory contents
+entries, err := os.ReadDir(".")             // Returns []DirEntry
+for _, entry := range entries {
+    info, _ := entry.Info()
+    fmt.Printf("%s %d bytes\n", entry.Name(), info.Size())
+}
+
+// Working directory
+cwd, err := os.Getwd()                      // Get current directory
+err = os.Chdir("/new/path")                 // Change directory
+
+// Environment variables
+value := os.Getenv("HOME")
+os.Setenv("MY_VAR", "value")
+os.Unsetenv("MY_VAR")
+allEnv := os.Environ()                      // All env vars as []string
+
+// Temporary files and directories
+tmpFile, err := os.CreateTemp("", "prefix-*.txt")
+defer os.Remove(tmpFile.Name())             // Clean up
+tmpDir, err := os.MkdirTemp("", "prefix-")
+defer os.RemoveAll(tmpDir)
+```
+
+### filepath Package for Path Manipulation
+
+Platform-independent path operations:
+
+```go
+import "path/filepath"
+
+// Join paths correctly for OS
+path := filepath.Join("dir", "subdir", "file.txt")  // dir/subdir/file.txt (Unix)
+                                                     // dir\subdir\file.txt (Windows)
+
+// Split path components
+dir := filepath.Dir("/path/to/file.txt")            // "/path/to"
+base := filepath.Base("/path/to/file.txt")          // "file.txt"
+ext := filepath.Ext("file.txt")                     // ".txt"
+dir, file := filepath.Split("/path/to/file.txt")    // "/path/to/", "file.txt"
+
+// Clean paths
+cleaned := filepath.Clean("./a/b/../c/")            // "a/c"
+
+// Absolute paths
+abs, err := filepath.Abs("relative/path")           // Convert to absolute
+isAbs := filepath.IsAbs("/path")                    // Check if absolute
+
+// Relative paths
+rel, err := filepath.Rel("/a/b", "/a/b/c/d")       // "c/d"
+
+// Pattern matching (globbing)
+matches, err := filepath.Glob("*.go")               // All .go files
+matches, err = filepath.Glob("**/*.go")             // Recursive (if supported)
+
+// Walk directory tree
+err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+    if err != nil {
+        return err  // Handle access errors
+    }
+    if info.IsDir() {
+        if info.Name() == ".git" {
+            return filepath.SkipDir  // Skip this directory
+        }
+        return nil
+    }
+    // Process file
+    fmt.Println(path, info.Size())
+    return nil
+})
+
+// More efficient WalkDir (Go 1.16+)
+filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+    if err != nil {
+        return err
+    }
+    if !d.IsDir() && filepath.Ext(path) == ".go" {
+        fmt.Println(path)
+    }
+    return nil
+})
+
+// Match patterns
+matched, err := filepath.Match("*.go", "main.go")  // true
+```
+
+### Real-World Examples
+
+#### Safe File Writing with Atomic Replace
+
+```go
+// Write to temp file first, then rename (atomic on most systems)
+func SafeWriteFile(filename string, data []byte) error {
+    tempFile := filename + ".tmp"
+    
+    // Write to temporary file
+    if err := os.WriteFile(tempFile, data, 0644); err != nil {
+        return err
+    }
+    
+    // Atomic rename
+    return os.Rename(tempFile, filename)
+}
+```
+
+#### Configuration File Reader with Multiple Locations
+
+```go
+func LoadConfig() ([]byte, error) {
+    // Try multiple locations in order
+    locations := []string{
+        "./config.json",
+        filepath.Join(os.Getenv("HOME"), ".myapp", "config.json"),
+        "/etc/myapp/config.json",
+    }
+    
+    for _, path := range locations {
+        if data, err := os.ReadFile(path); err == nil {
+            return data, nil
+        }
+    }
+    
+    return nil, fmt.Errorf("config not found")
+}
+```
+
+#### Efficient Large File Processing
+
+```go
+func ProcessLargeFile(filename string) error {
+    file, err := os.Open(filename)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+    
+    scanner := bufio.NewScanner(file)
+    // Set max token size if needed (default 64KB)
+    buf := make([]byte, 0, 64*1024)
+    scanner.Buffer(buf, 1024*1024)  // Max 1MB per line
+    
+    lineNum := 0
+    for scanner.Scan() {
+        lineNum++
+        line := scanner.Text()
+        
+        // Process line
+        if err := processLine(line); err != nil {
+            return fmt.Errorf("line %d: %w", lineNum, err)
+        }
+    }
+    
+    return scanner.Err()
+}
+```
+
+#### Copy File with Progress
+
+```go
+func CopyFileWithProgress(src, dst string) error {
+    sourceFile, err := os.Open(src)
+    if err != nil {
+        return err
+    }
+    defer sourceFile.Close()
+    
+    // Get file size for progress
+    sourceInfo, err := sourceFile.Stat()
+    if err != nil {
+        return err
+    }
+    
+    destFile, err := os.Create(dst)
+    if err != nil {
+        return err
+    }
+    defer destFile.Close()
+    
+    // Create progress reader
+    progressReader := &ProgressReader{
+        Reader: sourceFile,
+        Total:  sourceInfo.Size(),
+    }
+    
+    _, err = io.Copy(destFile, progressReader)
+    return err
+}
+
+type ProgressReader struct {
+    io.Reader
+    Total   int64
+    Current int64
+}
+
+func (pr *ProgressReader) Read(p []byte) (int, error) {
+    n, err := pr.Reader.Read(p)
+    pr.Current += int64(n)
+    
+    // Print progress
+    percentage := float64(pr.Current) / float64(pr.Total) * 100
+    fmt.Printf("\rProgress: %.2f%%", percentage)
+    
+    return n, err
+}
+```
+
+#### Directory Watcher Pattern
+
+```go
+func WatchDirectory(dir string, action func(string)) error {
+    initialFiles := make(map[string]time.Time)
+    
+    // Get initial state
+    err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+        if err == nil && !info.IsDir() {
+            initialFiles[path] = info.ModTime()
+        }
+        return nil
+    })
+    if err != nil {
+        return err
+    }
+    
+    // Poll for changes
+    ticker := time.NewTicker(1 * time.Second)
+    defer ticker.Stop()
+    
+    for range ticker.C {
+        filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+            if err != nil || info.IsDir() {
+                return nil
+            }
+            
+            if oldTime, exists := initialFiles[path]; !exists || oldTime != info.ModTime() {
+                action(path)
+                initialFiles[path] = info.ModTime()
+            }
+            return nil
+        })
+    }
+    
+    return nil
+}
+```
+
+### Best Practices
+
+1. **Always handle errors properly**
+
+```go
+// Don't ignore errors
+data, _ := os.ReadFile("file.txt")  // BAD
+
+// Do this instead
+data, err := os.ReadFile("file.txt")
+if err != nil {
+    return fmt.Errorf("reading file: %w", err)
+}
+```
+
+2. **Use defer for cleanup**
+
+```go
+file, err := os.Open("file.txt")
+if err != nil {
+    return err
+}
+defer file.Close()  // Guaranteed to run
+```
+
+3. **Buffer I/O for performance**
+
+```go
+// Slow: many system calls
+file.Write([]byte("a"))
+file.Write([]byte("b"))
+
+// Fast: buffered writes
+writer := bufio.NewWriter(file)
+writer.WriteString("a")
+writer.WriteString("b")
+writer.Flush()
+```
+
+4. **Check for specific errors**
+
+```go
+if errors.Is(err, os.ErrNotExist) {
+    // File doesn't exist
+}
+if errors.Is(err, os.ErrPermission) {
+    // Permission denied
+}
+```
+
+5. **Use io.Reader/Writer interfaces**
+
+```go
+// Good: accepts any reader
+func ProcessData(r io.Reader) error { ... }
+
+// Limited: only works with files
+func ProcessData(f *os.File) error { ... }
+```
+
+**Key Points:**
+
+- io.Reader/Writer are the foundation of Go's I/O
+- Always close files and flush buffered writers
+- Use bufio for line-by-line reading or when doing many small reads/writes
+- filepath package handles OS-specific path separators automatically
+- os.ReadFile/WriteFile for simple cases, streaming for large files
+- Error wrapping with %w preserves error chain for errors.Is()
+
+## 7.2 String Manipulation
+
+### strings Package
+
+The `strings` package provides essential functions for string manipulation:
+
+```go
+import "strings"
+
+// Basic operations
+s := "Hello, World!"
+strings.Contains(s, "World")        // true
+strings.HasPrefix(s, "Hello")       // true
+strings.HasSuffix(s, "!")           // true
+strings.Index(s, "World")           // 7
+strings.Count(s, "l")               // 3
+
+// Transformation
+strings.ToUpper(s)                  // "HELLO, WORLD!"
+strings.ToLower(s)                  // "hello, world!"
+strings.TrimSpace("  hello  ")      // "hello"
+strings.Trim("!!hello!!", "!")      // "hello"
+strings.Replace(s, "World", "Go", 1) // "Hello, Go!"
+strings.ReplaceAll(s, "l", "L")     // "HeLLo, WorLd!"
+
+// Splitting and joining
+parts := strings.Split("a-b-c", "-")     // []string{"a", "b", "c"}
+strings.Join(parts, ":")                  // "a:b:c"
+strings.Fields("  a   b  c  ")           // []string{"a", "b", "c"}
+
+// Builder for efficient concatenation
+var builder strings.Builder
+builder.WriteString("Hello")
+builder.WriteString(" ")
+builder.WriteString("World")
+result := builder.String()  // "Hello World"
+```
+
+### strconv Package
+
+The `strconv` package handles conversions between strings and other types:
+
+```go
+import "strconv"
+
+// String to number
+i, err := strconv.Atoi("123")           // int: 123
+f, err := strconv.ParseFloat("3.14", 64) // float64: 3.14
+b, err := strconv.ParseBool("true")      // bool: true
+n, err := strconv.ParseInt("42", 10, 64) // int64: 42 (base 10)
+
+// Number to string
+s1 := strconv.Itoa(123)                  // "123"
+s2 := strconv.FormatFloat(3.14, 'f', 2, 64) // "3.14"
+s3 := strconv.FormatBool(true)           // "true"
+s4 := strconv.FormatInt(42, 10)          // "42" (base 10)
+
+// Quote operations
+quoted := strconv.Quote("Hello\nWorld")   // "\"Hello\\nWorld\""
+unquoted, err := strconv.Unquote(`"test"`) // "test"
+```
+
+### regexp Package
+
+Regular expressions for pattern matching:
+
+```go
+import "regexp"
+
+// Compile patterns
+re := regexp.MustCompile(`\d+`)  // panics on error
+re2, err := regexp.Compile(`[a-z]+`)  // returns error
+
+// Matching
+matched := re.MatchString("abc123")  // true
+found := re.FindString("abc123def")  // "123"
+allFound := re.FindAllString("a1b2c3", -1) // ["1", "2", "3"]
+
+// Replacing
+result := re.ReplaceAllString("a1b2c3", "X")  // "aXbXcX"
+result2 := re.ReplaceAllStringFunc("a1b2c3", func(s string) string {
+    n, _ := strconv.Atoi(s)
+    return strconv.Itoa(n * 2)
+})  // "a2b4c6"
+
+// Submatches (groups)
+re3 := regexp.MustCompile(`(\w+)@(\w+\.\w+)`)
+matches := re3.FindStringSubmatch("john@example.com")
+// ["john@example.com", "john", "example.com"]
+```
+
+### Text Templates
+
+The `text/template` package for dynamic text generation:
+
+```go
+import (
+    "text/template"
+    "bytes"
+)
+
+// Define template
+const tmplText = `
+Name: {{.Name}}
+Age: {{.Age}}
+{{if .IsActive}}Status: Active{{else}}Status: Inactive{{end}}
+Skills:
+{{range .Skills}}- {{.}}
+{{end}}`
+
+// Parse and execute
+type Person struct {
+    Name     string
+    Age      int
+    IsActive bool
+    Skills   []string
+}
+
+tmpl, err := template.New("person").Parse(tmplText)
+if err != nil {
+    panic(err)
+}
+
+person := Person{
+    Name:     "Alice",
+    Age:      30,
+    IsActive: true,
+    Skills:   []string{"Go", "Python", "Docker"},
+}
+
+var buf bytes.Buffer
+err = tmpl.Execute(&buf, person)
+result := buf.String()
+
+// Template functions
+funcMap := template.FuncMap{
+    "upper": strings.ToUpper,
+    "add": func(a, b int) int { return a + b },
+}
+
+tmpl2 := template.Must(template.New("test").Funcs(funcMap).Parse(
+    `{{upper .Name}} is {{add .Age 5}} in 5 years`,
+))
+```
+
+**Key Points:**
+
+- Use `strings.Builder` for efficient string concatenation
+- Always handle errors from `strconv` conversions
+- `regexp.MustCompile` for compile-time patterns, `Compile` for runtime
+- Templates support conditionals, loops, and custom functions
+
+## 7.3 Time & Date
+
+### ``time.Time`` & ``time.Duration``
+
+The `time` package handles dates, times, and durations with nanosecond precision:
+
+```go
+import "time"
+
+// Current time
+now := time.Now()                    // Local time
+utcNow := time.Now().UTC()          // UTC time
+
+// Create specific time
+t := time.Date(2025, time.August, 15, 14, 30, 0, 0, time.UTC)
+// year, month, day, hour, min, sec, nanosec, location
+
+// Extract components
+year := t.Year()                     // 2025
+month := t.Month()                   // time.August
+day := t.Day()                       // 15
+weekday := t.Weekday()              // time.Friday
+
+// Duration type (int64 nanoseconds)
+duration := 2*time.Hour + 30*time.Minute
+future := now.Add(duration)         // Add duration to time
+past := now.Add(-24 * time.Hour)    // Subtract duration
+
+// Calculate difference
+diff := future.Sub(now)             // Returns time.Duration
+hoursSince := time.Since(past)      // Convenience for time.Now().Sub(past)
+hoursUntil := time.Until(future)    // Convenience for future.Sub(time.Now())
+
+// Comparisons
+if t.Before(now) {                  // Also: After(), Equal()
+    fmt.Println("t is in the past")
+}
+```
+
+### Timers & Tickers
+
+Control time-based execution:
+
+```go
+// Timer - fires once after delay
+timer := time.NewTimer(5 * time.Second)
+<-timer.C  // Blocks until timer fires
+timer.Stop()  // Cancel if needed
+
+// AfterFunc - execute function after delay
+time.AfterFunc(2*time.Second, func() {
+    fmt.Println("Executed after 2 seconds")
+})
+
+// Ticker - fires repeatedly  
+ticker := time.NewTicker(1 * time.Second)
+go func() {
+    for t := range ticker.C {
+        fmt.Println("Tick at", t)
+    }
+}()
+time.Sleep(5 * time.Second)
+ticker.Stop()  // Important: always stop when done!
+
+// Simple timeout pattern
+select {
+case result := <-ch:
+    fmt.Println("Got result:", result)
+case <-time.After(3 * time.Second):  // Creates timer internally
+    fmt.Println("Timeout!")
+}
+```
+
+### Time Zones
+
+Working with different locations:
+
+```go
+// Load location
+loc, err := time.LoadLocation("America/New_York")
+if err != nil {
+    panic(err)
+}
+
+// Create time in specific zone
+nyTime := time.Date(2025, 8, 15, 14, 30, 0, 0, loc)
+
+// Convert between zones
+utcTime := nyTime.UTC()                    // Convert to UTC
+localTime := nyTime.Local()                // Convert to system local
+tokyoLoc, _ := time.LoadLocation("Asia/Tokyo")
+tokyoTime := nyTime.In(tokyoLoc)          // Convert to any zone
+
+// Fixed zone (when you know offset)
+ist := time.FixedZone("IST", 5*3600+1800)  // +05:30
+indianTime := now.In(ist)
+
+// Unix timestamps (always UTC)
+unix := now.Unix()                         // Seconds since epoch
+unixNano := now.UnixNano()                // Nanoseconds since epoch
+fromUnix := time.Unix(unix, 0)            // Reconstruct from Unix time
+```
+
+### Parsing & Formatting
+
+Go uses a unique reference time for formatting: `Mon Jan 2 15:04:05 MST 2006`
+
+```go
+// Formatting (Time to String)
+t := time.Now()
+fmt.Println(t.Format("2006-01-02"))              // "2025-08-15"
+fmt.Println(t.Format("15:04:05"))                // "14:30:00"
+fmt.Println(t.Format("Jan 2, 2006 3:04 PM"))     // "Aug 15, 2025 2:30 PM"
+fmt.Println(t.Format(time.RFC3339))              // ISO 8601 format
+
+// Common predefined formats
+time.RFC3339     // "2006-01-02T15:04:05Z07:00"
+time.Kitchen     // "3:04PM"
+time.Stamp       // "Jan _2 15:04:05"
+
+// Parsing (String to Time)
+str := "2025-08-15 14:30:00"
+parsed, err := time.Parse("2006-01-02 15:04:05", str)  // Assumes UTC!
+
+// ParseInLocation - specify timezone
+loc, _ := time.LoadLocation("Asia/Kolkata")
+localParsed, err := time.ParseInLocation(
+    "2006-01-02 15:04:05", 
+    str, 
+    loc,  // Uses this location instead of UTC
+)
+
+// Important format components to remember!
+// 2006 → Year       01 → Month         02 → Day
+// 15 → Hour(24h)    03 → Hour(12h)     04 → Minute
+// 05 → Second       PM → AM/PM         Mon → Weekday
+// Jan → Month name  MST → Timezone     -0700 → Offset
+```
+
+### Practical Examples
+
+```go
+// Calculate age
+birthdate := time.Date(1990, 5, 15, 0, 0, 0, 0, time.UTC)
+age := int(time.Since(birthdate).Hours() / 24 / 365.25)
+
+// Start of day
+now := time.Now()
+startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 
+                        0, 0, 0, 0, now.Location())
+
+// Truncate to hour (rounds down)
+truncated := now.Truncate(time.Hour)  // 14:30:45 → 14:00:00
+
+// Round to nearest hour  
+rounded := now.Round(time.Hour)       // 14:30:45 → 15:00:00
+
+// Measure execution time
+start := time.Now()
+// ... some operation ...
+elapsed := time.Since(start)
+fmt.Printf("Operation took %v\n", elapsed)
+```
+
+**Key Points:**
+
+- Always use `ParseInLocation` when time zone matters - `Parse` assumes UTC!
+- The format string MUST use the reference time `2006-01-02 15:04:05`
+- Store times in UTC in databases, convert to local only for display
+- Remember to `Stop()` tickers to prevent goroutine leaks
+- `time.Duration` max is ~290 years (int64 nanoseconds limit)
+
