@@ -8252,11 +8252,11 @@ func consumer(ch chan int) {
 ## How different channels work?
 
 
-|          | Unbuffered, open                | Unbuffered, closed          | Buffered, open               | Buffered, closed            | Nil                |
-|----------|---------------------------------|-----------------------------|------------------------------|-----------------------------|--------------------|
-| **Read** | Pause until something is written | Return zero value (use comma ok to see if closed) | Pause if buffer is empty    | Return a remaining value in the buffer. If the buffer is empty, return zero value (use comma ok to see if closed) | Hang forever        |
-| **Write**| Pause until something is read    | PANIC                       | Pause if buffer is full     | PANIC                       | Hang forever        |
-| **Close**| Works                           | PANIC                       | Works, remaining values still there | PANIC                       | PANIC              |
+|           | Unbuffered, open                 | Unbuffered, closed                                | Buffered, open                      | Buffered, closed                                                                                                  | Nil          |
+| --------- | -------------------------------- | ------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------ |
+| **Read**  | Pause until something is written | Return zero value (use comma ok to see if closed) | Pause if buffer is empty            | Return a remaining value in the buffer. If the buffer is empty, return zero value (use comma ok to see if closed) | Hang forever |
+| **Write** | Pause until something is read    | PANIC                                             | Pause if buffer is full             | PANIC                                                                                                             | Hang forever |
+| **Close** | Works                            | PANIC                                             | Works, remaining values still there | PANIC                                                                                                             | PANIC        |
 ## Go channel select statement
 
 The select statement in Go channels is used to wait on multiple channel operations like receiving and sending values. The select statement waits for simultaneous send and receive operations. Below are the characteristics of a select statement working with channels.
